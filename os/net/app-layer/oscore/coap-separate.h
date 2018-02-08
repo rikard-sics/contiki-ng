@@ -31,42 +31,47 @@
 
 /**
  * \file
- *      Erbium (Er) example project configuration.
+ *      CoAP module for separate responses.
  * \author
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
-#ifndef PROJECT_ERBIUM_CONF_H_
-#define PROJECT_ERBIUM_CONF_H_
+/**
+ * \addtogroup coap
+ * @{
+ */
 
-/* Custom channel and PAN ID configuration for your project. */
-/* #define RF_CHANNEL                    26 */
-/* #define IEEE802154_CONF_PANID     0xABCD */
+#ifndef COAP_SEPARATE_H_
+#define COAP_SEPARATE_H_
 
-/* IP buffer size must match all other hops, in particular the border router. */
-/* #define UIP_CONF_BUFFER_SIZE         256 */
+#include "coap.h"
+#include "coap-engine.h"
 
-/* Increase rpl-border-router IP-buffer when using more than 64. */
-#define COAP_MAX_CHUNK_SIZE           48
+typedef struct coap_separate {
 
-/* Estimate your header size, especially when using Proxy-Uri. */
-/* #define COAP_MAX_HEADER_SIZE          70 */
+  coap_endpoint_t endpoint;
 
-/* Multiplies with chunk size, be aware of memory constraints. */
-#ifndef COAP_MAX_OPEN_TRANSACTIONS
-#define COAP_MAX_OPEN_TRANSACTIONS     4
-#endif /* COAP_MAX_OPEN_TRANSACTIONS */
+  coap_message_type_t type;
+  uint16_t mid;
 
-/* Must be <= open transactions, default is COAP_MAX_OPEN_TRANSACTIONS-1. */
-/* #define COAP_MAX_OBSERVERS             2 */
+  uint8_t token_len;
+  uint8_t token[COAP_TOKEN_LEN];
 
-/* Filtering .well-known/core per query can be disabled to save space. */
-#define COAP_LINK_FORMAT_FILTERING     0
-#define COAP_PROXY_OPTION_PROCESSING   0
+  uint32_t block1_num;
+  uint16_t block1_size;
 
-/* Enable client-side support for COAP observe */
-#ifndef COAP_OBSERVE_CLIENT
-#define COAP_OBSERVE_CLIENT            1
-#endif /* COAP_OBSERVE_CLIENT */
+  uint32_t block2_num;
+  uint16_t block2_size;
+} coap_separate_t;
 
-#endif /* PROJECT_ERBIUM_CONF_H_ */
+int coap_separate_handler(coap_resource_t *resource, coap_message_t *request,
+                          coap_message_t *response);
+void coap_separate_reject(void);
+void coap_separate_accept(coap_message_t *request,
+                          coap_separate_t *separate_store);
+void coap_separate_resume(coap_message_t *response,
+                          coap_separate_t *separate_store,
+                          uint8_t code);
+
+#endif /* COAP_SEPARATE_H_ */
+/** @} */

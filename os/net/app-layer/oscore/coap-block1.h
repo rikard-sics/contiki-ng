@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Institute for Pervasive Computing, ETH Zurich
+ * Copyright (c) 2014, Lars Schmertmann <SmallLars@t-online.de>.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,42 +31,25 @@
 
 /**
  * \file
- *      Erbium (Er) example project configuration.
+ *      CoAP module for block 1 handling
  * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *      Lars Schmertmann <SmallLars@t-online.de>
  */
 
-#ifndef PROJECT_ERBIUM_CONF_H_
-#define PROJECT_ERBIUM_CONF_H_
+/**
+ * \addtogroup coap
+ * @{
+ */
 
-/* Custom channel and PAN ID configuration for your project. */
-/* #define RF_CHANNEL                    26 */
-/* #define IEEE802154_CONF_PANID     0xABCD */
+#ifndef COAP_BLOCK1_H_
+#define COAP_BLOCK1_H_
 
-/* IP buffer size must match all other hops, in particular the border router. */
-/* #define UIP_CONF_BUFFER_SIZE         256 */
+#include "coap.h"
+#include <stddef.h>
+#include <stdint.h>
 
-/* Increase rpl-border-router IP-buffer when using more than 64. */
-#define COAP_MAX_CHUNK_SIZE           48
+int coap_block1_handler(coap_message_t *request, coap_message_t *response,
+                        uint8_t *target, size_t *len, size_t max_len);
 
-/* Estimate your header size, especially when using Proxy-Uri. */
-/* #define COAP_MAX_HEADER_SIZE          70 */
-
-/* Multiplies with chunk size, be aware of memory constraints. */
-#ifndef COAP_MAX_OPEN_TRANSACTIONS
-#define COAP_MAX_OPEN_TRANSACTIONS     4
-#endif /* COAP_MAX_OPEN_TRANSACTIONS */
-
-/* Must be <= open transactions, default is COAP_MAX_OPEN_TRANSACTIONS-1. */
-/* #define COAP_MAX_OBSERVERS             2 */
-
-/* Filtering .well-known/core per query can be disabled to save space. */
-#define COAP_LINK_FORMAT_FILTERING     0
-#define COAP_PROXY_OPTION_PROCESSING   0
-
-/* Enable client-side support for COAP observe */
-#ifndef COAP_OBSERVE_CLIENT
-#define COAP_OBSERVE_CLIENT            1
-#endif /* COAP_OBSERVE_CLIENT */
-
-#endif /* PROJECT_ERBIUM_CONF_H_ */
+#endif /* COAP_BLOCK1_H_ */
+/** @} */

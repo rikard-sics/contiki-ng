@@ -36,20 +36,19 @@
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
-#include <stdlib.h>
+#include "contiki.h"
+
+#if PLATFORM_HAS_RADIO
+#include <stdio.h>
 #include <string.h>
 #include "coap-engine.h"
+#include "net/netstack.h"
 
 static void res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
-/*
- * A handler function named [resource name]_handler must be implemented for each RESOURCE.
- * A buffer for the response payload is provided through the buffer pointer. Simple resources can ignore
- * preferred_size and offset, but must respect the REST_MAX_CHUNK_SIZE limit for the buffer.
- * If a smaller block size is requested for CoAP, the REST framework automatically splits the data.
- */
-RESOURCE(res_hello,
-         "title=\"Hello world: ?len=0..\";rt=\"Text\"",
+/* A simple getter example. Returns the reading of the rssi/lqi from radio sensor */
+RESOURCE(res_radio,
+         "title=\"RADIO: ?p=rssi\";rt=\"RadioSensor\"",
          res_get_handler,
          NULL,
          NULL,
@@ -58,24 +57,43 @@ RESOURCE(res_hello,
 static void
 res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  const char *len = NULL;
-  /* Some data that has the length up to REST_MAX_CHUNK_SIZE. For more, see the chunk resource. */
-  char const *const message = "Hello World! ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy";
-  int length = 12; /*           |<-------->| */
+  size_t len = 0;
+  const char *p = NULL;
+  radio_value_t value;
+  int8_t rssi = 0;
+  int success = 0;
+  unsigned int accept = -1;
 
-  /* The query string can be retrieved by rest_get_query() or parsed for its key-value pairs. */
-  if(coap_get_query_variable(request, "len", &len)) {
-    length = atoi(len);
-    if(length < 0) {
-      length = 0;
+  coap_get_header_accept(request, &accept);
+
+  if((len = coap_get_query_variable(request, "p", &p))) {
+    if(strncmp(p, "rssi", len) == 0) {
+      if(NETSTACK_RADIO.get_value(RADIO_PARAM_RSSI, &value) ==
+         RADIO_RESULT_OK) {
+        success = 1;
+        rssi = (int8_t)value;
+      }
     }
-    if(length > REST_MAX_CHUNK_SIZE) {
-      length = REST_MAX_CHUNK_SIZE;
+  }
+
+  if(success) {
+    if(accept == -1 || accept == TEXT_PLAIN) {
+      coap_set_header_content_format(response, TEXT_PLAIN);
+      snprintf((char *)buffer, COAP_MAX_CHUNK_SIZE, "%d", rssi);
+
+      coap_set_payload(response, (uint8_t *)buffer, strlen((char *)buffer));
+    } else if(accept == APPLICATION_JSON) {
+      coap_set_header_content_format(response, APPLICATION_JSON);
+
+      snprintf((char *)buffer, COAP_MAX_CHUNK_SIZE, "{'rssi':%d}", rssi);
+      coap_set_payload(response, buffer, strlen((char *)buffer));
+    } else {
+      coap_set_status_code(response, NOT_ACCEPTABLE_4_06);
+      const char *msg = "Supporting content-types text/plain and application/json";
+      coap_set_payload(response, msg, strlen(msg));
     }
-    memcpy(buffer, message, length);
   } else {
-    memcpy(buffer, message, length);
-  } coap_set_header_content_format(response, TEXT_PLAIN); /* text/plain is the default, hence this option could be omitted. */
-  coap_set_header_etag(response, (uint8_t *)&length, 1);
-  coap_set_payload(response, buffer, length);
+    coap_set_status_code(response, BAD_REQUEST_4_00);
+  }
 }
+#endif /* PLATFORM_HAS_RADIO */

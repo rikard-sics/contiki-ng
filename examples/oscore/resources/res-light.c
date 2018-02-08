@@ -36,20 +36,20 @@
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
-#include <stdlib.h>
+#include "contiki.h"
+
+#if PLATFORM_HAS_LIGHT
+
+#include <stdio.h>
 #include <string.h>
 #include "coap-engine.h"
+#include "dev/light-sensor.h"
 
 static void res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
-/*
- * A handler function named [resource name]_handler must be implemented for each RESOURCE.
- * A buffer for the response payload is provided through the buffer pointer. Simple resources can ignore
- * preferred_size and offset, but must respect the REST_MAX_CHUNK_SIZE limit for the buffer.
- * If a smaller block size is requested for CoAP, the REST framework automatically splits the data.
- */
-RESOURCE(res_hello,
-         "title=\"Hello world: ?len=0..\";rt=\"Text\"",
+/* A simple getter example. Returns the reading from light sensor with a simple etag */
+RESOURCE(res_light,
+         "title=\"Photosynthetic and solar light (supports JSON)\";rt=\"LightSensor\"",
          res_get_handler,
          NULL,
          NULL,
@@ -58,24 +58,31 @@ RESOURCE(res_hello,
 static void
 res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  const char *len = NULL;
-  /* Some data that has the length up to REST_MAX_CHUNK_SIZE. For more, see the chunk resource. */
-  char const *const message = "Hello World! ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy";
-  int length = 12; /*           |<-------->| */
+  uint16_t light_photosynthetic = light_sensor.value(LIGHT_SENSOR_PHOTOSYNTHETIC);
+  uint16_t light_solar = light_sensor.value(LIGHT_SENSOR_TOTAL_SOLAR);
 
-  /* The query string can be retrieved by rest_get_query() or parsed for its key-value pairs. */
-  if(coap_get_query_variable(request, "len", &len)) {
-    length = atoi(len);
-    if(length < 0) {
-      length = 0;
-    }
-    if(length > REST_MAX_CHUNK_SIZE) {
-      length = REST_MAX_CHUNK_SIZE;
-    }
-    memcpy(buffer, message, length);
+  unsigned int accept = -1;
+  coap_get_header_accept(request, &accept);
+
+  if(accept == -1 || accept == TEXT_PLAIN) {
+    coap_set_header_content_format(response, TEXT_PLAIN);
+    snprintf((char *)buffer, COAP_MAX_CHUNK_SIZE, "%u;%u", light_photosynthetic, light_solar);
+
+    coap_set_payload(response, (uint8_t *)buffer, strlen((char *)buffer));
+  } else if(accept == APPLICATION_XML) {
+    coap_set_header_content_format(response, APPLICATION_XML);
+    snprintf((char *)buffer, COAP_MAX_CHUNK_SIZE, "<light photosynthetic=\"%u\" solar=\"%u\"/>", light_photosynthetic, light_solar);
+
+    coap_set_payload(response, buffer, strlen((char *)buffer));
+  } else if(accept == APPLICATION_JSON) {
+    coap_set_header_content_format(response, APPLICATION_JSON);
+    snprintf((char *)buffer, COAP_MAX_CHUNK_SIZE, "{'light':{'photosynthetic':%u,'solar':%u}}", light_photosynthetic, light_solar);
+
+    coap_set_payload(response, buffer, strlen((char *)buffer));
   } else {
-    memcpy(buffer, message, length);
-  } coap_set_header_content_format(response, TEXT_PLAIN); /* text/plain is the default, hence this option could be omitted. */
-  coap_set_header_etag(response, (uint8_t *)&length, 1);
-  coap_set_payload(response, buffer, length);
+    coap_set_status_code(response, NOT_ACCEPTABLE_4_06);
+    const char *msg = "Supporting content-types text/plain, application/xml, and application/json";
+    coap_set_payload(response, msg, strlen(msg));
+  }
 }
+#endif /* PLATFORM_HAS_LIGHT */

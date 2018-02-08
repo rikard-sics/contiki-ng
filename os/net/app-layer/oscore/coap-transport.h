@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Institute for Pervasive Computing, ETH Zurich
+ * Copyright (c) 2016-2018, SICS, Swedish ICT AB.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,48 +25,60 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
- *
- * This file is part of the Contiki operating system.
  */
 
 /**
  * \file
- *      Erbium (Er) example project configuration.
+ *         API for CoAP transport
  * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *         Niclas Finne <nfi@sics.se>
+ *         Joakim Eriksson <joakime@sics.se>
  */
 
-#ifndef PROJECT_ERBIUM_CONF_H_
-#define PROJECT_ERBIUM_CONF_H_
+/**
+ * \addtogroup coap
+ * @{
+ *
+ * \defgroup coap-transport CoAP transport API
+ * @{
+ *
+ * The CoAP transport API defines a common interface for sending/receiving
+ * CoAP messages.
+ */
 
-/* Custom channel and PAN ID configuration for your project. */
-/* #define RF_CHANNEL                    26 */
-/* #define IEEE802154_CONF_PANID     0xABCD */
+#ifndef COAP_TRANSPORT_H_
+#define COAP_TRANSPORT_H_
 
-/* IP buffer size must match all other hops, in particular the border router. */
-/* #define UIP_CONF_BUFFER_SIZE         256 */
+#include "coap-endpoint.h"
 
-/* Increase rpl-border-router IP-buffer when using more than 64. */
-#define COAP_MAX_CHUNK_SIZE           48
+/**
+ * \brief      Returns a common data buffer that can be used when
+ *             generating CoAP messages for transmission. The buffer
+ *             size is at least COAP_MAX_PACKET_SIZE bytes.
+ *
+ *             In Contiki-NG, this corresponds to the uIP buffer.
+ *
+ * \return     A pointer to a data buffer where a CoAP message can be stored.
+ */
+uint8_t *coap_databuf(void);
 
-/* Estimate your header size, especially when using Proxy-Uri. */
-/* #define COAP_MAX_HEADER_SIZE          70 */
+/**
+ * \brief      Send a message to the specified CoAP endpoint
+ * \param ep   A pointer to a CoAP endpoint
+ * \param data A pointer to data to send
+ * \param len  The size of the data to send
+ * \return     The number of bytes sent or negative if an error occurred.
+ */
+int coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t len);
 
-/* Multiplies with chunk size, be aware of memory constraints. */
-#ifndef COAP_MAX_OPEN_TRANSACTIONS
-#define COAP_MAX_OPEN_TRANSACTIONS     4
-#endif /* COAP_MAX_OPEN_TRANSACTIONS */
+/**
+ * \brief      Initialize the CoAP transport.
+ *
+ *             This function initializes the CoAP transport implementation and
+ *             should only be called by the CoAP engine.
+ */
+void coap_transport_init(void);
 
-/* Must be <= open transactions, default is COAP_MAX_OPEN_TRANSACTIONS-1. */
-/* #define COAP_MAX_OBSERVERS             2 */
-
-/* Filtering .well-known/core per query can be disabled to save space. */
-#define COAP_LINK_FORMAT_FILTERING     0
-#define COAP_PROXY_OPTION_PROCESSING   0
-
-/* Enable client-side support for COAP observe */
-#ifndef COAP_OBSERVE_CLIENT
-#define COAP_OBSERVE_CLIENT            1
-#endif /* COAP_OBSERVE_CLIENT */
-
-#endif /* PROJECT_ERBIUM_CONF_H_ */
+#endif /* COAP_TRANSPORT_H_ */
+/** @} */
+/** @} */

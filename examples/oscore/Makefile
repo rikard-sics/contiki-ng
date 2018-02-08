@@ -1,12 +1,7 @@
-all: oscore-example-server oscore-example-client oscore-plugtest-server oscore-plugtest-client
-# use target "oscore-plugtest-server" explicitly when required
+all: oscore-example-server oscore-example-client
+# use target "plugtest-server" explicitly when required
 
 CONTIKI=../..
-
-MAKE_WITH_OSCORE = 1
-WERROR = 1
-CFLAGS += -DCOOJA_MTARCH_STACKSIZE=4096
-CFLAGS += -DOSCORE_EP_CTX_ASSOCIATION
 
 # build RESTful resources
 include $(CONTIKI)/Makefile.identify-target
@@ -14,13 +9,10 @@ ifeq ($(TARGET),native)
 	MODULES_REL += ./resources-plugtest
 endif
 MODULES_REL += ./resources
-MODULES_REL += ../coap/coap-example-server/resources
 MODULES_REL += $(TARGET)
 
-CONTIKI_TARGET_SOURCEFILES += plugtest_resources.c
-
 # Include the CoAP implementation
-MODULES += os/net/app-layer/coap
+MODULES += os/net/app-layer/oscore
 
 include $(CONTIKI)/Makefile.include
 

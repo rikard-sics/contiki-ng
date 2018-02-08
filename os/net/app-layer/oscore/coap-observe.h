@@ -31,42 +31,54 @@
 
 /**
  * \file
- *      Erbium (Er) example project configuration.
+ *      CoAP module for observing resources (draft-ietf-core-observe-11).
  * \author
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
-#ifndef PROJECT_ERBIUM_CONF_H_
-#define PROJECT_ERBIUM_CONF_H_
+/**
+ * \addtogroup coap
+ * @{
+ */
 
-/* Custom channel and PAN ID configuration for your project. */
-/* #define RF_CHANNEL                    26 */
-/* #define IEEE802154_CONF_PANID     0xABCD */
+#ifndef COAP_OBSERVE_H_
+#define COAP_OBSERVE_H_
 
-/* IP buffer size must match all other hops, in particular the border router. */
-/* #define UIP_CONF_BUFFER_SIZE         256 */
+#include "coap.h"
+#include "coap-transactions.h"
+#include "coap-engine.h"
 
-/* Increase rpl-border-router IP-buffer when using more than 64. */
-#define COAP_MAX_CHUNK_SIZE           48
+#define COAP_OBSERVER_URL_LEN 20
 
-/* Estimate your header size, especially when using Proxy-Uri. */
-/* #define COAP_MAX_HEADER_SIZE          70 */
+typedef struct coap_observer {
+  struct coap_observer *next;   /* for LIST */
 
-/* Multiplies with chunk size, be aware of memory constraints. */
-#ifndef COAP_MAX_OPEN_TRANSACTIONS
-#define COAP_MAX_OPEN_TRANSACTIONS     4
-#endif /* COAP_MAX_OPEN_TRANSACTIONS */
+  char url[COAP_OBSERVER_URL_LEN];
+  coap_endpoint_t endpoint;
+  uint8_t token_len;
+  uint8_t token[COAP_TOKEN_LEN];
+  uint16_t last_mid;
 
-/* Must be <= open transactions, default is COAP_MAX_OPEN_TRANSACTIONS-1. */
-/* #define COAP_MAX_OBSERVERS             2 */
+  int32_t obs_counter;
 
-/* Filtering .well-known/core per query can be disabled to save space. */
-#define COAP_LINK_FORMAT_FILTERING     0
-#define COAP_PROXY_OPTION_PROCESSING   0
+  coap_timer_t retrans_timer;
+  uint8_t retrans_counter;
+} coap_observer_t;
 
-/* Enable client-side support for COAP observe */
-#ifndef COAP_OBSERVE_CLIENT
-#define COAP_OBSERVE_CLIENT            1
-#endif /* COAP_OBSERVE_CLIENT */
+void coap_remove_observer(coap_observer_t *o);
+int coap_remove_observer_by_client(const coap_endpoint_t *ep);
+int coap_remove_observer_by_token(const coap_endpoint_t *ep,
+                                  uint8_t *token, size_t token_len);
+int coap_remove_observer_by_uri(const coap_endpoint_t *ep,
+                                const char *uri);
+int coap_remove_observer_by_mid(const coap_endpoint_t *ep,
+                                uint16_t mid);
 
-#endif /* PROJECT_ERBIUM_CONF_H_ */
+void coap_notify_observers(coap_resource_t *resource);
+void coap_notify_observers_sub(coap_resource_t *resource, const char *subpath);
+
+void coap_observe_handler(coap_resource_t *resource, coap_message_t *request,
+                          coap_message_t *response);
+
+#endif /* COAP_OBSERVE_H_ */
+/** @} */

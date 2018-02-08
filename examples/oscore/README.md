@@ -4,12 +4,12 @@ A Quick Introduction to the Erbium (Er) CoAP Engine
 EXAMPLE FILES
 -------------
 
-- oscore-example-server.c: A OSCORE server example showing how to use the OSCORE protocol with the CoAP
-  layer to develop secure server-side applications.
-- oscore-example-client.c: A OSCORE client that polls the /actuators/toggle resource
+- coap-example-server.c: A CoAP server example showing how to use the CoAP
+  layer to develop server-side applications.
+- coap-example-client.c: A CoAP client that polls the /actuators/toggle resource
   every 10 seconds and cycles through 4 resources on button press (target
   address is hard-coded).
-- oscore-plugtest-server.c: The server used for draft compliance testing at ETSI
+- plugtest-server.c: The server used for draft compliance testing at ETSI
   IoT CoAP Plugtests. Erbium (Er) participated in Paris, France, March 2012 and
   Sophia-Antipolis, France, November 2012 (configured for native).
 
@@ -76,5 +76,8 @@ in coap-example-server.c.  In general, coap supports:
 TODOs
 -----
 
-- OSCORE-Observe
-- Appendix ??
+- Dedicated Observe buffers
+- Optimize message struct variable access (directly access struct without copying)
+- Observe client
+- Multiple If-Match ETags
+- (Message deduplication)

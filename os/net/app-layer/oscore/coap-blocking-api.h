@@ -30,43 +30,44 @@
  */
 
 /**
- * \file
- *      Erbium (Er) example project configuration.
- * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ * \addtogroup coap
+ * @{
  */
 
-#ifndef PROJECT_ERBIUM_CONF_H_
-#define PROJECT_ERBIUM_CONF_H_
+#ifndef COAP_BLOCKING_API_H_
+#define COAP_BLOCKING_API_H_
 
-/* Custom channel and PAN ID configuration for your project. */
-/* #define RF_CHANNEL                    26 */
-/* #define IEEE802154_CONF_PANID     0xABCD */
+#include "sys/pt.h"
+#include "coap-transactions.h"
 
-/* IP buffer size must match all other hops, in particular the border router. */
-/* #define UIP_CONF_BUFFER_SIZE         256 */
+/*---------------------------------------------------------------------------*/
+/*- Client Part -------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
+typedef struct coap_request_state {
+  struct pt pt;
+  struct process *process;
+  coap_transaction_t *transaction;
+  coap_message_t *response;
+  uint32_t block_num;
+} coap_request_state_t;
 
-/* Increase rpl-border-router IP-buffer when using more than 64. */
-#define COAP_MAX_CHUNK_SIZE           48
+typedef void (* coap_blocking_response_handler_t)(coap_message_t *response);
 
-/* Estimate your header size, especially when using Proxy-Uri. */
-/* #define COAP_MAX_HEADER_SIZE          70 */
+PT_THREAD(coap_blocking_request
+          (coap_request_state_t *state, process_event_t ev,
+           coap_endpoint_t *remote,
+           coap_message_t *request,
+           coap_blocking_response_handler_t request_callback));
 
-/* Multiplies with chunk size, be aware of memory constraints. */
-#ifndef COAP_MAX_OPEN_TRANSACTIONS
-#define COAP_MAX_OPEN_TRANSACTIONS     4
-#endif /* COAP_MAX_OPEN_TRANSACTIONS */
+#define COAP_BLOCKING_REQUEST(server_endpoint, request, chunk_handler)  \
+  {                                                                     \
+    static coap_request_state_t request_state;                          \
+    PT_SPAWN(process_pt, &request_state.pt,                             \
+             coap_blocking_request(&request_state, ev,                  \
+                                   server_endpoint,                     \
+                                   request, chunk_handler)              \
+             );                                                         \
+  }
 
-/* Must be <= open transactions, default is COAP_MAX_OPEN_TRANSACTIONS-1. */
-/* #define COAP_MAX_OBSERVERS             2 */
-
-/* Filtering .well-known/core per query can be disabled to save space. */
-#define COAP_LINK_FORMAT_FILTERING     0
-#define COAP_PROXY_OPTION_PROCESSING   0
-
-/* Enable client-side support for COAP observe */
-#ifndef COAP_OBSERVE_CLIENT
-#define COAP_OBSERVE_CLIENT            1
-#endif /* COAP_OBSERVE_CLIENT */
-
-#endif /* PROJECT_ERBIUM_CONF_H_ */
+#endif /* COAP_BLOCKING_API_H_ */
+/** @} */

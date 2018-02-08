@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, SICS, RISE AB
+ * Copyright (c) 2013, Institute for Pervasive Computing, ETH Zurich
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
+ * This file is part of the Contiki operating system.
  */
 
 /**
  * \file
- *      OSCORE server example.
+ *      Erbium (Er) CoAP Engine example.
  * \author
- *      Martin Gunnarsson <martin.gunnarsson@ri.se>
+ *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
 #include <stdio.h>
@@ -40,21 +41,18 @@
 #include <string.h>
 #include "contiki.h"
 #include "coap-engine.h"
-#ifdef WITH_OSCORE
-#include "oscore.h"
-#include "oscore-context.h"
-#endif /* WITH_OSCORE */
 
-#if PLATFORM_SUPPORTS_BUTTON_HAL
-#include "dev/button-hal.h"
-#else
+#if PLATFORM_HAS_BUTTON
 #include "dev/button-sensor.h"
 #endif
 
-/* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "App"
-#define LOG_LEVEL LOG_LEVEL_APP
+#define DEBUG 0
+#if DEBUG
+#include <stdio.h>
+#define PRINTF(...) printf(__VA_ARGS__)
+#else
+#define PRINTF(...)
+#endif
 
 /*
  * Resources to be activated need to be imported through the extern keyword.
@@ -84,16 +82,19 @@ extern coap_resource_t res_battery;
 #include "dev/temperature-sensor.h"
 extern coap_resource_t res_temperature;
 #endif
+/*
+extern coap_resource_t res_battery;
+#endif
+#if PLATFORM_HAS_RADIO
+extern coap_resource_t res_radio;
+#endif
+#if PLATFORM_HAS_SHT11
+#include "dev/sht11/sht11-sensor.h"
+extern coap_resource_t res_sht11;
+#endif
+*/
 
-#ifdef WITH_OSCORE
-/* Key material, sender-ID and receiver-ID used for deriving an OSCORE-Security-Context. Note that Sender-ID and Receiver-ID is
- * mirrored in the Client and Server. */
-uint8_t master_secret[35] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23};
-uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
-uint8_t sender_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
-uint8_t receiver_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
-#endif /* WITH_OSCORE */
-PROCESS(er_example_server, "OSCORE Example Server");
+PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 
 PROCESS_THREAD(er_example_server, ev, data)
@@ -102,29 +103,22 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   PROCESS_PAUSE();
 
-  printf("Starting OSCORE Example Server\n");
+  PRINTF("Starting Erbium Example Server\n");
 
 #ifdef RF_CHANNEL
-  printf("RF channel: %u\n", RF_CHANNEL);
+  PRINTF("RF channel: %u\n", RF_CHANNEL);
 #endif
 #ifdef IEEE802154_PANID
-  printf("PAN ID: 0x%04X\n", IEEE802154_PANID);
+  PRINTF("PAN ID: 0x%04X\n", IEEE802154_PANID);
 #endif
 
-  #ifdef WITH_OSCORE
-  /*Derive an OSCORE-Security-Context. */
-  static oscore_ctx_t context;
-  oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0);
+  PRINTF("uIP buffer: %u\n", UIP_BUFSIZE);
+  PRINTF("LL header: %u\n", UIP_LLH_LEN);
+  PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
+  PRINTF("CoAP max chunk: %u\n", COAP_MAX_CHUNK_SIZE);
 
-  uint8_t key_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
-  oscore_ctx_t *ctx;
-  ctx = oscore_find_ctx_by_rid(key_id, 6);
-  if(ctx == NULL){
-    printf("CONTEXT NOT FOUND\n");
-  }else {
-    printf("context FOUND!\n");
-  }
-  #endif /* WITH_OSCORE */
+  /* Initialize the REST engine. */
+  coap_engine_init();
 
   /*
    * Bind the resources to their Uri-Path.
@@ -132,15 +126,15 @@ PROCESS_THREAD(er_example_server, ev, data)
    * All static variables are the same for each URI path.
    */
   coap_activate_resource(&res_hello, "test/hello");
-  coap_activate_resource(&res_mirror, "debug/mirror");
-  coap_activate_resource(&res_chunks, "test/chunks");
-  coap_activate_resource(&res_separate, "test/separate");
-  coap_activate_resource(&res_push, "test/push");
+ coap_activate_resource(&res_mirror, "debug/mirror");
+ coap_activate_resource(&res_chunks, "test/chunks");
+ coap_activate_resource(&res_separate, "test/separate");
+ coap_activate_resource(&res_push, "test/push");
 #if PLATFORM_HAS_BUTTON
-  coap_activate_resource(&res_event, "sensors/button");
+ coap_activate_resource(&res_event, "sensors/button");
 #endif /* PLATFORM_HAS_BUTTON */
-  coap_activate_resource(&res_sub, "test/sub");
-  coap_activate_resource(&res_b1_sep_b2, "test/b1sepb2");
+ coap_activate_resource(&res_sub, "test/sub");
+ coap_activate_resource(&res_b1_sep_b2, "test/b1sepb2");
 #if PLATFORM_HAS_LEDS
 /*  coap_activate_resource(&res_leds, "actuators/leds"); */
   coap_activate_resource(&res_toggle, "actuators/toggle");
@@ -157,26 +151,22 @@ PROCESS_THREAD(er_example_server, ev, data)
   coap_activate_resource(&res_temperature, "sensors/temperature");
   SENSORS_ACTIVATE(temperature_sensor);
 #endif
+/*
+#if PLATFORM_HAS_RADIO
+  coap_activate_resource(&res_radio, "sensors/radio");
+#endif
+#if PLATFORM_HAS_SHT11
+  coap_activate_resource(&res_sht11, "sensors/sht11");
+  SENSORS_ACTIVATE(sht11_sensor);
+#endif
+*/
 
-  #ifdef WITH_OSCORE
-  /*Marks a resource as protected by OSCORE. A CoAP request arriving to the resource will not be processed and return a UNAUTHORIZED_4_01
-   * response. Only the specified resources "test/hello", "debug/mirror", "test/chunks", "test/separate" and "test/push" are protected in this example.*/
-  oscore_protect_resource(&res_hello);
-  oscore_protect_resource(&res_mirror);
-  oscore_protect_resource(&res_chunks);
-  oscore_protect_resource(&res_separate);
-  oscore_protect_resource(&res_push);
-  #endif /* WITH_OSCORE */
-    /* Define application-specific events here. */
+  /* Define application-specific events here. */
   while(1) {
     PROCESS_WAIT_EVENT();
 #if PLATFORM_HAS_BUTTON
-#if PLATFORM_SUPPORTS_BUTTON_HAL
-    if(ev == button_hal_release_event) {
-#else
     if(ev == sensors_event && data == &button_sensor) {
-#endif
-      LOG_DBG("*******BUTTON*******\n");
+      PRINTF("*******BUTTON*******\n");
 
       /* Call the event_handler for this application-specific event. */
       res_event.trigger();
@@ -189,4 +179,3 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   PROCESS_END();
 }
-
