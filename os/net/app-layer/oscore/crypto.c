@@ -2,6 +2,9 @@
 #include "ccm-star.h"
 #include <string.h>
 
+/* Returns 0 if failure to encrypt. Ciphertext length, otherwise. 
+Tag-length and ciphertext length is derived from algorithm. No check is done to ensure
+ that ciphertext buffer is of the correct length. */
 int encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len, 
 		uint8_t *aad, uint8_t aad_len, uint8_t *plaintext_buffer, uint8_t plaintext_len, uint8_t *ciphertext_buffer){
 	
@@ -20,8 +23,9 @@ int encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 	return plaintext_len + tag_len;
 }
 	
-/* Return 0 if if decryption failure. Plaintext length otherwise. Tag-length and plaintext length is derived from algorithm. No check is done to ensure that plaintext buffer is of the correct length. */ 
-
+/* Return 0 if if decryption failure. Plaintext length otherwise. 
+Tag-length and plaintext length is derived from algorithm. No check is done to ensure
+that plaintext buffer is of the correct length. */ 
 int decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len,
 	 uint8_t *aad, uint8_t aad_len, uint8_t *ciphertext_buffer, uint8_t ciphertext_len, uint8_t *plaintext_buffer){
 	
