@@ -17,7 +17,9 @@ int cose_encrypt0_encode(cose_encrypt0_t *ptr, uint8_t *buffer){
 int cose_encrypt0_decode(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t size);
 
 /* Initiate a new COSE Encrypt0 object. */
-void cose_encrypt0_init(cose_encrypt0_t *ptr);	
+void cose_encrypt0_init(cose_encrypt0_t *ptr){
+	memset(ptr, 0, sizeof(cose_encrypt0_t));
+}	
 
 void cose_encrypt0_set_alg(cose_encrypt0_t *ptr, uint8_t alg){
 	ptr->alg = alg;
@@ -37,7 +39,10 @@ void cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t
 }
 	
 /* Return length */
-int cose_encrypt0_get_partial_iv(cose_encrypt0_t *ptr, uint8_t **buffer);
+int cose_encrypt0_get_partial_iv(cose_encrypt0_t *ptr, uint8_t **buffer){
+	*buffer = ptr->partial_iv;
+	return ptr->partial_iv_len;
+}
 	
 void cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t size){
 	ptr->key_id = buffer;
@@ -45,7 +50,11 @@ void cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t siz
 }
 	
 /* Return length */	
-int cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, uint8_t **buffer);
+int cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, uint8_t **buffer){
+	*buffer = ptr->key_id;
+	return ptr->key_id_len;
+}
+
 
 void cose_encrypt0_set_external_aad(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t size){
 	ptr->external_aad = buffer;
