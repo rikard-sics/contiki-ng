@@ -54,6 +54,8 @@
 #include "coap-conf.h"
 #include "coap-transport.h"
 
+#include "oscore-context.h"
+
 /**
  * \brief      The max size of the CoAP messages
  */
@@ -126,6 +128,8 @@ typedef struct {
 
   uint16_t payload_len;
   uint8_t *payload;
+
+  oscore_ctx_t *security_context;
 } coap_message_t;
 
 static inline int
