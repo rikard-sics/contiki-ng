@@ -3,6 +3,7 @@
 
 #include "coap.h"
 #include "cose.h"
+#include "oscore-context.h"
 
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
 coap_status_t oscore_decode_message(coap_message_t* coap_pkt);
@@ -25,7 +26,7 @@ void oscore_clear_options(coap_message_t *ptr);
 	
 
 /*Return 1 if OK, Error code otherwise */
-uint8_t oscore_validate_sender_seq(oscore_recipient_ctx_t* ctx, opt_cose_encrypt0_t *cose);
+uint8_t oscore_validate_sender_seq(oscore_recipient_ctx_t* ctx, cose_encrypt0_t *cose);
 	
 /* Return 0 if SEQ MAX, return 1 if OK */	
 uint8_t oscore_increment_sender_seq(oscore_ctx_t* ctx);
@@ -34,11 +35,11 @@ uint8_t oscore_increment_sender_seq(oscore_ctx_t* ctx);
 void oscore_roll_back_seq(oscore_recipient_ctx_t* ctx);
 
 /*Compress and extract COSE messages as per the OSCORE standard. */
-uint8_t oscore_cose_compress(opt_cose_encrypt0_t* cose, uint8_t* buffer);
-uint8_t oscore_cose_decompress(opt_cose_encrypt0_t* cose, uint8_t* buffer, size_t buffer_len);
+uint8_t oscore_cose_compress(cose_encrypt0_t* cose, uint8_t* buffer);
+uint8_t oscore_cose_decompress(cose_encrypt0_t* cose, uint8_t* buffer, size_t buffer_len);
 
 /* Start protected resource storage. */
-void oscore_init_protected_resource_storage();
+void oscore_protected_resource_store_init();
 	
 /* Mark a resource as protected by OSCORE, incoming COAP requests to that resource will be rejected. */
 uint8_t oscore_protect_resource(char uri);
