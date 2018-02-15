@@ -93,6 +93,7 @@ oscore_ctx_t* oscore_derrive_ctx(uint8_t* master_secret, uint8_t master_secret_l
     //common IV
     info_len = compose_info(info_buffer, alg, NULL, 0, CONTEXT_INIT_VECT_LEN);
     hkdf(SHA256, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN );
+//int hkdf(uint8_t whichSha, const uint8_t *salt, uint8_t salt_len, const uint8_t *ikm, 	uint8_t ikm_len, const uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t 	okm_len);
 
     common_ctx->master_secret = master_secret;
     common_ctx->master_secret_len = master_secret_len;

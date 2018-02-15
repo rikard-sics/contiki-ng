@@ -90,9 +90,11 @@ PROCESS_THREAD(er_example_client, ev, data)
 
   /* receives all CoAP messages */
   coap_engine_init();
-
+  oscore_init_client();
+  //derive context
+//  ser uri_rid_association
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
-
+  
 #if PLATFORM_HAS_BUTTON
   SENSORS_ACTIVATE(button_sensor);
   printf("Press a button to request %s\n", service_urls[uri_switch]);
