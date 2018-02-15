@@ -41,6 +41,8 @@
 #include <string.h>
 #include "contiki.h"
 #include "coap-engine.h"
+#include "oscore.h"
+#include "oscore-context.h"
 
 #if PLATFORM_HAS_BUTTON
 #include "dev/button-sensor.h"
@@ -119,7 +121,8 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   /* Initialize the REST engine. */
   coap_engine_init();
-
+  oscore_init_server();
+//TODO derrive context
   /*
    * Bind the resources to their Uri-Path.
    * WARNING: Activating twice only means alternate path, not two instances!
@@ -160,7 +163,7 @@ PROCESS_THREAD(er_example_server, ev, data)
   SENSORS_ACTIVATE(sht11_sensor);
 #endif
 */
-
+//TODO protect_resource()
   /* Define application-specific events here. */
   while(1) {
     PROCESS_WAIT_EVENT();
