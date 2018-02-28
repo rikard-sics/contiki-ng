@@ -2,6 +2,9 @@
 #include "ccm-star.h"
 #include <string.h>
 
+#include "sha2.h" 
+
+
 /* Returns 0 if failure to encrypt. Ciphertext length, otherwise. 
 Tag-length and ciphertext length is derived from algorithm. No check is done to ensure
  that ciphertext buffer is of the correct length. */
@@ -49,4 +52,72 @@ int decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 	
 	memcpy(plaintext_buffer, decryption_buffer, plaintext_len);
  	return plaintext_len;
+}
+
+
+/* only works with key_len <= 64 bytes */
+void hmac_sha256(uint8_t *key, uint8_t key_len, uint8_t *data, uint8_t data_len, uint8_t *hmac){
+	dtls_sha256_ctx ctx;
+	//compose inner = H(Key XOR ipad, text)
+	uint8_t pad[64];
+	memset(pad, 0x36, 64);
+	uint8_t inner[32];
+	int i;
+	for(i = 0; i < key_len; i++){
+		pad[i] ^= key[i];
+	}
+	dtls_sha256_init(&ctx);
+	dtls_sha256_update(&ctx, pad, 64);
+	dtls_sha256_update(&ctx, data, data_len);
+	dtls_sha256_final(inner, &ctx);
+ 	
+	//Compose hmac = H(Key XOR opad, inner)
+	memset(pad, 0x5C, 64);
+	for(i = 0; i < key_len; i++){
+		pad[i] ^= key[i];
+	}
+	dtls_sha256_init(&ctx);
+	dtls_sha256_update(&ctx, pad, 64);
+	dtls_sha256_update(&ctx, inner, 32);
+	
+	dtls_sha256_final(hmac, &ctx);	
+}
+
+/* Does not set salt to empty string when no salt is provided */
+int hkdf_extract(uint8_t hash, uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uint8_t *prk_buffer){
+	hmac_sha256(salt, salt_len, ikm, ikm_len, prk_buffer);
+	return 0;
+}
+
+int hkdf_expand(uint8_t hash, uint8_t *prk, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len){
+	int N = (okm_len + 32 - 1) / 32; // ceil(okm_len/32)
+ 	uint8_t aggregate_buffer[32 + info_len + 1];
+	uint8_t out_buffer[okm_len+32]; //TODO late night must fit last block
+	int i;
+	//Compose T(1)
+	memcpy(aggregate_buffer, info, info_len);
+	aggregate_buffer[info_len] = 0x01;
+	hmac_sha256(prk, 32, aggregate_buffer, info_len + 1, &(out_buffer[0]));
+	
+	//Compose T(2) -> T(N)
+	memcpy(aggregate_buffer, &(out_buffer[0]), 32);
+	for( i = 1; i < N; i++){
+		memcpy(&(aggregate_buffer[32]), info, info_len);
+		aggregate_buffer[32 + info_len] = i+1;
+		hmac_sha256(prk, 32, aggregate_buffer, 32 + info_len + 1, &(out_buffer[i*32]));
+		memcpy(aggregate_buffer, &(out_buffer[i*32]), 32);	
+	}	
+
+	memcpy(okm, out_buffer, okm_len);
+	return 0;
+}
+
+
+/* Does not set salt to empty string when no salt is provided */
+int hkdf(uint8_t hash, uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len){
+	
+	uint8_t prk_buffer[32];
+        hkdf_extract(hash, salt, salt_len, ikm, ikm_len, prk_buffer);	
+	hkdf_expand(hash, prk_buffer, info, info_len, okm, okm_len);
+	return 0;
 }

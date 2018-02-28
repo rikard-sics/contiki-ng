@@ -9,17 +9,38 @@ uint8_t coap_is_request(coap_message_t* coap_pkt){
 	}
 }
 
+int oscore_encode_option_value(){
+	
+	return 0;
+}
+
+int oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose){
+	uint8_t partial_iv_len = (option_value[0] & 0x07);
+	uint8_t offset = 1;
+	if(partial_iv_len != 0){
+		cose_encrypt0_set_partial_iv(cose, &(option_value[offset]), partial_iv_len);
+		offset += partial_iv_len;
+	}
+	if((option_value[0] & 0x08) != 0){
+		uint8_t kid_len = option_len - offset;
+		cose_encrypt0_set_key_id(cose, &(option_value[offset]), kid_len);
+	}
+	return 0;
+}
+
+
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
 coap_status_t oscore_decode_message(coap_message_t* coap_pkt);
 
 /* Prepares a new OSCORE message, returns the size of the message. */
-size_t oscore_prepare_message(void* packet, uint8_t *buffer);
+//size_t oscore_prepare_message(void* packet, uint8_t *buffer);
 
 /*Sets Alg, Partial IV Key ID and Key in COSE. Returns status*/
-uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx);
+//uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx);
 	
 /* Creates and sets External AAD */
-void oscore_prepare_external_aad(cose_encrypt0_t *ptr, oscore_ctx_t *ctx);
+//void oscore_prepare_external_aad(cose_encrypt0_t *ptr, oscore_ctx_t *ctx);
+/*
 size_t oscoap_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* cose, uint8_t* buffer, uint8_t sending){
 
   uint8_t ret = 0;
@@ -38,7 +59,7 @@ size_t oscoap_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* co
     } else {
  //     int s = coap_get_header_observe(coap_pkt, &obs);
     }
-    protected_len = oscoap_serializer(coap_pkt, protected_buffer, ROLE_PROTECTED);
+    protected_len = 0; //oscore_serializer(coap_pkt, protected_buffer, ROLE_PROTECTED);
 //  PRINTF("protected, len %d\n", protected_len);
     //  PRINTF_HEX(protected_buffer, protected_len);
  
@@ -52,19 +73,19 @@ size_t oscoap_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* co
   if(sending == 1){
     if(coap_is_request(coap_pkt)) {
   
-      uint8_t seq_len = to_bytes(coap_pkt->security_context->sender_context->seq, seq_buffer);
+      uint8_t seq_len = 0; //to_bytes(coap_pkt->security_context->sender_context->seq, seq_buffer);
 
       ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id_len, coap_pkt->security_context->sender_context->sender_id);
       ret += cbor_put_bytes(&buffer, seq_len, seq_buffer);
     } else {
-        uint8_t seq_len = to_bytes(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
+        uint8_t seq_len = 0; //to_bytes(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
       ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id_len, coap_pkt->security_context->recipient_context->recipient_id);
       ret += cbor_put_bytes(&buffer, seq_len, seq_buffer);
     } 
   } else {
     
     if(coap_is_request(coap_pkt)){
-        uint8_t seq_len = to_bytes(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
+        uint8_t seq_len = 0; //to_bytes(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
 
         ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id_len, coap_pkt->security_context->recipient_context->recipient_id);
         ret += cbor_put_bytes(&buffer, seq_len, seq_buffer);
@@ -87,7 +108,7 @@ size_t oscoap_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* co
   return ret;
   
 }
-
+*/
 /* Creates and sets Nonce */ 
 void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size){
 	//TODO add length check so theat the buffer is long enough
@@ -102,7 +123,6 @@ void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8
 	}
 		
 }
-
 
 /*Remove all protected options */
 void oscore_clear_options(coap_message_t *coap_pkt){
@@ -130,7 +150,7 @@ void oscore_clear_options(coap_message_t *coap_pkt){
 /*Return 1 if OK, Error code otherwise */
 uint8_t oscore_validate_sender_seq(oscore_recipient_ctx_t* ctx, cose_encrypt0_t *cose){
 
-  uint32_t incomming_seq = bytes_to_uint32(cose->partial_iv, cose->partial_iv_len);
+  uint32_t incomming_seq = 0; //bytes_to_uint32(cose->partial_iv, cose->partial_iv_len);
   //  PRINTF("SEQ: incomming %" PRIu32 "\n", incomming_seq);
   //  PRINTF("SEQ: last %" PRIu32 "\n", ctx->last_seq);
   //  PRINTF_HEX(cose->partial_iv, cose->partial_iv_len);
@@ -213,28 +233,28 @@ void oscore_roll_back_seq(oscore_recipient_ctx_t* ctx) {
 }
 
 /*Compress and extract COSE messages as per the OSCORE standard. */
-uint8_t oscore_cose_compress(cose_encrypt0_t* cose, uint8_t* buffer);
-uint8_t oscore_cose_decompress(cose_encrypt0_t* cose, uint8_t* buffer, size_t buffer_len);
+//uint8_t oscore_cose_compress(cose_encrypt0_t* cose, uint8_t* buffer);
+//uint8_t oscore_cose_decompress(cose_encrypt0_t* cose, uint8_t* buffer, size_t buffer_len);
 
 /* Start protected resource storage. */
-void oscore_protected_resource_store_init();
+//void oscore_protected_resource_store_init();
 	
 /* Mark a resource as protected by OSCORE, incoming COAP requests to that resource will be rejected. */
-uint8_t oscore_protect_resource(char uri);
+//uint8_t oscore_protect_resource(char uri);
 	
 /*Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
-uint8_t oscore_is_resource_protected(char uri);
+//uint8_t oscore_is_resource_protected(char uri);
 
 /* Initialize the security_context storage and the protected resource storage. */
 void oscore_init_server(){
 	oscore_ctx_store_init();
 	oscore_token_seq_store_init();
-	oscore_protected_resource_store_init();
+	//oscore_protected_resource_store_init();
 }
 
 /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
 void oscore_init_client(){
 	oscore_ctx_store_init();
-	oscore_uri_rid_store_init();
+	//oscore_uri_rid_store_init();
 }	
 

@@ -18,8 +18,8 @@ uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_
 void oscore_prepare_external_aad(cose_encrypt0_t *ptr, oscore_ctx_t *ctx);
 
 /* Creates and sets Nonce */ 
-void oscore_generate_nonce(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t size);
-
+////void oscore_generate_nonce(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t size);
+void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size);
 
 /*Remove all protected options */
 void oscore_clear_options(coap_message_t *ptr);

@@ -634,7 +634,13 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
       LOG_DBG_COAP_STRING(coap_pkt->location_query, coap_pkt->location_query_len);
       LOG_DBG_("]\n");
       break;
-
+    case COAP_OPTION_OBJECT_SECURITY:
+      coap_pkt->object_security = (char *)current_option;
+      coap_pkt->object_security_len = option_length;
+      LOG_DBG_("Object-Security [");
+      LOG_DBG_COAP_STRING(coap_pkt->object_security, coap_pkt->object_security_len);
+      LOG_DBG_("]\n");      
+      break;
     case COAP_OPTION_OBSERVE:
       coap_pkt->observe = coap_parse_int_option(current_option,
                                                 option_length);
@@ -684,7 +690,10 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
     current_option += option_length;
   }                             /* for */
   LOG_DBG("-Done parsing-------\n");
-
+  if(coap_pkt->object_security_len > 0 && coap_pkt->object_security != NULL){
+   	printf("REMOVE: OSCORE found, decoding\n"); 
+	//return	oscore_decode_message( );
+  }
   return NO_ERROR;
 }
 /*---------------------------------------------------------------------------*/
