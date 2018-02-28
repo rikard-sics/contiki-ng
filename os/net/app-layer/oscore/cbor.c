@@ -47,7 +47,7 @@ int cbor_put_array(uint8_t **buffer,uint8_t elements){
 	return 1;
 }
 
-int cbor_put_bytes(uint8_t **buffer, uint8_t bytes_len, uint8_t *bytes){
+int cbor_put_bytes(uint8_t **buffer, uint8_t *bytes, uint8_t bytes_len){
 	uint8_t ret = 0;
 	if(bytes_len > 23){
 		**buffer = 0x58;

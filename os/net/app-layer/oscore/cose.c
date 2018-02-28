@@ -1,13 +1,13 @@
 #include "cose.h"
 #include "cbor.h"
 #include "crypto.h"
-
+#include "string.h"
 
 /* Return length */
 int cose_encrypt0_encode(cose_encrypt0_t *ptr, uint8_t *buffer){
 	int ret = 0;
-	ret += cbor_put_array(&buffer, 3)
-	ret += cbor_put_bytes(&buffer, 0, NULL);
+	ret += cbor_put_array(&buffer, 3);
+	ret += cbor_put_bytes(&buffer, NULL, 0);
 	//ret += cose encode attributyes
 	ret += cbor_put_bytes(&buffer, ptr->ciphertext, ptr->ciphertext_len);
 	return ret;

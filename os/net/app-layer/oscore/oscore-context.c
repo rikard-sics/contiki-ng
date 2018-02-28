@@ -1,7 +1,16 @@
 #include "oscore-context.h"
+#include <stddef.h>
+#include "lib/memb.h"
+#include "cbor.h"
+#include <string.h>
+#include "crypto.h"
 
+//TODO rename to ... _memb
 oscore_ctx_t *common_context_store = NULL;
 token_seq_t *token_seq_store = NULL;
+//TODO define in a better place
+#define CONTEXT_NUM 1
+#define TOKEN_SEQ_NUM 1
 
 MEMB(common_contexts, oscore_ctx_t, CONTEXT_NUM);
 MEMB(sender_contexts, oscore_sender_ctx_t, CONTEXT_NUM);
@@ -19,12 +28,12 @@ void oscore_ctx_store_init(){
 static uint8_t compose_info(uint8_t* buffer, uint8_t alg, uint8_t* id, uint8_t id_len, uint8_t out_len){
     uint8_t ret = 0;
     ret += cbor_put_array(&buffer, 4);
-    ret += cbor_put_bytes(&buffer, id_len, id);
+    ret += cbor_put_bytes(&buffer, id, id_len);
     ret += cbor_put_unsigned(&buffer, alg);
     char* text;
     uint8_t text_len;
     if( out_len == 16 ){
-        text = "key";
+        text = "Key";
         text_len = 3;
     } else {
         text = "IV";
@@ -83,16 +92,16 @@ oscore_ctx_t* oscore_derrive_ctx(uint8_t* master_secret, uint8_t master_secret_l
     //sender_ key
 
     info_len = compose_info(info_buffer, alg, sid, sid_len, CONTEXT_KEY_LEN);
-    hkdf(SHA256, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, sender_ctx->sender_key, CONTEXT_KEY_LEN );
+    hkdf(1, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, sender_ctx->sender_key, CONTEXT_KEY_LEN );
 
 
     //Receiver key
     info_len = compose_info(info_buffer, alg, rid, rid_len, CONTEXT_KEY_LEN);
-    hkdf(SHA256, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, recipient_ctx->recipient_key, CONTEXT_KEY_LEN );
+    hkdf(1, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, recipient_ctx->recipient_key, CONTEXT_KEY_LEN );
 
     //common IV
     info_len = compose_info(info_buffer, alg, NULL, 0, CONTEXT_INIT_VECT_LEN);
-    hkdf(SHA256, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN );
+    hkdf(1, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN );
 //int hkdf(uint8_t whichSha, const uint8_t *salt, uint8_t salt_len, const uint8_t *ikm, 	uint8_t ikm_len, const uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t 	okm_len);
 
     common_ctx->master_secret = master_secret;
@@ -149,9 +158,8 @@ int oscore_free_ctx(oscore_ctx_t *ctx){
     memset(ctx->master_secret, 0x00, ctx->master_secret_len);
     memset(ctx->master_salt, 0x00, ctx->master_salt_len);
     memset(ctx->sender_context->sender_key, 0x00, CONTEXT_KEY_LEN);
-    memset(ctx->sender_context->sender_iv, 0x00, CONTEXT_INIT_VECT_LEN);
     memset(ctx->recipient_context->recipient_key, 0x00, CONTEXT_KEY_LEN);
-    memset(ctx->recipient_context->recipient_iv, 0x00, CONTEXT_INIT_VECT_LEN);
+    memset(ctx->common_iv, 0x00, CONTEXT_INIT_VECT_LEN);
 
     int ret = 0;
     ret += memb_free(&sender_contexts, ctx->sender_context);
@@ -184,7 +192,7 @@ oscore_ctx_t* oscore_find_ctx_by_token(uint8_t* token, uint8_t token_len){
       return NULL;
     }
 
-    oscoap_ctx_t *ctx_ptr = common_context_store;
+    oscore_ctx_t *ctx_ptr = common_context_store;
   
     while(!bytes_equal(ctx_ptr->sender_context->token, ctx_ptr->sender_context->token_len,  token, token_len)){
       ctx_ptr = ctx_ptr->next_context;
