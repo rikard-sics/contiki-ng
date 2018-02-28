@@ -128,7 +128,9 @@ typedef struct {
 
   uint16_t payload_len;
   uint8_t *payload;
-
+  
+  size_t object_security_len;
+  const char *object_security;
   oscore_ctx_t *security_context;
 } coap_message_t;
 

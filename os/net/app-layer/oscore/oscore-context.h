@@ -1,6 +1,8 @@
 #ifndef _OSCORE_CONTEXT_H
 #define _OSCORE_CONTEXT_H
 
+#include <inttypes.h>
+#include "coap-constants.h"
 
 #define CONTEXT_KEY_LEN 16 
 #define CONTEXT_INIT_VECT_LEN 13
