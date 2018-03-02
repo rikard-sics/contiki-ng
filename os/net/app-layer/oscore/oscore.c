@@ -1,5 +1,6 @@
 #include "oscore.h"
 #include "cbor.h"
+#include "coap.h"
 
 uint8_t coap_is_request(coap_message_t* coap_pkt){
 	if(coap_pkt->code >= COAP_GET && coap_pkt->code <= COAP_DELETE){ 
@@ -9,9 +10,21 @@ uint8_t coap_is_request(coap_message_t* coap_pkt){
 	}
 }
 
-int oscore_encode_option_value(){
-	
-	return 0;
+int oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose){
+	int offset = 1;
+	if(cose->partial_iv_len > 0 && cose->partial_iv != NULL){
+		option_buffer[0] |= (0x07 & cose->partial_iv_len);
+		memcpy(&(option_buffer[offset]), cose->partial_iv, cose->partial_iv_len);
+		offset += cose->partial_iv_len;
+	}
+	if(cose->key_id_len > 0 && cose->key_id != NULL){
+		option_buffer[0] |= 0x08;
+		option_buffer[offset] = cose->key_id_len;
+		offset++;
+		memcpy(&(option_buffer[offset]), cose->key_id, cose->key_id_len);
+		offset += cose->key_id_len;
+	}
+	return offset;
 }
 
 int oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose){
@@ -30,7 +43,18 @@ int oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encry
 
 
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
-coap_status_t oscore_decode_message(coap_message_t* coap_pkt);
+coap_status_t oscore_decode_message(coap_message_t* coap_pkt){
+	cose_encrypt0_t cose;
+	cose_encrypt0_init(&cose);
+
+	oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, &cose);
+	//get context 
+	//verify sender seq
+	//Compose AAD
+	//decrypt
+
+	return 0;	
+}
 
 /* Prepares a new OSCORE message, returns the size of the message. */
 //size_t oscore_prepare_message(void* packet, uint8_t *buffer);

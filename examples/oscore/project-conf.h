@@ -39,6 +39,8 @@
 #ifndef PROJECT_ERBIUM_CONF_H_
 #define PROJECT_ERBIUM_CONF_H_
 
+#define LOG_CONF_LEVEL_COAP                      LOG_LEVEL_DBG
+
 /* Custom channel and PAN ID configuration for your project. */
 /* #define RF_CHANNEL                    26 */
 /* #define IEEE802154_CONF_PANID     0xABCD */
