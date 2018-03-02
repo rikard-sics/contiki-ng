@@ -130,7 +130,7 @@ typedef struct {
   uint8_t *payload;
   
   size_t object_security_len;
-  const char *object_security;
+  uint8_t *object_security;
   oscore_ctx_t *security_context;
 } coap_message_t;
 
@@ -282,6 +282,10 @@ int coap_set_header_location_path(coap_message_t *message, const char *path);
 /* in-place string might not be 0-terminated. */
 int coap_get_header_location_query(coap_message_t *message, const char **query);
 int coap_set_header_location_query(coap_message_t *message, const char *query);
+
+/*For OSCORE */
+int coap_get_header_object_security(coap_message_t *message, const char **object_security);
+int coap_set_header_object_security(coap_message_t *message, const char *object_security);
 
 int coap_get_header_observe(coap_message_t *message, uint32_t *observe);
 int coap_set_header_observe(coap_message_t *message, uint32_t observe);
