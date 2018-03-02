@@ -66,7 +66,9 @@ uint8_t receiver_id[] = {0x01};
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
-#define SERVER_EP "coap://[fe80::212:7402:0002:0202]"
+//#define SERVER_EP "coap://[fe80::212:7402:0002:0202]"
+#define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
+char* server_ip =  "coap://[fe80::202:0002:0002:0002]";
 
 #define TOGGLE_INTERVAL 10
 
@@ -74,12 +76,13 @@ PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
+coap_endpoint_t server_ep;
 
 /* Example URIs that can be queried. */
 #define NUMBER_OF_URLS 4
 /* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
 char *service_urls[NUMBER_OF_URLS] =
-{ ".well-known/core", "/actuators/toggle", "battery/", "error/in//path" };
+{ ".well-known/core", "test/hello", "battery/", "error/in//path" };
 #if PLATFORM_HAS_BUTTON
 static int uri_switch = 0;
 #endif
@@ -91,21 +94,20 @@ client_chunk_handler(coap_message_t *response)
   const uint8_t *chunk;
 
   int len = coap_get_payload(response, &chunk);
-
+printf("response: \n");
   printf("|%.*s", len, (char *)chunk);
 }
 PROCESS_THREAD(er_example_client, ev, data)
 {
-  coap_endpoint_t server_ep;
   PROCESS_BEGIN();
 
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
 
-  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
+  coap_endpoint_parse(server_ip, strlen(server_ip), &server_ep);
 
   /* receives all CoAP messages */
   coap_engine_init();
-  oscore_init_client();
+//  oscore_init_client();
 /*
   uint8_t hmac[42];
   uint8_t ikm[] = { 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,};
@@ -115,7 +117,7 @@ PROCESS_THREAD(er_example_client, ev, data)
   hkdf(1, salt, 13, ikm, 22, info, 10, hmac, 42);
   */
 
-  oscore_derrive_ctx(master_secret, 16, salt, 8, 10, 1, NULL, 0, receiver_id, 1, 32);
+//  oscore_derrive_ctx(master_secret, 16, salt, 8, 10, 1, NULL, 0, receiver_id, 1, 32);
 //  ser uri_rid_association
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
   
@@ -131,12 +133,9 @@ PROCESS_THREAD(er_example_client, ev, data)
       printf("--Toggle timer--\n");
 
       /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
-      coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
+      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
       coap_set_header_uri_path(request, service_urls[1]);
 
-      const char msg[] = "Toggle!";
-
-      coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
 
       LOG_INFO_COAP_EP(&server_ep);
       LOG_INFO_("\n");
@@ -147,26 +146,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       etimer_reset(&et);
 
-#if PLATFORM_HAS_BUTTON
-    } else if(ev == sensors_event && data == &button_sensor) {
 
-      /* send a request to notify the end of the process */
-
-      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
-      coap_set_header_uri_path(request, service_urls[uri_switch]);
-
-      printf("--Requesting %s--\n", service_urls[uri_switch]);
-
-      LOG_INFO_COAP_EP(&server_ep);
-      LOG_INFO_("\n");
-
-      COAP_BLOCKING_REQUEST(&server_ep, request,
-                            client_chunk_handler);
-
-      printf("\n--Done--\n");
-
-      uri_switch = (uri_switch + 1) % NUMBER_OF_URLS;
-#endif
     }
   }
 
