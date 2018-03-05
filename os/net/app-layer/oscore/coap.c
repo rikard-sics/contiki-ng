@@ -304,6 +304,8 @@ coap_init_message(coap_message_t *coap_pkt, coap_message_type_t type,
 size_t
 coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
+  //TODO add a check if we should use OSCORE here.
+  
   uint8_t *option;
   unsigned int current_number = 0;
 
