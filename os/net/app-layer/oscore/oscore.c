@@ -279,6 +279,6 @@ void oscore_init_server(){
 /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
 void oscore_init_client(){
 	oscore_ctx_store_init();
-	//oscore_uri_rid_store_init();
+	oscore_uri_ctx_store_init();
 }	
 

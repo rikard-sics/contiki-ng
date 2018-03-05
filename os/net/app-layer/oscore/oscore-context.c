@@ -8,6 +8,7 @@
 //TODO rename to ... _memb
 oscore_ctx_t *common_context_store = NULL;
 token_seq_t *token_seq_store = NULL;
+uri_ctx_t *uri_ctx_store = NULL;
 //TODO define in a better place
 #define CONTEXT_NUM 1
 #define TOKEN_SEQ_NUM 1
@@ -17,6 +18,7 @@ MEMB(sender_contexts, oscore_sender_ctx_t, CONTEXT_NUM);
 MEMB(recipient_contexts, oscore_recipient_ctx_t, CONTEXT_NUM);
 
 MEMB(token_seq, token_seq_t, TOKEN_SEQ_NUM);
+MEMB(uri_ctx_memb, uri_ctx_t, 1);
 
 void oscore_ctx_store_init(){
 
@@ -274,7 +276,31 @@ void remove_seq_from_token(uint8_t* token, uint8_t token_len){
 }
 
 /* URI <=> RID association */
-void oscore_init_uri_rid_store();
-uint8_t oscore_set_uri_rid_association(uint8_t *rid, uint8_t rid_len, uint8_t *uri, uint8_t uri_len);
-oscore_ctx_t* oscore_get_context_from_uri(uint8_t *uri, uint8_t uri_len);
+void oscore_uri_ctx_store_init(){
+  memb_init(&uri_ctx_memb);
+}
+uint8_t oscore_uri_ctx_set_association(char* uri, oscore_ctx_t *ctx){
+  uri_ctx_t* uri_ctx_ptr = memb_alloc(&uri_ctx_memb);
+  if(uri_ctx_ptr == NULL){
+    return 0;
+  }
+  uri_ctx_ptr->uri = uri;
+  uri_ctx_ptr->ctx = ctx;
+  return 1;
+
+}
+oscore_ctx_t* oscore_get_context_from_uri(char* uri){
+  uri_ctx_t* ptr = uri_ctx_store;
+
+  while(strcmp(uri,ptr->uri) != 0){
+    
+    ptr = ptr->next;
+    if(ptr == NULL){
+      return NULL; 
+    }
+
+  }
+
+  return ptr->ctx;
+}
 	
