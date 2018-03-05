@@ -76,7 +76,6 @@ PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
-coap_endpoint_t server_ep;
 
 /* Example URIs that can be queried. */
 #define NUMBER_OF_URLS 4
@@ -102,6 +101,7 @@ PROCESS_THREAD(er_example_client, ev, data)
   PROCESS_BEGIN();
 
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
+  static coap_endpoint_t server_ep;
 
   coap_endpoint_parse(server_ip, strlen(server_ip), &server_ep);
 
@@ -117,8 +117,9 @@ PROCESS_THREAD(er_example_client, ev, data)
   hkdf(1, salt, 13, ikm, 22, info, 10, hmac, 42);
   */
 
-//  oscore_derrive_ctx(master_secret, 16, salt, 8, 10, 1, NULL, 0, receiver_id, 1, 32);
-//  ser uri_rid_association
+  oscore_ctx_t *context = oscore_derrive_ctx(master_secret, 16, salt, 8, 10, 1, NULL, 0, receiver_id, 1, 32);
+  
+  oscore_uri_ctx_set_association(service_urls[1], context);
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
   
 #if PLATFORM_HAS_BUTTON
@@ -135,7 +136,7 @@ PROCESS_THREAD(er_example_client, ev, data)
       /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
       coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
       coap_set_header_uri_path(request, service_urls[1]);
-
+      
 
       LOG_INFO_COAP_EP(&server_ep);
       LOG_INFO_("\n");

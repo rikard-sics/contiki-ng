@@ -14,6 +14,7 @@ typedef struct oscore_sender_ctx_t oscore_sender_ctx_t;
 typedef struct oscore_recipient_ctx_t oscore_recipient_ctx_t;
 typedef struct oscore_ctx_t oscore_ctx_t;
 typedef struct token_seq_t token_seq_t;
+typedef struct uri_ctx_t uri_ctx_t;
 
 struct oscore_sender_ctx_t
 {
@@ -60,6 +61,11 @@ struct token_seq_t{
   token_seq_t* next;
 };
 
+struct uri_ctx_t{
+  char* uri;
+  oscore_ctx_t * ctx;
+  uri_ctx_t *next;
+};
 void oscore_ctx_store_init();
 	
 oscore_ctx_t* oscore_derrive_ctx(uint8_t* master_secret, uint8_t master_secret_len, uint8_t* master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t hkdf_alg,
@@ -76,9 +82,9 @@ uint8_t get_seq_from_token(uint8_t* token, uint8_t token_len, uint32_t* seq);
 uint8_t set_seq_from_token(uint8_t* token, uint8_t token_len, uint32_t seq);
 void remove_seq_from_token(uint8_t* token, uint8_t token_len);
 
-/* URI <=> RID association */
-void oscore_uri_rid_store_init();
-uint8_t oscore_uri_rid_set_association(uint8_t *rid, uint8_t rid_len, uint8_t *uri, uint8_t uri_len);
-oscore_ctx_t* oscore_get_context_from_uri(uint8_t *uri, uint8_t uri_len);
+/* URI <=> CTX association */
+void oscore_uri_ctx_store_init();
+uint8_t oscore_uri_ctx_set_association(char *uri, oscore_ctx_t *ctx);
+oscore_ctx_t* oscore_get_context_from_uri(char *uri);
 	
 #endif /* _OSCORE_CONTEXT_H */
