@@ -1,6 +1,18 @@
 #include "oscore.h"
 #include "cbor.h"
 #include "coap.h"
+#include "stdio.h"
+
+void printf_hex(unsigned char *data, unsigned int len){
+  unsigned int i=0;
+  for(i=0; i<len; i++)
+  {
+    printf("%02x ",data[i]);
+  }
+  printf("\n");
+}
+
+
 
 uint8_t coap_is_request(coap_message_t* coap_pkt){
 	if(coap_pkt->code >= COAP_GET && coap_pkt->code <= COAP_DELETE){ 
@@ -9,6 +21,50 @@ uint8_t coap_is_request(coap_message_t* coap_pkt){
 		return 0;
 	}
 }
+
+
+void parse_int(uint64_t in, uint8_t* bytes, int out_len){ 
+  int x = out_len - 1;
+  while(x >= 0){
+    bytes[x] = (in >> (x * 8)) & 0xFF;
+    x--;
+  }
+}
+
+uint8_t u32tob(uint32_t in, uint8_t* buffer){
+//  PRINTF("in %" PRIu64 "\n", in);
+  uint8_t outlen = 1;
+
+  if(in > 255 && in <= 65535){
+    outlen = 2;
+  } else if( in > 65535 && in <= 16777215){
+    outlen = 3;
+  } else if( in > 16777215 ){
+    outlen = 4;
+  }
+
+  parse_int(in, buffer, outlen);
+  return outlen;
+}
+
+uint32_t btou32(uint8_t* bytes, size_t len){
+  uint8_t buffer[4];
+  memset(buffer, 0, 4); //function variables are not initializated to anything
+  int offset = 4 - len;
+  uint32_t num;
+  
+  memcpy((uint8_t*)(buffer + offset), bytes, len);
+
+  num = 
+      (uint32_t)buffer[0] << 24 |
+      (uint32_t)buffer[1] << 16 |
+      (uint32_t)buffer[2] << 8  |
+      (uint32_t)buffer[3];
+
+  return num;
+}
+
+
 
 int oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose){
 	int offset = 1;
@@ -48,50 +104,143 @@ coap_status_t oscore_decode_message(coap_message_t* coap_pkt){
 	cose_encrypt0_init(&cose);
 
 	oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, &cose);
-	//get context 
-	//verify sender seq
-	//Compose AAD
-	//decrypt
+
+   1 Process Outer Block options according to [RFC7959], until all blocks of the request have been received (see Section 4.1.3.2).
+   2 Discard the message Code and all non-special Inner option message fields (marked with ‘x’ in column E of Figure 5) present in the received message. For example, an If-Match Outer option is discarded, but an Uri-Host Outer option is not discarded.
+   3 Decompress the COSE Object (Section 6) and retrieve the Recipient Context associated with the Recipient ID in the ‘kid’ parameter. If either the decompression or the COSE message fails to decode, or the server fails to retrieve a Recipient Context with Recipient ID corresponding to the ‘kid’ parameter received, then the server SHALL stop processing the request. If:
+        either the decompression or the COSE message fails to decode, the server MAY respond with a 4.02 Bad Option error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the string “Failed to decode COSE”.
+        the server fails to retrieve a Recipient Context with Recipient ID corresponding to the ‘kid’ parameter received, the server MAY respond with a 4.01 Unauthorized error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the string “Security context not found”.
+   4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4.
+   5 Compose the Additional Authenticated Data, as described in Section 5.4.
+   6 Compute the AEAD nonce from the Recipient ID, Common IV, and the ‘Partial IV’ parameter, received in the COSE Object.
+   /*7 Decrypt the COSE object using the Recipient Key, as per [RFC8152] Section 5.3. (The decrypt operation includes the verification of the integrity.)
+        If decryption fails, the server MUST stop processing the request and MAY respond with a 4.00 Bad Request error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the “Decryption failed” string.
+        If decryption succeeds, update the Replay Window, as described in Section 7.
+   */
+
+   /*8 For each decrypted option, check if the option is also present as an Outer option:
+    if it is, discard the Outer. For example: the message contains a Max-Age Inner and a Max-Age Outer option.
+    The Outer Max-Age is discarded. */
+
+   /*9 Add decrypted code, options and payload to the decrypted request. 
+   The Object-Security option is removed.*/
+   
+   //10 The decrypted CoAP request is processed according to [RFC7252]
 
 	return 0;	
 }
 
+uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx){
+  cose_encrypt0_set_alg(cose, ctx->alg);
+  uint8_t partial_iv_buffer[5];
+  uint8_t partial_iv_len;
+  if( coap_is_request(pkt) ) {
+    cose_encrypt0_set_key(cose, ctx->sender_context->sender_key, CONTEXT_KEY_LEN);
+    cose_encrypt0_set_key_id(cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
+    partial_iv_len = u32tob(ctx->sender_context->seq, partial_iv_buffer);
+    cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
+  } else {  
+    cose_encrypt0_set_key(cose, ctx->recipient_context->recipient_key, CONTEXT_KEY_LEN);
+    cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
+    partial_iv_len = u32tob(ctx->recipient_context->last_seq, partial_iv_buffer);
+    cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
+  }
+
+  return 0;
+}
+
 /* Prepares a new OSCORE message, returns the size of the message. */
-//size_t oscore_prepare_message(void* packet, uint8_t *buffer);
+size_t oscore_prepare_message(coap_message_t* coap_pkt, uint8_t *buffer){
+  cose_encrypt0_t cose;
+  cose_encrypt0_init(&cose);
+  uint8_t plaintext_buffer[COAP_MAX_HEADER_SIZE];
+  uint8_t external_aad_buffer[25];
+  uint8_t nonce_buffer[13];
+//  1 Retrieve the Sender Context associated with the target resource.
+  oscore_ctx_t *ctx = coap_pkt->security_context;
+  if(ctx == NULL){
+    printf("No context in OSCORE!\n");
+    return 0;
+  }
+  oscore_populate_cose(coap_pkt, &cose, coap_pkt->security_context);
+//  2 Compose the Additional Authenticated Data and the plaintext, as described in Section 5.4 and Section 5.3.
+  uint8_t plaintext_len = oscore_serializer(coap_pkt, plaintext_buffer, ROLE_CONFIDENTIAL);
+  uint8_t external_aad_len = oscore_prepare_external_aad(coap_pkt, &cose, external_aad_buffer, 1);
+  
+  printf("plaintext:\n");
+  printf_hex(plaintext_buffer, plaintext_len);
+
+  printf("external aad:\n");
+  printf_hex(external_aad_buffer, external_aad_len);
+ 
+  cose_encrypt0_set_plaintext(&cose, plaintext_buffer, plaintext_len);
+  cose_encrypt0_set_external_aad(&cose, external_aad_buffer, external_aad_len);
+//  3 Compute the AEAD nonce from the Sender ID, Common IV, and Partial IV (Sender Sequence Number in network byte order) as described in Section 5.2 and (in one atomic operation, see Section 7.2) increment the Sender Sequence Number by one.
+  oscore_generate_nonce(&cose, coap_pkt, nonce_buffer, 13);
+  oscore_increment_sender_seq(ctx);
+  printf("nonce:\n");
+  printf_hex(nonce_buffer, 13);
+  cose_encrypt0_set_nonce(&cose, nonce_buffer, 13);
+//  4 Encrypt the COSE object using the Sender Key. Compress the COSE Object as specified in Section 6.
+  uint8_t ciphertext_buffer[plaintext_len + 8];
+  uint8_t ciphertext_len = cose_encrypt0_encrypt(&cose, ciphertext_buffer, plaintext_len + 8);
+  printf("ciphertext:\n");
+  printf_hex(ciphertext_buffer, ciphertext_len);
+//  5 Format the OSCORE message according to Section 4. The Object-Security option is added (see Section 4.2.2).
+  uint8_t option_value_buffer[15];
+  uint8_t option_value_len = oscore_encode_option_value(option_value_buffer, &cose);
+  coap_set_payload(coap_pkt, ciphertext_buffer, ciphertext_len);
+  coap_set_header_object_security(coap_pkt, option_value_buffer, option_value_len);
+  
+  if(coap_is_request(coap_pkt)){
+    coap_pkt->code = COAP_POST;
+  } else {
+    coap_pkt->code = CHANGED_2_04;
+  }
+
+  uint8_t serialized_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
+//  6 Store the association Token - Security Context. The client SHALL be able to find the Recipient Context from the Token in the response.
+  if(coap_is_request(coap_pkt)){
+    set_seq_from_token(coap_pkt->token, coap_pkt->token_len, ctx->sender_context->seq);
+  }
+
+  return serialized_len;
+}
 
 /*Sets Alg, Partial IV Key ID and Key in COSE. Returns status*/
 //uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx);
 	
 /* Creates and sets External AAD */
 //void oscore_prepare_external_aad(cose_encrypt0_t *ptr, oscore_ctx_t *ctx);
-/*
-size_t oscoap_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* cose, uint8_t* buffer, uint8_t sending){
+size_t oscore_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* cose, uint8_t* buffer, uint8_t sending){
 
   uint8_t ret = 0;
   uint8_t seq_buffer[8];
   uint8_t protected_buffer[25];
   size_t  protected_len;
-  ret += cbor_put_array(&buffer, 6);
-  ret += cbor_put_unsigned(&buffer, 1); //version is always 1
-  ret += cbor_put_unsigned(&buffer, (coap_pkt->code));
+  ret += cbor_put_array(&buffer, 5);
+  ret += cbor_put_unsigned(&buffer, 1); //Version, always for this version of the draft 1
+  ret += cbor_put_unsigned(&buffer, (coap_pkt->security_context->alg)); // Algorithm
+
  // int32_t obs;
+  // partial IV len 13 max, KID för 16 16 64 ger 7 bytes
 
   if(!coap_is_request(coap_pkt) && coap_is_option(coap_pkt, COAP_OPTION_OBSERVE)){
-
+/*
     if( sending == 1){
-   //   coap_set_header_observe(coap_pkt, observe_seq);
+      coap_set_header_observe(coap_pkt, observe_seq);
     } else {
- //     int s = coap_get_header_observe(coap_pkt, &obs);
+      int s = coap_get_header_observe(coap_pkt, &obs);
     }
+*/
     protected_len = 0; //oscore_serializer(coap_pkt, protected_buffer, ROLE_PROTECTED);
 //  PRINTF("protected, len %d\n", protected_len);
     //  PRINTF_HEX(protected_buffer, protected_len);
- 
   } else {
     protected_len = 0;
   }
-  ret += cbor_put_bytes(&buffer, protected_len, protected_buffer); 
-  ret += cbor_put_unsigned(&buffer, (coap_pkt->security_context->alg));
+  ret += cbor_put_bytes(&buffer, protected_buffer, protected_len); 
+
 
 
   if(sending == 1){
@@ -99,20 +248,20 @@ size_t oscoap_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* co
   
       uint8_t seq_len = 0; //to_bytes(coap_pkt->security_context->sender_context->seq, seq_buffer);
 
-      ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id_len, coap_pkt->security_context->sender_context->sender_id);
-      ret += cbor_put_bytes(&buffer, seq_len, seq_buffer);
+      ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id, coap_pkt->security_context->sender_context->sender_id_len);
+      ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
     } else {
-        uint8_t seq_len = 0; //to_bytes(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
-      ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id_len, coap_pkt->security_context->recipient_context->recipient_id);
-      ret += cbor_put_bytes(&buffer, seq_len, seq_buffer);
+      uint8_t seq_len = 0; //to_bytes(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
+      ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id, coap_pkt->security_context->recipient_context->recipient_id_len);
+      ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
     } 
   } else {
     
     if(coap_is_request(coap_pkt)){
         uint8_t seq_len = 0; //to_bytes(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
 
-        ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id_len, coap_pkt->security_context->recipient_context->recipient_id);
-        ret += cbor_put_bytes(&buffer, seq_len, seq_buffer);
+        ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id, coap_pkt->security_context->recipient_context->recipient_id_len);
+        ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
     } else {
         if( coap_is_option(coap_pkt, COAP_OPTION_OBSERVE) ){
    //       uint8_t seq_len = to_bytes(observing_seq, seq_buffer);
@@ -122,18 +271,17 @@ size_t oscoap_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* co
         } else {
      //     uint8_t seq_len = to_bytes(coap_pkt->security_context->sender_context->seq, seq_buffer);
           
-          ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id_len, coap_pkt->security_context->sender_context->sender_id);
-          ret += cbor_put_bytes(&buffer, cose->partial_iv_len, cose->partial_iv);
+          ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id, coap_pkt->security_context->sender_context->sender_id_len);
+          ret += cbor_put_bytes(&buffer, cose->partial_iv, cose->partial_iv_len);
         }
    
-
+    }
   }
-    
   return ret;
   
 }
-*/
-/* Creates and sets Nonce */ 
+
+/* Creates Nonce */ 
 void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size){
 	//TODO add length check so theat the buffer is long enough
 	
@@ -145,7 +293,6 @@ void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8
         for(i = 0; i < size; i++){
 		buffer[i] ^= (uint8_t)coap_pkt->security_context->common_iv[i];
 	}
-		
 }
 
 /*Remove all protected options */

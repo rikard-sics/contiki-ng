@@ -69,7 +69,7 @@ int cose_encrypt0_set_key(cose_encrypt0_t *ptr, uint8_t *key, uint8_t key_size);
 	
 void cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t size);
 
-int cose_encrypt0_encrypt(cose_encrypt0_t *ptr, uint8_t *key, uint8_t key_len);
-int cose_encrypt0_decrypt(cose_encrypt0_t *ptr, uint8_t *key, uint8_t key_len);
+int cose_encrypt0_encrypt(cose_encrypt0_t *ptr, uint8_t *ciphertext_buffer, uint8_t ciphertext_len);
+int cose_encrypt0_decrypt(cose_encrypt0_t *ptr, uint8_t *plaintext_buffer, uint8_t plaintext_len);
 
 #endif /* _COSE_H */

@@ -192,6 +192,11 @@ coap_is_option(const coap_message_t *message, unsigned int opt)
     current_number = number; \
   }
 
+/* For OSCORE */
+#define ROLE_COAP 0
+#define ROLE_CONFIDENTIAL 1
+#define ROLE_PROTECTED 2
+
 /* to store error code and human-readable payload */
 extern coap_status_t coap_status_code;
 extern const char *coap_error_message;
@@ -284,8 +289,10 @@ int coap_get_header_location_query(coap_message_t *message, const char **query);
 int coap_set_header_location_query(coap_message_t *message, const char *query);
 
 /*For OSCORE */
-int coap_get_header_object_security(coap_message_t *message, const char **object_security);
-int coap_set_header_object_security(coap_message_t *message, const char *object_security);
+int coap_get_header_object_security(coap_message_t *message, uint8_t **object_security);
+int coap_set_header_object_security(coap_message_t *message, uint8_t *object_security, size_t object_security_len);
+//TEMP FOR OSCORE
+int coap_set_oscore(coap_message_t *coap_pkt);
 
 int coap_get_header_observe(coap_message_t *message, uint32_t *observe);
 int coap_set_header_observe(coap_message_t *message, uint32_t observe);
