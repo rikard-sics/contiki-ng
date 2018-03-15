@@ -62,12 +62,55 @@ void cose_encrypt0_set_external_aad(cose_encrypt0_t *ptr, uint8_t *buffer, uint8
 }
 	
 /* Returns 1 if successfull, 0 if key is of incorrect length. */
-int cose_encrypt0_set_key(cose_encrypt0_t *ptr, uint8_t *key, uint8_t key_size);
+int cose_encrypt0_set_key(cose_encrypt0_t *ptr, uint8_t *key, uint8_t key_size){
+	if(key_size != 16){
+		return 0;
+	}
+
+	ptr->key = key;
+	ptr->key_len = key_size;
+
+	return 1;
+}
 	
 void cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t size){
 	ptr->nonce = buffer;
 	ptr->nonce_len = size;
 }
 
-int cose_encrypt0_encrypt(cose_encrypt0_t *ptr, uint8_t *key, uint8_t key_len);
-int cose_encrypt0_decrypt(cose_encrypt0_t *ptr, uint8_t *key, uint8_t key_len);
+
+int cose_encrypt0_encrypt(cose_encrypt0_t *ptr, uint8_t *ciphertext_buffer, uint8_t ciphertext_len){
+	if(ptr->key == NULL || ptr->key_len != 16){
+		return -1;
+	}
+	if(ptr->nonce == NULL || ptr->nonce_len != 13 ){
+		return -2;
+	}
+	if(ptr->external_aad == NULL || ptr->external_aad_len == 0){
+		return -3;
+	}
+	if(ptr->plaintext == NULL || ptr->plaintext_len < (ciphertext_len - 8)){
+		return -4;
+	}
+
+	return encrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->external_aad, ptr->external_aad_len, ptr->plaintext, ptr->plaintext_len, ciphertext_buffer);
+
+}
+
+
+int cose_encrypt0_decrypt(cose_encrypt0_t *ptr, uint8_t *plaintext_buffer, uint8_t plaintext_len){
+	if(ptr->key == NULL || ptr->key_len != 16){
+		return -1;
+	}
+	if(ptr->nonce == NULL || ptr->nonce_len != 13 ){
+		return -2;
+	}
+	if(ptr->external_aad == NULL || ptr->external_aad_len == 0){
+		return -3;
+	}
+	if(ptr->ciphertext == NULL || ptr->ciphertext_len < (plaintext_len + 8)){
+		return -4;
+	}
+
+	return decrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->external_aad, ptr->external_aad_len, ptr->ciphertext, ptr->ciphertext_len, plaintext_buffer);
+}
