@@ -45,7 +45,7 @@
 #include "coap-blocking-api.h"
 #include "dev/button-sensor.h"
 #include "oscore.h"
-
+#include "coap.h"
 
 #include "crypto.h"
 /*
@@ -107,7 +107,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 
   /* receives all CoAP messages */
   coap_engine_init();
-//  oscore_init_client();
+  oscore_init_client();
 /*
   uint8_t hmac[42];
   uint8_t ikm[] = { 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,};
@@ -117,7 +117,8 @@ PROCESS_THREAD(er_example_client, ev, data)
   hkdf(1, salt, 13, ikm, 22, info, 10, hmac, 42);
   */
 
-  oscore_ctx_t *context = oscore_derrive_ctx(master_secret, 16, salt, 8, 10, 1, NULL, 0, receiver_id, 1, 32);
+  static oscore_ctx_t *context;
+  context = oscore_derrive_ctx(master_secret, 16, salt, 8, 10, 1, NULL, 0, receiver_id, 1, 32);
   
   oscore_uri_ctx_set_association(service_urls[1], context);
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
@@ -136,8 +137,8 @@ PROCESS_THREAD(er_example_client, ev, data)
       /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
       coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
       coap_set_header_uri_path(request, service_urls[1]);
-      
-
+      coap_set_oscore(request);
+      request->security_context = context;
       LOG_INFO_COAP_EP(&server_ep);
       LOG_INFO_("\n");
 
