@@ -24,6 +24,10 @@ void cose_encrypt0_init(cose_encrypt0_t *ptr){
 void cose_encrypt0_set_alg(cose_encrypt0_t *ptr, uint8_t alg){
 	ptr->alg = alg;
 }
+void cose_encrypt0_set_ciphertext(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t size){
+	ptr->ciphertext = buffer;
+	ptr->ciphertext_len = size;
+}
 	
 void cose_encrypt0_set_plaintext(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t size){
 	ptr->plaintext = buffer;
