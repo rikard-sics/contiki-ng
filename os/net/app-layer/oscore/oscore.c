@@ -83,6 +83,7 @@ int oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose){
 	return offset;
 }
 
+
 int oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose){
 	uint8_t partial_iv_len = (option_value[0] & 0x07);
 	uint8_t offset = 1;
@@ -101,26 +102,60 @@ int oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encry
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
 coap_status_t oscore_decode_message(coap_message_t* coap_pkt){
 	cose_encrypt0_t cose;
-	cose_encrypt0_init(&cose);
+	oscore_ctx_t *ctx;
+  uint8_t external_aad_buffer[25];
+  uint8_t nonce_buffer[13];
+  cose_encrypt0_init(&cose);
 
-	oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, &cose);
+  // 1 Process Outer Block options according to [RFC7959], until all blocks of the request have been received (see Section 4.1.3.2).
+  
+  /* 2 Discard the message Code and all non-special Inner option message fields (marked with ‘x’ in column E of Figure 5) 
+  present in the received message. For example, an If-Match Outer option is discarded, but an Uri-Host Outer option is not discarded. */
+  /* 3 Decompress the COSE Object (Section 6) and retrieve the Recipient Context associated with the Recipient ID in the ‘kid’ parameter. 
+  If either the decompression or the COSE message fails to decode, or the server fails to retrieve a Recipient Context with Recipient ID corresponding to the ‘kid’ parameter received, 
+  then the server SHALL stop processing the request. If: either the decompression or the COSE message fails to decode, the server MAY respond with a 4.02 Bad Option error message.
+   The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the string “Failed to decode COSE”.
+    the server fails to retrieve a Recipient Context with Recipient ID corresponding to the ‘kid’ parameter received, the server MAY respond with a 4.01 Unauthorized error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the string “Security context not found”.
+  */
+  //Options are discarded later when they are overwritten. This should be improved
+  oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, &cose);
+  if(coap_is_request(coap_pkt)){
+    uint8_t *key_id;
+    int key_id_len = cose_encrypt0_get_key_id(&cose, &key_id);
+    ctx = oscore_find_ctx_by_rid(key_id, key_id_len);
+    if(ctx == NULL){
+      printf("errors HERE!\n");
+    } 
+    // 4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. 
+    oscore_validate_sender_seq(ctx->recipient_context, &cose);  
+    cose_encrypt0_set_key(&cose, ctx->recipient_context->recipient_key, 16);
+  } else {
+    ctx = oscore_find_ctx_by_token(coap_pkt->token, coap_pkt->token_len);
+    if(ctx == NULL){
+      printf("errors HERE!\n");
+    } 
+    //TODO find and fix all COSE parameters for responses
+  }
 
-   1 Process Outer Block options according to [RFC7959], until all blocks of the request have been received (see Section 4.1.3.2).
-   2 Discard the message Code and all non-special Inner option message fields (marked with ‘x’ in column E of Figure 5) present in the received message. For example, an If-Match Outer option is discarded, but an Uri-Host Outer option is not discarded.
-   3 Decompress the COSE Object (Section 6) and retrieve the Recipient Context associated with the Recipient ID in the ‘kid’ parameter. If either the decompression or the COSE message fails to decode, or the server fails to retrieve a Recipient Context with Recipient ID corresponding to the ‘kid’ parameter received, then the server SHALL stop processing the request. If:
-        either the decompression or the COSE message fails to decode, the server MAY respond with a 4.02 Bad Option error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the string “Failed to decode COSE”.
-        the server fails to retrieve a Recipient Context with Recipient ID corresponding to the ‘kid’ parameter received, the server MAY respond with a 4.01 Unauthorized error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the string “Security context not found”.
-   4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4.
-   5 Compose the Additional Authenticated Data, as described in Section 5.4.
-   6 Compute the AEAD nonce from the Recipient ID, Common IV, and the ‘Partial IV’ parameter, received in the COSE Object.
+
+  
+  // 5 Compose the Additional Authenticated Data, as described in Section 5.4.
+  size_t external_aad_len =  oscore_prepare_external_aad(coap_pkt, &cose, external_aad_buffer, 0);
+  cose_encrypt0_set_external_aad(&cose, external_aad_buffer, external_aad_len);
+  //6 Compute the AEAD nonce from the Recipient ID, Common IV, and the ‘Partial IV’ parameter, received in the COSE Object.
+  oscore_generate_nonce(&cose, coap_pkt, nonce_buffer, 13);
+  cose_encrypt0_set_nonce(&cose, nonce_buffer, 13);
    /*7 Decrypt the COSE object using the Recipient Key, as per [RFC8152] Section 5.3. (The decrypt operation includes the verification of the integrity.)
         If decryption fails, the server MUST stop processing the request and MAY respond with a 4.00 Bad Request error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the “Decryption failed” string.
-        If decryption succeeds, update the Replay Window, as described in Section 7.
-   */
-
+        If decryption succeeds, update the Replay Window, as described in Section 7. */
+  cose_encrypt0_set_ciphertext(&cose, coap_pkt->payload, coap_pkt->payload_len);
+  uint8_t plaintext_buffer[coap_pkt->payload_len - 8];
+  cose_encrypt0_decrypt(&cose, plaintext_buffer, coap_pkt->payload_len - 8);
+  //TODO oscore_rollback()
    /*8 For each decrypted option, check if the option is also present as an Outer option:
     if it is, discard the Outer. For example: the message contains a Max-Age Inner and a Max-Age Outer option.
     The Outer Max-Age is discarded. */
+
 
    /*9 Add decrypted code, options and payload to the decrypted request. 
    The Object-Security option is removed.*/
