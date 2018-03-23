@@ -188,6 +188,10 @@ coap_receive(const coap_endpoint_t *src,
                             coap_get_mid());
           /* mirror token */
         }
+        if(coap_is_option(message, COAP_OPTION_OBJECT_SECURITY)){
+          coap_set_oscore(response);
+          response->security_context = message->security_context;
+        }
         if(message->token_len) {
           coap_set_token(response, message->token, message->token_len);
           /* get offset for blockwise transfers */

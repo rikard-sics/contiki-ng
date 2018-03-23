@@ -2,8 +2,17 @@
 #include "ccm-star.h"
 #include <string.h>
 
+#include <stdio.h>
 #include "sha2.h" 
 
+void kprintf_hex(unsigned char *data, unsigned int len){
+  unsigned int i=0;
+  for(i=0; i<len; i++)
+  {
+    printf("%02x ",data[i]);
+  }
+  printf("\n");
+}
 
 /* Returns 0 if failure to encrypt. Ciphertext length, otherwise. 
 Tag-length and ciphertext length is derived from algorithm. No check is done to ensure
@@ -12,7 +21,7 @@ int encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 		uint8_t *aad, uint8_t aad_len, uint8_t *plaintext_buffer, uint8_t plaintext_len, uint8_t *ciphertext_buffer){
 	
 	if(alg != 10 || key_len != 16 || nonce_len != 13){ //TODO change to COSE-alg-AES-CCM-16-64-128 
-		return 0; 
+		return -5; 
 	}	
 	uint8_t tag_len = 8;  
 	uint8_t encryption_buffer[plaintext_len + tag_len];
@@ -33,7 +42,7 @@ int decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 	 uint8_t *aad, uint8_t aad_len, uint8_t *ciphertext_buffer, uint8_t ciphertext_len, uint8_t *plaintext_buffer){
 	
 	if(alg != 10 || key_len != 16 || nonce_len != 13){ //TODO change to COSE-alg-AES-CCM-16-64-128 
-		return 0; 
+		return -5; 
 	}	
 	
 	uint8_t tag_len = 8;
@@ -42,7 +51,6 @@ int decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 	uint8_t tag_buffer[tag_len];
 	
 	memcpy(decryption_buffer, ciphertext_buffer, plaintext_len);
-	
 	CCM_STAR.set_key(key);
  	CCM_STAR.aead(nonce, decryption_buffer, plaintext_len, aad, aad_len, tag_buffer, tag_len, 0);
 	
