@@ -95,6 +95,10 @@ extern coap_resource_t res_radio;
 extern coap_resource_t res_sht11;
 #endif
 */
+uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
+uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
+uint8_t sender_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
+uint8_t receiver_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
 
 PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
@@ -118,11 +122,24 @@ PROCESS_THREAD(er_example_server, ev, data)
   PRINTF("LL header: %u\n", UIP_LLH_LEN);
   PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
   PRINTF("CoAP max chunk: %u\n", COAP_MAX_CHUNK_SIZE);
-
+  printf("COOJA_MTARCH_STACKSIZE %d\n", COOJA_MTARCH_STACKSIZE);
   /* Initialize the REST engine. */
   coap_engine_init();
   oscore_init_server();
-//TODO derrive context
+
+  static oscore_ctx_t *context;
+  context = oscore_derrive_ctx(master_secret, 16, salt, 8, 10, 1, sender_id, 6, receiver_id, 6, 32);
+
+
+  uint8_t key_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
+  oscore_ctx_t *ctx;
+  ctx = oscore_find_ctx_by_rid(key_id, 6);
+  if(ctx == NULL){
+    printf("CONTEXT NOT FOUND\n");
+  }else {
+    printf("context FOUND!\n");
+  }
+
   /*
    * Bind the resources to their Uri-Path.
    * WARNING: Activating twice only means alternate path, not two instances!

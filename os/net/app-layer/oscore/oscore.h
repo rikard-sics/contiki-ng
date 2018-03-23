@@ -6,6 +6,7 @@
 #include "oscore-context.h"
 
 size_t oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role);
+coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len, uint8_t role);
 
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
 coap_status_t oscore_decode_message(coap_message_t* coap_pkt);

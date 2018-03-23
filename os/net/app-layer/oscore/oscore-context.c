@@ -10,15 +10,15 @@ oscore_ctx_t *common_context_store = NULL;
 token_seq_t *token_seq_store = NULL;
 uri_ctx_t *uri_ctx_store = NULL;
 //TODO define in a better place
-#define CONTEXT_NUM 1
-#define TOKEN_SEQ_NUM 1
+#define CONTEXT_NUM 2
+#define TOKEN_SEQ_NUM 2
 
 MEMB(common_contexts, oscore_ctx_t, CONTEXT_NUM);
 MEMB(sender_contexts, oscore_sender_ctx_t, CONTEXT_NUM);
 MEMB(recipient_contexts, oscore_recipient_ctx_t, CONTEXT_NUM);
 
 MEMB(token_seq, token_seq_t, TOKEN_SEQ_NUM);
-MEMB(uri_ctx_memb, uri_ctx_t, 1);
+MEMB(uri_ctx_memb, uri_ctx_t, 2);
 
 void oscore_ctx_store_init(){
 
