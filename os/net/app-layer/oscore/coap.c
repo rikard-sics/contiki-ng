@@ -56,7 +56,7 @@
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "coap"
-#define LOG_LEVEL  LOG_LEVEL_COAP
+#define LOG_LEVEL  LOG_LEVEL_COAP // LOG_LEVEL_COAP
 
 /*---------------------------------------------------------------------------*/
 /*- Variables ---------------------------------------------------------------*/
@@ -713,7 +713,8 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   LOG_DBG("-Done parsing-------\n");
   if(coap_pkt->object_security_len > 0 && coap_pkt->object_security != NULL){
    	printf("REMOVE: OSCORE found, decoding\n"); 
-	//return	oscore_decode_message( );
+	 return	oscore_decode_message(coap_pkt);
+   //return 0;
   }
   return NO_ERROR;
 }
@@ -1176,15 +1177,15 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
   //However, maybe one can use the same buffer to save memory
   
   coap_pkt->buffer = buffer;
-  #if DEBUG
-    if(role == ROLE_COAP){
+
+  if(role == ROLE_COAP){
       LOG_DBG_("SERIALIZING ROLE COAP\n");
-    } else if (role == ROLE_CONFIDENTIAL){
+  } else if (role == ROLE_CONFIDENTIAL){
       LOG_DBG_("SERIALIZING ROLE CONFIDENTIAL\n");
-    } else if( role == ROLE_PROTECTED){
+  } else if( role == ROLE_PROTECTED){
       LOG_DBG_("SERIALIZING ROLE PROTECTED\n");
-    }
-  #endif
+  }
+
   if(role == ROLE_COAP){
     coap_pkt->version = 1;
 
@@ -1228,7 +1229,6 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
 
   /* Serialize options */
   current_number = 0;
-
   LOG_DBG_("-Serializing options at %p-\n", option);
 
   /* The options must be serialized in the order of their number */
@@ -1333,7 +1333,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
   }
 }
 
-coap_status_t oscoap_parser(coap_message_t *coap_pkt, uint8_t *data,
+coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
                                          uint16_t data_len, uint8_t role){
 
   int OSCOAP = 0;    
@@ -1379,7 +1379,11 @@ coap_status_t oscoap_parser(coap_message_t *coap_pkt, uint8_t *data,
 
   uint8_t *current_option;
   if(role == ROLE_CONFIDENTIAL){
+    coap_pkt->code = *data;
+    data++; //Step past the encrypted Coap Code
+    data_len--; // Decrement the length because of the encrypted code
     current_option = data;
+
   } else {
      current_option = data + COAP_HEADER_LEN;
      memcpy(coap_pkt->token, current_option, coap_pkt->token_len);
@@ -1403,6 +1407,7 @@ coap_status_t oscoap_parser(coap_message_t *coap_pkt, uint8_t *data,
   while(current_option < data + data_len) {
     /* payload marker 0xFF, currently only checking for 0xF* because rest is reserved */
     if((current_option[0] & 0xF0) == 0xF0) {
+      //TODO if OSCORE GET put payload to NULL
       coap_pkt->payload = ++current_option;
       coap_pkt->payload_len = data_len - (coap_pkt->payload - data);
 

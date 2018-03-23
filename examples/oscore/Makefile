@@ -3,6 +3,9 @@ all: oscore-example-server oscore-example-client
 
 CONTIKI=../..
 
+WERROR = 0
+CFLAGS += -DCOOJA_MTARCH_STACKSIZE=4096
+
 # build RESTful resources
 include $(CONTIKI)/Makefile.identify-target
 ifeq ($(TARGET),native)
