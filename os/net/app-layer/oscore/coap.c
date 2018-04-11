@@ -56,7 +56,7 @@
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "coap"
-#define LOG_LEVEL  LOG_LEVEL_COAP // LOG_LEVEL_COAP
+#define LOG_LEVEL  LOG_LEVEL_NONE // LOG_LEVEL_COAP
 
 /*---------------------------------------------------------------------------*/
 /*- Variables ---------------------------------------------------------------*/
