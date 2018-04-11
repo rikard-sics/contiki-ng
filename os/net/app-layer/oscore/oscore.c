@@ -184,7 +184,6 @@ coap_status_t oscore_decode_message(coap_message_t* coap_pkt){
   cose.plaintext = cose.ciphertext;
 
   coap_status_t status = oscore_parser(coap_pkt,  cose.plaintext, res, ROLE_CONFIDENTIAL);
-  printf("status %d\n", (uint8_t)status);
    /*9 Add decrypted code, options and payload to the decrypted request. 
    The Object-Security option is removed.*/
    
@@ -192,10 +191,11 @@ coap_status_t oscore_decode_message(coap_message_t* coap_pkt){
 
 	return status;	
 }
-
+//TODO  make partial IV a field in COSE_encrypt0 
+uint8_t partial_iv_buffer[5];
 uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx){
   cose_encrypt0_set_alg(cose, ctx->alg);
-  uint8_t partial_iv_buffer[5];
+
   uint8_t partial_iv_len; 
 
   cose_encrypt0_set_key(cose, ctx->sender_context->sender_key, CONTEXT_KEY_LEN);
@@ -239,7 +239,6 @@ size_t oscore_prepare_message(coap_message_t* coap_pkt, uint8_t *buffer){
   oscore_increment_sender_seq(ctx);
 //  4 Encrypt the COSE object using the Sender Key. Compress the COSE Object as specified in Section 6.
   uint8_t ciphertext_buffer[plaintext_len + 8];
-
   uint8_t ciphertext_len = cose_encrypt0_encrypt(&cose, ciphertext_buffer, plaintext_len + 8);
 //  5 Format the OSCORE message according to Section 4. The Object-Security option is added (see Section 4.2.2).
   uint8_t option_value_buffer[15];
@@ -262,12 +261,8 @@ size_t oscore_prepare_message(coap_message_t* coap_pkt, uint8_t *buffer){
 
   return serialized_len;
 }
-
-/*Sets Alg, Partial IV Key ID and Key in COSE. Returns status*/
-//uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx);
 	
 /* Creates and sets External AAD */
-//void oscore_prepare_external_aad(cose_encrypt0_t *ptr, oscore_ctx_t *ctx);
 size_t oscore_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* cose, uint8_t* buffer, uint8_t sending){
 
   uint8_t ret = 0;
@@ -340,11 +335,8 @@ size_t oscore_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* co
 /* Creates Nonce */ 
 void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size){
 	//TODO add length check so theat the buffer is long enough
-	
 	memset(buffer, 0, size);
 	buffer[0] = (uint8_t)(ptr->key_id_len);
-  printf("create nonce key_id_len %d\n", ptr->key_id_len);
-  printf_hex(ptr->key_id, ptr->key_id_len);
 	memcpy(&(buffer[((size - 6)- ptr->key_id_len)]), ptr->key_id, ptr->key_id_len);
 	memcpy(&(buffer[size - ptr->partial_iv_len]), ptr->partial_iv, ptr->partial_iv_len);
 	int i;
