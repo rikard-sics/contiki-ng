@@ -36,35 +36,42 @@
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "coap-engine.h"
 
-static void res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+static void res_delete_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
 /*
- * Example for a resource that also handles all its sub-resources.
- * Use coap_get_url() to multiplex the handling of the request depending on the Uri-Path.
+ * A handler function named [resource name]_handler must be implemented for each RESOURCE.
+ * A buffer for the response payload is provided through the buffer pointer. Simple resources can ignore
+ * preferred_size and offset, but must respect the REST_MAX_CHUNK_SIZE limit for the buffer.
+ * If a smaller block size is requested for CoAP, the REST framework automatically splits the data.
  */
-PARENT_RESOURCE(res_sub,
-                "title=\"Sub-resource demo\"",
-                res_get_handler,
-                NULL,
-                NULL,
-                NULL);
+RESOURCE(res_test,
+         "title=\"Hello world: ?len=0..\";rt=\"Text\"",
+         NULL,
+         NULL,
+         NULL,
+	 res_delete_handler);
+
+static uint8_t test_exists = 1;
 
 static void
-res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
+res_delete_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  coap_set_header_content_format(response, TEXT_PLAIN);
-
-  const char *uri_path = NULL;
-  int len = coap_get_header_uri_path(request, &uri_path);
-  int base_len = strlen(res_sub.url);
-
-  if(len == base_len) {
-    snprintf((char *)buffer, COAP_MAX_CHUNK_SIZE, "Request any sub-resource of /%s", res_sub.url);
+  if(oscore_protected_request(request)){
+	response->security_context = request->security_context;
+	coap_set_oscore(response);
   } else {
-    snprintf((char *)buffer, COAP_MAX_CHUNK_SIZE, ".%.*s", len - base_len, uri_path + base_len);
-  } coap_set_payload(response, buffer, strlen((char *)buffer));
+	coap_set_response_status(response, UNAUTHORIZED_4_01);
+	char error_msg[] = "Resource is protected by OSCORE.";
+	coap_set_response_payload(response, error_msg, strlen(error_msg));
+  }
+  
+  printf("/oscore/test       DELETE ");
+  coap_set_response_status(response, DELETED_2_02);
+
+  test_exists = 0;
 }
+

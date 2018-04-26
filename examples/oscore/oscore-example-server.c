@@ -61,41 +61,9 @@
  * The build system automatically compiles the resources in the corresponding sub-directory.
  */
 extern coap_resource_t
-  res_hello,
-  res_mirror,
-  res_chunks,
-  res_separate,
-  res_push,
-  res_event,
-  res_sub,
-  res_b1_sep_b2;
-#if PLATFORM_HAS_LEDS
-extern coap_resource_t res_leds, res_toggle;
-#endif
-#if PLATFORM_HAS_LIGHT
-#include "dev/light-sensor.h"
-extern coap_resource_t res_light;
-#endif
-#if PLATFORM_HAS_BATTERY
-#include "dev/battery-sensor.h"
-extern coap_resource_t res_battery;
-#endif
-#if PLATFORM_HAS_TEMPERATURE
-#include "dev/temperature-sensor.h"
-extern coap_resource_t res_temperature;
-#endif
-/*
-extern coap_resource_t res_battery;
-#endif
-#if PLATFORM_HAS_RADIO
-extern coap_resource_t res_radio;
-#endif
-#if PLATFORM_HAS_SHT11
-#include "dev/sht11/sht11-sensor.h"
-extern coap_resource_t res_sht11;
-#endif
-*/
-uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
+  res_hello;
+
+uint8_t master_secret[35] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23};
 uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
 uint8_t sender_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 uint8_t receiver_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
@@ -128,7 +96,7 @@ PROCESS_THREAD(er_example_server, ev, data)
   oscore_init_server();
 
   static oscore_ctx_t *context;
-  context = oscore_derrive_ctx(master_secret, 16, salt, 8, 10, 1, sender_id, 6, receiver_id, 6, 32);
+  context = oscore_derrive_ctx(master_secret, 16, NULL, 0, 10, 1, sender_id, 6, receiver_id, 6, 32);
 
 
   uint8_t key_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
@@ -146,55 +114,10 @@ PROCESS_THREAD(er_example_server, ev, data)
    * All static variables are the same for each URI path.
    */
   coap_activate_resource(&res_hello, "test/hello");
- coap_activate_resource(&res_mirror, "debug/mirror");
- coap_activate_resource(&res_chunks, "test/chunks");
- coap_activate_resource(&res_separate, "test/separate");
- coap_activate_resource(&res_push, "test/push");
-#if PLATFORM_HAS_BUTTON
- coap_activate_resource(&res_event, "sensors/button");
-#endif /* PLATFORM_HAS_BUTTON */
- coap_activate_resource(&res_sub, "test/sub");
- coap_activate_resource(&res_b1_sep_b2, "test/b1sepb2");
-#if PLATFORM_HAS_LEDS
-/*  coap_activate_resource(&res_leds, "actuators/leds"); */
-  coap_activate_resource(&res_toggle, "actuators/toggle");
-#endif
-#if PLATFORM_HAS_LIGHT
-  coap_activate_resource(&res_light, "sensors/light");
-  SENSORS_ACTIVATE(light_sensor);
-#endif
-#if PLATFORM_HAS_BATTERY
-  coap_activate_resource(&res_battery, "sensors/battery");
-  SENSORS_ACTIVATE(battery_sensor);
-#endif
-#if PLATFORM_HAS_TEMPERATURE
-  coap_activate_resource(&res_temperature, "sensors/temperature");
-  SENSORS_ACTIVATE(temperature_sensor);
-#endif
-/*
-#if PLATFORM_HAS_RADIO
-  coap_activate_resource(&res_radio, "sensors/radio");
-#endif
-#if PLATFORM_HAS_SHT11
-  coap_activate_resource(&res_sht11, "sensors/sht11");
-  SENSORS_ACTIVATE(sht11_sensor);
-#endif
-*/
 //TODO protect_resource()
   /* Define application-specific events here. */
   while(1) {
     PROCESS_WAIT_EVENT();
-#if PLATFORM_HAS_BUTTON
-    if(ev == sensors_event && data == &button_sensor) {
-      PRINTF("*******BUTTON*******\n");
-
-      /* Call the event_handler for this application-specific event. */
-      res_event.trigger();
-
-      /* Also call the separate response example handler. */
-      res_separate.resume();
-    }
-#endif /* PLATFORM_HAS_BUTTON */
   }                             /* while (1) */
 
   PROCESS_END();
