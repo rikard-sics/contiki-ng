@@ -36,28 +36,54 @@
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
-#include "contiki.h"
-
-#if PLATFORM_HAS_LEDS
-
+#include <stdlib.h>
 #include <string.h>
-#include "contiki.h"
 #include "coap-engine.h"
-#include "dev/leds.h"
+#include "stdio.h"
+#include "oscore.h"
 
-static void res_post_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+static void res_put_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
-/* A simple actuator example. Toggles the red led */
-RESOURCE(res_toggle,
-         "title=\"Red LED\";rt=\"Control\"",
+/*
+ * A handler function named [resource name]_handler must be implemented for each RESOURCE.
+ * A buffer for the response payload is provided through the buffer pointer. Simple resources can ignore
+ * preferred_size and offset, but must respect the REST_MAX_CHUNK_SIZE limit for the buffer.
+ * If a smaller block size is requested for CoAP, the REST framework automatically splits the data.
+ */
+RESOURCE(res_hello7,
+         "title=\"Hello world: ?len=0..\";rt=\"Text\"",
          NULL,
-         res_post_handler,
          NULL,
-         NULL);
+	 res_put_handler,
+	 NULL);
 
-static void
-res_post_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
+static uint8_t val = 1;
+static void res_put_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  leds_toggle(LEDS_RED);
+  /* Some data that has the length up to REST_MAX_CHUNK_SIZE. For more, see the chunk resource. */
+  char message[3];
+  int length = sprintf(message,"%d", val);
+ 
+  if(oscore_protected_request(request)){
+	response->security_context = request->security_context;
+	coap_set_oscore(response);
+  } else {
+	coap_set_status_code(response, UNAUTHORIZED_4_01);
+	char error_msg[] = "Resource is protected by OSCORE.";
+	coap_set_payload(response, error_msg, strlen(error_msg));
+  } 
+  /* The query string can be retrieved by rest_get_query() or parsed for its key-value pairs. */
+
+  const uint8_t *if_match;
+
+  if(!coap_get_header_if_none_match(request)){
+	printf("If-None-Match not found!\n");
+  }
+  coap_get_header_if_match(request, &if_match);
+	
+  memcpy(buffer, message, length);
+
+  coap_set_payload(response, buffer, length);
 }
-#endif /* PLATFORM_HAS_LEDS */
+
+

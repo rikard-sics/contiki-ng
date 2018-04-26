@@ -18,8 +18,6 @@ void printf_hex(unsigned char *data, unsigned int len){
   LOG_DBG_("\n");
 }
 
-
-
 uint8_t coap_is_request(coap_message_t* coap_pkt){
 	if(coap_pkt->code >= COAP_GET && coap_pkt->code <= COAP_DELETE){ 
 		return 1;
@@ -28,7 +26,15 @@ uint8_t coap_is_request(coap_message_t* coap_pkt){
 	}
 }
 
-
+uint8_t oscore_protected_request(void* request){
+	if(request != NULL){
+		coap_message_t* coap_pkt = (coap_message_t*)request;
+		if(coap_is_option(coap_pkt, COAP_OPTION_OBJECT_SECURITY)){
+			return 1;
+		}
+	}
+	return 0;
+} 
 void parse_int(uint64_t in, uint8_t* bytes, int out_len){ 
   int x = out_len - 1;
   while(x >= 0){

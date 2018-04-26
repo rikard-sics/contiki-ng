@@ -36,20 +36,21 @@
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
-#include "contiki.h"
-
-#if PLATFORM_HAS_BATTERY
-
+#include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include "coap-engine.h"
-#include "dev/battery-sensor.h"
+#include "oscore.h"
 
 static void res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
-/* A simple getter example. Returns the reading from light sensor with a simple etag */
-RESOURCE(res_battery,
-         "title=\"Battery status\";rt=\"Battery\"",
+/*
+ * A handler function named [resource name]_handler must be implemented for each RESOURCE.
+ * A buffer for the response payload is provided through the buffer pointer. Simple resources can ignore
+ * preferred_size and offset, but must respect the REST_MAX_CHUNK_SIZE limit for the buffer.
+ * If a smaller block size is requested for CoAP, the REST framework automatically splits the data.
+ */
+RESOURCE(res_hello3,
+         "title=\"Hello world: ?len=0..\";rt=\"Text\"",
          res_get_handler,
          NULL,
          NULL,
@@ -58,25 +59,23 @@ RESOURCE(res_battery,
 static void
 res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  int battery = battery_sensor.value(0);
-
-  unsigned int accept = -1;
-  coap_get_header_accept(request, &accept);
-
-  if(accept == -1 || accept == TEXT_PLAIN) {
-    coap_set_header_content_format(response, TEXT_PLAIN);
-    snprintf((char *)buffer, COAP_MAX_CHUNK_SIZE, "%d", battery);
-
-    coap_set_payload(response, (uint8_t *)buffer, strlen((char *)buffer));
-  } else if(accept == APPLICATION_JSON) {
-    coap_set_header_content_format(response, APPLICATION_JSON);
-    snprintf((char *)buffer, COAP_MAX_CHUNK_SIZE, "{'battery':%d}", battery);
-
-    coap_set_payload(response, buffer, strlen((char *)buffer));
+  
+  if(oscore_protected_request(request)){
+	response->security_context = request->security_context;
+	coap_set_oscore(response);
   } else {
-    coap_set_status_code(response, NOT_ACCEPTABLE_4_06);
-    const char *msg = "Supporting content-types text/plain and application/json";
-    coap_set_payload(response, msg, strlen(msg));
+	coap_set_status_code(response, UNAUTHORIZED_4_01);
+	char error_msg[] = "Resource is protected by OSCORE.";
+	coap_set_payload(response, error_msg, strlen(error_msg));
   }
+  
+  /* Some data that has the length up to REST_MAX_CHUNK_SIZE. For more, see the chunk resource. */
+  char const *const message = "Hello World! ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy";
+  int length = 12; /*          |<-------->| */
+
+  memcpy(buffer, message, length);
+  
+  coap_set_header_content_format(response, TEXT_PLAIN); /* text/plain is the default, hence this option could be omitted. */
+  coap_set_header_max_age(response, 5);
+  coap_set_payload(response, buffer, length);
 }
-#endif /* PLATFORM_HAS_BATTERY */

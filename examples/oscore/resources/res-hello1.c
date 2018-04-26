@@ -36,63 +36,45 @@
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
-#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "coap-engine.h"
+#include "oscore.h"
 
 static void res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
 /*
- * For data larger than COAP_MAX_CHUNK_SIZE (e.g., when stored in flash) resources must be aware of the buffer limitation
- * and split their responses by themselves. To transfer the complete resource through a TCP stream or CoAP's blockwise transfer,
- * the byte offset where to continue is provided to the handler as int32_t pointer.
- * These chunk-wise resources must set the offset value to its new position or -1 of the end is reached.
- * (The offset for CoAP's blockwise transfer can go up to 2'147'481'600 = ~2047 M for block size 2048 (reduced to 1024 in observe-03.)
+ * A handler function named [resource name]_handler must be implemented for each RESOURCE.
+ * A buffer for the response payload is provided through the buffer pointer. Simple resources can ignore
+ * preferred_size and offset, but must respect the REST_MAX_CHUNK_SIZE limit for the buffer.
+ * If a smaller block size is requested for CoAP, the REST framework automatically splits the data.
  */
-RESOURCE(res_chunks,
-         "title=\"Blockwise demo\";rt=\"Data\"",
+RESOURCE(res_hello1,
+         "title=\"Hello world: ?len=0..\";rt=\"Text\"",
          res_get_handler,
          NULL,
          NULL,
          NULL);
 
-#define CHUNKS_TOTAL    2050
-
 static void
 res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  int32_t strpos = 0;
-
-  /* Check the offset for boundaries of the resource data. */
-  if(*offset >= CHUNKS_TOTAL) {
-    coap_set_status_code(response, BAD_OPTION_4_02);
-    /* A block error message should not exceed the minimum block size (16). */
-
-    const char *error_msg = "BlockOutOfScope";
-    coap_set_payload(response, error_msg, strlen(error_msg));
-    return;
+  
+  if(oscore_protected_request(request)){
+	response->security_context = request->security_context;
+	coap_set_oscore(response);
+  } else {
+	coap_set_status_code(response, UNAUTHORIZED_4_01);
+	char error_msg[] = "Resource is protected by OSCORE.";
+	coap_set_payload(response, error_msg, strlen(error_msg));
   }
+  
+  /* Some data that has the length up to REST_MAX_CHUNK_SIZE. For more, see the chunk resource. */
+  char const *const message = "Hello World! ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy";
+  int length = 12; /*          |<-------->| */
 
-  /* Generate data until reaching CHUNKS_TOTAL. */
-  while(strpos < preferred_size) {
-    strpos += snprintf((char *)buffer + strpos, preferred_size - strpos + 1, "|%ld|", (long) *offset);
-  }
-
-  /* snprintf() does not adjust return value if truncated by size. */
-  if(strpos > preferred_size) {
-    strpos = preferred_size;
-    /* Truncate if above CHUNKS_TOTAL bytes. */
-  }
-  if(*offset + (int32_t)strpos > CHUNKS_TOTAL) {
-    strpos = CHUNKS_TOTAL - *offset;
-  }
-  coap_set_payload(response, buffer, strpos);
-
-  /* IMPORTANT for chunk-wise resources: Signal chunk awareness to REST engine. */
-  *offset += strpos;
-
-  /* Signal end of resource representation. */
-  if(*offset >= CHUNKS_TOTAL) {
-    *offset = -1;
-  }
+  memcpy(buffer, message, length);
+  
+  coap_set_header_content_format(response, TEXT_PLAIN); /* text/plain is the default, hence this option could be omitted. */
+  coap_set_payload(response, buffer, length);
 }

@@ -1,6 +1,7 @@
 #include "crypto.h"
 #include "ccm-star.h"
 #include <string.h>
+#include "cose.h"
 
 #include <stdio.h>
 #include "sha2.h" 
@@ -20,7 +21,7 @@ Tag-length and ciphertext length is derived from algorithm. No check is done to 
 int encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len, 
 		uint8_t *aad, uint8_t aad_len, uint8_t *plaintext_buffer, uint8_t plaintext_len, uint8_t *ciphertext_buffer){
 	
-	if(alg != 10 || key_len != 16 || nonce_len != 13){ //TODO change to COSE-alg-AES-CCM-16-64-128 
+	if(alg != COSE_Algorithm_AES_CCM_16_64_128  || key_len != 16 || nonce_len != 13){  
 		return -5; 
 	}	
 	uint8_t tag_len = 8;  
@@ -41,7 +42,7 @@ that plaintext buffer is of the correct length. */
 int decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len,
 	 uint8_t *aad, uint8_t aad_len, uint8_t *ciphertext_buffer, uint8_t ciphertext_len, uint8_t *plaintext_buffer){
 	
-	if(alg != 10 || key_len != 16 || nonce_len != 13){ //TODO change to COSE-alg-AES-CCM-16-64-128 
+	if(alg != COSE_Algorithm_AES_CCM_16_64_128  || key_len != 16 || nonce_len != 13){ 
 		return -5; 
 	}	
 	
