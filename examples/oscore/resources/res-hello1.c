@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "coap-engine.h"
+#include "oscore.h"
 
 static void res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
@@ -58,6 +59,15 @@ RESOURCE(res_hello1,
 static void
 res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
+  
+  if(oscore_protected_request(request)){
+	response->security_context = request->security_context;
+	coap_set_oscore(response);
+  } else {
+	coap_set_status_code(response, UNAUTHORIZED_4_01);
+	char error_msg[] = "Resource is protected by OSCORE.";
+	coap_set_payload(response, error_msg, strlen(error_msg));
+  }
   
   /* Some data that has the length up to REST_MAX_CHUNK_SIZE. For more, see the chunk resource. */
   char const *const message = "Hello World! ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy";

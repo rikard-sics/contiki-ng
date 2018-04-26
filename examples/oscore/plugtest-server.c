@@ -53,25 +53,14 @@
  * sub-directory.
  */
 extern coap_resource_t
-  res_plugtest_test,
-  res_plugtest_validate,
-  res_plugtest_create1,
-  res_plugtest_create2,
-  res_plugtest_create3,
-  res_plugtest_longpath,
-  res_plugtest_query,
-  res_plugtest_locquery,
-  res_plugtest_multi,
-  res_plugtest_link1,
-  res_plugtest_link2,
-  res_plugtest_link3,
-  res_plugtest_path,
-  res_plugtest_separate,
-  res_plugtest_large,
-  res_plugtest_large_update,
-  res_plugtest_large_create,
-  res_plugtest_obs,
-  res_mirror;
+  res-hello,
+  res-hello1;
+//  res-hello2,
+//  res-hello3,
+//  res-hello6,
+//  res-hello7,
+//  res-observe,
+//  res-test;
 
 PROCESS(plugtest_server, "PlugtestServer");
 AUTOSTART_PROCESSES(&plugtest_server);
@@ -80,7 +69,7 @@ PROCESS_THREAD(plugtest_server, ev, data)
 {
   PROCESS_BEGIN();
 
-  PRINTF("ETSI IoT CoAP Plugtests Server\n");
+  PRINTF("OSCORE Plugtests Server\n");
 
 #ifdef RF_CHANNEL
   PRINTF("RF channel: %u\n", RF_CHANNEL);
@@ -98,26 +87,8 @@ PROCESS_THREAD(plugtest_server, ev, data)
   coap_engine_init();
 
   /* Activate the application-specific resources. */
-  coap_activate_resource(&res_plugtest_test, "test");
-  coap_activate_resource(&res_plugtest_validate, "validate");
-  coap_activate_resource(&res_plugtest_create1, "create1");
-  coap_activate_resource(&res_plugtest_create2, "create2");
-  coap_activate_resource(&res_plugtest_create3, "create3");
-  coap_activate_resource(&res_plugtest_longpath, "seg1/seg2/seg3");
-  coap_activate_resource(&res_plugtest_query, "query");
-  coap_activate_resource(&res_plugtest_locquery, "location-query");
-  coap_activate_resource(&res_plugtest_multi, "multi-format");
-  coap_activate_resource(&res_plugtest_link1, "link1");
-  coap_activate_resource(&res_plugtest_link2, "link2");
-  coap_activate_resource(&res_plugtest_link3, "link3");
-  coap_activate_resource(&res_plugtest_path, "path");
-  coap_activate_resource(&res_plugtest_separate, "separate");
-  coap_activate_resource(&res_plugtest_large, "large");
-  coap_activate_resource(&res_plugtest_large_update, "large-update");
-  coap_activate_resource(&res_plugtest_large_create, "large-create");
-  coap_activate_resource(&res_plugtest_obs, "obs");
-
-  coap_activate_resource(&res_mirror, "mirror");
+  coap_activate_resource(&res-hello, "oscore/hello/coap");
+  coap_activate_resource(&res-hello1, "oscore/hello/1");
 
   /* Define application-specific events here. */
   while(1) {

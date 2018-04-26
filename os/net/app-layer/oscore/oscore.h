@@ -46,7 +46,8 @@ void oscore_protected_resource_store_init();
 	
 /* Mark a resource as protected by OSCORE, incoming COAP requests to that resource will be rejected. */
 uint8_t oscore_protect_resource(char uri);
-	
+
+uint8_t oscore_protected_request(void* request);	
 /*Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
 uint8_t oscore_is_resource_protected(char uri);
 
