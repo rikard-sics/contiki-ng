@@ -460,6 +460,21 @@ invoke_coap_resource_service(coap_message_t *request, coap_message_t *response,
 
       LOG_INFO("/%s, method %u, resource->flags %u\n", resource->url,
                (uint16_t)method, resource->flags);
+      printf("/%s, method %u, resource->flags %u\n", resource->url,
+               (uint16_t)method, resource->flags);
+      /*TODO add ifdefs */
+      if(resource->oscore_protected){
+	  if(oscore_protected_request(request)){
+        	response->security_context = request->security_context;
+       		coap_set_oscore(response);
+  	  } else {
+        	allowed = 0;
+		coap_set_status_code(response, UNAUTHORIZED_4_01);
+        	char error_msg[] = "Resource is protected by OSCORE.";
+        	coap_set_payload(response, error_msg, strlen(error_msg));
+	 	return allowed;
+	  }
+      } 
 
       if((method & METHOD_GET) && resource->get_handler != NULL) {
         /* call handler function */

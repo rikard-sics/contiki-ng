@@ -111,6 +111,8 @@ struct coap_resource_s {
     coap_resource_trigger_handler_t trigger;
     coap_resource_trigger_handler_t resume;
   };
+  /* TODO ifdef oscore here */
+  uint8_t oscore_protected;
 };
 
 struct coap_periodic_resource_s {
@@ -124,16 +126,16 @@ struct coap_periodic_resource_s {
  * Resources are statically defined for the sake of efficiency and better memory management.
  */
 #define RESOURCE(name, attributes, get_handler, post_handler, put_handler, delete_handler) \
-  coap_resource_t name = { NULL, NULL, NO_FLAGS, attributes, get_handler, post_handler, put_handler, delete_handler, { NULL } }
+  coap_resource_t name = { NULL, NULL, NO_FLAGS, attributes, get_handler, post_handler, put_handler, delete_handler, { NULL }, 0 }
 
 #define PARENT_RESOURCE(name, attributes, get_handler, post_handler, put_handler, delete_handler) \
-  coap_resource_t name = { NULL, NULL, HAS_SUB_RESOURCES, attributes, get_handler, post_handler, put_handler, delete_handler, { NULL } }
+  coap_resource_t name = { NULL, NULL, HAS_SUB_RESOURCES, attributes, get_handler, post_handler, put_handler, delete_handler, { NULL }, 0 }
 
 #define SEPARATE_RESOURCE(name, attributes, get_handler, post_handler, put_handler, delete_handler, resume_handler) \
-  coap_resource_t name = { NULL, NULL, IS_SEPARATE, attributes, get_handler, post_handler, put_handler, delete_handler, { .resume = resume_handler } }
+  coap_resource_t name = { NULL, NULL, IS_SEPARATE, attributes, get_handler, post_handler, put_handler, delete_handler, { .resume = resume_handler }, 0 }
 
 #define EVENT_RESOURCE(name, attributes, get_handler, post_handler, put_handler, delete_handler, event_handler) \
-  coap_resource_t name = { NULL, NULL, IS_OBSERVABLE, attributes, get_handler, post_handler, put_handler, delete_handler, { .trigger = event_handler } }
+  coap_resource_t name = { NULL, NULL, IS_OBSERVABLE, attributes, get_handler, post_handler, put_handler, delete_handler, { .trigger = event_handler }, 0 }
 
 /*
  * Macro to define a periodic resource.
@@ -142,7 +144,7 @@ struct coap_periodic_resource_s {
  */
 #define PERIODIC_RESOURCE(name, attributes, get_handler, post_handler, put_handler, delete_handler, period, periodic_handler) \
   static coap_periodic_resource_t periodic_##name = { period, { 0 }, periodic_handler }; \
-  coap_resource_t name = { NULL, NULL, IS_OBSERVABLE | IS_PERIODIC, attributes, get_handler, post_handler, put_handler, delete_handler, { .periodic = &periodic_##name } }
+  coap_resource_t name = { NULL, NULL, IS_OBSERVABLE | IS_PERIODIC, attributes, get_handler, post_handler, put_handler, delete_handler, { .periodic = &periodic_##name }, 0 }
 
 /*---------------------------------------------------------------------------*/
 /**

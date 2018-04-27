@@ -60,14 +60,6 @@ static uint8_t test_exists = 1;
 static void
 res_delete_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  if(oscore_protected_request(request)){
-	response->security_context = request->security_context;
-	coap_set_oscore(response);
-  } else {
-	coap_set_response_status(response, UNAUTHORIZED_4_01);
-	char error_msg[] = "Resource is protected by OSCORE.";
-	coap_set_response_payload(response, error_msg, strlen(error_msg));
-  }
   
   printf("/oscore/test       DELETE ");
   coap_set_response_status(response, DELETED_2_02);

@@ -1,5 +1,5 @@
 all: oscore-example-server oscore-example-client
-# use target "plugtest-server" explicitly when required
+# use target "oscore-plugtest-server" explicitly when required
 
 CONTIKI=../..
 
