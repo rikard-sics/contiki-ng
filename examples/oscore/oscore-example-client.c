@@ -106,17 +106,12 @@ PROCESS_THREAD(er_example_client, ev, data)
   /* receives all CoAP messages */
   coap_engine_init();
   oscore_init_client();
-/*
-  uint8_t hmac[42];
-  uint8_t ikm[] = { 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b, 0x0b,};
-  uint8_t salt[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c};
-  uint8_t info[] = {0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8, 0xf9};
-  
-  hkdf(1, salt, 13, ikm, 22, info, 10, hmac, 42);
-  */
 
   static oscore_ctx_t *context;
   context = oscore_derrive_ctx(master_secret, 35, NULL, 0, 10, 1, sender_id, 6, receiver_id, 6, 32);
+  if(!context){
+	printf("Could not create OSCORE Security Context!\n");
+  }
   
   oscore_uri_ctx_set_association(service_urls[1], context);
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
