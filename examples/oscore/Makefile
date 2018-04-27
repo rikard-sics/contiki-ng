@@ -3,7 +3,7 @@ all: oscore-example-server oscore-example-client
 
 CONTIKI=../..
 
-WERROR = 0
+WERROR = 1
 CFLAGS += -DCOOJA_MTARCH_STACKSIZE=4096
 
 # build RESTful resources

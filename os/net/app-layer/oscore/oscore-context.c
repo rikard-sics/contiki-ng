@@ -62,7 +62,6 @@ uint8_t bytes_equal(uint8_t* a_ptr, uint8_t a_len, uint8_t* b_ptr, uint8_t b_len
 
 oscore_ctx_t* oscore_derrive_ctx(uint8_t* master_secret, uint8_t master_secret_len, uint8_t* master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t hkdf_alg,
        	uint8_t* sid, uint8_t sid_len, uint8_t* rid, uint8_t rid_len, uint8_t replay_window){
-  //  PRINTF("derrive context\n");
 
     oscore_ctx_t* common_ctx = memb_alloc(&common_contexts);
     if(common_ctx == NULL) return 0;
@@ -88,11 +87,9 @@ oscore_ctx_t* oscore_derrive_ctx(uint8_t* master_secret, uint8_t master_secret_l
       salt_len = master_salt_len;
     }
   
-  //  uint8_t info_buffer_size;
     uint8_t info_len;
 
     //sender_ key
-
     info_len = compose_info(info_buffer, alg, sid, sid_len, CONTEXT_KEY_LEN);
     hkdf(1, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, sender_ctx->sender_key, CONTEXT_KEY_LEN );
 
@@ -104,7 +101,6 @@ oscore_ctx_t* oscore_derrive_ctx(uint8_t* master_secret, uint8_t master_secret_l
     //common IV
     info_len = compose_info(info_buffer, alg, NULL, 0, CONTEXT_INIT_VECT_LEN);
     hkdf(1, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN );
-//int hkdf(uint8_t whichSha, const uint8_t *salt, uint8_t salt_len, const uint8_t *ikm, 	uint8_t ikm_len, const uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t 	okm_len);
 
     common_ctx->master_secret = master_secret;
     common_ctx->master_secret_len = master_secret_len;
