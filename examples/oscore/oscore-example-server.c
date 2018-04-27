@@ -96,7 +96,7 @@ PROCESS_THREAD(er_example_server, ev, data)
   oscore_init_server();
 
   static oscore_ctx_t *context;
-  context = oscore_derrive_ctx(master_secret, 16, NULL, 0, 10, 1, sender_id, 6, receiver_id, 6, 32);
+  context = oscore_derrive_ctx(master_secret, 35, NULL, 0, 10, 1, sender_id, 6, receiver_id, 6, 32);
 
 
   uint8_t key_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
@@ -114,7 +114,7 @@ PROCESS_THREAD(er_example_server, ev, data)
    * All static variables are the same for each URI path.
    */
   coap_activate_resource(&res_hello, "test/hello");
-//TODO protect_resource()
+  oscore_protect_resource(&res_hello);
   /* Define application-specific events here. */
   while(1) {
     PROCESS_WAIT_EVENT();
