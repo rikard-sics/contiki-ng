@@ -34,7 +34,12 @@ uint8_t oscore_protected_request(void* request){
 		}
 	}
 	return 0;
-} 
+}
+
+void oscore_protect_resource(coap_resource_t* resource){
+	resource->oscore_protected = 1;
+}
+ 
 void parse_int(uint64_t in, uint8_t* bytes, int out_len){ 
   int x = out_len - 1;
   while(x >= 0){

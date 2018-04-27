@@ -4,6 +4,7 @@
 #include "coap.h"
 #include "cose.h"
 #include "oscore-context.h"
+#include "coap-engine.h"
 
 size_t oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role);
 coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len, uint8_t role);
@@ -45,7 +46,7 @@ uint8_t oscore_cose_decompress(cose_encrypt0_t* cose, uint8_t* buffer, size_t bu
 void oscore_protected_resource_store_init();
 	
 /* Mark a resource as protected by OSCORE, incoming COAP requests to that resource will be rejected. */
-uint8_t oscore_protect_resource(char uri);
+void oscore_protect_resource(coap_resource_t *resource);
 
 uint8_t oscore_protected_request(void* request);	
 /*Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */

@@ -31,6 +31,18 @@ int encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 	
 	CCM_STAR.set_key(key);
 	CCM_STAR.aead(nonce, encryption_buffer, plaintext_len, aad, aad_len, &(encryption_buffer[plaintext_len]), tag_len, 1);
+	
+	printf("Encrypt:\n");
+	printf("Key:\n");
+	kprintf_hex(key, key_len);
+	printf("IV:\n");
+	kprintf_hex(nonce, nonce_len);
+	printf("AAD:\n");
+	kprintf_hex(aad, aad_len);
+	printf("Plaintext:\n");
+	kprintf_hex(plaintext_buffer, plaintext_len);
+	printf("Ciphertext&Tag:\n");
+	kprintf_hex(encryption_buffer, plaintext_len + 8);
 
 	memcpy(ciphertext_buffer, encryption_buffer, plaintext_len + tag_len);	
 	return plaintext_len + tag_len;
@@ -53,7 +65,17 @@ int decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 	
 	memcpy(decryption_buffer, ciphertext_buffer, plaintext_len);
 	CCM_STAR.set_key(key);
- 	CCM_STAR.aead(nonce, decryption_buffer, plaintext_len, aad, aad_len, tag_buffer, tag_len, 0);
+ 	printf("Decrypt:\n");
+	printf("Key:\n");
+	kprintf_hex(key, key_len);
+	printf("IV:\n");
+	kprintf_hex(nonce, nonce_len);
+	printf("AAD:\n");
+	kprintf_hex(aad, aad_len);
+	printf("Ciphertext&Tag:\n");
+	kprintf_hex(decryption_buffer, ciphertext_len);
+
+	CCM_STAR.aead(nonce, decryption_buffer, plaintext_len, aad, aad_len, tag_buffer, tag_len, 0);
 	
 	if(memcmp(tag_buffer, &(ciphertext_buffer[plaintext_len]), tag_len) != 0){
 		return 0; //Decryption failure

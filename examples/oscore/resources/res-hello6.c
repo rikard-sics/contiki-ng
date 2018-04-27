@@ -65,14 +65,6 @@ static void res_put_handler(coap_message_t *request, coap_message_t *response, u
   char message[3];
   int length = sprintf(message,"%d", val);
  
-  if(oscore_protected_request(request)){
-	response->security_context = request->security_context;
-	coap_set_oscore(response);
-  } else {
-	coap_set_status_code(response, UNAUTHORIZED_4_01);
-	char error_msg[] = "Resource is protected by OSCORE.";
-	coap_set_payload(response, error_msg, strlen(error_msg));
-  } 
   /* The query string can be retrieved by rest_get_query() or parsed for its key-value pairs. */
 
   memcpy(buffer, message, length);
@@ -85,15 +77,6 @@ static void res_put_handler(coap_message_t *request, coap_message_t *response, u
 
 
 static void res_post_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset){
-  if(oscore_protected_request(request)){
-	response->security_context = request->security_context;
-	coap_set_oscore(response);
-  } else {
-	coap_set_status_code(response, UNAUTHORIZED_4_01);
-	char error_msg[] = "Resource is protected by OSCORE.";
-	coap_set_payload(response, error_msg, strlen(error_msg));
-  } 
-
 
   coap_set_status_code(response, CREATED_2_01);
 }
