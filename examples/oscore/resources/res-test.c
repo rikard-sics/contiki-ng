@@ -39,6 +39,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "coap-engine.h"
+#include "stdio.h" 
 
 static void res_delete_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
 
@@ -62,7 +63,7 @@ res_delete_handler(coap_message_t *request, coap_message_t *response, uint8_t *b
 {
   
   printf("/oscore/test       DELETE ");
-  coap_set_response_status(response, DELETED_2_02);
+  coap_set_status_code(response, DELETED_2_02);
 
   test_exists = 0;
 }

@@ -97,7 +97,9 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   static oscore_ctx_t *context;
   context = oscore_derrive_ctx(master_secret, 35, NULL, 0, 10, 1, sender_id, 6, receiver_id, 6, 32);
-
+  if(!context){
+	printf("Could not create OSCORE Security Context!\n");
+  }
 
   uint8_t key_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
   oscore_ctx_t *ctx;
