@@ -31,7 +31,7 @@ int encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 	
 	CCM_STAR.set_key(key);
 	CCM_STAR.aead(nonce, encryption_buffer, plaintext_len, aad, aad_len, &(encryption_buffer[plaintext_len]), tag_len, 1);
-	
+/*	
 	printf("Encrypt:\n");
 	printf("Key:\n");
 	kprintf_hex(key, key_len);
@@ -43,7 +43,7 @@ int encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 	kprintf_hex(plaintext_buffer, plaintext_len);
 	printf("Ciphertext&Tag:\n");
 	kprintf_hex(encryption_buffer, plaintext_len + 8);
-
+*/
 	memcpy(ciphertext_buffer, encryption_buffer, plaintext_len + tag_len);	
 	return plaintext_len + tag_len;
 }
@@ -65,7 +65,7 @@ int decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 	
 	memcpy(decryption_buffer, ciphertext_buffer, plaintext_len);
 	CCM_STAR.set_key(key);
- 	printf("Decrypt:\n");
+ /*	printf("Decrypt:\n");
 	printf("Key:\n");
 	kprintf_hex(key, key_len);
 	printf("IV:\n");
@@ -74,7 +74,7 @@ int decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t 
 	kprintf_hex(aad, aad_len);
 	printf("Ciphertext&Tag:\n");
 	kprintf_hex(decryption_buffer, ciphertext_len);
-
+*/
 	CCM_STAR.aead(nonce, decryption_buffer, plaintext_len, aad, aad_len, tag_buffer, tag_len, 0);
 	
 	if(memcmp(tag_buffer, &(ciphertext_buffer[plaintext_len]), tag_len) != 0){
@@ -123,7 +123,7 @@ int hkdf_extract(uint8_t hash, uint8_t *salt, uint8_t salt_len, uint8_t *ikm, ui
 int hkdf_expand(uint8_t hash, uint8_t *prk, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len){
 	int N = (okm_len + 32 - 1) / 32; // ceil(okm_len/32)
  	uint8_t aggregate_buffer[32 + info_len + 1];
-	uint8_t out_buffer[okm_len+32]; //TODO late night must fit last block
+	uint8_t out_buffer[okm_len+32]; //32 extra bytes to fit the last block 
 	int i;
 	//Compose T(1)
 	memcpy(aggregate_buffer, info, info_len);
