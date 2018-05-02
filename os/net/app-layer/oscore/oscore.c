@@ -249,7 +249,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   oscore_ctx_t *ctx = coap_pkt->security_context;
   if(ctx == NULL) {
     LOG_DBG_("No context in OSCORE!\n");
-    return PACKET_SERIALIZATTION_ERROR;
+    return PACKET_SERIALIZATION_ERROR;
   }
   oscore_populate_cose(coap_pkt, &cose, coap_pkt->security_context);
 /*  2 Compose the Additional Authenticated Data and the plaintext, as described in Section 5.4 and Section 5.3. */
