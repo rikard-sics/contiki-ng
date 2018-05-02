@@ -1164,7 +1164,6 @@ coap_set_payload(coap_message_t *coap_pkt, const void *payload, size_t length)
 }
 /*---------------------------------------------------------------------------*/
 
-//TODO fix the ROLE_CONFIDENTIAL to something more accurate
 size_t
 oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
 {
@@ -1179,11 +1178,11 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
   coap_pkt->buffer = buffer;
 
   if(role == ROLE_COAP){
-      LOG_DBG_("SERIALIZING ROLE COAP\n");
+      LOG_DBG_("Serializing, role COAP\n");
   } else if (role == ROLE_CONFIDENTIAL){
-      LOG_DBG_("SERIALIZING ROLE CONFIDENTIAL\n");
+      LOG_DBG_("Serializing, role CONFIDENTIAL\n");
   } else if( role == ROLE_PROTECTED){
-      LOG_DBG_("SERIALIZING ROLE PROTECTED\n");
+      LOG_DBG_("Serializing, role PROTECTED\n");
   }
 
   if(role == ROLE_COAP){

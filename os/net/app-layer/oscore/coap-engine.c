@@ -463,7 +463,7 @@ invoke_coap_resource_service(coap_message_t *request, coap_message_t *response,
                (uint16_t)method, resource->flags);
       printf("/%s, method %u, resource->flags %u\n", resource->url,
                (uint16_t)method, resource->flags);
-      /*TODO add ifdefs */
+      /*Check if resoure is protected by OSCORE. */
       if(resource->oscore_protected){
 	  if(oscore_protected_request(request)){
         	response->security_context = request->security_context;

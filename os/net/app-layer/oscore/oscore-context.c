@@ -5,26 +5,22 @@
 #include <string.h>
 #include "crypto.h"
 
-//TODO rename to ... _memb
 oscore_ctx_t *common_context_store = NULL;
 token_seq_t *token_seq_store = NULL;
 uri_ctx_t *uri_ctx_store = NULL;
-//TODO define in a better place
-#define CONTEXT_NUM 2
-#define TOKEN_SEQ_NUM 2
 
-MEMB(common_contexts, oscore_ctx_t, CONTEXT_NUM);
-MEMB(sender_contexts, oscore_sender_ctx_t, CONTEXT_NUM);
-MEMB(recipient_contexts, oscore_recipient_ctx_t, CONTEXT_NUM);
+MEMB(common_context_memb, oscore_ctx_t, CONTEXT_NUM);
+MEMB(sender_context_memb, oscore_sender_ctx_t, CONTEXT_NUM);
+MEMB(recipient_context_memb, oscore_recipient_ctx_t, CONTEXT_NUM);
 
-MEMB(token_seq, token_seq_t, TOKEN_SEQ_NUM);
+MEMB(token_seq_memb, token_seq_t, TOKEN_SEQ_NUM);
 MEMB(uri_ctx_memb, uri_ctx_t, 2);
 
 void oscore_ctx_store_init(){
 
-  memb_init(&common_contexts);
-  memb_init(&sender_contexts);
-  memb_init(&recipient_contexts);
+  memb_init(&common_context_memb);
+  memb_init(&sender_context_memb);
+  memb_init(&recipient_context_memb);
 }
 	
 static uint8_t compose_info(uint8_t* buffer, uint8_t alg, uint8_t* id, uint8_t id_len, uint8_t out_len){
@@ -63,13 +59,13 @@ uint8_t bytes_equal(uint8_t* a_ptr, uint8_t a_len, uint8_t* b_ptr, uint8_t b_len
 oscore_ctx_t* oscore_derrive_ctx(uint8_t* master_secret, uint8_t master_secret_len, uint8_t* master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t hkdf_alg,
        	uint8_t* sid, uint8_t sid_len, uint8_t* rid, uint8_t rid_len, uint8_t replay_window){
 
-    oscore_ctx_t* common_ctx = memb_alloc(&common_contexts);
+    oscore_ctx_t* common_ctx = memb_alloc(&common_context_memb);
     if(common_ctx == NULL) return 0;
 
-    oscore_recipient_ctx_t* recipient_ctx = memb_alloc(&recipient_contexts);
+    oscore_recipient_ctx_t* recipient_ctx = memb_alloc(&recipient_context_memb);
     if(recipient_ctx == NULL) return 0;
 
-    oscore_sender_ctx_t* sender_ctx = memb_alloc(&sender_contexts);
+    oscore_sender_ctx_t* sender_ctx = memb_alloc(&sender_context_memb);
     if(sender_ctx == NULL) return 0;
 
     uint8_t zeroes[32];
@@ -160,9 +156,9 @@ int oscore_free_ctx(oscore_ctx_t *ctx){
     memset(ctx->common_iv, 0x00, CONTEXT_INIT_VECT_LEN);
 
     int ret = 0;
-    ret += memb_free(&sender_contexts, ctx->sender_context);
-    ret += memb_free(&recipient_contexts, ctx->recipient_context);
-    ret += memb_free(&common_contexts, ctx);
+    ret += memb_free(&sender_context_memb, ctx->sender_context);
+    ret += memb_free(&recipient_context_memb, ctx->recipient_context);
+    ret += memb_free(&common_context_memb, ctx);
   
     return ret;
 }
@@ -204,7 +200,7 @@ oscore_ctx_t* oscore_find_ctx_by_token(uint8_t* token, uint8_t token_len){
 
 /* Token <=> SEQ association */
 void oscore_token_seq_store_init(){
-  memb_init(&token_seq);
+  memb_init(&token_seq_memb);
 }
 
 uint8_t get_seq_from_token(uint8_t* token, uint8_t token_len, uint32_t* seq){
@@ -214,7 +210,7 @@ uint8_t get_seq_from_token(uint8_t* token, uint8_t token_len, uint32_t* seq){
     
     ptr = ptr->next;
     if(ptr == NULL){
-      return 0; //TODO handle error
+      return 0; 
     }
 
   }
@@ -226,16 +222,16 @@ uint8_t get_seq_from_token(uint8_t* token, uint8_t token_len, uint32_t* seq){
 }
 
 uint8_t set_seq_from_token(uint8_t* token, uint8_t token_len, uint32_t seq){
-  token_seq_t* token_seq_ptr = memb_alloc(&token_seq);
-  if(token_seq_ptr == NULL){
+  token_seq_t* token_seq_memb_ptr = memb_alloc(&token_seq_memb);
+  if(token_seq_memb_ptr == NULL){
     return 0;
   }
 
-  memcpy(token_seq_ptr->token, token, token_len);
-  token_seq_ptr->token_len = token_len;
-  token_seq_ptr->seq = seq;
-  token_seq_ptr->next = token_seq_store;
-  token_seq_store = token_seq_ptr;
+  memcpy(token_seq_memb_ptr->token, token, token_len);
+  token_seq_memb_ptr->token_len = token_len;
+  token_seq_memb_ptr->seq = seq;
+  token_seq_memb_ptr->next = token_seq_store;
+  token_seq_store = token_seq_memb_ptr;
   return 1;
 }
 
@@ -246,7 +242,7 @@ void remove_seq_from_token(uint8_t* token, uint8_t token_len){
 
   if(bytes_equal(ptr->token, ptr->token_len, token, token_len)){ // first element
     token_seq_store = ptr->next;
-    memb_free(&token_seq, ptr);
+    memb_free(&token_seq_memb, ptr);
     return;
   }
 
@@ -260,7 +256,7 @@ void remove_seq_from_token(uint8_t* token, uint8_t token_len){
     if(bytes_equal(ptr->next->token, ptr->token_len, token, token_len)){
       token_seq_t* tmp = ptr->next;
       ptr->next = ptr->next->next;
-      memb_free(&token_seq, tmp);
+      memb_free(&token_seq_memb, tmp);
       return;
     }
 
