@@ -138,7 +138,6 @@ coap_status_t oscore_decode_message(coap_message_t* coap_pkt){
   the server fails to retrieve a Recipient Context with Recipient ID corresponding to the ‘kid’ parameter received, the server MAY respond with a 4.01 Unauthorized error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the string “Security context not found”.
   */
   //Options are discarded later when they are overwritten. This should be improved
-  printf_hex(coap_pkt->object_security, coap_pkt->object_security_len);
   oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, &cose);
 
   if(coap_is_request(coap_pkt)){
@@ -146,20 +145,25 @@ coap_status_t oscore_decode_message(coap_message_t* coap_pkt){
     int key_id_len = cose_encrypt0_get_key_id(&cose, &key_id);
     ctx = oscore_find_ctx_by_rid(key_id, key_id_len);
     if(ctx == NULL){
-      printf("errors HERE!\n");
-    } else {
-      printf("context FOUND!\n");
+      LOG_DBG_("OSCORE Security Context not found.\n");
+      coap_error_message = "Security context not found";
+      return UNAUTHORIZED_4_01;
     }
     // 4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. 
-    oscore_validate_sender_seq(ctx->recipient_context, &cose);  
+    if(!oscore_validate_sender_seq(ctx->recipient_context, &cose)){
+	LOG_DBG_("OSCORE Replayed or old message\n"); 
+    	coap_error_message = "Replay detected";
+	return UNAUTHORIZED_4_01;
+    }  
     cose_encrypt0_set_key(&cose, ctx->recipient_context->recipient_key, 16);
   } else {
     ctx = oscore_find_ctx_by_token(coap_pkt->token, coap_pkt->token_len);
     if(ctx == NULL){
-      printf("errors HERE!\n");
+      LOG_DBG_("OSCORE Security Context not found.\n");
+      coap_error_message = "Security context not found";
+      return UNAUTHORIZED_4_01;
     } 
     cose_encrypt0_set_key(&cose, ctx->recipient_context->recipient_key, 16);
-    //TODO find and fix all COSE parameters for responses
   }
   coap_pkt->security_context = ctx;
 
@@ -173,15 +177,15 @@ coap_status_t oscore_decode_message(coap_message_t* coap_pkt){
    /*7 Decrypt the COSE object using the Recipient Key, as per [RFC8152] Section 5.3. (The decrypt operation includes the verification of the integrity.)
         If decryption fails, the server MUST stop processing the request and MAY respond with a 4.00 Bad Request error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the “Decryption failed” string.
         If decryption succeeds, update the Replay Window, as described in Section 7. */
- // cose_encrypt0_set_ciphertext(&cose, coap_pkt->payload, coap_pkt->payload_len);
   uint8_t plaintext_buffer[coap_pkt->payload_len - 8];
   cose_encrypt0_set_ciphertext(&cose, coap_pkt->payload, coap_pkt->payload_len);
 
   int res = cose_encrypt0_decrypt(&cose, plaintext_buffer, coap_pkt->payload_len - 8);
   if(res <= 0){
-    LOG_DBG_("DECRYPTION FAIURE!! res: %d\n", res);
+    LOG_DBG_("OSCORE Decryption Failure, result code: %d\n", res);
     oscore_roll_back_seq(ctx->recipient_context);
-    //TODO bail out with errors
+    coap_error_message = "Decryption failure";
+    return BAD_REQUEST_4_00;
   }
 
    /*8 For each decrypted option, check if the option is also present as an Outer option:
@@ -190,18 +194,20 @@ coap_status_t oscore_decode_message(coap_message_t* coap_pkt){
  
    /*9 Add decrypted code, options and payload to the decrypted request. 
    The Object-Security option is removed.*/
-  //FISHY
+
+  /*Move the plaintext to the ciphtertext buffer so that it remains when this function returns and plaintext buffer is dealocated.*/
   memcpy(cose.ciphertext, plaintext_buffer, coap_pkt->payload_len - 8);
   cose.plaintext = cose.ciphertext;
 
   coap_status_t status = oscore_parser(coap_pkt,  cose.plaintext, res, ROLE_CONFIDENTIAL);
-   /*9 Add decrypted code, options and payload to the decrypted request. 
-   The Object-Security option is removed.*/
+  /*9 Add decrypted code, options and payload to the decrypted request. 
+  The Object-Security option is removed.*/
    
-   //10 The decrypted CoAP request is processed according to [RFC7252]
+  //10 The decrypted CoAP request is processed according to [RFC7252]
 
-	return status;	
+  return status;	
 }
+
 //TODO  make partial IV a field in COSE_encrypt0 
 uint8_t partial_iv_buffer[5];
 uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx){
@@ -235,7 +241,7 @@ size_t oscore_prepare_message(coap_message_t* coap_pkt, uint8_t *buffer){
   oscore_ctx_t *ctx = coap_pkt->security_context;
   if(ctx == NULL){
     LOG_DBG_("No context in OSCORE!\n");
-    return 0;
+    return PACKET_SERIALIZATTION_ERROR;
   }
   oscore_populate_cose(coap_pkt, &cose, coap_pkt->security_context);
 //  2 Compose the Additional Authenticated Data and the plaintext, as described in Section 5.4 and Section 5.3.
@@ -345,7 +351,6 @@ size_t oscore_prepare_external_aad(coap_message_t* coap_pkt, cose_encrypt0_t* co
 
 /* Creates Nonce */ 
 void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size){
-	//TODO add length check so theat the buffer is long enough
 	memset(buffer, 0, size);
 	buffer[0] = (uint8_t)(ptr->key_id_len);
 	memcpy(&(buffer[((size - 6)- ptr->key_id_len)]), ptr->key_id, ptr->key_id_len);
@@ -382,17 +387,13 @@ void oscore_clear_options(coap_message_t *coap_pkt){
 /*Return 1 if OK, Error code otherwise */
 uint8_t oscore_validate_sender_seq(oscore_recipient_ctx_t* ctx, cose_encrypt0_t *cose){
 
-  uint32_t incomming_seq = 0; //bytes_to_uint32(cose->partial_iv, cose->partial_iv_len);
-  //  PRINTF("SEQ: incomming %" PRIu32 "\n", incomming_seq);
-  //  PRINTF("SEQ: last %" PRIu32 "\n", ctx->last_seq);
-  //  PRINTF_HEX(cose->partial_iv, cose->partial_iv_len);
+  uint32_t incomming_seq = 0;
    if (ctx->last_seq >= OSCORE_SEQ_MAX) {
-            //  PRINTF("SEQ ERROR: wrapped\n");
-          //  return OSCOAP_SEQ_WRAPPED;
+        LOG_WARN("OSCORE Replay protection, SEQ larger than SEQ_MAX.\n");
    	return 0;
    }
   
-  ctx->rollback_last_seq = ctx->last_seq; //recipient_seq;
+  ctx->rollback_last_seq = ctx->last_seq;
   ctx->rollback_sliding_window = ctx->sliding_window;
 
   if (incomming_seq > ctx->highest_seq) {
@@ -411,14 +412,12 @@ uint8_t oscore_validate_sender_seq(oscore_recipient_ctx_t* ctx, cose_encrypt0_t 
         ctx->highest_seq = incomming_seq;
         
      } else {
-        //  PRINTF("SEQ ERROR: replay\n");
-       // return OSCOAP_SEQ_REPLAY;
+         LOG_WARN("OSCORE Replay protextion, replayed SEQ.\n");
      	return 0;
      }
   } else { //seq < this.recipient_seq
      if (incomming_seq + ctx->replay_window_size < ctx->highest_seq) {
-        //  PRINTF("SEQ ERROR: old\n");
-     //   return OSCOAP_SEQ_OLD_MESSAGE;
+        LOG_WARN("OSCORE Replay protection, SEQ outside of replay window.\n");
      	return 0;
      }
      // seq+replay_window_size > recipient_seq
@@ -427,8 +426,7 @@ uint8_t oscore_validate_sender_seq(oscore_recipient_ctx_t* ctx, cose_encrypt0_t 
      uint32_t verifier = ctx->sliding_window & pattern;
      verifier = verifier >> shift;
      if (verifier == 1) {
-        //  PRINTF("SEQ ERROR: replay\n");
-       // return OSCOAP_SEQ_REPLAY;
+        LOG_WARN("OSCORE Replay protection, replayed SEQ.\n");
      	return 0;
      }
      ctx->sliding_window = ctx->sliding_window | pattern;
@@ -464,24 +462,10 @@ void oscore_roll_back_seq(oscore_recipient_ctx_t* ctx) {
 
 }
 
-/*Compress and extract COSE messages as per the OSCORE standard. */
-//uint8_t oscore_cose_compress(cose_encrypt0_t* cose, uint8_t* buffer);
-//uint8_t oscore_cose_decompress(cose_encrypt0_t* cose, uint8_t* buffer, size_t buffer_len);
-
-/* Start protected resource storage. */
-//void oscore_protected_resource_store_init();
-	
-/* Mark a resource as protected by OSCORE, incoming COAP requests to that resource will be rejected. */
-//uint8_t oscore_protect_resource(char uri);
-	
-/*Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
-//uint8_t oscore_is_resource_protected(char uri);
-
 /* Initialize the security_context storage and the protected resource storage. */
 void oscore_init_server(){
 	oscore_ctx_store_init();
 	oscore_token_seq_store_init();
-	//oscore_protected_resource_store_init();
 }
 
 /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
