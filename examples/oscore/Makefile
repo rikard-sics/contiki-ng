@@ -3,6 +3,7 @@ all: oscore-example-server oscore-example-client
 
 CONTIKI=../..
 
+MAKE_WITH_OSCORE = 0
 WERROR = 1
 CFLAGS += -DCOOJA_MTARCH_STACKSIZE=4096
 

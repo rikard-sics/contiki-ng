@@ -7,14 +7,14 @@
 
 oscore_ctx_t *common_context_store = NULL;
 token_seq_t *token_seq_store = NULL;
-uri_ctx_t *uri_ctx_store = NULL;
+ep_ctx_t *ep_ctx_store = NULL;
 
 MEMB(common_context_memb, oscore_ctx_t, CONTEXT_NUM);
 MEMB(sender_context_memb, oscore_sender_ctx_t, CONTEXT_NUM);
 MEMB(recipient_context_memb, oscore_recipient_ctx_t, CONTEXT_NUM);
 
 MEMB(token_seq_memb, token_seq_t, TOKEN_SEQ_NUM);
-MEMB(uri_ctx_memb, uri_ctx_t, 2);
+MEMB(ep_ctx_memb, ep_ctx_t, 2);
 
 void
 oscore_ctx_store_init()
@@ -272,27 +272,30 @@ remove_seq_from_token(uint8_t *token, uint8_t token_len)
 }
 /* URI <=> RID association */
 void
-oscore_uri_ctx_store_init()
+oscore_ep_ctx_store_init()
 {
-  memb_init(&uri_ctx_memb);
+  memb_init(&ep_ctx_memb);
 }
 uint8_t
-oscore_uri_ctx_set_association(char *uri, oscore_ctx_t *ctx)
+oscore_ep_ctx_set_association(coap_endpoint_t *ep, oscore_ctx_t *ctx)
 {
-  uri_ctx_t *uri_ctx_ptr = memb_alloc(&uri_ctx_memb);
-  if(uri_ctx_ptr == NULL) {
+  ep_ctx_t *ep_ctx_ptr = memb_alloc(&ep_ctx_memb);
+  if(ep_ctx_ptr == NULL) {
     return 0;
   }
-  uri_ctx_ptr->uri = uri;
-  uri_ctx_ptr->ctx = ctx;
+  ep_ctx_ptr->ep = ep;
+  ep_ctx_ptr->ctx = ctx;
+  ep_ctx_ptr->next = ep_ctx_store;
+  ep_ctx_store = ep_ctx_ptr;
   return 1;
 }
-oscore_ctx_t *
-oscore_get_context_from_uri(char *uri)
-{
-  uri_ctx_t *ptr = uri_ctx_store;
 
-  while(strcmp(uri, ptr->uri) != 0) {
+oscore_ctx_t *
+oscore_get_context_from_ep(coap_endpoint_t *ep)
+{
+  ep_ctx_t *ptr = ep_ctx_store;
+
+  while(coap_endpoint_cmp(ep, ptr->ep) == 0) {
 
     ptr = ptr->next;
     if(ptr == NULL) {
