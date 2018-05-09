@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include "coap-constants.h"
+#include "coap-endpoint.h"
 
 #define CONTEXT_KEY_LEN 16
 #define CONTEXT_INIT_VECT_LEN 13
@@ -14,7 +15,7 @@ typedef struct oscore_sender_ctx_t oscore_sender_ctx_t;
 typedef struct oscore_recipient_ctx_t oscore_recipient_ctx_t;
 typedef struct oscore_ctx_t oscore_ctx_t;
 typedef struct token_seq_t token_seq_t;
-typedef struct uri_ctx_t uri_ctx_t;
+typedef struct ep_ctx_t ep_ctx_t;
 
 struct oscore_sender_ctx_t {
   uint8_t sender_key[CONTEXT_KEY_LEN];
@@ -59,10 +60,10 @@ struct token_seq_t {
   token_seq_t *next;
 };
 
-struct uri_ctx_t {
-  char *uri;
+struct ep_ctx_t {
+  coap_endpoint_t *ep;
   oscore_ctx_t *ctx;
-  uri_ctx_t *next;
+  ep_ctx_t *next;
 };
 void oscore_ctx_store_init();
 
@@ -81,8 +82,8 @@ uint8_t set_seq_from_token(uint8_t *token, uint8_t token_len, uint32_t seq);
 void remove_seq_from_token(uint8_t *token, uint8_t token_len);
 
 /* URI <=> CTX association */
-void oscore_uri_ctx_store_init();
-uint8_t oscore_uri_ctx_set_association(char *uri, oscore_ctx_t *ctx);
-oscore_ctx_t *oscore_get_context_from_uri(char *uri);
+void oscore_ep_ctx_store_init();
+uint8_t oscore_ep_ctx_set_association(coap_endpoint_t *ep, oscore_ctx_t *ctx);
+oscore_ctx_t *oscore_get_context_from_ep(coap_endpoint_t *ep);
 
 #endif /* _OSCORE_CONTEXT_H */
