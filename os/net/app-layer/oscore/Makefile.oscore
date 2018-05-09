@@ -1,12 +1,14 @@
 MAKE_WITH_DTLS ?= 0
 MAKE_WITH_OSCORE ?= 0
 
-CFLAGS += -DCONTEXT_NUM -DTOKEN_SEQ_NUM=2 -DURI_CTX_NUM=2
 
-#MODULES += os/net/security/tinydtls
-MODULES += os/net/security/tinydtls/sha2
-CFLAGS += -DSHA2_USE_INTTYPES_H -DWITH_SHA256 -DHAVE_ASSERT_H
-ifeq ($(MAKE_WITH_DTLS),1)
+ifeq ($(MAKE_WITH_OSCORE),1)
+ MODULES += os/net/security/tinydtls/sha2
+ CFLAGS += -DSHA2_USE_INTTYPES_H -DWITH_SHA256 -DHAVE_ASSERT_H
+ CFLAGS += -DCONTEXT_NUM -DTOKEN_SEQ_NUM=2 -DURI_CTX_NUM=2
+ CFLAGS += -DWITH_OSCORE=1
+
+else ifeq ($(MAKE_WITH_DTLS),1)
 
  TINYDTLS_PATH := os/net/security/tinydtls
 

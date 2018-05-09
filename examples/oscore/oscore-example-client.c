@@ -68,6 +68,8 @@ uint8_t receiver_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 #define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
 char* server_ip =  "coap://[fe80::202:0002:0002:0002]";
 
+char* ip2 =  "coap://[fe80::202:0002:0002:0002]";
+
 #define TOGGLE_INTERVAL 10
 
 PROCESS(er_example_client, "Erbium Example Client");
@@ -113,7 +115,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 	printf("Could not create OSCORE Security Context!\n");
   }
   
-  oscore_uri_ctx_set_association(service_urls[1], context);
+  oscore_ep_ctx_set_association(&server_ep, context);
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
   
 #if PLATFORM_HAS_BUTTON
@@ -130,8 +132,8 @@ PROCESS_THREAD(er_example_client, ev, data)
       /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
       coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
       coap_set_header_uri_path(request, service_urls[1]);
-      coap_set_oscore(request);
-      request->security_context = context;
+   //   coap_set_oscore(request);
+   //   request->security_context = context;
       LOG_INFO_COAP_EP(&server_ep);
       LOG_INFO_("\n");
 
