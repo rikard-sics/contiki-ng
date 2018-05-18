@@ -41,8 +41,10 @@
 #include <string.h>
 #include "contiki.h"
 #include "coap-engine.h"
+#ifdef WITH_OSCORE
 #include "oscore.h"
 #include "oscore-context.h"
+#endif /* WITH_OSCORE */
 
 #if PLATFORM_HAS_BUTTON
 #include "dev/button-sensor.h"
@@ -63,11 +65,12 @@
 extern coap_resource_t
   res_hello;
 
+#ifdef WITH_OSCORE
 uint8_t master_secret[35] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23};
 uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
 uint8_t sender_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 uint8_t receiver_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
-
+#endif /* WITH_OSCORE */
 PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 
@@ -93,6 +96,8 @@ PROCESS_THREAD(er_example_server, ev, data)
   printf("COOJA_MTARCH_STACKSIZE %d\n", COOJA_MTARCH_STACKSIZE);
   /* Initialize the REST engine. */
   coap_engine_init();
+
+  #ifdef WITH_OSCORE
   oscore_init_server();
 
   static oscore_ctx_t *context;
@@ -109,14 +114,12 @@ PROCESS_THREAD(er_example_server, ev, data)
   }else {
     printf("context FOUND!\n");
   }
+  #endif /* WITH_OSCORE */
 
-  /*
-   * Bind the resources to their Uri-Path.
-   * WARNING: Activating twice only means alternate path, not two instances!
-   * All static variables are the same for each URI path.
-   */
   coap_activate_resource(&res_hello, "test/hello");
+  #ifdef WITH_OSCORE
   oscore_protect_resource(&res_hello);
+  #endif /* WITH_OSCORE */
   /* Define application-specific events here. */
   while(1) {
     PROCESS_WAIT_EVENT();
