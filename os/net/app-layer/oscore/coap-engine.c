@@ -48,12 +48,15 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
-#include "oscore.h" 
 
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "coap-engine"
 #define LOG_LEVEL  LOG_LEVEL_COAP
+
+#ifdef WITH_OSCORE
+#include "oscore.h"
+#endif /* WITH_OSCORE */
 
 static void process_callback(coap_timer_t *t);
 
@@ -189,10 +192,12 @@ coap_receive(const coap_endpoint_t *src,
                             coap_get_mid());
           /* mirror token */
         }
-        if(coap_is_option(message, COAP_OPTION_OBJECT_SECURITY)){
+        #ifdef WITH_OSCORE 
+	if(coap_is_option(message, COAP_OPTION_OBJECT_SECURITY)){
           coap_set_oscore(response);
           response->security_context = message->security_context;
         }
+        #endif /* WITH_OSCORE */
         if(message->token_len) {
           coap_set_token(response, message->token, message->token_len);
           /* get offset for blockwise transfers */
