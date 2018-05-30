@@ -12,6 +12,12 @@
 #define PRINTF_HEX(data, len)
 #endif
 
+
+int cbor_put_nil(uint8_t **buffer){
+	**buffer = 0xF6;
+   	(*buffer)++;
+	return 1;
+}
 int
 cbor_put_text(uint8_t **buffer, char *text, uint8_t text_len)
 {

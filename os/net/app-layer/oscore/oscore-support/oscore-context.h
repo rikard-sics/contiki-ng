@@ -45,11 +45,13 @@ struct oscore_ctx_t {
   uint8_t *master_secret;
   uint8_t *master_salt;
   uint8_t common_iv[CONTEXT_INIT_VECT_LEN];
+  uint8_t *id_context;
   oscore_sender_ctx_t *sender_context;
   oscore_recipient_ctx_t *recipient_context;
   oscore_ctx_t *next_context;
   uint8_t master_secret_len;
   uint8_t master_salt_len;
+  uint8_t id_context_len;
   uint8_t alg;
 };
 
@@ -67,8 +69,7 @@ struct ep_ctx_t {
 };
 void oscore_ctx_store_init();
 
-oscore_ctx_t *oscore_derrive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t hkdf_alg,
-                                 uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t replay_window);
+oscore_ctx_t *oscore_derrive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t hkdf_alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window);
 
 int oscore_free_ctx(oscore_ctx_t *ctx);
 
