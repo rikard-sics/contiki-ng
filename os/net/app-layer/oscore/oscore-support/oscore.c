@@ -393,8 +393,8 @@ oscore_clear_options(coap_message_t *coap_pkt)
 uint8_t
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
-
-  uint32_t incomming_seq = 0;
+  uint32_t incomming_seq = btou32(cose->partial_iv, cose->partial_iv_len);
+  
   if(ctx->last_seq >= OSCORE_SEQ_MAX) {
     LOG_WARN("OSCORE Replay protection, SEQ larger than SEQ_MAX.\n");
     return 0;
