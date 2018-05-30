@@ -4,7 +4,8 @@
 #include "cose.h"
 
 #include <stdio.h>
-#include "sha2.h"
+#include "dtls-hmac.h"
+//#include "dtls.h"
 
 void
 kprintf_hex(unsigned char *data, unsigned int len)
@@ -91,30 +92,11 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
 void
 hmac_sha256(uint8_t *key, uint8_t key_len, uint8_t *data, uint8_t data_len, uint8_t *hmac)
 {
-  dtls_sha256_ctx ctx;
-  /* compose inner = H(Key XOR ipad, text) */
-  uint8_t pad[64];
-  memset(pad, 0x36, 64);
-  uint8_t inner[32];
-  int i;
-  for(i = 0; i < key_len; i++) {
-    pad[i] ^= key[i];
-  }
-  dtls_sha256_init(&ctx);
-  dtls_sha256_update(&ctx, pad, 64);
-  dtls_sha256_update(&ctx, data, data_len);
-  dtls_sha256_final(inner, &ctx);
+  dtls_hmac_context_t ctx;
+  dtls_hmac_init(&ctx, key, key_len);
+  dtls_hmac_update(&ctx, data, data_len);
+  dtls_hmac_finalize(&ctx, hmac);
 
-  /* Compose hmac = H(Key XOR opad, inner) */
-  memset(pad, 0x5C, 64);
-  for(i = 0; i < key_len; i++) {
-    pad[i] ^= key[i];
-  }
-  dtls_sha256_init(&ctx);
-  dtls_sha256_update(&ctx, pad, 64);
-  dtls_sha256_update(&ctx, inner, 32);
-
-  dtls_sha256_final(hmac, &ctx);
 }
 /* Does not set salt to empty string when no salt is provided */
 int
