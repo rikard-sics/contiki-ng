@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <inttypes.h>
 
+int cbor_put_nil(uint8_t **buffer);
+
 int cbor_put_text(uint8_t **buffer, char *text, uint8_t text_len);
 
 int cbor_put_array(uint8_t **buffer, uint8_t elements);
