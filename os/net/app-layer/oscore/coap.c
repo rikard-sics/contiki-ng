@@ -311,7 +311,7 @@ size_t
 coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
     #ifdef WITH_OSCORE
-    if(coap_is_option(coap_pkt, COAP_OPTION_OBJECT_SECURITY)){
+    if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)){
        printf("sending OSCOAP\n");
        size_t s = oscore_prepare_message(coap_pkt, buffer);
        printf_hex(buffer, s);
@@ -664,7 +664,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
       LOG_DBG_COAP_STRING(coap_pkt->location_query, coap_pkt->location_query_len);
       LOG_DBG_("]\n");
       break;
-    case COAP_OPTION_OBJECT_SECURITY:
+    case COAP_OPTION_OSCORE:
       #ifdef WITH_OSCORE
       coap_pkt->object_security = (uint8_t *)current_option;
       coap_pkt->object_security_len = option_length;
@@ -1297,7 +1297,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
   }
   
   if(role == ROLE_COAP ){
-    COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OBJECT_SECURITY, object_security, "Object-Security"); //if number = 21
+    COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OSCORE, object_security, "Object-Security"); //if number = 21
     COAP_SERIALIZE_BLOCK_OPTION(COAP_OPTION_BLOCK2, block2, "Block2");
     COAP_SERIALIZE_BLOCK_OPTION(COAP_OPTION_BLOCK1, block1, "Block1");
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_SIZE2, size2, "Size2");
@@ -1306,7 +1306,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_PROXY_SCHEME, proxy_scheme, '\0',
                                  "Proxy-Scheme");
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_SIZE1, size1, "Size1");
-  //  COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OBJECT_SECURITY, object_security, "Object-Security");
+  //  COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OSCORE, object_security, "Object-Security");
 
   }
   LOG_DBG_("-Done serializing at %p----\n", option);
@@ -1612,7 +1612,7 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
       coap_pkt->size1 = coap_parse_int_option(current_option, option_length);
       LOG_DBG_("Size1 [%lu]\n", (unsigned long)coap_pkt->size1);
       break;
-   case COAP_OPTION_OBJECT_SECURITY:
+   case COAP_OPTION_OSCORE:
         /* coap_merge_multi_option() operates in-place on the IPBUF, but final packet field should be const string -> cast to string */
       coap_merge_multi_option((char **)&(coap_pkt->object_security),
                               &(coap_pkt->object_security_len), current_option,
@@ -1647,7 +1647,7 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
 }
 
 int coap_get_header_object_security(coap_message_t *coap_pkt, uint8_t **object_security){
-  if(!coap_is_option(coap_pkt, COAP_OPTION_OBJECT_SECURITY)) {
+  if(!coap_is_option(coap_pkt, COAP_OPTION_OSCORE)) {
     return 0;
   }
   *object_security = coap_pkt->object_security;
@@ -1658,7 +1658,7 @@ int coap_set_header_object_security(coap_message_t *coap_pkt, uint8_t *object_se
   coap_pkt->object_security = object_security;
   coap_pkt->object_security_len = object_security_len;
 
-  coap_set_option(coap_pkt, COAP_OPTION_OBJECT_SECURITY);
+  coap_set_option(coap_pkt, COAP_OPTION_OSCORE);
   return coap_pkt->object_security_len;
 }
 
@@ -1667,7 +1667,7 @@ int coap_set_header_object_security(coap_message_t *coap_pkt, uint8_t *object_se
 int
 coap_set_oscore(coap_message_t *coap_pkt)
 {
-  coap_set_option(coap_pkt, COAP_OPTION_OBJECT_SECURITY);
+  coap_set_option(coap_pkt, COAP_OPTION_OSCORE);
   return 0;
 }
 #endif /* WITH_OSCORE */
