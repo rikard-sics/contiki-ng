@@ -32,7 +32,7 @@ oscore_protected_request(void *request)
 {
   if(request != NULL) {
     coap_message_t *coap_pkt = (coap_message_t *)request;
-    if(coap_is_option(coap_pkt, COAP_OPTION_OBJECT_SECURITY)) {
+    if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)) {
       return 1;
     }
   }
