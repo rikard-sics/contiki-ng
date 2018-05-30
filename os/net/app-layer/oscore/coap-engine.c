@@ -193,7 +193,7 @@ coap_receive(const coap_endpoint_t *src,
           /* mirror token */
         }
         #ifdef WITH_OSCORE 
-	if(coap_is_option(message, COAP_OPTION_OBJECT_SECURITY)){
+	if(coap_is_option(message, COAP_OPTION_OSCORE)){
           coap_set_oscore(response);
           response->security_context = message->security_context;
         }
