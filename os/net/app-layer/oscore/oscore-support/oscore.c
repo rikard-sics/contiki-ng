@@ -312,64 +312,38 @@ oscore_prepare_external_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uin
 
   uint8_t ret = 0;
   uint8_t seq_buffer[8];
-  uint8_t protected_buffer[25];
-  size_t protected_len;
   ret += cbor_put_array(&buffer, 5);
   ret += cbor_put_unsigned(&buffer, 1); /* Version, always for this version of the draft 1 */
+  ret += cbor_put_array(&buffer, 1); /* Algoritms array */
   ret += cbor_put_unsigned(&buffer, (coap_pkt->security_context->alg)); /* Algorithm */
-
-  /* int32_t obs; */
-  /* partial IV len 13 max, KID för 16 16 64 ger 7 bytes */
-
-  if(!coap_is_request(coap_pkt) && coap_is_option(coap_pkt, COAP_OPTION_OBSERVE)) {
-/*
-    if( sending == 1){
-      coap_set_header_observe(coap_pkt, observe_seq);
-    } else {
-      int s = coap_get_header_observe(coap_pkt, &obs);
-    }
- */
-    protected_len = 0; /* oscore_serializer(coap_pkt, protected_buffer, ROLE_PROTECTED); */
-/*  PRINTF("protected, len %d\n", protected_len); */
-    /*  PRINTF_HEX(protected_buffer, protected_len); */
-  } else {
-    protected_len = 0;
-  }
-  ret += cbor_put_bytes(&buffer, protected_buffer, protected_len);
 
   if(sending == 1) {
     if(coap_is_request(coap_pkt)) {
 
-      uint8_t seq_len = 0; /* to_bytes(coap_pkt->security_context->sender_context->seq, seq_buffer); */
+      uint8_t seq_len = u32tob(coap_pkt->security_context->sender_context->seq, seq_buffer);
 
       ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id, coap_pkt->security_context->sender_context->sender_id_len);
       ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
     } else {
-      uint8_t seq_len = 0; /* to_bytes(coap_pkt->security_context->recipient_context->last_seq, seq_buffer); */
+      uint8_t seq_len = u32tob(coap_pkt->security_context->recipient_context->last_seq, seq_buffer); 
       ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id, coap_pkt->security_context->recipient_context->recipient_id_len);
       ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
     }
   } else {
 
     if(coap_is_request(coap_pkt)) {
-      uint8_t seq_len = 0;   /* to_bytes(coap_pkt->security_context->recipient_context->last_seq, seq_buffer); */
+      uint8_t seq_len = u32tob(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
 
       ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id, coap_pkt->security_context->recipient_context->recipient_id_len);
       ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
     } else {
-      if(coap_is_option(coap_pkt, COAP_OPTION_OBSERVE)) {
-        /*       uint8_t seq_len = to_bytes(observing_seq, seq_buffer); */
-
-        /*       ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id_len, coap_pkt->security_context->sender_context->sender_id); */
-        /*       ret += cbor_put_bytes(&buffer, seq_len, seq_buffer); */
-      } else {
-        /*     uint8_t seq_len = to_bytes(coap_pkt->security_context->sender_context->seq, seq_buffer); */
-
         ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id, coap_pkt->security_context->sender_context->sender_id_len);
         ret += cbor_put_bytes(&buffer, cose->partial_iv, cose->partial_iv_len);
       }
-    }
   }
+  
+  ret += cbor_put_bytes(&buffer, NULL, 0); /* Put integrety protected option, at present there are none. */
+  
   return ret;
 }
 /* Creates Nonce */
