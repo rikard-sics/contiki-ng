@@ -94,10 +94,13 @@ btou32(uint8_t *bytes, size_t len)
 int
 oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose)
 {
-  int offset = 1;
+  uint8_t offset = 1;
+  if(cose->partial_iv_len > 5){
+	return 0;
+  }
   option_buffer[0] = 0;
   if(cose->partial_iv_len > 0 && cose->partial_iv != NULL) {
-    option_buffer[0] |= (0x07 & cose->partial_iv_len);
+    option_buffer[0] |= (0x05 & cose->partial_iv_len);
     memcpy(&(option_buffer[offset]), cose->partial_iv, cose->partial_iv_len);
     offset += cose->partial_iv_len;
   }
@@ -111,7 +114,7 @@ oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose)
 int
 oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose)
 {
-  uint8_t partial_iv_len = (option_value[0] & 0x07);
+  uint8_t partial_iv_len = (option_value[0] & 0x05);
   uint8_t offset = 1;
   if(partial_iv_len != 0) {
     cose_encrypt0_set_partial_iv(cose, &(option_value[offset]), partial_iv_len);
@@ -358,7 +361,7 @@ void
 oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size)
 {
   memset(buffer, 0, size);
-  buffer[0] = (uint8_t)(ptr->key_id_len);
+  buffer[0] = (uint8_t)(size - 5);
   memcpy(&(buffer[((size - 6) - ptr->key_id_len)]), ptr->key_id, ptr->key_id_len);
   memcpy(&(buffer[size - ptr->partial_iv_len]), ptr->partial_iv, ptr->partial_iv_len);
   int i;
