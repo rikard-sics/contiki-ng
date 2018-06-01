@@ -69,6 +69,18 @@ cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, uint8_t **buffer)
   *buffer = ptr->key_id;
   return ptr->key_id_len;
 }
+
+int cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, uint8_t **buffer){
+  *buffer = ptr->kid_context;
+  return ptr->kid_context_len;
+}
+
+void cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, uint8_t *buffer, int size){
+  ptr->kid_context = buffer;
+  ptr->kid_context_len = size;
+} 
+
+
 void
 cose_encrypt0_set_external_aad(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
 {
