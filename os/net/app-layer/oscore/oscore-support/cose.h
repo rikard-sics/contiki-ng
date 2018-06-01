@@ -19,6 +19,9 @@ typedef struct cose_encrypt0_t {
   uint8_t *key_id;
   int key_id_len;
 
+  uint8_t *kid_context;
+  int kid_context_len;
+
   uint8_t *nonce;
   int nonce_len;
 
@@ -62,6 +65,11 @@ void cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 int cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, uint8_t **buffer);
 
 void cose_encrypt0_set_external_aad(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
+
+/* Return length */
+int cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, uint8_t **buffer);
+
+void cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
 /* Returns 1 if successfull, 0 if key is of incorrect length. */
 int cose_encrypt0_set_key(cose_encrypt0_t *ptr, uint8_t *key, int key_size);

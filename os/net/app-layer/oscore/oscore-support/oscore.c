@@ -104,6 +104,15 @@ oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose)
     memcpy(&(option_buffer[offset]), cose->partial_iv, cose->partial_iv_len);
     offset += cose->partial_iv_len;
   }
+
+  if(cose->kid_context_len > 0 && cose->kid_context != NULL) {
+    option_buffer[0] |= 0x10;
+    option_buffer[offset] = cose->kid_context_len;
+    offset++;
+    memcpy(&(option_buffer[offset]), cose->kid_context, cose->kid_context_len);
+    offset += cose->kid_context_len;
+  }
+
   if(cose->key_id_len > 0 && cose->key_id != NULL) {
     option_buffer[0] |= 0x08;
     memcpy(&(option_buffer[offset]), cose->key_id, cose->key_id_len);
@@ -120,6 +129,13 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
     cose_encrypt0_set_partial_iv(cose, &(option_value[offset]), partial_iv_len);
     offset += partial_iv_len;
   }
+  
+  if((option_value [0] & 0x10) != 0) {
+    uint8_t kid_context_len = option_value[offset];
+    offset++;
+    cose_encrypt0_set_kid_context(cose, &(option_value[offset]), kid_context_len);
+  }
+
   if((option_value[0] & 0x08) != 0) {
     uint8_t kid_len = option_len - offset;
     cose_encrypt0_set_key_id(cose, &(option_value[offset]), kid_len);
