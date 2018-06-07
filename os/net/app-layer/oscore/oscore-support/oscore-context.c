@@ -38,12 +38,12 @@ compose_info(uint8_t *buffer, uint8_t alg, uint8_t *id, uint8_t id_len, uint8_t 
   ret += cbor_put_unsigned(&buffer, alg);
   char *text;
   uint8_t text_len;
-  if(out_len == 16) {
-    text = "Key";
-    text_len = 3;
-  } else {
+  if(out_len != 16) {
     text = "IV";
     text_len = 2;
+  } else {
+    text = "Key";
+    text_len = 3;
   }
 
   ret += cbor_put_text(&buffer, text, text_len);
@@ -101,15 +101,15 @@ oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *ma
 
   /* sender_ key */
   info_len = compose_info(info_buffer, alg, sid, sid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
-  hkdf(1, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, sender_ctx->sender_key, CONTEXT_KEY_LEN);
+  hkdf(salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, sender_ctx->sender_key, CONTEXT_KEY_LEN);
 
   /* Receiver key */
   info_len = compose_info(info_buffer, alg, rid, rid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
-  hkdf(1, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, recipient_ctx->recipient_key, CONTEXT_KEY_LEN);
+  hkdf(salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, recipient_ctx->recipient_key, CONTEXT_KEY_LEN);
 
   /* common IV */
   info_len = compose_info(info_buffer, alg, NULL, 0, id_context, id_context_len, CONTEXT_INIT_VECT_LEN);
-  hkdf(1, salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
+  hkdf(salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
 
   common_ctx->master_secret = master_secret;
   common_ctx->master_secret_len = master_secret_len;
