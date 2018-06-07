@@ -100,13 +100,13 @@ hmac_sha256(uint8_t *key, uint8_t key_len, uint8_t *data, uint8_t data_len, uint
 }
 /* Does not set salt to empty string when no salt is provided */
 int
-hkdf_extract(uint8_t hash, uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uint8_t *prk_buffer)
+hkdf_extract(uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uint8_t *prk_buffer)
 {
   hmac_sha256(salt, salt_len, ikm, ikm_len, prk_buffer);
   return 0;
 }
 int
-hkdf_expand(uint8_t hash, uint8_t *prk, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
+hkdf_expand(uint8_t *prk, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
 {
   int N = (okm_len + 32 - 1) / 32; /* ceil(okm_len/32) */
   uint8_t aggregate_buffer[32 + info_len + 1];
@@ -131,11 +131,11 @@ hkdf_expand(uint8_t hash, uint8_t *prk, uint8_t *info, uint8_t info_len, uint8_t
 }
 /* Does not set salt to empty string when no salt is provided */
 int
-hkdf(uint8_t hash, uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
+hkdf(uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
 {
 
   uint8_t prk_buffer[32];
-  hkdf_extract(hash, salt, salt_len, ikm, ikm_len, prk_buffer);
-  hkdf_expand(hash, prk_buffer, info, info_len, okm, okm_len);
+  hkdf_extract(salt, salt_len, ikm, ikm_len, prk_buffer);
+  hkdf_expand(prk_buffer, info, info_len, okm, okm_len);
   return 0;
 }
