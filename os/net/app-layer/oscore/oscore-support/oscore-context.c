@@ -64,7 +64,7 @@ bytes_equal(uint8_t *a_ptr, uint8_t a_len, uint8_t *b_ptr, uint8_t b_len)
   }
 }
 oscore_ctx_t *
-oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t hkdf_alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window)
+oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window)
 {
 
   oscore_ctx_t *common_ctx = memb_alloc(&common_context_memb);
@@ -82,34 +82,21 @@ oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *ma
     return 0;
   }
 
-  uint8_t zeroes[32];
   uint8_t info_buffer[15];
-
-  uint8_t *salt;
-  uint8_t salt_len;
-
-  if(master_secret_len == 0 || master_salt == NULL) {
-    memset(zeroes, 0x00, 32);
-    salt = zeroes;
-    salt_len = 32;
-  } else {
-    salt = master_salt;
-    salt_len = master_salt_len;
-  }
 
   uint8_t info_len;
 
   /* sender_ key */
   info_len = compose_info(info_buffer, alg, sid, sid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
-  hkdf(salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, sender_ctx->sender_key, CONTEXT_KEY_LEN);
+  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, sender_ctx->sender_key, CONTEXT_KEY_LEN);
 
   /* Receiver key */
   info_len = compose_info(info_buffer, alg, rid, rid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
-  hkdf(salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, recipient_ctx->recipient_key, CONTEXT_KEY_LEN);
+  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, recipient_ctx->recipient_key, CONTEXT_KEY_LEN);
 
   /* common IV */
   info_len = compose_info(info_buffer, alg, NULL, 0, id_context, id_context_len, CONTEXT_INIT_VECT_LEN);
-  hkdf(salt, salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
+  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
 
   common_ctx->master_secret = master_secret;
   common_ctx->master_secret_len = master_secret_len;
