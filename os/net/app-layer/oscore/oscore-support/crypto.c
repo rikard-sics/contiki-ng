@@ -98,11 +98,18 @@ hmac_sha256(uint8_t *key, uint8_t key_len, uint8_t *data, uint8_t data_len, uint
   dtls_hmac_finalize(&ctx, hmac);
 
 }
-/* Does not set salt to empty string when no salt is provided */
+
 int
 hkdf_extract(uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uint8_t *prk_buffer)
 {
-  hmac_sha256(salt, salt_len, ikm, ikm_len, prk_buffer);
+  uint8_t zeroes[32];
+  memset(zeroes, 0, 32);
+  
+  if(salt == NULL || salt_len == 0){
+    hmac_sha256(zeroes, 32, ikm, ikm_len, prk_buffer);
+  } else { 
+    hmac_sha256(salt, salt_len, ikm, ikm_len, prk_buffer);
+  }
   return 0;
 }
 int
@@ -129,7 +136,7 @@ hkdf_expand(uint8_t *prk, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t
   memcpy(okm, out_buffer, okm_len);
   return 0;
 }
-/* Does not set salt to empty string when no salt is provided */
+
 int
 hkdf(uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
 {
