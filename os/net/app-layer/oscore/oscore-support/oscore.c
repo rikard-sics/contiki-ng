@@ -181,13 +181,25 @@ oscore_decode_message(coap_message_t *coap_pkt)
       return UNAUTHORIZED_4_01;
     }
     cose_encrypt0_set_key(&cose, ctx->recipient_context->recipient_key, 16);
-  } else {
+  } else { /* Message is a response */
     ctx = oscore_find_ctx_by_token(coap_pkt->token, coap_pkt->token_len);
     if(ctx == NULL) {
       LOG_DBG_("OSCORE Security Context not found.\n");
       coap_error_message = "Security context not found";
       return UNAUTHORIZED_4_01;
     }
+    cose_encrypt0_set_key_id(&cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
+    uint32_t *seq = NULL;
+    uint8_t seq_buffer[4];
+    //Find partial IV with token seq
+    if(!get_seq_from_token(coap_pkt->token, coap_pkt->token_len, seq)){
+      LOG_DBG_("OSCORE No seq found for token.\n");
+      coap_error_message = "Sequence number not found";
+      return UNAUTHORIZED_4_01;
+    }
+    remove_seq_from_token(coap_pkt->token, coap_pkt->token_len);
+    uint8_t seq_len = u32tob(*seq, seq_buffer);
+    cose_encrypt0_set_partial_iv(&cose, seq_buffer, seq_len);
     cose_encrypt0_set_key(&cose, ctx->recipient_context->recipient_key, 16);
   }
   coap_pkt->security_context = ctx;
@@ -280,7 +292,10 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 /*  3 Compute the AEAD nonce from the Sender ID, Common IV, and Partial IV (Sender Sequence Number in network byte order) as described in Section 5.2 and (in one atomic operation, see Section 7.2) increment the Sender Sequence Number by one. */
   oscore_generate_nonce(&cose, coap_pkt, nonce_buffer, 13);
   cose_encrypt0_set_nonce(&cose, nonce_buffer, 13);
-  oscore_increment_sender_seq(ctx);
+  if(coap_is_request(coap_pkt)){
+    set_seq_from_token(coap_pkt->token, coap_pkt->token_len, ctx->sender_context->seq);
+    oscore_increment_sender_seq(ctx);
+  }
 /*  4 Encrypt the COSE object using the Sender Key. Compress the COSE Object as specified in Section 6. */
   uint8_t ciphertext_buffer[plaintext_len + 8];
   uint8_t ciphertext_len = cose_encrypt0_encrypt(&cose, ciphertext_buffer, plaintext_len + 8);
@@ -301,6 +316,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   if(coap_is_request(coap_pkt)) {
     set_seq_from_token(coap_pkt->token, coap_pkt->token_len, ctx->sender_context->seq);
+    //Set token -> ctx assosiation here
   }
 
   return serialized_len;
@@ -311,37 +327,35 @@ oscore_prepare_external_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uin
 {
 
   uint8_t ret = 0;
-  uint8_t seq_buffer[8];
+//  uint8_t seq_buffer[8];
   ret += cbor_put_array(&buffer, 5);
   ret += cbor_put_unsigned(&buffer, 1); /* Version, always for this version of the draft 1 */
   ret += cbor_put_array(&buffer, 1); /* Algoritms array */
   ret += cbor_put_unsigned(&buffer, (coap_pkt->security_context->alg)); /* Algorithm */
 
-  if(sending == 1) {
-    if(coap_is_request(coap_pkt)) {
-
-      uint8_t seq_len = u32tob(coap_pkt->security_context->sender_context->seq, seq_buffer);
-
+/*  if(sending == 1) {
+    if(coap_is_request(coap_pkt)) { 
       ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id, coap_pkt->security_context->sender_context->sender_id_len);
-      ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
-    } else {
-      uint8_t seq_len = u32tob(coap_pkt->security_context->recipient_context->last_seq, seq_buffer); 
-      ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id, coap_pkt->security_context->recipient_context->recipient_id_len);
-      ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
+    } else { 
+  //    ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id, coap_pkt->security_context->recipient_context->recipient_id_len);
     }
+      ret += cbor_put_bytes(&buffer, cose->partial_iv, cose->partial_iv_len);
+  
   } else {
 
-    if(coap_is_request(coap_pkt)) {
-      uint8_t seq_len = u32tob(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
+    if(coap_is_request(coap_pkt)) { 
 
       ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id, coap_pkt->security_context->recipient_context->recipient_id_len);
+      uint8_t seq_len = u32tob(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
       ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
-    } else {
-        ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id, coap_pkt->security_context->sender_context->sender_id_len);
-        ret += cbor_put_bytes(&buffer, cose->partial_iv, cose->partial_iv_len);
-      }
-  }
-  
+    } else { 
+      ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id, coap_pkt->security_context->sender_context->sender_id_len);
+      ret += cbor_put_bytes(&buffer, cose->partial_iv, cose->partial_iv_len);
+    }
+  } */
+  ret += cbor_put_bytes(&buffer, cose->key_id, cose->key_id_len);
+  ret += cbor_put_bytes(&buffer, cose->partial_iv, cose->partial_iv_len);  
+
   ret += cbor_put_bytes(&buffer, NULL, 0); /* Put integrety protected option, at present there are none. */
   
   return ret;

@@ -101,6 +101,8 @@ PT_THREAD(coap_blocking_request
 	printf("OSCORE found!\n");
 	coap_set_oscore(request);
 	request->security_context = context;
+ 	uint8_t token[2] = {0xA, 0xA};
+    	coap_set_token(request, token, 2);
     } else {
 	printf("NO OSCORE!\n");
     }
