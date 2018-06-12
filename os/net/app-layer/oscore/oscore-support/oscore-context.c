@@ -271,25 +271,38 @@ oscore_ep_ctx_store_init()
   memb_init(&ep_ctx_memb);
 }
 uint8_t
-oscore_ep_ctx_set_association(coap_endpoint_t *ep, oscore_ctx_t *ctx)
+oscore_ep_ctx_set_association(coap_endpoint_t *ep, char *uri, oscore_ctx_t *ctx)
 {
   ep_ctx_t *ep_ctx_ptr = memb_alloc(&ep_ctx_memb);
   if(ep_ctx_ptr == NULL) {
     return 0;
   }
   ep_ctx_ptr->ep = ep;
+  ep_ctx_ptr->uri = uri;
   ep_ctx_ptr->ctx = ctx;
   ep_ctx_ptr->next = ep_ctx_list;
   ep_ctx_list = ep_ctx_ptr;
   return 1;
 }
 
+static int _strcmp(char *a, char *b){
+  if( a == NULL && b != NULL){
+    return -1;
+  } else if ( a != NULL && b == NULL) {
+    return 1;
+  } else if ( a == NULL && b == NULL) {
+    return 0;
+  }
+
+  return strcmp(a,b);
+}		
+
 oscore_ctx_t *
-oscore_get_context_from_ep(coap_endpoint_t *ep)
+oscore_get_context_from_ep(coap_endpoint_t *ep, char *uri)
 {
   ep_ctx_t *ptr = ep_ctx_list;
 
-  while(coap_endpoint_cmp(ep, ptr->ep) == 0) {
+  while((coap_endpoint_cmp(ep, ptr->ep) == 0) && _strcmp(uri, ptr->uri)) {
 
     ptr = ptr->next;
     if(ptr == NULL) {
