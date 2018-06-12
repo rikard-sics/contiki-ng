@@ -152,16 +152,6 @@ oscore_decode_message(coap_message_t *coap_pkt)
   uint8_t nonce_buffer[13];
   cose_encrypt0_init(&cose);
 
-  /* 1 Process Outer Block options according to [RFC7959], until all blocks of the request have been received (see Section 4.1.3.2). */
-
-  /* 2 Discard the message Code and all non-special Inner option message fields (marked with ‘x’ in column E of Figure 5)
-     present in the received message. For example, an If-Match Outer option is discarded, but an Uri-Host Outer option is not discarded. */
-  /* 3 Decompress the COSE Object (Section 6) and retrieve the Recipient Context associated with the Recipient ID in the ‘kid’ parameter.
-     If either the decompression or the COSE message fails to decode, or the server fails to retrieve a Recipient Context with Recipient ID corresponding to the ‘kid’ parameter received,
-     then the server SHALL stop processing the request. If: either the decompression or the COSE message fails to decode, the server MAY respond with a 4.02 Bad Option error message.
-     The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the string “Failed to decode COSE”.
-     the server fails to retrieve a Recipient Context with Recipient ID corresponding to the ‘kid’ parameter received, the server MAY respond with a 4.01 Unauthorized error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the string “Security context not found”.
-   */
   /* Options are discarded later when they are overwritten. This should be improved */
   oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, &cose);
 
@@ -182,25 +172,24 @@ oscore_decode_message(coap_message_t *coap_pkt)
     }
     cose_encrypt0_set_key(&cose, ctx->recipient_context->recipient_key, 16);
   } else { /* Message is a response */
-    ctx = oscore_find_ctx_by_token(coap_pkt->token, coap_pkt->token_len);
+    uint32_t seq;
+    uint8_t seq_buffer[8];
+    ctx = oscore_get_exchange(coap_pkt->token, coap_pkt->token_len, &seq);
     if(ctx == NULL) {
       LOG_DBG_("OSCORE Security Context not found.\n");
       coap_error_message = "Security context not found";
       return UNAUTHORIZED_4_01;
     }
-    cose_encrypt0_set_key_id(&cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
-    uint32_t *seq = NULL;
-    uint8_t seq_buffer[4];
-    //Find partial IV with token seq
-    if(!get_seq_from_token(coap_pkt->token, coap_pkt->token_len, seq)){
-      LOG_DBG_("OSCORE No seq found for token.\n");
-      coap_error_message = "Sequence number not found";
-      return UNAUTHORIZED_4_01;
+  
+    /* If message contains a partial IV, the received is used. */
+    if(cose.partial_iv_len == 0 && cose.partial_iv == NULL){
+      uint8_t seq_len = u32tob(seq, seq_buffer);
+      cose_encrypt0_set_partial_iv(&cose, seq_buffer, seq_len);
     }
-    remove_seq_from_token(coap_pkt->token, coap_pkt->token_len);
-    uint8_t seq_len = u32tob(*seq, seq_buffer);
-    cose_encrypt0_set_partial_iv(&cose, seq_buffer, seq_len);
+    
+    oscore_remove_exchange(coap_pkt->token, coap_pkt->token_len);
     cose_encrypt0_set_key(&cose, ctx->recipient_context->recipient_key, 16);
+    cose_encrypt0_set_key_id(&cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
   }
   coap_pkt->security_context = ctx;
 
@@ -293,7 +282,9 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   oscore_generate_nonce(&cose, coap_pkt, nonce_buffer, 13);
   cose_encrypt0_set_nonce(&cose, nonce_buffer, 13);
   if(coap_is_request(coap_pkt)){
-    set_seq_from_token(coap_pkt->token, coap_pkt->token_len, ctx->sender_context->seq);
+    if(!oscore_set_exchange(coap_pkt->token, coap_pkt->token_len, ctx->sender_context->seq, ctx)){
+	LOG_DBG_("OSCORE Could not store exchange.\n");
+    }
     oscore_increment_sender_seq(ctx);
   }
 /*  4 Encrypt the COSE object using the Sender Key. Compress the COSE Object as specified in Section 6. */
@@ -313,11 +304,6 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   oscore_clear_options(coap_pkt);
   uint8_t serialized_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
 /*  6 Store the association Token - Security Context. The client SHALL be able to find the Recipient Context from the Token in the response. */
-
-  if(coap_is_request(coap_pkt)) {
-    set_seq_from_token(coap_pkt->token, coap_pkt->token_len, ctx->sender_context->seq);
-    //Set token -> ctx assosiation here
-  }
 
   return serialized_len;
 }
@@ -476,7 +462,7 @@ void
 oscore_init_server()
 {
   oscore_ctx_store_init();
-  oscore_token_seq_store_init();
+  oscore_exchange_store_init();
 }
 /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
 void

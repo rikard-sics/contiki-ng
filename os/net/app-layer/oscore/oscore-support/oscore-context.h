@@ -14,7 +14,7 @@
 typedef struct oscore_sender_ctx_t oscore_sender_ctx_t;
 typedef struct oscore_recipient_ctx_t oscore_recipient_ctx_t;
 typedef struct oscore_ctx_t oscore_ctx_t;
-typedef struct token_seq_t token_seq_t;
+typedef struct oscore_exchange_t oscore_exchange_t;
 typedef struct ep_ctx_t ep_ctx_t;
 
 struct oscore_sender_ctx_t {
@@ -55,11 +55,12 @@ struct oscore_ctx_t {
   uint8_t alg;
 };
 
-struct token_seq_t {
+struct oscore_exchange_t {
   uint8_t token[8];
   uint8_t token_len;
   uint32_t seq;
-  token_seq_t *next;
+  oscore_ctx_t *context;
+  oscore_exchange_t *next;
 };
 
 struct ep_ctx_t {
@@ -75,13 +76,12 @@ oscore_ctx_t *oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_le
 int oscore_free_ctx(oscore_ctx_t *ctx);
 
 oscore_ctx_t *oscore_find_ctx_by_rid(uint8_t *rid, uint8_t rid_len);
-oscore_ctx_t *oscore_find_ctx_by_token(uint8_t *token, uint8_t token_len);
 
 /* Token <=> SEQ association */
-void oscore_token_seq_store_init();
-uint8_t get_seq_from_token(uint8_t *token, uint8_t token_len, uint32_t *seq);
-uint8_t set_seq_from_token(uint8_t *token, uint8_t token_len, uint32_t seq);
-void remove_seq_from_token(uint8_t *token, uint8_t token_len);
+void oscore_exchange_store_init();
+oscore_ctx_t* oscore_get_exchange(uint8_t *token, uint8_t token_len, uint32_t *seq);
+uint8_t oscore_set_exchange(uint8_t *token, uint8_t token_len, uint32_t seq, oscore_ctx_t *context);
+void oscore_remove_exchange(uint8_t *token, uint8_t token_len);
 
 /* URI <=> CTX association */
 void oscore_ep_ctx_store_init();
