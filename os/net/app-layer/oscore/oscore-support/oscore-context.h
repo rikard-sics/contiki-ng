@@ -41,7 +41,6 @@ struct oscore_recipient_ctx_t {
 };
 
 struct oscore_ctx_t {
-  /* uint8_t   ContextId[CONTEXT_ID_LEN]; */
   uint8_t *master_secret;
   uint8_t *master_salt;
   uint8_t common_iv[CONTEXT_INIT_VECT_LEN];
@@ -65,6 +64,7 @@ struct oscore_exchange_t {
 
 struct ep_ctx_t {
   coap_endpoint_t *ep;
+  char *uri;
   oscore_ctx_t *ctx;
   ep_ctx_t *next;
 };
@@ -85,7 +85,7 @@ void oscore_remove_exchange(uint8_t *token, uint8_t token_len);
 
 /* URI <=> CTX association */
 void oscore_ep_ctx_store_init();
-uint8_t oscore_ep_ctx_set_association(coap_endpoint_t *ep, oscore_ctx_t *ctx);
-oscore_ctx_t *oscore_get_context_from_ep(coap_endpoint_t *ep);
+uint8_t oscore_ep_ctx_set_association(coap_endpoint_t *ep, char *uri, oscore_ctx_t *ctx);
+oscore_ctx_t *oscore_get_context_from_ep(coap_endpoint_t *ep, char *uri);
 
 #endif /* _OSCORE_CONTEXT_H */
