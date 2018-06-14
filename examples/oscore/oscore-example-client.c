@@ -111,7 +111,8 @@ PROCESS_THREAD(er_example_client, ev, data)
 	printf("Could not create OSCORE Security Context!\n");
   }
   
-  oscore_ep_ctx_set_association(&server_ep, NULL, context);
+  oscore_ep_ctx_set_association(&server_ep, service_urls[1], context);
+
   #endif /* WITH_OSCORE */
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
   

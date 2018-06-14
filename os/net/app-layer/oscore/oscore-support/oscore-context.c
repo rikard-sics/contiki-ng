@@ -285,7 +285,7 @@ oscore_ep_ctx_set_association(coap_endpoint_t *ep, char *uri, oscore_ctx_t *ctx)
   return 1;
 }
 
-static int _strcmp(char *a, char *b){
+int _strcmp(const char *a, const char *b){
   if( a == NULL && b != NULL){
     return -1;
   } else if ( a != NULL && b == NULL) {
@@ -293,22 +293,22 @@ static int _strcmp(char *a, char *b){
   } else if ( a == NULL && b == NULL) {
     return 0;
   }
-
   return strcmp(a,b);
 }		
 
+
+
 oscore_ctx_t *
-oscore_get_context_from_ep(coap_endpoint_t *ep, char *uri)
+oscore_get_context_from_ep(coap_endpoint_t *ep, const char *uri)
 {
   ep_ctx_t *ptr = ep_ctx_list;
-
-  while((coap_endpoint_cmp(ep, ptr->ep) == 0) && _strcmp(uri, ptr->uri)) {
-
+  while(((coap_endpoint_cmp(ep, ptr->ep) == 0) || (_strcmp(uri, ptr->uri) != 0))) {
+    
     ptr = ptr->next;
     if(ptr == NULL) {
       return NULL;
     }
   }
-
+  
   return ptr->ctx;
 }
