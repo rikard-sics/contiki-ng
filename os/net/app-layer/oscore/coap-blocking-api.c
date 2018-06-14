@@ -96,7 +96,14 @@ PT_THREAD(coap_blocking_request
     request->mid = coap_get_mid();
     #ifdef WITH_OSCORE
 
-    oscore_ctx_t *context = oscore_get_context_from_ep(remote_ep, NULL);
+    const char *uri;
+    oscore_ctx_t *context = NULL;
+    if(coap_get_header_uri_path(request, &uri)){
+      context = oscore_get_context_from_ep(remote_ep, uri);
+    } else {
+  	printf("NO OSCORE\n");
+    }
+
     if(context){
 	printf("OSCORE found!\n");
 	coap_set_oscore(request);
