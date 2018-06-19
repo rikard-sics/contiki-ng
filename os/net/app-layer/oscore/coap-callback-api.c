@@ -51,7 +51,7 @@
 
 /* Log configuration */
 #include "coap-log.h"
-#define LOG_MODULE "coap-callback-api"
+#define LOG_MODULE "coap"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
 /* These should go into the state struct so that we can have multiple
@@ -65,7 +65,7 @@ static void coap_request_callback(void *callback_data, coap_message_t *response)
 
 /*---------------------------------------------------------------------------*/
 
-static void
+static int
 progress_request(coap_request_state_t *state) {
   coap_message_t *request = state->request;
   request->mid = coap_get_mid();
@@ -82,9 +82,10 @@ progress_request(coap_request_state_t *state) {
       coap_serialize_message(request, state->transaction->message);
 
     coap_send_transaction(state->transaction);
-    LOG_DBG("Requested #%lu (MID %u)\n", (unsigned long)state->block_num,
-            request->mid);
+    LOG_DBG("Requested #%"PRIu32" (MID %u)\n", state->block_num, request->mid);
+    return 1;
   }
+  return 0;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -120,8 +121,7 @@ coap_request_callback(void *callback_data, coap_message_t *response)
     /* this is only for counting BLOCK2 blocks.*/
     ++(state->block_num);
   } else {
-    LOG_WARN("WRONG BLOCK %lu/%lu\n", (unsigned long)res_block,
-             (unsigned long)state->block_num);
+    LOG_WARN("WRONG BLOCK %"PRIu32"/%"PRIu32"\n", res_block, state->block_num);
     ++block_error;
   }
 
@@ -136,7 +136,7 @@ coap_request_callback(void *callback_data, coap_message_t *response)
 
 /*---------------------------------------------------------------------------*/
 
-void
+int
 coap_send_request(coap_request_state_t *state, coap_endpoint_t *endpoint,
                   coap_message_t *request,
                   void (*callback)(coap_request_state_t *state))
@@ -153,7 +153,7 @@ coap_send_request(coap_request_state_t *state, coap_endpoint_t *endpoint,
   state->remote_endpoint = endpoint;
   state->callback = callback;
 
-  progress_request(state);
+  return progress_request(state);
 }
 /*---------------------------------------------------------------------------*/
 /** @} */

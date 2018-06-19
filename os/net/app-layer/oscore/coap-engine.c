@@ -51,7 +51,7 @@
 
 /* Log configuration */
 #include "coap-log.h"
-#define LOG_MODULE "coap-engine"
+#define LOG_MODULE "coap-eng"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
 #ifdef WITH_OSCORE
@@ -74,7 +74,6 @@ static int invoke_coap_resource_service(coap_message_t *request,
 /*---------------------------------------------------------------------------*/
 LIST(coap_handlers);
 LIST(coap_resource_services);
-LIST(coap_resource_periodic_services);
 static uint8_t is_initialized = 0;
 
 /*---------------------------------------------------------------------------*/
@@ -210,10 +209,18 @@ coap_receive(const coap_endpoint_t *src,
           new_offset = block_offset;
         }
 
-        /* call CoAP framework and check if found and allowed */
-        status = call_service(message, response,
-                              transaction->message + COAP_MAX_HEADER_SIZE,
-                              block_size, &new_offset);
+        if(new_offset < 0) {
+          LOG_DBG("Blockwise: block request offset overflow\n");
+          coap_status_code = BAD_OPTION_4_02;
+          coap_error_message = "BlockOutOfScope";
+          status = COAP_HANDLER_STATUS_CONTINUE;
+        } else {
+          /* call CoAP framework and check if found and allowed */
+          status = call_service(message, response,
+                                transaction->message + COAP_MAX_HEADER_SIZE,
+                                block_size, &new_offset);
+        }
+
         if(status != COAP_HANDLER_STATUS_CONTINUE) {
 
             if(coap_status_code == NO_ERROR) {
@@ -374,7 +381,6 @@ coap_engine_init(void)
 {
   /* avoid initializing twice */
   if(is_initialized) {
-    LOG_DBG("already running - double initialization?\n");
     return;
   }
   is_initialized = 1;
@@ -383,7 +389,6 @@ coap_engine_init(void)
 
   list_init(coap_handlers);
   list_init(coap_resource_services);
-  list_init(coap_resource_periodic_services);
 
   coap_activate_resource(&res_well_known_core, ".well-known/core");
 
@@ -414,7 +419,6 @@ coap_activate_resource(coap_resource_t *resource, const char *path)
      && resource->periodic->periodic_handler
      && resource->periodic->period) {
     LOG_DBG("Periodic resource: %p (%s)\n", resource->periodic, path);
-    list_add(coap_resource_periodic_services, resource->periodic);
     periodic = resource->periodic;
     coap_timer_set_callback(&periodic->periodic_timer, process_callback);
     coap_timer_set_user_data(&periodic->periodic_timer, resource);
@@ -466,8 +470,7 @@ invoke_coap_resource_service(coap_message_t *request, coap_message_t *response,
 
       LOG_INFO("/%s, method %u, resource->flags %u\n", resource->url,
                (uint16_t)method, resource->flags);
-      printf("/%s, method %u, resource->flags %u\n", resource->url,
-               (uint16_t)method, resource->flags);
+
       #ifdef WITH_OSCORE
       /*Check if resoure is protected by OSCORE. */
       if(resource->oscore_protected){

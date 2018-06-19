@@ -56,6 +56,9 @@
 
 #ifdef WITH_OSCORE
 #include "oscore-context.h"
+#define ROLE_COAP 0
+#define ROLE_CONFIDENTIAL 1
+#define ROLE_PROTECTED 2
 #endif /* WITH_OSCORE */
 
 /**
@@ -195,11 +198,6 @@ coap_is_option(const coap_message_t *message, unsigned int opt)
     option += coap_serialize_int_option(number, current_number, option, block); \
     current_number = number; \
   }
-
-/* For OSCORE */
-#define ROLE_COAP 0
-#define ROLE_CONFIDENTIAL 1
-#define ROLE_PROTECTED 2
 
 /* to store error code and human-readable payload */
 extern coap_status_t coap_status_code;
