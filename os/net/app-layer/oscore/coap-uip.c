@@ -216,17 +216,15 @@ coap_endpoint_parse(const char *text, size_t size, coap_endpoint_t *ep)
   int end = index_of(text, start, size, ']');
   int secure = strncmp((const char *)text, "coaps:", 6) == 0;
   uint32_t port;
-  if(start > 0 && end > start &&
-     uiplib_ipaddrconv((const char *)&text[start], &ep->ipaddr)) {
+
+  ep->secure = strncmp(text, "coaps:", 6) == 0;
+  if(start >= 0 && end > start &&
+     uiplib_ipaddrconv(&text[start], &ep->ipaddr)) {
     if(text[end + 1] == ':' &&
        get_port(text + end + 2, size - end - 2, &port)) {
       ep->port = UIP_HTONS(port);
-    } else if(secure) {
-      /**
-       * Secure CoAP should use a different port but for now
-       * the same port is used.
-       */
-      LOG_DBG("Using secure port (coaps)\n");
+    } else if(ep->secure) {
+      /* Use secure CoAP port by default for secure endpoints. */
       ep->port = SERVER_LISTEN_SECURE_PORT;
       ep->secure = 1;
     } else {
@@ -234,8 +232,11 @@ coap_endpoint_parse(const char *text, size_t size, coap_endpoint_t *ep)
       ep->secure = 0;
     }
     return 1;
-  } else {
-    if(uiplib_ipaddrconv((const char *)&text, &ep->ipaddr)) {
+  } else if(size < UIPLIB_IPV6_MAX_STR_LEN) {
+    char buf[UIPLIB_IPV6_MAX_STR_LEN];
+    memcpy(buf, text, size);
+    buf[size] = '\0';
+    if(uiplib_ipaddrconv(buf, &ep->ipaddr)) {
       ep->port = SERVER_LISTEN_PORT;
       ep->secure = 0;
       return 1;
@@ -359,8 +360,8 @@ process_secure_data(void)
 {
   LOG_INFO("receiving secure UDP datagram from [");
   LOG_INFO_6ADDR(&UIP_IP_BUF->srcipaddr);
-  LOG_INFO_("]:%u\n  Length: %u\n", uip_ntohs(UIP_UDP_BUF->srcport),
-            uip_datalen());
+  LOG_INFO_("]:%u\n", uip_ntohs(UIP_UDP_BUF->srcport));
+  LOG_INFO("  Length: %u\n", uip_datalen());
 
   if(dtls_context) {
     dtls_handle_message(dtls_context, (coap_endpoint_t *)get_src_endpoint(1),
@@ -374,8 +375,8 @@ process_data(void)
 {
   LOG_INFO("receiving UDP datagram from [");
   LOG_INFO_6ADDR(&UIP_IP_BUF->srcipaddr);
-  LOG_INFO_("]:%u\n  Length: %u\n", uip_ntohs(UIP_UDP_BUF->srcport),
-            uip_datalen());
+  LOG_INFO_("]:%u\n", uip_ntohs(UIP_UDP_BUF->srcport));
+  LOG_INFO("  Length: %u\n", uip_datalen());
 
   coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen());
 }
@@ -507,7 +508,7 @@ output_to_peer(struct dtls_context_t *ctx,
   struct uip_udp_conn *udp_connection = dtls_get_app_data(ctx);
   LOG_DBG("output_to DTLS peer [");
   LOG_DBG_6ADDR(&session->ipaddr);
-  LOG_DBG_("]:%u %d bytes\n", uip_ntohs(session->port), (int)len);
+  LOG_DBG_("]:%u %ld bytes\n", uip_ntohs(session->port), (long)len);
   uip_udp_packet_sendto(udp_connection, data, len,
                         &session->ipaddr, session->port);
   return len;
