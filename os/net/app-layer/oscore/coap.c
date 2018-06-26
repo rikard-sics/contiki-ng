@@ -558,7 +558,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
     case COAP_OPTION_MAX_AGE:
       coap_pkt->max_age = coap_parse_int_option(current_option,
                                                 option_length);
-      LOG_DBG_("Max-Age [%lu]\n", (unsigned long)coap_pkt->max_age);
+      LOG_DBG_("Max-Age [%"PRIu32"]\n", coap_pkt->max_age);
       break;
     case COAP_OPTION_ETAG:
       coap_pkt->etag_len = MIN(COAP_ETAG_LEN, option_length);
@@ -680,7 +680,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
     case COAP_OPTION_OBSERVE:
       coap_pkt->observe = coap_parse_int_option(current_option,
                                                 option_length);
-      LOG_DBG_("Observe [%lu]\n", (unsigned long)coap_pkt->observe);
+      LOG_DBG_("Observe [%"PRId32"]\n", coap_pkt->observe);
       break;
     case COAP_OPTION_BLOCK2:
       coap_pkt->block2_num = coap_parse_int_option(current_option,
@@ -708,11 +708,11 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
       break;
     case COAP_OPTION_SIZE2:
       coap_pkt->size2 = coap_parse_int_option(current_option, option_length);
-      LOG_DBG_("Size2 [%lu]\n", (unsigned long)coap_pkt->size2);
+      LOG_DBG_("Size2 [%"PRIu32"]\n", coap_pkt->size2);
       break;
     case COAP_OPTION_SIZE1:
       coap_pkt->size1 = coap_parse_int_option(current_option, option_length);
-      LOG_DBG_("Size1 [%lu]\n", (unsigned long)coap_pkt->size1);
+      LOG_DBG_("Size1 [%"PRIu32"]\n", coap_pkt->size1);
       break;
     default:
       LOG_DBG_("unknown (%u)\n", option_number);
@@ -1162,13 +1162,10 @@ coap_set_header_size1(coap_message_t *coap_pkt, uint32_t size)
 int
 coap_get_payload(coap_message_t *coap_pkt, const uint8_t **payload)
 {
-  if(coap_pkt->payload) {
+  if(payload != NULL) {
     *payload = coap_pkt->payload;
-    return coap_pkt->payload_len;
-  } else {
-    *payload = NULL;
-    return 0;
   }
+  return coap_pkt->payload != NULL ? coap_pkt->payload_len : 0;
 }
 int
 coap_set_payload(coap_message_t *coap_pkt, const void *payload, size_t length)

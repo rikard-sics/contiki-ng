@@ -214,7 +214,7 @@ coap_endpoint_parse(const char *text, size_t size, coap_endpoint_t *ep)
   /* Only IPv6 supported */
   int start = index_of(text, 0, size, '[');
   int end = index_of(text, start, size, ']');
-  int secure = strncmp((const char *)text, "coaps:", 6) == 0;
+  //int secure = strncmp((const char *)text, "coaps:", 6) == 0;
   uint32_t port;
 
   ep->secure = strncmp(text, "coaps:", 6) == 0;

@@ -293,7 +293,7 @@ oscore_remove_exchange(uint8_t *token, uint8_t token_len)
       return;
     }
 
-    if(bytes_equal(ptr->next->token, ptr->token_len, token, token_len)) {
+    if(bytes_equal(ptr->token, ptr->token_len, token, token_len)) {
       oscore_exchange_t *tmp = ptr->next;
       ptr->next = ptr->next->next;
       memb_free(&exchange_memb, tmp);
