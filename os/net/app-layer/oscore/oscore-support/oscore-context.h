@@ -81,13 +81,13 @@ struct oscore_recipient_ctx_t {
 };
 
 struct oscore_ctx_t {
+  oscore_ctx_t *next;
   uint8_t *master_secret;
   uint8_t *master_salt;
   uint8_t common_iv[CONTEXT_INIT_VECT_LEN];
   uint8_t *id_context;
   oscore_sender_ctx_t *sender_context;
   oscore_recipient_ctx_t *recipient_context;
-  oscore_ctx_t *next_context;
   uint8_t master_secret_len;
   uint8_t master_salt_len;
   uint8_t id_context_len;
@@ -95,18 +95,18 @@ struct oscore_ctx_t {
 };
 
 struct oscore_exchange_t {
+  oscore_exchange_t *next;
   uint8_t token[8];
   uint8_t token_len;
   uint32_t seq;
   oscore_ctx_t *context;
-  oscore_exchange_t *next;
 };
 
 struct ep_ctx_t {
+  ep_ctx_t *next;
   coap_endpoint_t *ep;
   char *uri;
   oscore_ctx_t *ctx;
-  ep_ctx_t *next;
 };
 void oscore_ctx_store_init();
 
