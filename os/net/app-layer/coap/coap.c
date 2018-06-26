@@ -318,7 +318,7 @@ coap_serialize_message_coap(coap_message_t *coap_pkt, uint8_t *buffer)
   
   uint8_t *option;
   unsigned int current_number = 0;
-  if( coap_pkt->object)
+  
   /* Initialize */
   coap_pkt->buffer = buffer;
   coap_pkt->version = 1;
