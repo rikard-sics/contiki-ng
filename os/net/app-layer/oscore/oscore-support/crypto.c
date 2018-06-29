@@ -130,7 +130,7 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
 }
 /* only works with key_len <= 64 bytes */
 void
-hmac_sha256(uint8_t *key, uint8_t key_len, uint8_t *data, uint8_t data_len, uint8_t *hmac)
+hmac_sha256(const uint8_t *key, uint8_t key_len, const uint8_t *data, uint8_t data_len, uint8_t *hmac)
 {
   dtls_hmac_context_t ctx;
   dtls_hmac_init(&ctx, key, key_len);
@@ -140,7 +140,7 @@ hmac_sha256(uint8_t *key, uint8_t key_len, uint8_t *data, uint8_t data_len, uint
 }
 
 int
-hkdf_extract(uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uint8_t *prk_buffer)
+hkdf_extract( const uint8_t *salt, uint8_t salt_len, const uint8_t *ikm, uint8_t ikm_len, uint8_t *prk_buffer)
 {
   uint8_t zeroes[32];
   memset(zeroes, 0, 32);
@@ -153,7 +153,7 @@ hkdf_extract(uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uin
   return 0;
 }
 int
-hkdf_expand(uint8_t *prk, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
+hkdf_expand( const uint8_t *prk, const uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
 {
   int N = (okm_len + 32 - 1) / 32; /* ceil(okm_len/32) */
   uint8_t aggregate_buffer[32 + info_len + 1];
@@ -178,7 +178,7 @@ hkdf_expand(uint8_t *prk, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t
 }
 
 int
-hkdf(uint8_t *salt, uint8_t salt_len, uint8_t *ikm, uint8_t ikm_len, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
+hkdf(const uint8_t *salt, uint8_t salt_len, const uint8_t *ikm, uint8_t ikm_len, uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
 {
 
   uint8_t prk_buffer[32];

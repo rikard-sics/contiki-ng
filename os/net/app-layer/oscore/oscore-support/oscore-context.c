@@ -44,6 +44,7 @@
 #include "cbor.h"
 #include <string.h>
 #include "crypto.h"
+#include "oscore.h"
 
 MEMB(common_context_memb, oscore_ctx_t, CONTEXT_NUM);
 MEMB(sender_context_memb, oscore_sender_ctx_t, CONTEXT_NUM);
@@ -138,6 +139,7 @@ oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *ma
 
   /* common IV */
   info_len = compose_info(info_buffer, alg, NULL, 0, id_context, id_context_len, CONTEXT_INIT_VECT_LEN);
+  printf_hex(info_buffer, info_len);
   hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
 
   common_ctx->master_secret = master_secret;
@@ -295,4 +297,15 @@ oscore_get_context_from_ep(coap_endpoint_t *ep, const char *uri)
     }
   }
   return NULL;
+}
+
+void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri){
+  ep_ctx_t *ptr = NULL;
+  for( ptr = list_head(ep_ctx_list); ptr != NULL; ptr = list_item_next(ptr)) {
+    if((coap_endpoint_cmp(ep, ptr->ep) && (_strcmp(uri, ptr->uri) == 0))) {
+      list_remove(ep_ctx_list, ptr);
+      memb_free(&ep_ctx_memb, ptr);
+      return;
+    }
+  }
 }
