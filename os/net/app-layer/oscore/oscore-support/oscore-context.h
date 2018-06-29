@@ -119,13 +119,13 @@ oscore_ctx_t *oscore_find_ctx_by_rid(uint8_t *rid, uint8_t rid_len);
 
 /* Token <=> SEQ association */
 void oscore_exchange_store_init();
-oscore_ctx_t* oscore_get_exchange(uint8_t *token, uint8_t token_len, uint32_t *seq);
 uint8_t oscore_set_exchange(uint8_t *token, uint8_t token_len, uint32_t seq, oscore_ctx_t *context);
+oscore_ctx_t* oscore_get_exchange(uint8_t *token, uint8_t token_len, uint32_t *seq);
 void oscore_remove_exchange(uint8_t *token, uint8_t token_len);
 
 /* URI <=> CTX association */
 void oscore_ep_ctx_store_init();
 uint8_t oscore_ep_ctx_set_association(coap_endpoint_t *ep, char *uri, oscore_ctx_t *ctx);
 oscore_ctx_t *oscore_get_context_from_ep(coap_endpoint_t *ep, const char *uri);
-
+void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri);
 #endif /* _OSCORE_CONTEXT_H */
