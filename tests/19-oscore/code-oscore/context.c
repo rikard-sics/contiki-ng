@@ -80,9 +80,9 @@ UNIT_TEST(test_exchange_storage){
   uint8_t token_1[4] = { 0xAA, 0xAB, 0xAC, 0xAD };
   uint8_t token_2[5] = { 0x01, 0x02, 0x03, 0x04, 0x05 };
   uint8_t token_3[1] = { 0x00 };
-  uint32_t seq_1 = 5;
-  uint32_t seq_2 = 9999;
-  uint32_t seq_3 = 1;
+  uint64_t seq_1 = 5;
+  uint64_t seq_2 = 9999;
+  uint64_t seq_3 = 1;
   oscore_ctx_t ctx_1[1];
   oscore_ctx_t ctx_2[1];
   oscore_ctx_t ctx_3[1];
@@ -95,11 +95,11 @@ UNIT_TEST(test_exchange_storage){
   ret = oscore_set_exchange(token_2, 5, seq_2, ctx_2);
   UNIT_TEST_ASSERT(ret == 1);
   
-  uint32_t seq_1_ptr; 
+  uint64_t seq_1_ptr; 
   oscore_ctx_t *ctx_ptr_1 = oscore_get_exchange(token_1, 4, &seq_1_ptr);
   UNIT_TEST_ASSERT(ctx_ptr_1 == ctx_1);
 
-  uint32_t seq_2_ptr; 
+  uint64_t seq_2_ptr; 
   oscore_ctx_t *ctx_ptr_2 = oscore_get_exchange(token_2, 5, &seq_2_ptr);
   UNIT_TEST_ASSERT(ctx_ptr_2 == ctx_2);
    
@@ -116,7 +116,7 @@ UNIT_TEST(test_exchange_storage){
   ret = oscore_set_exchange(token_3,1, seq_3, ctx_3); 
   UNIT_TEST_ASSERT(ret == 1);
 
-  uint32_t seq_3_ptr;
+  uint64_t seq_3_ptr;
   oscore_ctx_t *ctx_ptr_3 = oscore_get_exchange(token_3, 1, &seq_3_ptr);
   UNIT_TEST_ASSERT( ctx_ptr_3 == ctx_3);
  

@@ -44,6 +44,7 @@ UNIT_TEST(test_validate_sender_seq)
   uint8_t seq_8[1] = { 0x08 };
   uint8_t seq_50[1] = { 0x32 };
   uint8_t seq_60[1] = { 0x3C };
+//  uint8_t seq_max[8] = { 0x3C };
   
 
   oscore_ctx_t *ctx  = oscore_derive_ctx(master_secret, master_secret_len, master_salt, master_salt_len, 10, sender_id, sender_id_len, recipient_id, recipient_id_len, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
@@ -88,10 +89,6 @@ UNIT_TEST(test_validate_sender_seq)
   cose_encrypt0_set_partial_iv(cose, seq_8, sizeof(seq_8));  
   ret = oscore_validate_sender_seq(r_ctx, cose);
   UNIT_TEST_ASSERT(ret != 1);
-
-
-  
-
 
 
   UNIT_TEST_END();
