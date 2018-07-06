@@ -209,7 +209,7 @@ oscore_exchange_store_init()
 }
 
 oscore_ctx_t*
-oscore_get_exchange(uint8_t *token, uint8_t token_len, uint32_t *seq)
+oscore_get_exchange(uint8_t *token, uint8_t token_len, uint64_t *seq)
 {
   oscore_exchange_t *ptr = NULL;
   for( ptr = list_head(exchange_list); ptr != NULL; ptr = list_item_next(ptr)) {
@@ -223,7 +223,7 @@ oscore_get_exchange(uint8_t *token, uint8_t token_len, uint32_t *seq)
 }
 
 uint8_t
-oscore_set_exchange(uint8_t *token, uint8_t token_len, uint32_t seq, oscore_ctx_t *context)
+oscore_set_exchange(uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context)
 {
   oscore_exchange_t *new_exchange = memb_alloc(&exchange_memb);
   if(new_exchange == NULL) {

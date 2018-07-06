@@ -84,51 +84,40 @@ oscore_protect_resource(coap_resource_t *resource)
 {
   resource->oscore_protected = 1;
 }
-void
-parse_int(uint64_t in, uint8_t *bytes, int out_len)
-{
-  int x = out_len - 1;
-  while(x >= 0) {
-    bytes[x] = (in >> (x * 8)) & 0xFF;
-    x--;
-  }
-}
 uint8_t
-u32tob(uint32_t in, uint8_t *buffer)
+u64tob(uint64_t in, uint8_t *buffer)
 {
-/*  PRINTF("in %" PRIu64 "\n", in); */
-  if(in == 0) {
-    return 0;
+   
+  memcpy(buffer, &in, 8);
+  
+  uint8_t i;
+  for( i = 7; i >= 0; i--){
+    if( buffer[i] == 0 ){
+ 	break;
+    }  
   }
 
-  uint8_t outlen = 1;
-
-  if(in > 255 && in <= 65535) {
-    outlen = 2;
-  } else if(in > 65535 && in <= 16777215) {
-    outlen = 3;
-  } else if(in > 16777215) {
-    outlen = 4;
-  }
-
-  parse_int(in, buffer, outlen);
-  return outlen;
+  return i + 1;
 }
-uint32_t
-btou32(uint8_t *bytes, size_t len)
+uint64_t
+btou64(uint8_t *bytes, size_t len)
 {
-  uint8_t buffer[4];
-  memset(buffer, 0, 4); /* function variables are not initializated to anything */
-  int offset = 4 - len;
-  uint32_t num;
+  uint8_t buffer[8];
+  memset(buffer, 0, 8); /* function variables are not initializated to anything */
+  int offset = 8 - len;
+  uint64_t num;
 
   memcpy((uint8_t *)(buffer + offset), bytes, len);
 
   num =
-    (uint32_t)buffer[0] << 24 |
-    (uint32_t)buffer[1] << 16 |
-    (uint32_t)buffer[2] << 8 |
-    (uint32_t)buffer[3];
+    (uint64_t)buffer[0] << 56 |
+    (uint64_t)buffer[1] << 48 |
+    (uint64_t)buffer[2] << 40 |
+    (uint64_t)buffer[3] << 32 |
+    (uint64_t)buffer[4] << 24 |
+    (uint64_t)buffer[5] << 16 |
+    (uint64_t)buffer[6] << 8 |
+    (uint64_t)buffer[7];
 
   return num;
 }
@@ -213,7 +202,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
     }
     cose_encrypt0_set_key(&cose, ctx->recipient_context->recipient_key, 16);
   } else { /* Message is a response */
-    uint32_t seq;
+    uint64_t seq;
     uint8_t seq_buffer[8];
     ctx = oscore_get_exchange(coap_pkt->token, coap_pkt->token_len, &seq);
     if(ctx == NULL) {
@@ -224,7 +213,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
   
     /* If message contains a partial IV, the received is used. */
     if(cose.partial_iv_len == 0 && cose.partial_iv == NULL){
-      uint8_t seq_len = u32tob(seq, seq_buffer);
+      uint8_t seq_len = u64tob(seq, seq_buffer);
       cose_encrypt0_set_partial_iv(&cose, seq_buffer, seq_len);
     }
     
@@ -287,11 +276,11 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
 
   if(coap_is_request(pkt)) {
     cose_encrypt0_set_key_id(cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
-    partial_iv_len = u32tob(ctx->sender_context->seq, partial_iv_buffer);
+    partial_iv_len = u64tob(ctx->sender_context->seq, partial_iv_buffer);
     cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
   } else {
     cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
-    partial_iv_len = u32tob(ctx->recipient_context->last_seq, partial_iv_buffer);
+    partial_iv_len = u64tob(ctx->recipient_context->last_seq, partial_iv_buffer);
     cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
   }
 
@@ -373,7 +362,7 @@ oscore_prepare_external_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uin
     if(coap_is_request(coap_pkt)) { 
 
       ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id, coap_pkt->security_context->recipient_context->recipient_id_len);
-      uint8_t seq_len = u32tob(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
+      uint8_t seq_len = u64tob(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
       ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
     } else { 
       ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id, coap_pkt->security_context->sender_context->sender_id_len);
@@ -427,9 +416,9 @@ oscore_clear_options(coap_message_t *coap_pkt)
 uint8_t
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
-  uint32_t incomming_seq = btou32(cose->partial_iv, cose->partial_iv_len);
+  uint64_t incomming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
   
-  if(ctx->last_seq >= OSCORE_SEQ_MAX) {
+  if(incomming_seq >= OSCORE_SEQ_MAX) {
     LOG_WARN("OSCORE Replay protection, SEQ larger than SEQ_MAX.\n");
     return 0;
   }
