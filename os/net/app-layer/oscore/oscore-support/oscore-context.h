@@ -47,7 +47,7 @@
 
 #define CONTEXT_KEY_LEN 16
 #define CONTEXT_INIT_VECT_LEN 13
-#define CONTEXT_SEQ_LEN sizeof(uint32_t)
+#define CONTEXT_SEQ_LEN sizeof(uint64_t)
 
 #define OSCORE_SEQ_MAX (((uint64_t)1 << 40) - 1)
 
@@ -60,16 +60,16 @@ typedef struct ep_ctx_t ep_ctx_t;
 struct oscore_sender_ctx_t {
   uint8_t sender_key[CONTEXT_KEY_LEN];
   uint8_t token[COAP_TOKEN_LEN];
-  uint32_t seq;
+  uint64_t seq;
   uint8_t *sender_id;
   uint8_t sender_id_len;
   uint8_t token_len;
 };
 
 struct oscore_recipient_ctx_t {
-  uint32_t last_seq;
-  uint32_t highest_seq;
-  uint32_t sliding_window;
+  uint64_t last_seq;
+  uint64_t highest_seq;
+  uint64_t sliding_window;
   uint32_t rollback_sliding_window;
   uint32_t rollback_last_seq;
   oscore_recipient_ctx_t *recipient_context; /* This field facilitates easy integration of OSCOAP multicast */
@@ -98,7 +98,7 @@ struct oscore_exchange_t {
   oscore_exchange_t *next;
   uint8_t token[8];
   uint8_t token_len;
-  uint32_t seq;
+  uint64_t seq;
   oscore_ctx_t *context;
 };
 
@@ -119,8 +119,8 @@ oscore_ctx_t *oscore_find_ctx_by_rid(uint8_t *rid, uint8_t rid_len);
 
 /* Token <=> SEQ association */
 void oscore_exchange_store_init();
-uint8_t oscore_set_exchange(uint8_t *token, uint8_t token_len, uint32_t seq, oscore_ctx_t *context);
-oscore_ctx_t* oscore_get_exchange(uint8_t *token, uint8_t token_len, uint32_t *seq);
+uint8_t oscore_set_exchange(uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context);
+oscore_ctx_t* oscore_get_exchange(uint8_t *token, uint8_t token_len, uint64_t *seq);
 void oscore_remove_exchange(uint8_t *token, uint8_t token_len);
 
 /* URI <=> CTX association */
