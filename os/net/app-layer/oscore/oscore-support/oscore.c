@@ -417,7 +417,16 @@ uint8_t
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
   uint64_t incomming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
-  
+ 
+  /* Special case since we do not use unisgned int for seq */
+  if(ctx->initial_state == 1) {
+      ctx->initial_state = 0;
+      int shift = incomming_seq - ctx->last_seq;
+      ctx->sliding_window = ctx->sliding_window << shift;
+      ctx->last_seq = incomming_seq;
+      return 1;
+  }
+
   if(incomming_seq >= OSCORE_SEQ_MAX) {
     LOG_WARN("OSCORE Replay protection, SEQ larger than SEQ_MAX.\n");
     return 0;
@@ -426,29 +435,21 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
   ctx->rollback_last_seq = ctx->last_seq;
   ctx->rollback_sliding_window = ctx->sliding_window;
 
-  if(incomming_seq > ctx->highest_seq) {
+  if(incomming_seq > ctx->last_seq) {
     /* Update the replay window */
     int shift = incomming_seq - ctx->last_seq;
     ctx->sliding_window = ctx->sliding_window << shift;
-    ctx->highest_seq = incomming_seq;
-  } else if(incomming_seq == ctx->highest_seq) {
-    /* Special case since we do not use unisgned int for seq */
-    if(ctx->initial_state == 1) {
-      ctx->initial_state = 0;
-      int shift = incomming_seq - ctx->highest_seq;
-      ctx->sliding_window = ctx->sliding_window << shift;
-      ctx->highest_seq = incomming_seq;
-    } else {
+    ctx->last_seq = incomming_seq;
+  } else if(incomming_seq == ctx->last_seq) {
       LOG_WARN("OSCORE Replay protextion, replayed SEQ.\n");
       return 0;
-    }
-  } else { /* seq < this.recipient_seq */
-    if(incomming_seq + ctx->replay_window_size < ctx->highest_seq) {
+  } else { /* seq < recipient_seq */
+    if(incomming_seq + ctx->replay_window_size < ctx->last_seq) {
       LOG_WARN("OSCORE Replay protection, SEQ outside of replay window.\n");
       return 0;
     }
     /* seq+replay_window_size > recipient_seq */
-    int shift = ctx->highest_seq - incomming_seq;
+    int shift = ctx->last_seq - incomming_seq;
     uint32_t pattern = 1 << shift;
     uint32_t verifier = ctx->sliding_window & pattern;
     verifier = verifier >> shift;
@@ -459,7 +460,6 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
     ctx->sliding_window = ctx->sliding_window | pattern;
   }
 
-  ctx->last_seq = incomming_seq;
   return 1;
 }
 /* Return 0 if SEQ MAX, return 1 if OK */
@@ -478,6 +478,7 @@ oscore_increment_sender_seq(oscore_ctx_t *ctx)
 void
 oscore_roll_back_seq(oscore_recipient_ctx_t *ctx)
 {
+	
   if(ctx->rollback_sliding_window != 0) {
     ctx->sliding_window = ctx->rollback_sliding_window;
     ctx->rollback_sliding_window = 0;
