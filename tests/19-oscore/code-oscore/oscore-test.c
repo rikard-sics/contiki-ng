@@ -144,7 +144,6 @@ UNIT_TEST(test_rollback_seq)
   /* Save parameters to test after rollback. */
   uint32_t sliding_window = r_ctx->sliding_window; 
   uint64_t last_seq = r_ctx->last_seq;
-  uint64_t highest_seq = r_ctx->highest_seq;
 
   /* Set seq 3. */
   cose_encrypt0_set_partial_iv(cose, seq_3, sizeof(seq_3));  
@@ -155,7 +154,6 @@ UNIT_TEST(test_rollback_seq)
   oscore_roll_back_seq(r_ctx);
   UNIT_TEST_ASSERT(sliding_window == r_ctx->sliding_window); 
   UNIT_TEST_ASSERT( last_seq == r_ctx->last_seq);
-  UNIT_TEST_ASSERT( highest_seq == r_ctx->highest_seq);
 
   UNIT_TEST_END();
 }

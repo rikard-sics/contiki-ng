@@ -160,7 +160,6 @@ oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *ma
   recipient_ctx->recipient_id = rid;
   recipient_ctx->recipient_id_len = rid_len;
   recipient_ctx->last_seq = 0;
-  recipient_ctx->highest_seq = 0;
   recipient_ctx->replay_window_size = replay_window;
   recipient_ctx->rollback_last_seq = 0;
   recipient_ctx->sliding_window = 0;
