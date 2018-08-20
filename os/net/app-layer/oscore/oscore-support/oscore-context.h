@@ -68,7 +68,7 @@ struct oscore_sender_ctx_t {
 
 struct oscore_recipient_ctx_t {
   uint64_t last_seq;
-  uint64_t highest_seq;
+//  uint64_t highest_seq;
   uint32_t sliding_window;
   uint32_t rollback_sliding_window;
   uint32_t rollback_last_seq;
