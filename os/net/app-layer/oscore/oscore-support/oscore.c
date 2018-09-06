@@ -153,21 +153,36 @@ oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose)
 int
 oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose)
 {
+  
+  if( option_len > 255 || option_len < 0 || (option_value[0] & 0x06) == 6 || (option_value[0] & 0x07) == 7 || (option_value[0] & 0xE0) != 0) {
+    return BAD_OPTION_4_02;
+  }
+
   uint8_t partial_iv_len = (option_value[0] & 0x05);
   uint8_t offset = 1;
-  if(partial_iv_len != 0) {
+  if(partial_iv_len != 0) {    
+    if( offset + partial_iv_len > option_len) {
+      return BAD_OPTION_4_02;
+    }
+
     cose_encrypt0_set_partial_iv(cose, &(option_value[offset]), partial_iv_len);
     offset += partial_iv_len;
   }
   
-  if((option_value [0] & 0x10) != 0) {
+  if((option_value[0] & 0x10) != 0) {
     uint8_t kid_context_len = option_value[offset];
     offset++;
+    if (offset + kid_context_len > option_len) {
+      return BAD_OPTION_4_02;
+    }
     cose_encrypt0_set_kid_context(cose, &(option_value[offset]), kid_context_len);
   }
 
   if((option_value[0] & 0x08) != 0) {
-    uint8_t kid_len = option_len - offset;
+    int kid_len = option_len - offset;
+    if (kid_len <= 0) {
+      return BAD_OPTION_4_02;
+    }
     cose_encrypt0_set_key_id(cose, &(option_value[offset]), kid_len);
   }
   return 0;
