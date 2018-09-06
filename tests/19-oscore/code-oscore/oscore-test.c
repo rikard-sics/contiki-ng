@@ -158,6 +158,102 @@ UNIT_TEST(test_rollback_seq)
   UNIT_TEST_END();
 }
 
+
+UNIT_TEST_REGISTER(test_parse_option,
+                   "parse_option()");
+UNIT_TEST(test_parse_option)
+{
+
+  UNIT_TEST_BEGIN();
+  cose_encrypt0_t cose[1];
+  cose_encrypt0_init(cose);
+  cose_encrypt0_t cose_zero[1];
+  cose_encrypt0_init(cose_zero);
+   //sixth to eight byte should be zero -> malformed
+
+  int ret = 0;
+  uint8_t o_0[1] = { 0x00 };
+  uint8_t o_1[1] = { 0x06 };
+  uint8_t o_2[1] = { 0x07 };
+  uint8_t o_3[1] = { 0xE0 };
+  uint8_t o_4[5] = { 0x04, 0x01, 0x02, 0x03, 0x04 }; //only partial IV len 4
+  uint8_t o_5[5] = { 0x08, 0xA1, 0xA2, 0xA3, 0xA4 }; //only Kid len 4
+  uint8_t o_6[6] = { 0x10, 0x04, 0xB1, 0xB2, 0xB3, 0xB4 }; //kid-context with len 4
+  uint8_t o_7[1] = { 0x05 }; //Non-existing Partial IV, but length = 5;
+  uint8_t o_8[2] = { 0x10, 0xFF }; //Kid-context flag and length, but no kid-context
+  uint8_t o_9[1] = { 0x08 }; //Key-ID flag set, but no Key-id
+  uint8_t o10[19] = { 0x1D, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0x05, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7 };
+
+  uint8_t piv[4] = { 0x01, 0x02, 0x03, 0x04};
+  uint8_t kid[4] = { 0xA1, 0xA2, 0xA3, 0xA4};
+  uint8_t kid_context[4] = { 0xB1, 0xB2, 0xB3, 0xB4 };
+  uint8_t piv2[5] = { 0xF1, 0xF2, 0xF3, 0xF4, 0xF5 };
+  uint8_t kid2[7] = { 0xD1, 0xD2, 0xD3, 0xD4, 0xD5, 0xD6, 0xD7};
+  uint8_t kid_context3[5] = { 0xC1, 0xC2, 0xC3, 0xC4, 0xC5 };
+   //only kid context
+  //lengths does not fit?
+  //other malformed stuff
+
+  /*  Assert that len < 255 */
+  ret = oscore_decode_option_value(o_0, 256, cose);
+  UNIT_TEST_ASSERT( ret == BAD_OPTION_4_02);  
+
+  /* Assert that values n = 7 & n = 6 are reserved */
+  ret = oscore_decode_option_value(o_1, sizeof(o_1), cose);
+  UNIT_TEST_ASSERT( ret == BAD_OPTION_4_02);
+
+  ret = oscore_decode_option_value(o_2, sizeof(o_2), cose);
+  UNIT_TEST_ASSERT( ret == BAD_OPTION_4_02);
+
+  /* Assert that bits six to eight are set to 0 */
+  ret = oscore_decode_option_value(o_3, sizeof(o_3), cose);
+  UNIT_TEST_ASSERT( ret == BAD_OPTION_4_02);
+
+  ret = oscore_decode_option_value(o_4, sizeof(o_4), cose);
+  UNIT_TEST_ASSERT( ret == 0);
+  UNIT_TEST_ASSERT(memcmp(cose->partial_iv, piv, cose->partial_iv_len) == 0);
+
+  cose_encrypt0_init(cose);
+  ret = oscore_decode_option_value(o_5, sizeof(o_5), cose);
+  UNIT_TEST_ASSERT( ret == 0);
+  UNIT_TEST_ASSERT(memcmp(cose->key_id, kid, cose->key_id_len) == 0);
+
+  cose_encrypt0_init(cose);
+  ret = oscore_decode_option_value(o_6, sizeof(o_6), cose);
+  UNIT_TEST_ASSERT( ret == 0);
+  UNIT_TEST_ASSERT(memcmp(cose->kid_context, kid_context, cose->kid_context_len) == 0);
+
+  cose_encrypt0_init(cose);
+  ret = oscore_decode_option_value(o_7, sizeof(o_7), cose);
+  UNIT_TEST_ASSERT( ret == BAD_OPTION_4_02);
+  UNIT_TEST_ASSERT(memcmp((char*)cose, (char*)cose_zero, sizeof(cose)) == 0);
+
+  cose_encrypt0_init(cose);
+  ret = oscore_decode_option_value(o_8, sizeof(o_8), cose);
+  UNIT_TEST_ASSERT( ret == BAD_OPTION_4_02);
+  UNIT_TEST_ASSERT(memcmp((char*)cose, (char*)cose_zero, sizeof(cose)) == 0);
+
+  cose_encrypt0_init(cose);
+  ret = oscore_decode_option_value(o_8, sizeof(o_8), cose);
+  UNIT_TEST_ASSERT( ret == BAD_OPTION_4_02); 
+  UNIT_TEST_ASSERT(memcmp((char*)cose, (char*)cose_zero, sizeof(cose)) == 0);
+
+  cose_encrypt0_init(cose);
+  ret = oscore_decode_option_value(o_9, sizeof(o_9), cose);
+  UNIT_TEST_ASSERT( ret == BAD_OPTION_4_02); 
+  UNIT_TEST_ASSERT(memcmp((char*)cose, (char*)cose_zero, sizeof(cose)) == 0);
+
+  cose_encrypt0_init(cose);
+  ret = oscore_decode_option_value(o_10, sizeof(o_10), cose);
+  UNIT_TEST_ASSERT( ret == 0); 
+  UNIT_TEST_ASSERT(memcmp(cose->kid_context, kid_context2, cose->kid_context_len) == 0);
+  UNIT_TEST_ASSERT(memcmp(cose->key_id, kid2, cose->key_id_len) == 0);
+  UNIT_TEST_ASSERT(memcmp(cose->partial_iv, piv2, cose->partial_iv_len) == 0);
+
+  UNIT_TEST_END();
+}
+
+
 PROCESS_THREAD(test_process, ev, data)
 {
 
@@ -167,6 +263,7 @@ PROCESS_THREAD(test_process, ev, data)
   printf("---\n");
   UNIT_TEST_RUN(test_validate_sender_seq);
   UNIT_TEST_RUN(test_rollback_seq);
+  UNIT_TEST_RUN(test_parse_option);
   printf("=check-me= DONE\n");
   PROCESS_END();
 }
