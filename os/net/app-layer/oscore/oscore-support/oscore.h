@@ -53,6 +53,10 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data, uint16_t da
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
 coap_status_t oscore_decode_message(coap_message_t *coap_pkt);
 
+/*Decodes the OSCORE option value and places decoded values into the provided code structure */
+int oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose);
+
+
 /* Prepares a new OSCORE message, returns the size of the message. */
 size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer);
 
