@@ -1,4 +1,4 @@
-all: oscore-example-server oscore-example-client
+all: oscore-example-server oscore-example-client oscore-plugtest-server oscore-plugtest-client
 # use target "oscore-plugtest-server" explicitly when required
 
 CONTIKI=../..
@@ -14,6 +14,8 @@ ifeq ($(TARGET),native)
 endif
 MODULES_REL += ./resources
 MODULES_REL += $(TARGET)
+
+CONTIKI_TARGET_SOURCEFILES += plugtest_resources.c
 
 # Include the CoAP implementation
 MODULES += os/net/app-layer/oscore

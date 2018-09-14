@@ -53,14 +53,12 @@
  * sub-directory.
  */
 extern coap_resource_t
-  res-hello,
-  res-hello1;
-//  res-hello2,
-//  res-hello3,
-//  res-hello6,
-//  res-hello7,
-//  res-observe,
-//  res-test;
+  res_hello,
+  res_hello1,
+  res_hello2,
+  res_hello3,
+  res_hello6,
+  res_hello7;
 
 PROCESS(plugtest_server, "PlugtestServer");
 AUTOSTART_PROCESSES(&plugtest_server);
@@ -87,8 +85,8 @@ PROCESS_THREAD(plugtest_server, ev, data)
   coap_engine_init();
 
   /* Activate the application-specific resources. */
-  coap_activate_resource(&res-hello, "oscore/hello/coap");
-  coap_activate_resource(&res-hello1, "oscore/hello/1");
+  coap_activate_resource(&res_hello, "oscore/hello/coap");
+  coap_activate_resource(&res_hello1, "oscore/hello/1");
 
   /* Define application-specific events here. */
   while(1) {
