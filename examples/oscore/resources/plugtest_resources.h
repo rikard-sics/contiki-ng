@@ -1,6 +1,9 @@
 #include "coap.h"
 #define REMOTE_PORT     UIP_HTONS(COAP_DEFAULT_PORT)
 
+extern uint8_t test;
+extern uint8_t failed_tests;
+
 void test0_a(coap_message_t* request);
 void test0_a_handler(void* response);
 

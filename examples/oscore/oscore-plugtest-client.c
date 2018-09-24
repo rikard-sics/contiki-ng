@@ -49,7 +49,7 @@
 #ifdef WITH_OSCORE
 #include "oscore.h"
 
-void response_handler(void* response);
+void response_handler(coap_message_t *response);
 
 uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
 uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
@@ -64,7 +64,11 @@ uint8_t receiver_id[] = { 0x01};
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 #define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
-char* server_ip =  "coap://[fe80::202:0002:0002:0002]";
+//char* server_ip =  "coap://[fe80::202:0002:0002:0002]";
+
+
+uint8_t test = 0;
+uint8_t failed_tests = 0;
 
 #define TOGGLE_INTERVAL 10
 
@@ -73,9 +77,7 @@ AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
 
-extern uint8_t failed_tests;
-//uint8_t token[2] = { 0x05, 0x05};
-extern uint8_t test;
+uint8_t token[2] = { 0x05, 0x05};
 
 #define NUMBER_OF_URLS 8
 /* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
@@ -90,7 +92,7 @@ PROCESS_THREAD(er_example_client, ev, data)
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
   static coap_endpoint_t server_ep;
 
-  coap_endpoint_parse(server_ip, strlen(server_ip), &server_ep);
+  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
 
   /* receives all CoAP messages */
   coap_engine_init();
@@ -103,12 +105,15 @@ PROCESS_THREAD(er_example_client, ev, data)
   if(!context){
 	printf("Could not create OSCORE Security Context!\n");
   }
-  
-  oscore_ep_ctx_set_association(&server_ep, service_urls[2], context);
-  oscore_ep_ctx_set_association(&server_ep, service_urls[3], context);
-  oscore_ep_ctx_set_association(&server_ep, service_urls[4], context);
-  oscore_ep_ctx_set_association(&server_ep, service_urls[5], context);
-  oscore_ep_ctx_set_association(&server_ep, service_urls[6], context);
+  uint8_t ret;
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[2], context);
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[3], context);
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[4], context);
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[5], context);
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[6], context);
+  if( ret != 5) {
+	 printf("Not all URIs associated with contexts!\n");
+  } 
 
   #endif /* WITH_OSCORE */
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
@@ -175,8 +180,8 @@ PROCESS_THREAD(er_example_client, ev, data)
           }
       }
       if(test != 4 && test != 5){
-        //coap_set_token(request, token, 2);
-        //COAP_BLOCKING_REQUEST(&server_ipaddr, REMOTE_PORT, request, response_handler);
+        coap_set_token(request, token, 2);
+        COAP_BLOCKING_REQUEST(&server_ep, request, response_handler);
       }
       test++;
 
@@ -189,7 +194,7 @@ PROCESS_THREAD(er_example_client, ev, data)
   PROCESS_END();
 }
 
-void response_handler(void* response){
+void response_handler(coap_message_t *response){
   printf("Response handler test: %d\n", test);
   switch (test) {
     case 0:

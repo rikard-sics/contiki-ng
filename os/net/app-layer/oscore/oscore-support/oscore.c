@@ -97,7 +97,7 @@ u64tob(uint64_t in, uint8_t *buffer)
     }  
   }
 
-  return i + 1;
+  return 8 - i;
 }
 uint64_t
 btou64(uint8_t *bytes, size_t len)
@@ -126,7 +126,7 @@ oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose)
 {
   uint8_t offset = 1;
   if(cose->partial_iv_len > 5){
-	return 0;
+	  return 0;
   }
   option_buffer[0] = 0;
   if(cose->partial_iv_len > 0 && cose->partial_iv != NULL) {
@@ -196,7 +196,6 @@ oscore_decode_message(coap_message_t *coap_pkt)
   uint8_t external_aad_buffer[25];
   uint8_t nonce_buffer[13];
   cose_encrypt0_init(&cose);
-
   /* Options are discarded later when they are overwritten. This should be improved */
   oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, &cose);
 
@@ -339,6 +338,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   uint8_t option_value_buffer[15];
   uint8_t option_value_len = oscore_encode_option_value(option_value_buffer, &cose);
   coap_set_payload(coap_pkt, ciphertext_buffer, ciphertext_len);
+  //printf_hex(option_value_buffer, option_value_len);
   coap_set_header_object_security(coap_pkt, option_value_buffer, option_value_len);
 
   if(coap_is_request(coap_pkt)) {

@@ -101,17 +101,19 @@ PT_THREAD(coap_blocking_request
     if(coap_get_header_uri_path(request, &uri)){
       context = oscore_get_context_from_ep(remote_ep, uri);
     } else {
-  	printf("NO OSCORE\n");
+  	printf("NO URI PATH\n");
     }
 
     if(context){
 	printf("OSCORE found!\n");
 	coap_set_oscore(request);
 	request->security_context = context;
- 	uint8_t token[2] = {0xA, 0xA};
+ 	//TODO maybe an if and random token should be added here
+	uint8_t token[2] = {0xA, 0xA};
     	coap_set_token(request, token, 2);
     } else {
 	printf("NO OSCORE!\n");
+	printf("URL %s \n", uri);
     }
     #endif /* WITH_OSCORE */
     if((state->transaction = coap_new_transaction(request->mid, remote_ep))) {

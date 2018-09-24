@@ -6,11 +6,9 @@
 #include <assert.h>
 #include "plugtest_resources.h"
 
-uint8_t test = 0;
-uint8_t failed_tests = 0;
 //static coap_observee_t *obs;
 
-char *urls[8] = { "/hello/coap", "/hello/1", "/hello/2", "/hello/3", "/observe", "/hello/6", "/hello/7", "/test"};
+char *urls[8] = { "/oscore/hello/coap", "/oscore/hello/1", "/oscore/hello/2", "/oscore/hello/3", "/oscore/observe", "/oscore/hello/6", "/oscore/hello/7", "/oscore/test"};
 uint8_t rid[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 
 void test0_a(coap_message_t* request){
@@ -23,7 +21,7 @@ void test0_a(coap_message_t* request){
 
 void test0_a_handler(void* response){
   printf("Test 0a: Receiving Response!\n");
-
+//return;
   const uint8_t *response_payload;
   const char desired[] = "Hello World!";
   int len = coap_get_payload(response, &response_payload);
