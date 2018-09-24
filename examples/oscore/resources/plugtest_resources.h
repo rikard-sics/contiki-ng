@@ -16,11 +16,9 @@ void test2_a_handler(void* response);
 void test3_a(coap_message_t* request);
 void test3_a_handler(void* response);
 
-void test4_a(coap_message_t* request);
-void test4_a_handler(void* response);
-
-void test5_a(coap_message_t* request);
-void test5_a_handler(void* response);
+//void test4_a(uip_ipaddr_t *server_ipaddr, uint16_t server_port);
+//static void test4_a_handler(coap_observee_t *obs, void *notification,
+//                      coap_notification_flag_t flag);
 
 void test6_a(coap_message_t* request);
 void test6_a_handler(void* response);
@@ -51,6 +49,3 @@ void test14_a_handler(void* response);
 
 void test15_a(coap_message_t* request);
 void test15_a_handler(void* response);
-
-void test16_a(coap_message_t* request);
-void test16_a_handler(void* response);
