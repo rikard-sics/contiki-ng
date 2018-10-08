@@ -66,7 +66,8 @@ extern coap_resource_t
   res_hello2,
   res_hello3,
   res_hello6,
-  res_hello7;
+  res_hello7,
+  res_test;
 
 uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
 uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40};
@@ -103,7 +104,7 @@ PROCESS_THREAD(plugtest_server, ev, data)
   oscore_init_server();
 
   static oscore_ctx_t *context;
-  context = oscore_derive_ctx(master_secret, 16, NULL, 0, 10, sender_id, 1, receiver_id, 0, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+  context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 0, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
   if(!context){
         printf("Could not create OSCORE Security Context!\n");
   }
@@ -124,12 +125,14 @@ PROCESS_THREAD(plugtest_server, ev, data)
   coap_activate_resource(&res_hello3, "oscore/hello/3");
   coap_activate_resource(&res_hello6, "oscore/hello/6");
   coap_activate_resource(&res_hello7, "oscore/hello/7");
+  coap_activate_resource(&res_test,   "oscore/test");
   
   oscore_protect_resource(&res_hello1);
   oscore_protect_resource(&res_hello2);
   oscore_protect_resource(&res_hello3);
   oscore_protect_resource(&res_hello6);
   oscore_protect_resource(&res_hello7);
+  oscore_protect_resource(&res_test);
   /* Define application-specific events here. */
   while(1) {
     PROCESS_WAIT_EVENT();

@@ -67,7 +67,7 @@ uint8_t receiver_id[] = { 0x01};
 //char* server_ip =  "coap://[fe80::202:0002:0002:0002]";
 
 
-uint8_t test = 0;
+uint8_t test = 8;
 uint8_t failed_tests = 0;
 
 #define TOGGLE_INTERVAL 10
@@ -82,7 +82,7 @@ uint8_t token[2] = { 0x05, 0x05};
 #define NUMBER_OF_URLS 8
 /* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
 char *service_urls[NUMBER_OF_URLS] =
-{ ".well-known/core", "oscore/hello/coap", "oscore/hello/1", "oscore/hello/2", "oscore/hello/3", "oscore/hello/6", "oscore/hello/7" };
+{ ".well-known/core", "oscore/hello/coap", "oscore/hello/1", "oscore/hello/2", "oscore/hello/3", "oscore/hello/6", "oscore/hello/7", "oscore/test"};
 
 
 PROCESS_THREAD(er_example_client, ev, data)
@@ -101,17 +101,18 @@ PROCESS_THREAD(er_example_client, ev, data)
   oscore_init_client();
 
   static oscore_ctx_t *context;
-  context = oscore_derive_ctx(master_secret, 16, NULL, 0, 10, sender_id, 0, receiver_id, 1, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+  context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 0, receiver_id, 1, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
   if(!context){
 	printf("Could not create OSCORE Security Context!\n");
   }
-  uint8_t ret;
+  uint8_t ret = 0;
   ret += oscore_ep_ctx_set_association(&server_ep, service_urls[2], context);
   ret += oscore_ep_ctx_set_association(&server_ep, service_urls[3], context);
   ret += oscore_ep_ctx_set_association(&server_ep, service_urls[4], context);
   ret += oscore_ep_ctx_set_association(&server_ep, service_urls[5], context);
   ret += oscore_ep_ctx_set_association(&server_ep, service_urls[6], context);
-  if( ret != 5) {
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[7], context);
+  if( ret != 6) {
 	 printf("Not all URIs associated with contexts!\n");
   } 
 
@@ -136,17 +137,19 @@ PROCESS_THREAD(er_example_client, ev, data)
           test3_a(request);
           break;
         case 4:
-          //test4_a( &server_ipaddr, REMOTE_PORT);
-          printf("Skipping test 4a\n");
+          test4_a(request);;
           break;
         case 5:
-          printf("Skipping test 5a\n");
-          break;
+	  printf("skip 5\n");
+          //test5_a(request);
+	  break;
         case 6:
-          test6_a(request);
+	  printf("skip 6\n");
+      //    test6_a(request);
           break;
         case 7:
-          test7_a(request);
+	  printf("skip 7\n");
+    //      test7_a(request);
           break;
         case 8:
           test8_a(request);
@@ -171,17 +174,24 @@ PROCESS_THREAD(er_example_client, ev, data)
           break;
         case 15:
           test15_a(request);
-          break;
-        default:
+          break; 
+	case 16:
+	  //Associate /oscore/hello/coap with context to provide encryption 
+          if(!oscore_ep_ctx_set_association(&server_ep, service_urls[1], context)){
+		  printf("EP ERROR!\n");
+	  }
+	  test16_a(request);
+	  break;
+	default:
           if(failed_tests == 0){
           printf("ALL tests PASSED! Drinks all around!\n");
           } else {
             printf("%d tests failed! Go back and fix those :(\n", failed_tests);
           }
       }
-      if(test != 4 && test != 5){
-        coap_set_token(request, token, 2);
-        COAP_BLOCKING_REQUEST(&server_ep, request, response_handler);
+      if(test != 5 && test != 6 && test != 7){
+      	coap_set_token(request, token, 2);
+      	COAP_BLOCKING_REQUEST(&server_ep, request, response_handler);
       }
       test++;
 
@@ -210,16 +220,16 @@ void response_handler(coap_message_t *response){
       test3_a_handler(response);
       break;
     case 4:
-      printf("Skipping Test 4a Handler\n");
+      test4_a_handler(response);
       break;
     case 5:
-      printf("Skipping Test 5a Handler\n");
+    //  test5_a_handler(response);
       break;
     case 6:
-      test6_a_handler(response);
+      //test6_a_handler(response);
       break;
     case 7:
-     test7_a_handler(response);
+    // test7_a_handler(response);
       break;
     case 8:
       test8_a_handler(response);
@@ -234,7 +244,6 @@ void response_handler(coap_message_t *response){
       test11_a_handler(response);
       break;
     case 12:
-      printf("TEST 12 Handler\n");
       test12_a_handler(response);
       break;
     case 13:
@@ -245,6 +254,9 @@ void response_handler(coap_message_t *response){
       break;
     case 15:
       test15_a_handler(response);
+      break;
+    case 16:
+      test16_a_handler(response);
       break;
     default:
       printf("Default handler\n");
