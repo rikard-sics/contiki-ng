@@ -55,7 +55,7 @@
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "coap"
-#define LOG_LEVEL  LOG_LEVEL_NONE // LOG_LEVEL_COAP
+#define LOG_LEVEL  LOG_LEVEL_COAP // LOG_LEVEL_COAP
 
 #ifdef WITH_OSCORE
 #include "oscore.h"
@@ -1234,6 +1234,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
     LOG_DBG_("-\n");
   } else if(role == ROLE_CONFIDENTIAL){
     coap_pkt->buffer[0] = coap_pkt->code;
+    //printf("CODE WRITTEN TO PLAINTEXT %d\n", coap_pkt->code);
     option  = coap_pkt->buffer + 1;
   } else {
     option  = coap_pkt->buffer;
@@ -1422,7 +1423,7 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
       //TODO if OSCORE GET put payload to NULL
       coap_pkt->payload = ++current_option;
       coap_pkt->payload_len = data_len - (coap_pkt->payload - data);
-
+      printf("\t\t\t payload len %d\n payload %02X\n", coap_pkt->payload_len, (coap_pkt->payload)[0]);
       /* also for receiving, the Erbium upper bound is REST_MAX_CHUNK_SIZE */
       if(coap_pkt->payload_len > REST_MAX_CHUNK_SIZE) {
         coap_pkt->payload_len = REST_MAX_CHUNK_SIZE;

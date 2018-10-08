@@ -56,25 +56,28 @@ RESOURCE(res_hello7,
 	 res_put_handler,
 	 NULL);
 
-static uint8_t val = 1;
+//static int value_len = 0;
+//static uint8_t value[20];
+
 static void res_put_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  /* Some data that has the length up to REST_MAX_CHUNK_SIZE. For more, see the chunk resource. */
-  char message[3];
-  int length = sprintf(message,"%d", val);
- 
-  /* The query string can be retrieved by rest_get_query() or parsed for its key-value pairs. */
 
-  const uint8_t *if_match;
-
-  if(!coap_get_header_if_none_match(request)){
-	printf("If-None-Match not found!\n");
+  /*const uint8_t *payload = NULL;
+  int payload_len = coap_get_payload(request, &payload);
+  if ( payload_len  > 0 && payload != NULL) {
+	memcpy(value, payload, payload_len);
+        value_len = payload_len;
+  } */
+  if (coap_get_header_if_none_match(request)){
+        printf("if none match found\n");
+  	coap_set_status_code(response, PRECONDITION_FAILED_4_12);
+  } else {
+	coap_set_status_code(response, CHANGED_2_04);
   }
-  coap_get_header_if_match(request, &if_match);
-	
-  memcpy(buffer, message, length);
+    
+  //coap_set_payload(response, value, value_len);
+  //coap_set_header_content_format(response, TEXT_PLAIN); /* text/plain is the default, hence this option could be omitted. */
 
-  coap_set_payload(response, buffer, length);
 }
 
 
