@@ -208,7 +208,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       coap_error_message = "Security context not found";
       return UNAUTHORIZED_4_01;
     }
-    /* 4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
+    /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
     if(!oscore_validate_sender_seq(ctx->recipient_context, &cose)) {
       LOG_DBG_("OSCORE Replayed or old message\n");
       coap_error_message = "Replay detected";
@@ -237,16 +237,13 @@ oscore_decode_message(coap_message_t *coap_pkt)
   }
   coap_pkt->security_context = ctx;
 
-  /* 5 Compose the Additional Authenticated Data, as described in Section 5.4. */
   size_t external_aad_len = oscore_prepare_external_aad(coap_pkt, &cose, external_aad_buffer, 0);
   cose_encrypt0_set_external_aad(&cose, external_aad_buffer, external_aad_len);
   cose_encrypt0_set_alg(&cose, ctx->alg);
-  /* 6 Compute the AEAD nonce from the Recipient ID, Common IV, and the ‘Partial IV’ parameter, received in the COSE Object. */
+  
   oscore_generate_nonce(&cose, coap_pkt, nonce_buffer, 13);
   cose_encrypt0_set_nonce(&cose, nonce_buffer, 13);
-  /*7 Decrypt the COSE object using the Recipient Key, as per [RFC8152] Section 5.3. (The decrypt operation includes the verification of the integrity.)
-       If decryption fails, the server MUST stop processing the request and MAY respond with a 4.00 Bad Request error message. The server MAY set an Outer Max-Age option with value zero. The diagnostic payload SHOULD contain the “Decryption failed” string.
-       If decryption succeeds, update the Replay Window, as described in Section 7. */
+  
   uint8_t plaintext_buffer[coap_pkt->payload_len - 8];
   cose_encrypt0_set_ciphertext(&cose, coap_pkt->payload, coap_pkt->payload_len);
 
@@ -258,32 +255,20 @@ oscore_decode_message(coap_message_t *coap_pkt)
     return BAD_REQUEST_4_00;
   }
 
-  /*8 For each decrypted option, check if the option is also present as an Outer option:
-     if it is, discard the Outer. For example: the message contains a Max-Age Inner and a Max-Age Outer option.
-     The Outer Max-Age is discarded. */
-
-  /*9 Add decrypted code, options and payload to the decrypted request.
-     The Object-Security option is removed.*/
-
   /*Move the plaintext to the ciphtertext buffer so that it remains when this function returns and plaintext buffer is dealocated.*/
   memcpy(cose.ciphertext, plaintext_buffer, coap_pkt->payload_len - 8);
   cose.plaintext = cose.ciphertext;
 
   coap_status_t status = oscore_parser(coap_pkt, cose.plaintext, res, ROLE_CONFIDENTIAL);
-  /*9 Add decrypted code, options and payload to the decrypted request.
-     The Object-Security option is removed.*/
-
-  /* 10 The decrypted CoAP request is processed according to [RFC7252] */
-
   return status;
 }
 /* TODO  make partial IV a field in COSE_encrypt0 */
-uint8_t partial_iv_buffer[5];
 uint8_t
 oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx)
 {
   cose_encrypt0_set_alg(cose, ctx->alg);
 
+  uint8_t partial_iv_buffer[8];
   uint8_t partial_iv_len;
 
   cose_encrypt0_set_key(cose, ctx->sender_context->sender_key, CONTEXT_KEY_LEN);

@@ -253,6 +253,50 @@ UNIT_TEST(test_parse_option)
   UNIT_TEST_END();
 }
 
+UNIT_TEST_REGISTER(test_rollback_seq,
+                   "rollback_seq()");
+UNIT_TEST(test_rollback_seq)
+{
+
+  UNIT_TEST_BEGIN();
+ // cose_encrypt0_t cose[1];
+//  uint8_t seq_0[1] = { 0x00 };
+//  uint8_t seq_max[8] = { 0x00, 0x00, 0x00, 0x7F, 0xFF, 0xFF, 0xFF, 0xFF }; /* ((1 << 40) - 1)*/
+//  uint8_t seq_over_max[8] = { 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00 }; /* ((1 << 40)) */
+  
+
+  oscore_ctx_t *ctx  = oscore_derive_ctx(master_secret, master_secret_len, master_salt, master_salt_len, 10, sender_id, sender_id_len, recipient_id, recipient_id_len, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+  UNIT_TEST_ASSERT(ctx != NULL);
+
+  oscore_recipient_ctx_t *r_ctx = ctx->recipient_context;
+  
+  cose_encrypt0_set_partial_iv(cose, seq_0, sizeof(seq_0));  
+  uint8_t ret = oscore_validate_sender_seq(r_ctx, cose);
+  UNIT_TEST_ASSERT(ret == 1);
+
+  /* Test seq 1. */
+  cose_encrypt0_set_partial_iv(cose, seq_1, sizeof(seq_1));  
+  ret = oscore_validate_sender_seq(r_ctx, cose);
+  UNIT_TEST_ASSERT(ret == 1);
+
+  /* Test seq 1 again (replay). */
+  cose_encrypt0_set_partial_iv(cose, seq_1, sizeof(seq_1));  
+  ret = oscore_validate_sender_seq(r_ctx, cose);
+  UNIT_TEST_ASSERT(ret != 1);
+
+  
+  /* Test seq 5, then seq 3. Test replay window. */
+  cose_encrypt0_set_partial_iv(cose, seq_5, sizeof(seq_5));  
+  ret = oscore_validate_sender_seq(r_ctx, cose);
+  UNIT_TEST_ASSERT(ret == 1);
+
+  cose_encrypt0_set_partial_iv(cose, seq_3, sizeof(seq_3));  
+  ret = oscore_validate_sender_seq(r_ctx, cose);
+  UNIT_TEST_ASSERT(ret == 1);
+
+
+  UNIT_TEST_END();
+}
 
 PROCESS_THREAD(test_process, ev, data)
 {
