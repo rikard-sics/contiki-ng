@@ -85,7 +85,10 @@ int cose_encrypt0_get_plaintext(cose_encrypt0_t *ptr, uint8_t **buffer);
 void
 cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
 {
-  ptr->partial_iv = buffer;
+  if(size > 8){
+	  return;
+  }
+  memcpy(ptr->partial_iv, buffer, size);
   ptr->partial_iv_len = size;
 }
 /* Return length */

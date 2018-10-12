@@ -67,7 +67,7 @@ uint8_t receiver_id[] = { 0x01};
 //char* server_ip =  "coap://[fe80::202:0002:0002:0002]";
 
 
-uint8_t test = 8;
+uint8_t test = 0;
 uint8_t failed_tests = 0;
 
 #define TOGGLE_INTERVAL 10
@@ -184,7 +184,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 	  break;
 	default:
           if(failed_tests == 0){
-          printf("ALL tests PASSED! Drinks all around!\n");
+            printf("ALL tests PASSED!\n");
           } else {
             printf("%d tests failed! Go back and fix those :(\n", failed_tests);
           }

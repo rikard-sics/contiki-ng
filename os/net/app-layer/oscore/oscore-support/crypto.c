@@ -75,7 +75,7 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   CCM_STAR.set_key(key);
   CCM_STAR.aead(nonce, encryption_buffer, plaintext_len, aad, aad_len, &(encryption_buffer[plaintext_len]), tag_len, 1);
 
-   printf("Encrypt:\n");
+ /*  printf("Encrypt:\n");
    printf("Key:\n");
    kprintf_hex(key, key_len);
    printf("IV:\n");
@@ -86,7 +86,7 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
    kprintf_hex(plaintext_buffer, plaintext_len);
    printf("Ciphertext&Tag:\n");
    kprintf_hex(encryption_buffer, plaintext_len + 8);
- 
+ */
   memcpy(ciphertext_buffer, encryption_buffer, plaintext_len + tag_len);
   return plaintext_len + tag_len;
 }
@@ -109,7 +109,7 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
 
   memcpy(decryption_buffer, ciphertext_buffer, plaintext_len);
   CCM_STAR.set_key(key);
-     printf("Decrypt:\n");
+ /*    printf("Decrypt:\n");
      printf("Key:\n");
      kprintf_hex(key, key_len);
      printf("IV:\n");
@@ -118,7 +118,7 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
      kprintf_hex(aad, aad_len);
      printf("Ciphertext&Tag:\n");
      kprintf_hex(decryption_buffer, ciphertext_len);
-   
+   */
   CCM_STAR.aead(nonce, decryption_buffer, plaintext_len, aad, aad_len, tag_buffer, tag_len, 0);
 
   if(memcmp(tag_buffer, &(ciphertext_buffer[plaintext_len]), tag_len) != 0) {
