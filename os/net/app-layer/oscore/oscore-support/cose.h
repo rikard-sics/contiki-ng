@@ -41,15 +41,15 @@
 #define _COSE_H
 #include <inttypes.h>
 
-#define COSE_Algorithm_AES_CCM_64_64_128 12
-#define COSE_Algorithm_AES_CCM_16_64_128 10
 
+#define COSE_Algorithm_AES_CCM_16_64_128 10
+#define COSE_algorithm_AES_CCM_64_64_128_KEY_LEN 16
+#define COSE_algorithm_AES_CCM_64_64_128_IV_LEN  7
+
+#define COSE_Algorithm_AES_CCM_64_64_128 12
 #define COSE_algorithm_AES_CCM_16_64_128_KEY_LEN 16
 #define COSE_algorithm_AES_CCM_16_64_128_IV_LEN  13
 
-
-#define COSE_algorithm_AES_CCM_64_64_128_KEY_LEN 16
-#define COSE_algorithm_AES_CCM_64_64_128_IV_LEN  7
 
 
 /* COSE Encrypt0 Struct */
@@ -60,7 +60,7 @@ typedef struct cose_encrypt0_t {
   uint8_t *key;
   int key_len;
 
-  uint8_t *partial_iv;
+  uint8_t partial_iv[8];
   int partial_iv_len;
 
   uint8_t *key_id;

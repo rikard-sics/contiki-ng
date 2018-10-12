@@ -312,15 +312,13 @@ coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
     #ifdef WITH_OSCORE
     if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)){
-       printf("sending OSCOAP\n");
+       LOG_DBG_("Sending OSCORE message.\n");
        size_t s = oscore_prepare_message(coap_pkt, buffer);
        printf_hex(buffer, s);
        return s;
     }else{
-       printf("sending COAP\n");
-       // return coap_serialize_message_coap(packet, buffer); 
+       LOG_DBG_("Sending COAP message.\n");
        size_t s = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
-     // LOG_DBG__HEX(buffer, s);
        return s;
     }
     #else /* WITH_OSCORE */
@@ -728,7 +726,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   LOG_DBG("-Done parsing-------\n");
   #if WITH_OSCORE
   if(coap_pkt->object_security_len > 0 && coap_pkt->object_security != NULL){
-   	printf("REMOVE: OSCORE found, decoding\n"); 
+   	LOG_DBG_("REMOVE: OSCORE found, decoding\n"); 
 	 return	oscore_decode_message(coap_pkt);
   }
   #endif /* WITH_OSCORE */
@@ -1234,7 +1232,6 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
     LOG_DBG_("-\n");
   } else if(role == ROLE_CONFIDENTIAL){
     coap_pkt->buffer[0] = coap_pkt->code;
-    //printf("CODE WRITTEN TO PLAINTEXT %d\n", coap_pkt->code);
     option  = coap_pkt->buffer + 1;
   } else {
     option  = coap_pkt->buffer;
@@ -1351,18 +1348,12 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
 
   int OSCOAP = 0;    
   uint8_t* original_buffer;
-  //PRINTF("Parsing incommign message!\n");
-  //oscoap_printf_hex(data, data_len);
 
   if(role == ROLE_COAP){
-//    PRINTF_HEX(data, data_len);
-    // initialize packet 
- //   PRINTF("ROLE COAP\n");
     memset(coap_pkt, 0, sizeof(coap_message_t));
-    coap_pkt->buffer = data; //detta orsakar problemas
+    coap_pkt->buffer = data; 
 
   } else if (role == ROLE_CONFIDENTIAL){
- //   PRINTF("ROLE CONFIDENTIAL\n");
     original_buffer = coap_pkt->buffer;
     coap_pkt->buffer = data;
   } 
@@ -1423,7 +1414,6 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
       //TODO if OSCORE GET put payload to NULL
       coap_pkt->payload = ++current_option;
       coap_pkt->payload_len = data_len - (coap_pkt->payload - data);
-      printf("\t\t\t payload len %d\n payload %02X\n", coap_pkt->payload_len, (coap_pkt->payload)[0]);
       /* also for receiving, the Erbium upper bound is REST_MAX_CHUNK_SIZE */
       if(coap_pkt->payload_len > REST_MAX_CHUNK_SIZE) {
         coap_pkt->payload_len = REST_MAX_CHUNK_SIZE;
