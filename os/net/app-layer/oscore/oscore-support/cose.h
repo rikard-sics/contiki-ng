@@ -45,10 +45,12 @@
 #define COSE_Algorithm_AES_CCM_16_64_128 10
 #define COSE_algorithm_AES_CCM_64_64_128_KEY_LEN 16
 #define COSE_algorithm_AES_CCM_64_64_128_IV_LEN  7
+#define COSE_algorithm_AES_CCM_64_64_128_TAG_LEN  8
 
 #define COSE_Algorithm_AES_CCM_64_64_128 12
 #define COSE_algorithm_AES_CCM_16_64_128_KEY_LEN 16
 #define COSE_algorithm_AES_CCM_16_64_128_IV_LEN  13
+#define COSE_algorithm_AES_CCM_16_64_128_TAG_LEN  8
 
 
 
