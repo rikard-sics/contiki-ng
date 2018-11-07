@@ -6,6 +6,7 @@ CONTIKI=../..
 MAKE_WITH_OSCORE = 1
 WERROR = 1
 CFLAGS += -DCOOJA_MTARCH_STACKSIZE=4096
+CFLAGS += -Wvla
 
 # build RESTful resources
 include $(CONTIKI)/Makefile.identify-target

@@ -40,6 +40,15 @@
 #define _CRYPTO_H
 #include <inttypes.h>
 
+#include "coap.h"
+
+#define HKDF_INFO_MAXLEN 25
+#define HKDF_OUTPUT_MAXLEN 25
+
+/* Plaintext Maxlen and Tag Maxlen is quite generous. */
+#define AEAD_PLAINTEXT_MAXLEN COAP_MAX_CHUNK_SIZE
+#define AEAD_TAG_MAXLEN COAP_MAX_CHUNK_SIZE 
+
 /* Returns 0 if failure to encrypt. Ciphertext length, otherwise. Tag-length and ciphertext length is derived from algorithm. No check is done to ensure that ciphertext buffer is of the correct length. */
 
 int encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len, uint8_t *aad, uint8_t aad_len, uint8_t *plaintext_buffer, uint8_t plaintext_len, uint8_t *ciphertext_buffer);

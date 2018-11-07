@@ -244,7 +244,8 @@ oscore_decode_message(coap_message_t *coap_pkt)
   oscore_generate_nonce(&cose, coap_pkt, nonce_buffer, 13);
   cose_encrypt0_set_nonce(&cose, nonce_buffer, 13);
   
-  uint8_t plaintext_buffer[coap_pkt->payload_len - 8];
+  uint8_t plaintext_buffer[COAP_MAX_CHUNK_SIZE - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];  
+  
   cose_encrypt0_set_ciphertext(&cose, coap_pkt->payload, coap_pkt->payload_len);
 
   int res = cose_encrypt0_decrypt(&cose, plaintext_buffer, coap_pkt->payload_len - 8);
@@ -322,7 +323,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     oscore_increment_sender_seq(ctx);
   }
 /*  4 Encrypt the COSE object using the Sender Key. Compress the COSE Object as specified in Section 6. */
-  uint8_t ciphertext_buffer[plaintext_len + 8];
+  uint8_t ciphertext_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
   uint8_t ciphertext_len = cose_encrypt0_encrypt(&cose, ciphertext_buffer, plaintext_len + 8);
 /*  5 Format the OSCORE message according to Section 4. The Object-Security option is added (see Section 4.2.2). */
   uint8_t option_value_buffer[15];
