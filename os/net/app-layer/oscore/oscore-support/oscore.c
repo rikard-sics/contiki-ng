@@ -250,9 +250,14 @@ oscore_decode_message(coap_message_t *coap_pkt)
   int res = cose_encrypt0_decrypt(&cose, plaintext_buffer, coap_pkt->payload_len - 8);
   if(res <= 0) {
     LOG_DBG_("OSCORE Decryption Failure, result code: %d\n", res);
-    oscore_roll_back_seq(ctx->recipient_context);
-    coap_error_message = "Decryption failure";
-    return BAD_REQUEST_4_00;
+    if(coap_is_request(coap_pkt)) {
+      oscore_roll_back_seq(ctx->recipient_context);
+      coap_error_message = "Decryption failure";
+      return BAD_REQUEST_4_00;
+    } else {
+      coap_error_message = "Decryption failure";
+      return OSCORE_DECRYPTION_FAILED;
+    }  
   }
 
   /*Move the plaintext to the ciphtertext buffer so that it remains when this function returns and plaintext buffer is dealocated.*/

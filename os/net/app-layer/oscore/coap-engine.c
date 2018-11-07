@@ -56,6 +56,7 @@
 
 #ifdef WITH_OSCORE
 #include "oscore.h"
+#include "coap-transactions.h"
 #endif /* WITH_OSCORE */
 
 static void process_callback(coap_timer_t *t);
@@ -156,6 +157,7 @@ coap_receive(const coap_endpoint_t *src,
 
   coap_status_code = coap_parse_message(message, payload, payload_length);
   coap_set_src_endpoint(message, src);
+  printf("transaction %p \n", transaction); 
 
   if(coap_status_code == NO_ERROR) {
 
@@ -308,7 +310,6 @@ coap_receive(const coap_endpoint_t *src,
 
       /* handle responses */
     } else {
-
       if(message->type == COAP_TYPE_CON && message->code == 0) {
         LOG_INFO("Received Ping\n");
         coap_status_code = PING_RESPONSE;
@@ -346,7 +347,7 @@ coap_receive(const coap_endpoint_t *src,
 #endif /* COAP_OBSERVE_CLIENT */
     } /* request or response */
   } /* parsed correctly */
-
+printf("here 3, transaction %p\n", transaction);
     /* if(parsed correctly) */
   if(coap_status_code == NO_ERROR) {
     if(transaction) {
@@ -355,6 +356,14 @@ coap_receive(const coap_endpoint_t *src,
   } else if(coap_status_code == MANUAL_RESPONSE) {
     LOG_DBG("Clearing transaction for manual response");
     coap_clear_transaction(transaction);
+  } else if(coap_status_code == OSCORE_DECRYPTION_FAILED) {
+    LOG_WARN("OSCORE response decryption failed!\n");
+    coap_transaction_t *t = coap_get_transaction_by_mid(message->mid);
+    printf("transaction %p t %p\n", transaction, t); 
+    //coap_clear_transaction(t);
+    //t->retrans_counter = 255;
+    coap_timer_stop(&(t->retrans_timer));
+    return coap_status_code;
   } else {
     coap_message_type_t reply_type = COAP_TYPE_ACK;
 
@@ -375,7 +384,7 @@ coap_receive(const coap_endpoint_t *src,
                      strlen(coap_error_message));
     coap_sendto(src, payload, coap_serialize_message(message, payload));
   }
-
+printf("returning\n");
   /* if(new data) */
   return coap_status_code;
 }
