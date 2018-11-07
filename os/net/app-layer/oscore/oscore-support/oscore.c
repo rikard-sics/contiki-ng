@@ -329,7 +329,6 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   uint8_t option_value_buffer[15];
   uint8_t option_value_len = oscore_encode_option_value(option_value_buffer, &cose);
   coap_set_payload(coap_pkt, ciphertext_buffer, ciphertext_len);
-  //printf_hex(option_value_buffer, option_value_len);
   coap_set_header_object_security(coap_pkt, option_value_buffer, option_value_len);
 
   if(coap_is_request(coap_pkt)) {
@@ -349,32 +348,11 @@ oscore_prepare_external_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uin
 {
 
   uint8_t ret = 0;
-//  uint8_t seq_buffer[8];
   ret += cbor_put_array(&buffer, 5);
   ret += cbor_put_unsigned(&buffer, 1); /* Version, always for this version of the draft 1 */
   ret += cbor_put_array(&buffer, 1); /* Algoritms array */
   ret += cbor_put_unsigned(&buffer, (coap_pkt->security_context->alg)); /* Algorithm */
 
-/*  if(sending == 1) {
-    if(coap_is_request(coap_pkt)) { 
-      ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id, coap_pkt->security_context->sender_context->sender_id_len);
-    } else { 
-  //    ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id, coap_pkt->security_context->recipient_context->recipient_id_len);
-    }
-      ret += cbor_put_bytes(&buffer, cose->partial_iv, cose->partial_iv_len);
-  
-  } else {
-
-    if(coap_is_request(coap_pkt)) { 
-
-      ret += cbor_put_bytes(&buffer, coap_pkt->security_context->recipient_context->recipient_id, coap_pkt->security_context->recipient_context->recipient_id_len);
-      uint8_t seq_len = u64tob(coap_pkt->security_context->recipient_context->last_seq, seq_buffer);
-      ret += cbor_put_bytes(&buffer, seq_buffer, seq_len);
-    } else { 
-      ret += cbor_put_bytes(&buffer, coap_pkt->security_context->sender_context->sender_id, coap_pkt->security_context->sender_context->sender_id_len);
-      ret += cbor_put_bytes(&buffer, cose->partial_iv, cose->partial_iv_len);
-    }
-  } */
   ret += cbor_put_bytes(&buffer, cose->key_id, cose->key_id_len);
   ret += cbor_put_bytes(&buffer, cose->partial_iv, cose->partial_iv_len);  
 
