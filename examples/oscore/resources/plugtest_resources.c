@@ -426,7 +426,7 @@ void test14_a_handler(void* response){
   }else {
     printf("Test 14a: FAILED!\n");
     printf("\t Expected result: 4.00 Bad Request\n");
-
+    printf("Got : %d\n", ((coap_message_t*)response)->code);
     failed_tests++;
   }
   memcpy(security_context->recipient_context->recipient_key, real_recipient_key, 16);
