@@ -68,7 +68,7 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
     return -5;
   }
   uint8_t tag_len = 8;
-  uint8_t encryption_buffer[plaintext_len + tag_len];
+  uint8_t encryption_buffer[AEAD_PLAINTEXT_MAXLEN + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
 
   memcpy(encryption_buffer, plaintext_buffer, plaintext_len);
 
@@ -104,8 +104,8 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
 
   uint8_t tag_len = 8;
   int plaintext_len = ciphertext_len - tag_len;
-  uint8_t decryption_buffer[plaintext_len];
-  uint8_t tag_buffer[tag_len];
+  uint8_t decryption_buffer[AEAD_PLAINTEXT_MAXLEN];
+  uint8_t tag_buffer[AEAD_TAG_MAXLEN];
 
   memcpy(decryption_buffer, ciphertext_buffer, plaintext_len);
   CCM_STAR.set_key(key);
@@ -158,8 +158,8 @@ int
 hkdf_expand( const uint8_t *prk, const uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
 {
   int N = (okm_len + 32 - 1) / 32; /* ceil(okm_len/32) */
-  uint8_t aggregate_buffer[32 + info_len + 1];
-  uint8_t out_buffer[okm_len + 32]; /* 32 extra bytes to fit the last block */
+  uint8_t aggregate_buffer[32 + HKDF_INFO_MAXLEN + 1];
+  uint8_t out_buffer[HKDF_OUTPUT_MAXLEN + 32]; /* 32 extra bytes to fit the last block */
   int i;
   /* Compose T(1) */
   memcpy(aggregate_buffer, info, info_len);
