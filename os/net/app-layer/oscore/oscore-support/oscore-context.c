@@ -46,6 +46,7 @@
 #include "crypto.h"
 #include "oscore.h"
 
+#include <stdio.h>
 MEMB(common_context_memb, oscore_ctx_t, CONTEXT_NUM);
 MEMB(sender_context_memb, oscore_sender_ctx_t, CONTEXT_NUM);
 MEMB(recipient_context_memb, oscore_recipient_ctx_t, CONTEXT_NUM);
@@ -223,9 +224,15 @@ oscore_get_exchange(uint8_t *token, uint8_t token_len, uint64_t *seq)
 uint8_t
 oscore_set_exchange(uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context)
 {
+  if(list_length(exchange_list) == TOKEN_SEQ_NUM) { /* If we are at capacity for exchanges: */
+	/* Remove first element in list, to make space for a new one. */
+	oscore_exchange_t *tmp = list_pop(exchange_list);
+    	memb_free(&exchange_memb, tmp);
+  }
+  
   oscore_exchange_t *new_exchange = memb_alloc(&exchange_memb);
-  if(new_exchange == NULL) {
-    return 0;
+  if( new_exchange == NULL){
+	  return 0;
   }
 
   memcpy(new_exchange->token, token, token_len);
@@ -260,6 +267,11 @@ oscore_ep_ctx_store_init()
 uint8_t
 oscore_ep_ctx_set_association(coap_endpoint_t *ep, char *uri, oscore_ctx_t *ctx)
 {
+  if( list_length(ep_ctx_list) == EP_CTX_NUM){ /* If we are at capacity for Endpoint <-> Context associations: */
+	/* Remove first element in list, to make space for a new one. */
+	ep_ctx_t *tmp = list_pop(ep_ctx_list);
+	memb_free(&ep_ctx_memb, tmp);
+  }
   ep_ctx_t *new_ep_ctx = memb_alloc(&ep_ctx_memb);
   if(new_ep_ctx == NULL) {
     return 0;
