@@ -56,27 +56,27 @@ RESOURCE(res_hello7,
 	 res_put_handler,
 	 NULL);
 
-//static int value_len = 0;
-//static uint8_t value[20];
+static int value_len = 0;
+static uint8_t value[20];
 
 static void res_put_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
 
-  /*const uint8_t *payload = NULL;
+  const uint8_t *payload = NULL;
   int payload_len = coap_get_payload(request, &payload);
   if ( payload_len  > 0 && payload != NULL) {
 	memcpy(value, payload, payload_len);
         value_len = payload_len;
-  } */
+  }
   if (coap_get_header_if_none_match(request)){
         printf("if none match found\n");
   	coap_set_status_code(response, PRECONDITION_FAILED_4_12);
   } else {
 	coap_set_status_code(response, CHANGED_2_04);
+        coap_set_payload(response, value, value_len);
+        coap_set_header_content_format(response, TEXT_PLAIN); /* text/plain is the default, hence this option could be omitted. */
   }
-    
-  //coap_set_payload(response, value, value_len);
-  //coap_set_header_content_format(response, TEXT_PLAIN); /* text/plain is the default, hence this option could be omitted. */
+   
 
 }
 

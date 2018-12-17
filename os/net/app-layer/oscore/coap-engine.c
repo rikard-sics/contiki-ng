@@ -387,10 +387,20 @@ coap_receive(const coap_endpoint_t *src,
       coap_status_code = INTERNAL_SERVER_ERROR_5_00;
       /* reuse input buffer for error message */
     }
+    uint8_t tmp_token[8];
+    uint8_t token_len = 0;
+    if(message->token_len) {
+          token_len = message->token_len;
+	  memcpy(tmp_token, message->token, token_len);
+	printf("token stuff\n");
+    } 
     coap_init_message(message, reply_type, coap_status_code,
                       message->mid);
-    coap_set_payload(message, coap_error_message,
-                     strlen(coap_error_message));
+    if( token_len){
+     	coap_set_token(message, tmp_token, token_len);
+    }                 
+
+    coap_set_payload(message, coap_error_message,strlen(coap_error_message));
     coap_sendto(src, payload, coap_serialize_message(message, payload));
   }
 printf("returning\n");
@@ -500,11 +510,10 @@ invoke_coap_resource_service(coap_message_t *request, coap_message_t *response,
         	response->security_context = request->security_context;
        		coap_set_oscore(response);
   	  } else {
-        	allowed = 0;
 		coap_set_status_code(response, UNAUTHORIZED_4_01);
         	char error_msg[] = "Resource is protected by OSCORE.";
         	coap_set_payload(response, error_msg, strlen(error_msg));
-	 	return allowed;
+	 	return 1; /* Found, but not allowed. */
 	  }
       } 
       #endif /* WITH_OSCORE */
