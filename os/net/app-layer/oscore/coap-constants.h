@@ -116,7 +116,7 @@ typedef enum {
   PACKET_SERIALIZATION_ERROR,
 
   /* OSCORE errors */
-  OSCORE_DECRYPTION_FAILED,
+  OSCORE_DECRYPTION_ERROR,
   /* Erbium hooks */
   MANUAL_RESPONSE,
   PING_RESPONSE
@@ -137,7 +137,7 @@ typedef enum {
   COAP_OPTION_URI_QUERY = 15,   /* 0-255 B */
   COAP_OPTION_ACCEPT = 17,      /* 0-2 B */
   COAP_OPTION_LOCATION_QUERY = 20,      /* 0-255 B */
-  COAP_OPTION_OSCORE = 21, /* 0-255 B */
+  COAP_OPTION_OSCORE = 9, /* 0-255 B */
   COAP_OPTION_BLOCK2 = 23,      /* 1-3 B */
   COAP_OPTION_BLOCK1 = 27,      /* 1-3 B */
   COAP_OPTION_SIZE2 = 28,       /* 0-4 B */
