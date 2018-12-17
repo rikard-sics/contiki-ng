@@ -154,11 +154,10 @@ coap_receive(const coap_endpoint_t *src,
   static coap_message_t response[1];
   coap_transaction_t *transaction = NULL;
   coap_handler_status_t status;
-
+  printf_hex(payload, payload_length);
   coap_status_code = coap_parse_message(message, payload, payload_length);
   coap_set_src_endpoint(message, src);
   printf("transaction %p \n", transaction); 
-
   if(coap_status_code == NO_ERROR) {
 
     /*TODO duplicates suppression, if required by application */
@@ -321,7 +320,9 @@ coap_receive(const coap_endpoint_t *src,
         /* cancel possible subscriptions */
         coap_remove_observer_by_mid(src, message->mid);
       }
-
+      //if oscore
+      printf("remove exchange\n");
+      //oscore_remove_exchange(message->token, message->token_len);
       if((transaction = coap_get_transaction_by_mid(message->mid))) {
         /* free transaction memory before callback, as it may create a new transaction */
         coap_resource_response_handler_t callback = transaction->callback;
@@ -347,7 +348,6 @@ coap_receive(const coap_endpoint_t *src,
 #endif /* COAP_OBSERVE_CLIENT */
     } /* request or response */
   } /* parsed correctly */
-printf("here 3, transaction %p\n", transaction);
     /* if(parsed correctly) */
   if(coap_status_code == NO_ERROR) {
     if(transaction) {
@@ -356,13 +356,22 @@ printf("here 3, transaction %p\n", transaction);
   } else if(coap_status_code == MANUAL_RESPONSE) {
     LOG_DBG("Clearing transaction for manual response");
     coap_clear_transaction(transaction);
-  } else if(coap_status_code == OSCORE_DECRYPTION_FAILED) {
+  } else if(coap_status_code == OSCORE_DECRYPTION_ERROR) {
     LOG_WARN("OSCORE response decryption failed!\n");
     coap_transaction_t *t = coap_get_transaction_by_mid(message->mid);
-    printf("transaction %p t %p\n", transaction, t); 
-    //coap_clear_transaction(t);
-    //t->retrans_counter = 255;
-    coap_timer_stop(&(t->retrans_timer));
+    
+    /* free transaction memory before callback, as it may create a new transaction */
+    coap_resource_response_handler_t callback = t->callback;
+    void *callback_data = t->callback_data;
+    
+    message->code = OSCORE_DECRYPTION_ERROR;
+    coap_clear_transaction(t);
+    printf("TODO send empty ACK!\n");
+    /* check if someone registered for the response */
+    if(callback) {
+      callback(callback_data, message);
+    }
+    
     return coap_status_code;
   } else {
     coap_message_type_t reply_type = COAP_TYPE_ACK;
