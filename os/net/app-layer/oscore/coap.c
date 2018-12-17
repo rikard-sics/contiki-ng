@@ -1268,7 +1268,9 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
   
   COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_LOCATION_PATH, location_path, '/',
                                "Location-Path");
- 
+  if( role == ROLE_COAP){ 
+    COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OSCORE, object_security, "Object-Security"); //if number = 9
+  }
   if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL ){
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_URI_PATH, uri_path, '/',
                                "Uri-Path");
@@ -1292,7 +1294,6 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
   }
   
   if(role == ROLE_COAP ){
-    COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OSCORE, object_security, "Object-Security"); //if number = 21
     COAP_SERIALIZE_BLOCK_OPTION(COAP_OPTION_BLOCK2, block2, "Block2");
     COAP_SERIALIZE_BLOCK_OPTION(COAP_OPTION_BLOCK1, block1, "Block1");
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_SIZE2, size2, "Size2");

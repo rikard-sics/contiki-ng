@@ -128,7 +128,10 @@ PT_THREAD(coap_blocking_request
                                                               state->
                                                               transaction->
                                                               message);
-
+      if(state->transaction->message_len == PACKET_SERIALIZATION_ERROR) {
+          LOG_WARN("Message serialization failed");
+        //  PT_EXIT(&state->pt);
+      }
       coap_send_transaction(state->transaction);
       LOG_DBG("Requested #%"PRIu32" (MID %u)\n", state->block_num, request->mid);
 

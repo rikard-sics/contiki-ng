@@ -43,7 +43,7 @@
 #include "lib/list.h"
 #include "cbor.h"
 #include <string.h>
-#include "crypto.h"
+#include "oscore-crypto.h"
 #include "oscore.h"
 
 #include <stdio.h>

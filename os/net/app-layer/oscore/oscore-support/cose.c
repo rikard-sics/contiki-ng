@@ -39,7 +39,7 @@
 
 #include "cose.h"
 #include "cbor.h"
-#include "crypto.h"
+#include "oscore-crypto.h"
 #include "string.h"
 
 /* Return length */
@@ -124,10 +124,10 @@ void cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, uint8_t *buffer, int si
 
 
 void
-cose_encrypt0_set_external_aad(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
+cose_encrypt0_set_aad(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
 {
-  ptr->external_aad = buffer;
-  ptr->external_aad_len = size;
+  ptr->aad = buffer;
+  ptr->aad_len = size;
 }
 /* Returns 1 if successfull, 0 if key is of incorrect length. */
 int
@@ -157,14 +157,14 @@ cose_encrypt0_encrypt(cose_encrypt0_t *ptr, uint8_t *ciphertext_buffer, int ciph
   if(ptr->nonce == NULL || ptr->nonce_len != 13) {
     return -2;
   }
-  if(ptr->external_aad == NULL || ptr->external_aad_len == 0) {
+  if(ptr->aad == NULL || ptr->aad_len == 0) {
     return -3;
   }
   if(ptr->plaintext == NULL || ptr->plaintext_len < (ciphertext_len - 8)) {
     return -4;
   }
 
-  return encrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->external_aad, ptr->external_aad_len, ptr->plaintext, ptr->plaintext_len, ciphertext_buffer);
+  return encrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->aad, ptr->aad_len, ptr->plaintext, ptr->plaintext_len, ciphertext_buffer);
 }
 int
 cose_encrypt0_decrypt(cose_encrypt0_t *ptr, uint8_t *plaintext_buffer, int plaintext_len)
@@ -175,12 +175,12 @@ cose_encrypt0_decrypt(cose_encrypt0_t *ptr, uint8_t *plaintext_buffer, int plain
   if(ptr->nonce == NULL || ptr->nonce_len != 13) {
     return -2;
   }
-  if(ptr->external_aad == NULL || ptr->external_aad_len == 0) {
+  if(ptr->aad == NULL || ptr->aad_len == 0) {
     return -3;
   }
   if(ptr->ciphertext == NULL || ptr->ciphertext_len < (plaintext_len + 8)) {
     return -4;
   }
 
-  return decrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->external_aad, ptr->external_aad_len, ptr->ciphertext, ptr->ciphertext_len, plaintext_buffer);
+  return decrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->aad, ptr->aad_len, ptr->ciphertext, ptr->ciphertext_len, plaintext_buffer);
 }

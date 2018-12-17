@@ -43,7 +43,6 @@
 #include "contiki-net.h"
 #include "coap-engine.h"
 #include "coap-blocking-api.h"
-#include "dev/button-sensor.h"
 
 #ifdef WITH_OSCORE
 #include "oscore.h"
@@ -78,9 +77,6 @@ static struct etimer et;
 /* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
 char *service_urls[NUMBER_OF_URLS] =
 { ".well-known/core", "test/hello", "battery/", "error/in//path" };
-#if PLATFORM_HAS_BUTTON
-static int uri_switch = 0;
-#endif
 
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
 void
@@ -118,10 +114,6 @@ PROCESS_THREAD(er_example_client, ev, data)
   #endif /* WITH_OSCORE */
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
   
-#if PLATFORM_HAS_BUTTON
-  SENSORS_ACTIVATE(button_sensor);
-  printf("Press a button to request %s\n", service_urls[uri_switch]);
-#endif
   
   while(1) {
     PROCESS_YIELD();

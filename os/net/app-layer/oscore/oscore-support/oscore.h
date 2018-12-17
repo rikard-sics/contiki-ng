@@ -63,11 +63,9 @@ size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer);
 /*Sets Alg, Partial IV Key ID and Key in COSE. Returns status*/
 uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx);
 
-/* Creates and sets External AAD */
-/* void oscore_prepare_external_aad(cose_encrypt0_t *ptr, oscore_ctx_t *ctx); */
-size_t oscore_prepare_external_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buffer, uint8_t sending);
-/* Creates and sets Nonce */
-/* //void oscore_generate_nonce(cose_encrypt0_t *ptr, uint8_t *buffer, uint8_t size); */
+/* Creates AAD, creates External AAD and serializes it into the complete AAD structure. Returns serialized size. */
+size_t oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buffer, uint8_t sending);
+/* Creates Nonce */
 void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size);
 
 /*Remove all protected options */

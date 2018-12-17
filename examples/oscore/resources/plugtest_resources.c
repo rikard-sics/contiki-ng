@@ -144,7 +144,7 @@ void test3_a_handler(void* response){
   }else {
     printf("Test 3a: FAILED!\n");
     printf("\t Expected result: \"Hello World!\" but was: ");
-    printf("Expected restult: Max Age \"5\", was %d, Content Format \"0\", was %d\n", age, content);
+    printf("Expected restult: Max Age \"5\", was %" PRIu32", Content Format \"0\", was %d\n", age, content);
     printf("%.*s\n", len, response_payload);
     failed_tests++;
   }
@@ -184,7 +184,7 @@ void test4_a_handler(void* response){
   }else {
     printf("Test 4a: FAILED!\n");
     printf("\t Result was: \n");
-    printf("Max-Age %d, Content-Format %d\n", max_age, content_format);
+    printf("Max-Age %" PRIu32 ", Content-Format %d\n", max_age, content_format);
     printf("Code = %d\n", ((coap_message_t*)response)->code);
     failed_tests++;
   }
@@ -417,7 +417,7 @@ void test14_a_handler(void* response){
   printf("Test 14a: Receiving Response!\n");
   int res = 0;
 
-  if(((coap_message_t*)response)->code != BAD_REQUEST_4_00){
+  if(((coap_message_t*)response)->code != OSCORE_DECRYPTION_ERROR){
     res++;
   }
 
@@ -425,7 +425,7 @@ void test14_a_handler(void* response){
     printf("Test 14: PASSED!\n");
   }else {
     printf("Test 14a: FAILED!\n");
-    printf("\t Expected result: 4.00 Bad Request\n");
+    printf("\t Expected result: Decryption Error\n");
     printf("Got : %d\n", ((coap_message_t*)response)->code);
     failed_tests++;
   }
@@ -456,7 +456,7 @@ void test15_a_handler(void* response){
     printf("Test 15: PASSED!\n");
   }else {
     printf("Test 15a: FAILED!\n");
-    printf("\t Expected result: 4.01 Unauthorized\n");
+    printf("\t Expected result: 4.01 Unauthorized, was %d\n", ((coap_message_t*)response)->code);
 
     failed_tests++;
   }
