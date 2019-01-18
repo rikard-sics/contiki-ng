@@ -43,6 +43,7 @@
 #include "contiki-net.h"
 #include "coap-engine.h"
 #include "coap-blocking-api.h"
+#include "udp-socket.h"
 
 #ifdef WITH_OSCORE
 #include "oscore.h"
@@ -60,8 +61,9 @@ uint8_t receiver_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 //#define SERVER_EP "coap://[fe80::212:7402:0002:0202]"
-#define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
-//char* server_ip =  "coap://[fe80::202:0002:0002:0002]";
+//#define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
+#define SERVER_EP "coap://[aaaa::1]"
+char* server_ip =  "aaaa::1";
 
 uint8_t test = 0;
 uint8_t failed_tests = 0;
@@ -95,8 +97,15 @@ PROCESS_THREAD(er_example_client, ev, data)
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
   static coap_endpoint_t server_ep;
 
-  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
-
+//  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
+   uip_ipaddr_t addr;
+   struct simple_udp_connection c[1];
+   uip_ip6addr(&addr, 0xaaaa,0,0,0,0,0,0,1);
+   simple_udp_register(c, 5683, &addr, 5683, NULL);
+  
+   uint8_t d[10] = {0x42, 0x02, 0xf4, 0x31, 0x0a, 0x0a, 0x92, 0x01, 0x02, 0xff}; 
+  simple_udp_send(c,d, 10); 
+  
   /* receives all CoAP messages */
   coap_engine_init();
 
