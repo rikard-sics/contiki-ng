@@ -63,11 +63,12 @@ uint8_t receiver_id[] = { 0x01};
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
-#define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
-//char* server_ip =  "coap://[fe80::202:0002:0002:0002]";
+//#define SERVER_EP "coap://[fd00:0000:0000:0000:0000:0000:0000:0001]"
+//#define SERVER_EP "coap://127.0.1.1"
+#define SERVER_EP "coap://[fe80::202:0002:0002:0002]" //Cooja simulation address
 
 
-uint8_t test = 0;
+uint8_t test = 12;
 uint8_t failed_tests = 0;
 
 #define TOGGLE_INTERVAL 10
