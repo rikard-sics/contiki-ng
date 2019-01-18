@@ -484,6 +484,10 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   unsigned int option_number = 0;
   unsigned int option_delta = 0;
   size_t option_length = 0;
+  
+#ifdef _WITH_OSCORE
+  uint8_t oscore_found = 0;
+#endif /* WITH_OSCORE */
 
   while(current_option < data + data_len) {
     /* payload marker 0xFF, currently only checking for 0xF* because rest is reserved */
@@ -669,6 +673,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
       LOG_DBG_("Object-Security [");
       LOG_DBG_COAP_STRING((char *)(coap_pkt->object_security), coap_pkt->object_security_len);
       LOG_DBG_("]\n");  
+      oscore_found = 1;
       #else /* WITH_OSCORE */
       LOG_DBG_("OSCORE NOT IMPLEMENTED!\n");
       coap_error_message = "OSCORE not supported";
@@ -725,7 +730,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   }                             /* for */
   LOG_DBG("-Done parsing-------\n");
   #if WITH_OSCORE
-  if(coap_pkt->object_security_len > 0 && coap_pkt->object_security != NULL){
+  if(oscore_found){
    	LOG_DBG_("REMOVE: OSCORE found, decoding\n"); 
 	 return	oscore_decode_message(coap_pkt);
   }
@@ -1607,9 +1612,9 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
                               &(coap_pkt->object_security_len), current_option,
                               option_length, '&');
       LOG_DBG_("Object-Security [%.*s]\n", (int)coap_pkt->object_security_len,
-      coap_pkt->location_query);
-      OSCOAP = 1;  
-     LOG_DBG_("OSCOAP FOUND!\n");
+      coap_pkt->object_security);
+      OSCOAP = 1; 
+      LOG_DBG_("OSCOAP FOUND!\n");
       break;
     default:
       LOG_DBG_("unknown (%u)\n", option_number);
