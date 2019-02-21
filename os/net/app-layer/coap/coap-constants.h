@@ -116,7 +116,6 @@ typedef enum {
   PACKET_SERIALIZATION_ERROR,
 
   /* OSCORE errors */
-  OSCORE_MISSING_CONTEXT,
   OSCORE_DECRYPTION_ERROR,
   /* Erbium hooks */
   MANUAL_RESPONSE,
