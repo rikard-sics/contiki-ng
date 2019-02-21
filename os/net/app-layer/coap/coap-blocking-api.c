@@ -54,6 +54,12 @@
 #define LOG_MODULE "coap"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
+#if WITH_OSCORE
+/* For OSCORE */
+#include "oscore-context.h"
+#include "coap-endpoint.h"
+#endif /* WITH_OSCORE */
+
 /*---------------------------------------------------------------------------*/
 /*- Client Part -------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -87,6 +93,28 @@ PT_THREAD(coap_blocking_request
 
   do {
     request->mid = coap_get_mid();
+    #ifdef WITH_OSCORE
+
+    const char *uri;
+    oscore_ctx_t *context = NULL;
+    if(coap_get_header_uri_path(request, &uri)){
+      context = oscore_get_context_from_ep(remote_ep, uri);
+    } else {
+  	printf("NO URI PATH\n");
+    }
+
+    if(context){
+	printf("OSCORE found!\n");
+	coap_set_oscore(request);
+	request->security_context = context;
+ 	//TODO maybe an if and random token should be added here
+	uint8_t token[2] = {0xA, 0xA};
+    	coap_set_token(request, token, 2);
+    } else {
+	printf("NO OSCORE!\n");
+	printf("URL %s \n", uri);
+    }
+    #endif /* WITH_OSCORE */
     if((state->transaction = coap_new_transaction(request->mid, remote_ep))) {
       state->transaction->callback = coap_blocking_request_callback;
       state->transaction->callback_data = blocking_state;
