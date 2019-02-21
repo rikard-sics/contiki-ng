@@ -54,6 +54,11 @@
 #define LOG_MODULE "coap-eng"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
+#ifdef WITH_OSCORE
+#include "oscore.h"
+#include "coap-transactions.h"
+#endif /* WITH_OSCORE */
+
 static void process_callback(coap_timer_t *t);
 
 /*
@@ -189,6 +194,16 @@ coap_receive(const coap_endpoint_t *src,
                             coap_get_mid());
           /* mirror token */
         }
+        #ifdef WITH_OSCORE 
+	if(coap_is_option(message, COAP_OPTION_OSCORE)){
+ 	  printf("OSCORE!!\n");
+          coap_set_oscore(response);
+	  if(message->security_context == NULL){
+		  printf("context uis NULL\n");
+	  }
+          response->security_context = message->security_context;
+        }
+        #endif /* WITH_OSCORE */
         if(message->token_len) {
           coap_set_token(response, message->token, message->token_len);
           /* get offset for blockwise transfers */
@@ -349,6 +364,23 @@ coap_receive(const coap_endpoint_t *src,
   } else if(coap_status_code == MANUAL_RESPONSE) {
     LOG_DBG("Clearing transaction for manual response");
     coap_clear_transaction(transaction);
+  } else if(coap_status_code == OSCORE_DECRYPTION_ERROR) {
+    LOG_WARN("OSCORE response decryption failed!\n");
+    coap_transaction_t *t = coap_get_transaction_by_mid(message->mid);
+    
+    /* free transaction memory before callback, as it may create a new transaction */
+    coap_resource_response_handler_t callback = t->callback;
+    void *callback_data = t->callback_data;
+    
+    message->code = OSCORE_DECRYPTION_ERROR;
+    coap_clear_transaction(t);
+    printf("TODO send empty ACK!\n");
+    /* check if someone registered for the response */
+    if(callback) {
+      callback(callback_data, message);
+    }
+    
+    return coap_status_code;
   } else {
     coap_message_type_t reply_type = COAP_TYPE_ACK;
 
