@@ -38,8 +38,23 @@
 
 
 #include "cose.h"
+#include "cbor.h"
 #include "oscore-crypto.h"
 #include "string.h"
+
+/* Return length */
+int
+cose_encrypt0_encode(cose_encrypt0_t *ptr, uint8_t *buffer)
+{
+  int ret = 0;
+  ret += cbor_put_array(&buffer, 3);
+  ret += cbor_put_bytes(&buffer, NULL, 0);
+  /* ret += cose encode attributyes */
+  ret += cbor_put_bytes(&buffer, ptr->ciphertext, ptr->ciphertext_len);
+  return ret;
+}
+/*Return status */
+int cose_encrypt0_decode(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
 /* Initiate a new COSE Encrypt0 object. */
 void
@@ -47,204 +62,125 @@ cose_encrypt0_init(cose_encrypt0_t *ptr)
 {
   memset(ptr, 0, sizeof(cose_encrypt0_t));
 }
-
 void
 cose_encrypt0_set_alg(cose_encrypt0_t *ptr, uint8_t alg)
 {
   ptr->alg = alg;
 }
-
 void
-cose_encrypt0_set_content(cose_encrypt0_t *ptr, uint8_t *buffer, uint16_t size)
+cose_encrypt0_set_ciphertext(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
 {
-  ptr->content = buffer;
-  ptr->content_len = size;
+  ptr->ciphertext = buffer;
+  ptr->ciphertext_len = size;
 }
+void
+cose_encrypt0_set_plaintext(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
+{
+  ptr->plaintext = buffer;
+  ptr->plaintext_len = size;
+}
+/* Return length */
+int cose_encrypt0_get_plaintext(cose_encrypt0_t *ptr, uint8_t **buffer);
 
 void
-cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
+cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
 {
-  if(size > COSE_algorithm_AES_CCM_16_64_128_TAG_LEN){
+  if(size > 8){
 	  return;
   }
   memcpy(ptr->partial_iv, buffer, size);
   ptr->partial_iv_len = size;
 }
-
 /* Return length */
-uint8_t
-cose_encrypt0_get_partial_iv(cose_encrypt0_t *ptr, const uint8_t **buffer)
+int
+cose_encrypt0_get_partial_iv(cose_encrypt0_t *ptr, uint8_t **buffer)
 {
   *buffer = ptr->partial_iv;
   return ptr->partial_iv_len;
 }
-
 void
-cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
+cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
 {
   ptr->key_id = buffer;
   ptr->key_id_len = size;
 }
-
 /* Return length */
-uint8_t
-cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, const uint8_t **buffer)
+int
+cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, uint8_t **buffer)
 {
   *buffer = ptr->key_id;
   return ptr->key_id_len;
 }
 
-uint8_t
-cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, const uint8_t **buffer){
+int cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, uint8_t **buffer){
   *buffer = ptr->kid_context;
   return ptr->kid_context_len;
 }
 
-void
-cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size){
+void cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, uint8_t *buffer, int size){
   ptr->kid_context = buffer;
   ptr->kid_context_len = size;
 } 
 
 
 void
-cose_encrypt0_set_aad(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
+cose_encrypt0_set_aad(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
 {
   ptr->aad = buffer;
   ptr->aad_len = size;
 }
-
 /* Returns 1 if successfull, 0 if key is of incorrect length. */
-bool
-cose_encrypt0_set_key(cose_encrypt0_t *ptr, const uint8_t *key, uint8_t key_size)
+int
+cose_encrypt0_set_key(cose_encrypt0_t *ptr, uint8_t *key, int key_size)
 {
-  if(key_size != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN) {
-    return false;
+  if(key_size != 16) {
+    return 0;
   }
 
   ptr->key = key;
   ptr->key_len = key_size;
 
-  return true;
+  return 1;
 }
-
 void
-cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
+cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
 {
   ptr->nonce = buffer;
   ptr->nonce_len = size;
 }
-
 int
-cose_encrypt0_encrypt(cose_encrypt0_t *ptr)
+cose_encrypt0_encrypt(cose_encrypt0_t *ptr, uint8_t *ciphertext_buffer, int ciphertext_len)
 {
-  if(ptr->key == NULL || ptr->key_len != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN) {
+  if(ptr->key == NULL || ptr->key_len != 16) {
     return -1;
   }
-  if(ptr->nonce == NULL || ptr->nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
+  if(ptr->nonce == NULL || ptr->nonce_len != 13) {
     return -2;
   }
   if(ptr->aad == NULL || ptr->aad_len == 0) {
     return -3;
   }
-  if(ptr->content == NULL ) {
+  if(ptr->plaintext == NULL || ptr->plaintext_len < (ciphertext_len - 8)) {
     return -4;
   }
 
-  return encrypt(ptr->alg,
-    ptr->key, ptr->key_len,
-    ptr->nonce, ptr->nonce_len,
-    ptr->aad, ptr->aad_len,
-    ptr->content, ptr->content_len);
+  return encrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->aad, ptr->aad_len, ptr->plaintext, ptr->plaintext_len, ciphertext_buffer);
 }
-
 int
-cose_encrypt0_decrypt(cose_encrypt0_t *ptr)
+cose_encrypt0_decrypt(cose_encrypt0_t *ptr, uint8_t *plaintext_buffer, int plaintext_len)
 {
-  if(ptr->key == NULL || ptr->key_len != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN) {
+  if(ptr->key == NULL || ptr->key_len != 16) {
     return -1;
   }
-  if(ptr->nonce == NULL || ptr->nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
+  if(ptr->nonce == NULL || ptr->nonce_len != 13) {
     return -2;
   }
   if(ptr->aad == NULL || ptr->aad_len == 0) {
     return -3;
   }
-  if(ptr->content == NULL ) {
+  if(ptr->ciphertext == NULL || ptr->ciphertext_len < (plaintext_len + 8)) {
     return -4;
   }
 
-  return decrypt(ptr->alg,
-    ptr->key, ptr->key_len,
-    ptr->nonce, ptr->nonce_len,
-    ptr->aad, ptr->aad_len,
-    ptr->content, ptr->content_len);
-}
-
-void cose_sign1_init(cose_sign1_t *ptr){
-  memset( ptr, 0, sizeof(cose_sign1_t));
-}
-
-void cose_sign1_set_alg(cose_sign1_t *ptr, uint8_t alg, uint8_t param){
-  ptr->alg = alg;
-  ptr->alg_param = param;
-}
-
-void cose_sign1_set_ciphertext(cose_sign1_t *ptr, uint8_t *buffer, int size){
-  ptr->ciphertext = buffer;
-  ptr->ciphertext_len = size;
-}
-
-/* Return length */
-int cose_sign1_get_signature(cose_sign1_t *ptr, uint8_t **buffer){
-  *buffer = ptr->signature;
-  return ptr->signature_len;
-}
-
-void cose_sign1_set_signature(cose_sign1_t *ptr, uint8_t *buffer){
-  ptr->signature = buffer;
-  ptr->signature_len = ES256_SIGNATURE_LEN;
-}
-
-void cose_sign1_set_sigstructure(cose_sign1_t *ptr, uint8_t *buffer, int size){
-  ptr->sigstructure = buffer;
-  ptr->sigstructure_len = size;
-}
-
-void cose_sign1_set_public_key(cose_sign1_t *ptr, const uint8_t *buffer){
-  ptr->public_key = buffer;
-  ptr->public_key_len = ES256_PUBLIC_KEY_LEN;
-}
-
-void cose_sign1_set_private_key(cose_sign1_t *ptr, const uint8_t *buffer){
-  ptr->private_key = buffer;
-  ptr->private_key_len = ES256_PRIVATE_KEY_LEN;
-}
-
-int cose_sign1_sign(cose_sign1_t *ptr){
-    return oscore_edDSA_sign(ptr->alg, ptr->alg_param, ptr->signature, ptr->ciphertext, ptr->ciphertext_len, ptr->private_key, ptr->public_key);
-}
-
-int cose_sign1_verify(cose_sign1_t *ptr){
-    return oscore_edDSA_verify(ptr->alg, ptr->alg_param, ptr->signature, ptr->ciphertext, ptr->ciphertext_len, ptr->public_key);
-}
-
-size_t cose_curve_public_key_length(COSE_Elliptic_Curves_t curve) {
-  switch (curve) {
-    case COSE_Elliptic_Curve_P256:
-      return 64;
-
-    default:
-      return 0;
-  }
-}
-
-size_t cose_curve_private_key_length(COSE_Elliptic_Curves_t curve) {
-  switch (curve) {
-    case COSE_Elliptic_Curve_P256:
-      return 32;
-
-    default:
-      return 0;
-  }
+  return decrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->aad, ptr->aad_len, ptr->ciphertext, ptr->ciphertext_len, plaintext_buffer);
 }

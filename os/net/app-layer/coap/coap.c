@@ -526,7 +526,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   unsigned int option_delta = 0;
   size_t option_length = 0;
   
-#ifdef _WITH_OSCORE
+#ifdef WITH_OSCORE
   uint8_t oscore_found = 0;
 #endif /* WITH_OSCORE */
 
@@ -1401,7 +1401,7 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
                                          uint16_t data_len, uint8_t role){
 
   int OSCOAP = 0;    
-  uint8_t* original_buffer;
+  uint8_t* original_buffer = NULL;
 
   if(role == ROLE_COAP){
     memset(coap_pkt, 0, sizeof(coap_message_t));
@@ -1705,7 +1705,7 @@ int coap_set_header_object_security(coap_message_t *coap_pkt, uint8_t *object_se
 }
 
 
-//TEMP for oscore
+//TODO for oscore
 int
 coap_set_oscore(coap_message_t *coap_pkt)
 {
