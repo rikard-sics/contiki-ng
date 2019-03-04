@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Institute for Pervasive Computing, ETH Zurich
+ * Copyright (c) 2018, SICS, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,13 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This file is part of the Contiki operating system.
  */
 
 /**
  * \file
- *      Erbium (Er) CoAP client example.
+ *      OSCORE interops client, tests specified according to https://raw.githubusercontent.com/EricssonResearch/OSCOAP/master/test-spec5.md .
  * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *      Martin Gunnarsson <martin.gunnarsson@ri.se>
  */
 
 #include <stdio.h>
@@ -63,17 +62,14 @@ uint8_t receiver_id[] = { 0x01};
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
-//#define SERVER_EP "coap://[fd00:0000:0000:0000:0000:0000:0000:0001]"
-//#define SERVER_EP "coap://127.0.1.1"
 #define SERVER_EP "coap://[fe80::202:0002:0002:0002]" //Cooja simulation address
 
-
-uint8_t test = 12;
+uint8_t test = 0;
 uint8_t failed_tests = 0;
 
 #define TOGGLE_INTERVAL 10
 
-PROCESS(er_example_client, "Erbium Example Client");
+PROCESS(er_example_client, "OSCORE interops Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
@@ -81,7 +77,6 @@ static struct etimer et;
 uint8_t token[2] = { 0x05, 0x05};
 
 #define NUMBER_OF_URLS 8
-/* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
 char *service_urls[NUMBER_OF_URLS] =
 { ".well-known/core", "oscore/hello/coap", "oscore/hello/1", "oscore/hello/2", "oscore/hello/3", "oscore/hello/6", "oscore/hello/7", "oscore/test"};
 
@@ -141,16 +136,19 @@ PROCESS_THREAD(er_example_client, ev, data)
           test4_a(request);;
           break;
         case 5:
-	  printf("skip 5\n");
-          //test5_a(request);
+	  printf("Skip Observe-test 5\n");
+    /* Placeholder for Observe tests. */
+          /*test5_a(request); */
 	  break;
         case 6:
-	  printf("skip 6\n");
-      //    test6_a(request);
+	  printf("Skip Observe-test 6\n");
+    /* Placeholder for Observe tests. */
+      /*    test6_a(request); */
           break;
         case 7:
-	  printf("skip 7\n");
-    //      test7_a(request);
+	  printf("Skip Observe-test 7\n");
+    /* Placeholder for Observe tests. */
+    /*      test7_a(request); */
           break;
         case 8:
           test8_a(request);
@@ -224,13 +222,16 @@ void response_handler(coap_message_t *response){
       test4_a_handler(response);
       break;
     case 5:
-    //  test5_a_handler(response);
+    /* Placeholder for Observe tests. */
+    /*  test5_a_handler(response); */
       break;
     case 6:
-      //test6_a_handler(response);
+    /* Placeholder for Observe tests. */
+    /* test6_a_handler(response);     */
       break;
     case 7:
-    // test7_a_handler(response);
+    /* Placeholder for Observe tests. */
+    /* test7_a_handler(response); */
       break;
     case 8:
       test8_a_handler(response);

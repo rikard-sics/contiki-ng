@@ -19,7 +19,7 @@ MODULES_REL += $(TARGET)
 CONTIKI_TARGET_SOURCEFILES += plugtest_resources.c
 
 # Include the CoAP implementation
-MODULES += os/net/app-layer/oscore
+MODULES += os/net/app-layer/coap
 
 include $(CONTIKI)/Makefile.include
 
