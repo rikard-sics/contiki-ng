@@ -31,10 +31,11 @@
 
 /**
  * \file
- *      Server for the ETSI IoT CoAP Plugtests, Las Vegas, NV, USA, Nov 2013.
+ *      OSCORE interops server, tests specified according to https://raw.githubusercontent.com/EricssonResearch/OSCOAP/master/test-spec5.md .
  * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *      Martin Gunnarsson <martin.gunnarsson@ri.se>
  */
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,7 +76,7 @@ uint8_t *receiver_id = NULL;
 uint8_t sender_id[1] = { 0x01};
 //uint8_t id_context[8] = {0x37, 0xcb, 0xf3, 0x21, 0x00, 0x17, 0xa2, 0xd3};
 
-PROCESS(plugtest_server, "PlugtestServer");
+PROCESS(plugtest_server, "OSCORE interops server");
 AUTOSTART_PROCESSES(&plugtest_server);
 
 PROCESS_THREAD(plugtest_server, ev, data)
@@ -85,18 +86,6 @@ PROCESS_THREAD(plugtest_server, ev, data)
   PROCESS_PAUSE();
 
   PRINTF("OSCORE Plugtests Server\n");
-
-#ifdef RF_CHANNEL
-  PRINTF("RF channel: %u\n", RF_CHANNEL);
-#endif
-#ifdef IEEE802154_PANID
-  PRINTF("PAN ID: 0x%04X\n", IEEE802154_PANID);
-#endif
-
-  PRINTF("uIP buffer: %u\n", UIP_BUFSIZE);
-  PRINTF("LL header: %u\n", UIP_LLH_LEN);
-  PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
-  PRINTF("REST max chunk: %u\n", REST_MAX_CHUNK_SIZE);
 
   /* Initialize the REST engine. */
   coap_engine_init();

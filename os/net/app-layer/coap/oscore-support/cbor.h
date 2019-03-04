@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Institute for Pervasive Computing, ETH Zurich
+ * Copyright (c) 2018, SICS, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,32 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * This file is part of the Contiki operating system.
  */
 
 /**
  * \file
- *      Erbium (Er) example project configuration.
+ *      An implementation of the Concise Binary Object Representation (RFC7049).
  * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
+ *      Martin Gunnarsson  <martin.gunnarsson@ri.se>
+ *
  */
 
-#ifndef PROJECT_CONF_H_
-#define PROJECT_CONF_H_
 
-#define LOG_LEVEL_APP LOG_LEVEL_DBG
+#ifndef _CBOR_H
+#define _CBOR_H
+#include <stddef.h>
+#include <inttypes.h>
 
-#endif /* PROJECT_CONF_H_ */
+int cbor_put_nil(uint8_t **buffer);
 
+int cbor_put_text(uint8_t **buffer, char *text, uint8_t text_len);
+
+int cbor_put_array(uint8_t **buffer, uint8_t elements);
+
+int cbor_put_bytes(uint8_t **buffer, uint8_t *bytes, uint8_t bytes_len);
+
+int cbor_put_map(uint8_t **buffer, uint8_t elements);
+
+int cbor_put_unsigned(uint8_t **buffer, uint8_t value);
+
+#endif /* _cbor_H */
