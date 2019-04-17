@@ -172,15 +172,18 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
     offset += partial_iv_len;
   }
   
+  /* If h-flag is set KID-Context field is present. */
   if((option_value[0] & 0x10) != 0) {
     uint8_t kid_context_len = option_value[offset];
+    printf("kid context len %d\n", kid_context_len);
     offset++;
     if (offset + kid_context_len > option_len) {
       return BAD_OPTION_4_02;
     }
     cose_encrypt0_set_kid_context(cose, &(option_value[offset]), kid_context_len);
+    offset += kid_context_len;
   }
-
+  /* IF k-flag is set Key ID field is present. */
   if((option_value[0] & 0x08) != 0) {
     int kid_len = option_len - offset;
     if (kid_len <= 0) {
@@ -316,7 +319,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   uint8_t plaintext_len = oscore_serializer(coap_pkt, plaintext_buffer, ROLE_CONFIDENTIAL);
   cose_encrypt0_set_plaintext(cose, plaintext_buffer, plaintext_len);
-  
+  printf("partial iv len %d\n", cose->partial_iv_len); 
   uint8_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, 1);
   cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
   
@@ -366,7 +369,14 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buf
   external_aad_len += cbor_put_array(&external_aad_ptr, 1); /* Algoritms array */
   external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); /* Algorithm */
   external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->key_id, cose->key_id_len);
-  external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->partial_iv, cose->partial_iv_len);  
+  /*When sending responses. */
+  if( sending && !coap_is_request(coap_pkt)) { 
+    uint8_t req_partial_iv[8];
+    uint8_t req_partial_iv_len = u64tob(coap_pkt->security_context->recipient_context->recent_seq, req_partial_iv);
+    external_aad_len += cbor_put_bytes(&external_aad_ptr, req_partial_iv, req_partial_iv_len);  
+  } else {	 
+    external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->partial_iv, cose->partial_iv_len);  
+  }
   external_aad_len += cbor_put_bytes(&external_aad_ptr, NULL, 0); /* Put integrety protected option, at present there are none. */
  
   uint8_t ret = 0;
@@ -420,41 +430,43 @@ oscore_clear_options(coap_message_t *coap_pkt)
 uint8_t
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
-  uint64_t incomming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
- 
-  ctx->rollback_last_seq = ctx->last_seq;
+  int64_t incomming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
+//todo add LOG_DBG here 
+  ctx->rollback_largest_seq = ctx->largest_seq;
   ctx->rollback_sliding_window = ctx->sliding_window;
 
-  /* Special case since we do not use unisgned int for seq */
-  if(ctx->initial_state == 1) {
-      ctx->initial_state = 0;
-      int shift = incomming_seq - ctx->last_seq;
+   /* Special case since we do not use unisgned int for seq */
+ /* if(!ctx->initialized) {
+      ctx->initialized = 1;
+      int shift = incomming_seq - ctx->largest_seq;
       ctx->sliding_window = ctx->sliding_window << shift;
       ctx->sliding_window = ctx->sliding_window | 1;
-      ctx->last_seq = incomming_seq;
+      ctx->largest_seq = incomming_seq;
+      ctx->recent_seq = incomming_seq;
       return 1;
   }
-  if(incomming_seq >= OSCORE_SEQ_MAX) {
+  */
+   if(incomming_seq >= OSCORE_SEQ_MAX) {
     LOG_WARN("OSCORE Replay protection, SEQ larger than SEQ_MAX.\n");
     return 0;
   }
 
-  if(incomming_seq > ctx->last_seq) {
+  if(incomming_seq > ctx->largest_seq) {
     /* Update the replay window */
-    int shift = incomming_seq - ctx->last_seq;
+    int shift = incomming_seq - ctx->largest_seq;
     ctx->sliding_window = ctx->sliding_window << shift;
     ctx->sliding_window = ctx->sliding_window | 1;
-    ctx->last_seq = incomming_seq;
-  } else if(incomming_seq == ctx->last_seq) {
-      LOG_WARN("OSCORE Replay protextion, replayed SEQ.\n");
+    ctx->largest_seq = incomming_seq;
+  } else if(incomming_seq == ctx->largest_seq) {
+      LOG_WARN("OSCORE Replay protection, replayed SEQ.\n");
       return 0;
   } else { /* seq < recipient_seq */
-    if(incomming_seq + ctx->replay_window_size < ctx->last_seq) {
+    if(incomming_seq + ctx->replay_window_size < ctx->largest_seq) {
       LOG_WARN("OSCORE Replay protection, SEQ outside of replay window.\n");
       return 0;
     }
     /* seq+replay_window_size > recipient_seq */
-    int shift = ctx->last_seq - incomming_seq;
+    int shift = ctx->largest_seq - incomming_seq;
     uint32_t pattern = 1 << shift;
     uint32_t verifier = ctx->sliding_window & pattern;
     verifier = verifier >> shift;
@@ -464,7 +476,7 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
     }
     ctx->sliding_window = ctx->sliding_window | pattern;
   }
-
+  ctx->recent_seq = incomming_seq;
   return 1;
 }
 /* Return 0 if SEQ MAX, return 1 if OK */
@@ -483,15 +495,15 @@ oscore_increment_sender_seq(oscore_ctx_t *ctx)
 void
 oscore_roll_back_seq(oscore_recipient_ctx_t *ctx)
 {
-	
-  if(ctx->rollback_sliding_window != 0) {
+ // if(ctx->rollback_sliding_window != -1){
     ctx->sliding_window = ctx->rollback_sliding_window;
-    ctx->rollback_sliding_window = 0;
-  }
-  if(ctx->rollback_last_seq != 0) {
-    ctx->last_seq = ctx->rollback_last_seq;
-    ctx->rollback_last_seq = 0;
-  }
+ //   ctx->rollback_sliding_window = -1;
+//  }
+  
+ // if( ctx->rollback_largest_seq !=  -1) {
+    ctx->largest_seq = ctx->rollback_largest_seq;
+//    ctx->rollback_largest_seq = -1;
+//  }
 }
 /* Initialize the security_context storage and the protected resource storage. */
 void

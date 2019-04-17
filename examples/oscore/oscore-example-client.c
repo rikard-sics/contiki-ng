@@ -80,6 +80,9 @@ static struct etimer et;
 /* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
 char *service_urls[NUMBER_OF_URLS] =
 { ".well-known/core", "test/hello", "battery/", "error/in//path" };
+#if PLATFORM_HAS_BUTTON
+static int uri_switch = 0;
+#endif
 
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
 void
@@ -112,7 +115,7 @@ PROCESS_THREAD(er_example_client, ev, data)
   static oscore_ctx_t *context;
   context = oscore_derive_ctx(master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
   if(!context){
-	printf("Could not create OSCORE Security Context!\n");
+	LOG_ERR("Could not create OSCORE Security Context!\n");
   }
   /* Set the association between a remote URL and a security contect. When sending a message the specified context will be used to 
    * protect the message. Note that this can be done on a resource-by-resource basis. Thus any requests to .well-known/core will not 
@@ -128,14 +131,14 @@ PROCESS_THREAD(er_example_client, ev, data)
 #if !PLATFORM_SUPPORTS_BUTTON_HAL
   SENSORS_ACTIVATE(button_sensor);
 #endif
-  printf("Press a button to request %s\n", service_urls[uri_switch]);
+  LOG_INFO("Press a button to request %s\n", service_urls[uri_switch]);
 #endif /* PLATFORM_HAS_BUTTON */
 
   while(1) {
     PROCESS_YIELD();
 
     if(etimer_expired(&et)) {
-      printf("--Toggle timer--\n");
+      LOG_DBG("--Toggle timer--\n");
 
       /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
       coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
