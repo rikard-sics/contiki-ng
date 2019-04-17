@@ -42,8 +42,13 @@
 
 #include "coap.h"
 
+#ifndef HKDF_INFO_MAXLEN
 #define HKDF_INFO_MAXLEN 25
+#endif
+
+#ifndef HKDF_OUTPUT_MAXLEN
 #define HKDF_OUTPUT_MAXLEN 25
+#endif
 
 /* Plaintext Maxlen and Tag Maxlen is quite generous. */
 #define AEAD_PLAINTEXT_MAXLEN COAP_MAX_CHUNK_SIZE

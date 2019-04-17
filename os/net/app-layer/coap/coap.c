@@ -307,24 +307,6 @@ coap_init_message(coap_message_t *coap_pkt, coap_message_type_t type,
   coap_pkt->mid = mid;
 }
 /*---------------------------------------------------------------------------*/
-size_t
-coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
-{
-    #ifdef WITH_OSCORE
-    if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)){
-       LOG_DBG_("Sending OSCORE message.\n");
-       size_t s = oscore_prepare_message(coap_pkt, buffer);
-       printf_hex(buffer, s);
-       return s;
-    }else{
-       LOG_DBG_("Sending COAP message.\n");
-       size_t s = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
-       return s;
-    }
-    #else /* WITH_OSCORE */
-    return coap_serialize_message_coap(coap_pkt, buffer);
-    #endif /* WITH_OSCORE */
-}
 
 /* Original Serialize method */
 size_t
@@ -438,6 +420,26 @@ coap_serialize_message_coap(coap_message_t *coap_pkt, uint8_t *buffer)
 
   return (option - buffer) + coap_pkt->payload_len; /* message length */
 }
+
+size_t
+coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
+{
+    #ifdef WITH_OSCORE
+    if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)){
+       LOG_DBG_("Sending OSCORE message.\n");
+       size_t s = oscore_prepare_message(coap_pkt, buffer);
+       printf_hex(buffer, s);
+       return s;
+    }else{
+       LOG_DBG_("Sending COAP message.\n");
+       size_t s = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
+       return s;
+    }
+    #else /* WITH_OSCORE */
+    return coap_serialize_message_coap(coap_pkt, buffer);
+    #endif /* WITH_OSCORE */
+}
+
 /*---------------------------------------------------------------------------*/
 coap_status_t
 coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)

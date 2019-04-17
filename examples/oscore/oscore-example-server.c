@@ -45,17 +45,16 @@
 #include "oscore-context.h"
 #endif /* WITH_OSCORE */
 
-#if PLATFORM_HAS_BUTTON
+#if PLATFORM_SUPPORTS_BUTTON_HAL
+#include "dev/button-hal.h"
+#else
 #include "dev/button-sensor.h"
 #endif
 
-#define DEBUG 0
-#if DEBUG
-#include <stdio.h>
-#define PRINTF(...) printf(__VA_ARGS__)
-#else
-#define PRINTF(...)
-#endif
+/* Log configuration */
+#include "sys/log.h"
+#define LOG_MODULE "App"
+#define LOG_LEVEL LOG_LEVEL_APP
 
 /*
  * Resources to be activated need to be imported through the extern keyword.
@@ -103,20 +102,15 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   PROCESS_PAUSE();
 
-  PRINTF("Starting OSCORE Example Server\n");
+  printf("Starting OSCORE Example Server\n");
 
 #ifdef RF_CHANNEL
-  PRINTF("RF channel: %u\n", RF_CHANNEL);
+  printf("RF channel: %u\n", RF_CHANNEL);
 #endif
 #ifdef IEEE802154_PANID
-  PRINTF("PAN ID: 0x%04X\n", IEEE802154_PANID);
+  printf("PAN ID: 0x%04X\n", IEEE802154_PANID);
 #endif
 
-  PRINTF("uIP buffer: %u\n", UIP_BUFSIZE);
-  PRINTF("LL header: %u\n", UIP_LLH_LEN);
-  PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
-  PRINTF("CoAP max chunk: %u\n", COAP_MAX_CHUNK_SIZE);
-  printf("COOJA_MTARCH_STACKSIZE %d\n", COOJA_MTARCH_STACKSIZE);
   /* Initialize the REST engine. */
   coap_engine_init();
 
