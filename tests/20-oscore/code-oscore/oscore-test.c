@@ -23,6 +23,13 @@ test_setup(void)
   oscore_init_client();
 }
 
+void t_printf_hex(uint8_t *hex, int len){
+	for ( int i = 0; i < len; i++){
+		printf("%02X ", hex[i]);
+	}
+	printf("\n");
+}
+
 UNIT_TEST_REGISTER(test_validate_sender_seq,
                    "validate_sender_seq()");
 UNIT_TEST(test_validate_sender_seq)
@@ -41,8 +48,9 @@ UNIT_TEST(test_validate_sender_seq)
   uint8_t seq_max[8] = { 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; /* ((1 << 40) - 1)*/
   uint8_t seq_over_max[8] = { 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00 }; /* ((1 << 40)) */
   
-  oscore_ctx_t ctx[1];
-  oscore_derive_ctx(ctx, master_secret, master_secret_len, master_salt, master_salt_len, 10, sender_id, sender_id_len, recipient_id, recipient_id_len, NULL, 0);
+
+  oscore_ctx_t *ctx  = oscore_derive_ctx(master_secret, master_secret_len, master_salt, master_salt_len, 10, sender_id, sender_id_len, recipient_id, recipient_id_len, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+  UNIT_TEST_ASSERT(ctx != NULL);
 
   oscore_recipient_ctx_t *r_ctx = ctx->recipient_context;
   
@@ -113,8 +121,8 @@ UNIT_TEST(test_rollback_seq)
   uint8_t seq_2[1] = { 0x0F };
   uint8_t seq_3[1] = { 0x12 };
 
-  oscore_ctx_t ctx[1];
-  oscore_derive_ctx(master_secret, master_secret_len, master_salt, master_salt_len, 10, sender_id, sender_id_len, recipient_id, recipient_id_len, NULL, 0);
+  oscore_ctx_t *ctx  = oscore_derive_ctx(master_secret, master_secret_len, master_salt, master_salt_len, 10, sender_id, sender_id_len, recipient_id, recipient_id_len, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+  UNIT_TEST_ASSERT(ctx != NULL);
 
   oscore_recipient_ctx_t *r_ctx = ctx->recipient_context;
   

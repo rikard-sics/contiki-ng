@@ -75,7 +75,7 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   CCM_STAR.set_key(key);
   CCM_STAR.aead(nonce, encryption_buffer, plaintext_len, aad, aad_len, &(encryption_buffer[plaintext_len]), tag_len, 1);
 
- /*  printf("Encrypt:\n");
+   printf("Encrypt:\n");
    printf("Key:\n");
    kprintf_hex(key, key_len);
    printf("IV:\n");
@@ -86,7 +86,7 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
    kprintf_hex(plaintext_buffer, plaintext_len);
    printf("Ciphertext&Tag:\n");
    kprintf_hex(encryption_buffer, plaintext_len + 8);
- */
+ 
   memcpy(ciphertext_buffer, encryption_buffer, plaintext_len + tag_len);
   return plaintext_len + tag_len;
 }
@@ -157,6 +157,12 @@ hkdf_extract( const uint8_t *salt, uint8_t salt_len, const uint8_t *ikm, uint8_t
 int
 hkdf_expand( const uint8_t *prk, const uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
 {
+  if( info_len > HKDF_INFO_MAXLEN) {
+	  return -1;
+  }
+  if( okm_len > HKDF_OUTPUT_MAXLEN) {
+	  return -2;
+  }
   int N = (okm_len + 32 - 1) / 32; /* ceil(okm_len/32) */
   uint8_t aggregate_buffer[32 + HKDF_INFO_MAXLEN + 1];
   uint8_t out_buffer[HKDF_OUTPUT_MAXLEN + 32]; /* 32 extra bytes to fit the last block */

@@ -67,16 +67,17 @@ struct oscore_sender_ctx_t {
 };
 
 struct oscore_recipient_ctx_t {
-  uint64_t last_seq;
+  int64_t largest_seq;
+  int64_t rollback_largest_seq;
+  uint64_t recent_seq;
   uint32_t sliding_window;
-  uint32_t rollback_sliding_window;
-  uint32_t rollback_last_seq;
+  int32_t rollback_sliding_window;
   oscore_recipient_ctx_t *recipient_context; /* This field facilitates easy integration of OSCOAP multicast */
   uint8_t recipient_key[CONTEXT_KEY_LEN];
   uint8_t *recipient_id;
   uint8_t recipient_id_len;
   uint8_t replay_window_size;
-  uint8_t initial_state;
+  uint8_t initialized;
 };
 
 struct oscore_ctx_t {

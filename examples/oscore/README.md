@@ -76,8 +76,5 @@ in coap-example-server.c.  In general, coap supports:
 TODOs
 -----
 
-- Dedicated Observe buffers
-- Optimize message struct variable access (directly access struct without copying)
-- Observe client
-- Multiple If-Match ETags
-- (Message deduplication)
+- OSCORE-Observe
+- Appendix ??
