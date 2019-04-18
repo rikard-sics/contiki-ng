@@ -51,6 +51,18 @@
 
 #define OSCORE_SEQ_MAX (((uint64_t)1 << 40) - 1)
 
+#ifndef CONTEXT_NUM
+#define CONTEXT_NUM 2
+#endif
+
+#ifndef TOKEN_SEQ_NUM
+#define TOKEN_SEQ_NUM 2
+#endif
+
+#ifndef EP_CTX_NUM
+#define EP_CTX_NUM 2
+#endif
+
 typedef struct oscore_sender_ctx_t oscore_sender_ctx_t;
 typedef struct oscore_recipient_ctx_t oscore_recipient_ctx_t;
 typedef struct oscore_ctx_t oscore_ctx_t;

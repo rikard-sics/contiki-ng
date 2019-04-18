@@ -399,9 +399,21 @@ coap_receive(const coap_endpoint_t *src,
       coap_status_code = INTERNAL_SERVER_ERROR_5_00;
       /* reuse input buffer for error message */
     }
+#ifdef WITH_OSCORE
+    uint8_t tmp_token[8];
+    uint8_t token_len = 0;
+    if(message->token_len) {
+          token_len = message->token_len;
+          memcpy(tmp_token, message->token, token_len);
+    }
+#endif /* WITH_OSCORE */
     coap_init_message(message, reply_type, coap_status_code,
                       message->mid);
-#if COAP_MESSAGE_ON_ERROR
+#ifdef WITH_OSCORE
+    if( token_len){
+        coap_set_token(message, tmp_token, token_len);
+    }
+#endif /* WITH_OSCORE */
     coap_set_payload(message, coap_error_message,
                      strlen(coap_error_message));
 #endif
