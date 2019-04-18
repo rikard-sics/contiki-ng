@@ -5,7 +5,6 @@ MAKE_WITH_OSCORE ?= 0
 ifeq ($(MAKE_WITH_OSCORE),1)
  MODULES += os/net/security/tinydtls/sha2
  CFLAGS += -DSHA2_USE_INTTYPES_H -DWITH_SHA256 -DHAVE_ASSERT_H
- CFLAGS += -DCONTEXT_NUM=2 -DTOKEN_SEQ_NUM=2 -DEP_CTX_NUM=2
  
  CFLAGS += -DWITH_OSCORE=1
  MODULES += os/net/app-layer/coap/oscore-support
