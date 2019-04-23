@@ -61,7 +61,7 @@ int oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encry
 size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer);
 
 /*Sets Alg, Partial IV Key ID and Key in COSE. Returns status*/
-uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx);
+uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, uint8_t sending);
 
 /* Creates AAD, creates External AAD and serializes it into the complete AAD structure. Returns serialized size. */
 size_t oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buffer, uint8_t sending);

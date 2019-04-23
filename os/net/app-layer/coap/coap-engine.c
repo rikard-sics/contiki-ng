@@ -277,7 +277,7 @@ coap_receive(const coap_endpoint_t *src,
  	  printf("OSCORE!!\n");
           coap_set_oscore(response);
 	  if(message->security_context == NULL){
-		  printf("context uis NULL\n");
+		  printf("context is NULL\n");
 	  }
           response->security_context = message->security_context;
         }
