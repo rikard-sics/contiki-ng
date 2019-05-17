@@ -50,7 +50,7 @@ cose_encrypt0_encode(cose_encrypt0_t *ptr, uint8_t *buffer)
   ret += cbor_put_array(&buffer, 3);
   ret += cbor_put_bytes(&buffer, NULL, 0);
   /* ret += cose encode attributyes */
-  ret += cbor_put_bytes(&buffer, ptr->ciphertext, ptr->ciphertext_len);
+  ret += cbor_put_bytes(&buffer, ptr->content, ptr->content_len);
   return ret;
 }
 /*Return status */
@@ -68,19 +68,11 @@ cose_encrypt0_set_alg(cose_encrypt0_t *ptr, uint8_t alg)
   ptr->alg = alg;
 }
 void
-cose_encrypt0_set_ciphertext(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
+cose_encrypt0_set_content(cose_encrypt0_t *ptr, uint8_t *buffer, uint16_t size)
 {
-  ptr->ciphertext = buffer;
-  ptr->ciphertext_len = size;
+  ptr->content = buffer;
+  ptr->content_len = size;
 }
-void
-cose_encrypt0_set_plaintext(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
-{
-  ptr->plaintext = buffer;
-  ptr->plaintext_len = size;
-}
-/* Return length */
-int cose_encrypt0_get_plaintext(cose_encrypt0_t *ptr, uint8_t **buffer);
 
 void
 cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
@@ -149,7 +141,7 @@ cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
   ptr->nonce_len = size;
 }
 int
-cose_encrypt0_encrypt(cose_encrypt0_t *ptr, uint8_t *ciphertext_buffer, int ciphertext_len)
+cose_encrypt0_encrypt(cose_encrypt0_t *ptr)
 {
   if(ptr->key == NULL || ptr->key_len != 16) {
     return -1;
@@ -160,14 +152,14 @@ cose_encrypt0_encrypt(cose_encrypt0_t *ptr, uint8_t *ciphertext_buffer, int ciph
   if(ptr->aad == NULL || ptr->aad_len == 0) {
     return -3;
   }
-  if(ptr->plaintext == NULL || ptr->plaintext_len < (ciphertext_len - 8)) {
-    return -4;
+  if(ptr->content == NULL ) {
+      return -4;
   }
 
-  return encrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->aad, ptr->aad_len, ptr->plaintext, ptr->plaintext_len, ciphertext_buffer);
+  return encrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->aad, ptr->aad_len, ptr->content, ptr->content_len);
 }
 int
-cose_encrypt0_decrypt(cose_encrypt0_t *ptr, uint8_t *plaintext_buffer, int plaintext_len)
+cose_encrypt0_decrypt(cose_encrypt0_t *ptr)
 {
   if(ptr->key == NULL || ptr->key_len != 16) {
     return -1;
@@ -178,9 +170,9 @@ cose_encrypt0_decrypt(cose_encrypt0_t *ptr, uint8_t *plaintext_buffer, int plain
   if(ptr->aad == NULL || ptr->aad_len == 0) {
     return -3;
   }
-  if(ptr->ciphertext == NULL || ptr->ciphertext_len < (plaintext_len + 8)) {
+  if(ptr->content == NULL ) {
     return -4;
   }
 
-  return decrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->aad, ptr->aad_len, ptr->ciphertext, ptr->ciphertext_len, plaintext_buffer);
+  return decrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->aad, ptr->aad_len, ptr->content, ptr->content_len);
 }

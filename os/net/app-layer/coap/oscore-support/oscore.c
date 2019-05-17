@@ -44,7 +44,6 @@
 #include "coap.h"
 #include "stdio.h"
 #include "inttypes.h"
-
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "coap"
@@ -85,19 +84,23 @@ oscore_protect_resource(coap_resource_t *resource)
   resource->oscore_protected = 1;
 }
 uint8_t
-u64tob(uint64_t in, uint8_t *buffer)
+u64tob(uint64_t value, uint8_t *buffer)
 {
-   
-  memcpy(buffer, &in, 8);
-  
-  uint8_t i;
-  for( i = 7; i >= 0; i--){
-    if( buffer[i] == 0 ){
- 	break;
-    }  
+  memset(buffer, 0, 8);
+  uint8_t length = 0;
+  for( int i = 0; i < 8; i++){
+        uint8_t temp = (value >> (8*i)) & 0xFF;
+
+        if( temp != 0){
+                length = i+1;
+        }
   }
 
-  return 8 - i;
+  for ( int i = 0; i < length; i++){
+          buffer[length - i -1] = (value >> (8*i)) & 0xFF;
+  }  
+  return length == 0 ? 1 : length;
+
 }
 uint64_t
 btou64(uint8_t *bytes, size_t len)
@@ -122,15 +125,15 @@ btou64(uint8_t *bytes, size_t len)
   return num;
 }
 int
-oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose)
+oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose, uint8_t include_partial_iv)
 {
   uint8_t offset = 1;
   if(cose->partial_iv_len > 5){
 	  return 0;
   }
   option_buffer[0] = 0;
-  if(cose->partial_iv_len > 0 && cose->partial_iv != NULL) {
-    option_buffer[0] |= (0x05 & cose->partial_iv_len);
+  if(cose->partial_iv_len > 0 && cose->partial_iv != NULL && include_partial_iv) {
+    option_buffer[0] |= (0x07 & cose->partial_iv_len);
     memcpy(&(option_buffer[offset]), cose->partial_iv, cose->partial_iv_len);
     offset += cose->partial_iv_len;
   }
@@ -153,7 +156,7 @@ oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose)
   }
   return offset;
 }
-int
+coap_status_t
 oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose)
 {
   
@@ -161,7 +164,7 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
     return BAD_OPTION_4_02;
   }
 
-  uint8_t partial_iv_len = (option_value[0] & 0x05);
+  uint8_t partial_iv_len = (option_value[0] & 0x07);
   uint8_t offset = 1;
   if(partial_iv_len != 0) {    
     if( offset + partial_iv_len > option_len) {
@@ -175,7 +178,6 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
   /* If h-flag is set KID-Context field is present. */
   if((option_value[0] & 0x10) != 0) {
     uint8_t kid_context_len = option_value[offset];
-    printf("kid context len %d\n", kid_context_len);
     offset++;
     if (offset + kid_context_len > option_len) {
       return BAD_OPTION_4_02;
@@ -191,7 +193,7 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
     }
     cose_encrypt0_set_key_id(cose, &(option_value[offset]), kid_len);
   }
-  return 0;
+  return NO_ERROR;
 }
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
 coap_status_t
@@ -200,11 +202,15 @@ oscore_decode_message(coap_message_t *coap_pkt)
   cose_encrypt0_t cose[1];
   oscore_ctx_t *ctx = NULL;
   uint8_t aad_buffer[35];
-  uint8_t nonce_buffer[13];
+  uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
   cose_encrypt0_init(cose);
   /* Options are discarded later when they are overwritten. This should be improved */
-  oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
-
+	  coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
+  if( ret != NO_ERROR){
+	 LOG_DBG_("OSCORE option value could not be parsed.\n");
+	 coap_error_message = "OSCORE option could not be parsed.";
+	 return ret;
+  }
   if(coap_is_request(coap_pkt)) {
     uint8_t *key_id;
     int key_id_len = cose_encrypt0_get_key_id(cose, &key_id);
@@ -220,7 +226,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       coap_error_message = "Replay detected";
       return UNAUTHORIZED_4_01;
     }
-    cose_encrypt0_set_key(cose, ctx->recipient_context->recipient_key, 16);
+    cose_encrypt0_set_key(cose, ctx->recipient_context->recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   } else { /* Message is a response */
     uint64_t seq;
     uint8_t seq_buffer[8];
@@ -246,10 +252,8 @@ oscore_decode_message(coap_message_t *coap_pkt)
   oscore_generate_nonce(cose, coap_pkt, nonce_buffer, 13);
   cose_encrypt0_set_nonce(cose, nonce_buffer, 13);
   
-  uint8_t plaintext_buffer[COAP_MAX_CHUNK_SIZE - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];  
-  cose_encrypt0_set_ciphertext(cose, coap_pkt->payload, coap_pkt->payload_len);
-
-  int res = cose_encrypt0_decrypt(cose, plaintext_buffer, coap_pkt->payload_len - 8);
+  cose_encrypt0_set_content(cose, coap_pkt->payload, coap_pkt->payload_len);
+  int res = cose_encrypt0_decrypt(cose);
   if(res <= 0) {
     LOG_DBG_("OSCORE Decryption Failure, result code: %d\n", res);
     if(coap_is_request(coap_pkt)) {
@@ -262,11 +266,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
     }  
   }
 
-  /*Move the plaintext to the ciphtertext buffer so that it remains when this function returns and plaintext buffer is dealocated.*/
-  memcpy(cose->ciphertext, plaintext_buffer, coap_pkt->payload_len - 8);
-  cose->plaintext = cose->ciphertext;
-
-  coap_status_t status = oscore_parser(coap_pkt, cose->plaintext, res, ROLE_CONFIDENTIAL);
+  coap_status_t status = oscore_parser(coap_pkt, cose->content, res, ROLE_CONFIDENTIAL);
   return status;
 }
 
@@ -293,14 +293,11 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
     if(sending){
       partial_iv_len = u64tob(ctx->recipient_context->recent_seq, partial_iv_buffer);
       cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
-      cose_encrypt0_set_key_id(cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
-      //TODO what sender id should be used here, also in the else case.
-      //cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
+      cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
       cose_encrypt0_set_key(cose, ctx->sender_context->sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     } else { /* receiving */
       /* Partial IV set when getting seq from exchange. */
-      cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
-      //cose_encrypt0_set_key_id(cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
+      cose_encrypt0_set_key_id(cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
       cose_encrypt0_set_key(cose, ctx->recipient_context->recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     }
   }
@@ -314,10 +311,9 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
   cose_encrypt0_t cose[1];
   cose_encrypt0_init(cose);
-  uint8_t plaintext_buffer[COAP_MAX_HEADER_SIZE];
-  uint8_t ciphertext_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
+  uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
   uint8_t aad_buffer[35];
-  uint8_t nonce_buffer[13];
+  uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
   uint8_t option_value_buffer[15];
 /*  1 Retrieve the Sender Context associated with the target resource. */
   oscore_ctx_t *ctx = coap_pkt->security_context;
@@ -325,17 +321,21 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     LOG_DBG_("No context in OSCORE!\n");
     return PACKET_SERIALIZATION_ERROR;
   }
-  
   oscore_populate_cose(coap_pkt, cose, coap_pkt->security_context, 1);
 
-  uint8_t plaintext_len = oscore_serializer(coap_pkt, plaintext_buffer, ROLE_CONFIDENTIAL);
-  cose_encrypt0_set_plaintext(cose, plaintext_buffer, plaintext_len);
-  printf("partial iv len %d\n", cose->partial_iv_len); 
+  uint8_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, ROLE_CONFIDENTIAL);
+  if( plaintext_len > COAP_MAX_CHUNK_SIZE){
+    LOG_DBG_("OSCORE Message to large to process.\n");
+    return PACKET_SERIALIZATION_ERROR;
+  }
+
+  cose_encrypt0_set_content(cose, content_buffer, plaintext_len);
+  
   uint8_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, 1);
   cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
   
-  oscore_generate_nonce(cose, coap_pkt, nonce_buffer, 13);
-  cose_encrypt0_set_nonce(cose, nonce_buffer, 13);
+  oscore_generate_nonce(cose, coap_pkt, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
+  cose_encrypt0_set_nonce(cose, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
   
   if(coap_is_request(coap_pkt)){
     if(!oscore_set_exchange(coap_pkt->token, coap_pkt->token_len, ctx->sender_context->seq, ctx)){
@@ -344,16 +344,21 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     }
     oscore_increment_sender_seq(ctx);
   }
-  uint8_t ciphertext_len = cose_encrypt0_encrypt(cose, ciphertext_buffer, plaintext_len + 8);
+  int ciphertext_len = cose_encrypt0_encrypt(cose);
+  if( ciphertext_len < 0){
+    LOG_DBG_("OSCORE internal error %d.\n", ciphertext_len);
+    return PACKET_SERIALIZATION_ERROR;
+  }
   
-  //TODO quuickfix to solve wrong Nonce on response encryption
-//  if(!coap_is_request(coap_pkt)){
-//	  cose_encrypt0_set_partial_iv(cose, NULL, 0);
-//  }	  
+  uint8_t option_value_len = 0;
+  if(coap_is_request(coap_pkt)){
+	option_value_len = oscore_encode_option_value(option_value_buffer, cose, 1);
+  } else { //Partial IV shall NOT be included in responses
+	option_value_len = oscore_encode_option_value(option_value_buffer, cose, 0);
+  }
+
   
-  uint8_t option_value_len = oscore_encode_option_value(option_value_buffer, cose);
-  
-  coap_set_payload(coap_pkt, ciphertext_buffer, ciphertext_len);
+  coap_set_payload(coap_pkt, content_buffer, ciphertext_len);
   coap_set_header_object_security(coap_pkt, option_value_buffer, option_value_len);
   
   /* Overwrite the CoAP code. */
@@ -441,6 +446,7 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
   int64_t incomming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
 //todo add LOG_DBG here 
+  LOG_DBG_("Incomming SEQ %" PRIi64 "\n", incomming_seq);
   ctx->rollback_largest_seq = ctx->largest_seq;
   ctx->rollback_sliding_window = ctx->sliding_window;
 

@@ -196,8 +196,7 @@ coap_receive(const coap_endpoint_t *src,
         }
         #ifdef WITH_OSCORE 
 	if(coap_is_option(message, COAP_OPTION_OSCORE)){
- 	  printf("OSCORE!!\n");
-          coap_set_oscore(response);
+	  coap_set_oscore(response);
 	  if(message->security_context == NULL){
 		  printf("context is NULL\n");
 	  }
