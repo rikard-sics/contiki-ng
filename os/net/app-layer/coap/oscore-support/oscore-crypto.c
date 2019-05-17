@@ -61,20 +61,17 @@ kprintf_hex(unsigned char *data, unsigned int len)
    that ciphertext buffer is of the correct length. */
 int
 encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len,
-        uint8_t *aad, uint8_t aad_len, uint8_t *plaintext_buffer, uint8_t plaintext_len, uint8_t *ciphertext_buffer)
+        uint8_t *aad, uint8_t aad_len, uint8_t *buffer, uint16_t plaintext_len)
 {
 
-  if(alg != COSE_Algorithm_AES_CCM_16_64_128 || key_len != 16 || nonce_len != 13) {
+  if(alg != COSE_Algorithm_AES_CCM_16_64_128 || key_len !=  COSE_algorithm_AES_CCM_16_64_128_KEY_LEN 
+		  || nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
     return -5;
   }
-  uint8_t tag_len = 8;
-  uint8_t encryption_buffer[AEAD_PLAINTEXT_MAXLEN + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
-
-  memcpy(encryption_buffer, plaintext_buffer, plaintext_len);
 
   CCM_STAR.set_key(key);
-  CCM_STAR.aead(nonce, encryption_buffer, plaintext_len, aad, aad_len, &(encryption_buffer[plaintext_len]), tag_len, 1);
-
+  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
+/*
    printf("Encrypt:\n");
    printf("Key:\n");
    kprintf_hex(key, key_len);
@@ -86,28 +83,24 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
    kprintf_hex(plaintext_buffer, plaintext_len);
    printf("Ciphertext&Tag:\n");
    kprintf_hex(encryption_buffer, plaintext_len + 8);
- 
-  memcpy(ciphertext_buffer, encryption_buffer, plaintext_len + tag_len);
-  return plaintext_len + tag_len;
+ */
+  return plaintext_len + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
 }
 /* Return 0 if if decryption failure. Plaintext length otherwise.
    Tag-length and plaintext length is derived from algorithm. No check is done to ensure
    that plaintext buffer is of the correct length. */
 int
 decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len,
-        uint8_t *aad, uint8_t aad_len, uint8_t *ciphertext_buffer, uint8_t ciphertext_len, uint8_t *plaintext_buffer)
+        uint8_t *aad, uint8_t aad_len, uint8_t *buffer, uint16_t ciphertext_len)
 {
 
-  if(alg != COSE_Algorithm_AES_CCM_16_64_128 || key_len != 16 || nonce_len != 13) {
+  if(alg != COSE_Algorithm_AES_CCM_16_64_128 || key_len != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
+		|| nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
     return -5;
   }
 
-  uint8_t tag_len = 8;
-  int plaintext_len = ciphertext_len - tag_len;
-  uint8_t decryption_buffer[AEAD_PLAINTEXT_MAXLEN];
-  uint8_t tag_buffer[AEAD_TAG_MAXLEN];
-
-  memcpy(decryption_buffer, ciphertext_buffer, plaintext_len + 8);
+  uint8_t tag_buffer[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
+  
   CCM_STAR.set_key(key);
 /*    printf("Decrypt:\n");
      printf("Key:\n");
@@ -119,15 +112,13 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
      printf("Ciphertext&Tag:\n");
      kprintf_hex(decryption_buffer, ciphertext_len);
  */
-  CCM_STAR.aead(nonce, decryption_buffer, plaintext_len, aad, aad_len, tag_buffer, tag_len, 0);
+  uint16_t plaintext_len = ciphertext_len - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
+  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
 
-  if(memcmp(tag_buffer, &(ciphertext_buffer[plaintext_len]), tag_len) != 0) {
-    return 0; /* Decryption failure */
+  if(memcmp(tag_buffer, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN) != 0) {
+      	  return 0; /* Decryption failure */
   }
   
-  memcpy(plaintext_buffer, decryption_buffer, plaintext_len);
-  printf("Plaintext:\n");
-  kprintf_hex(plaintext_buffer, plaintext_len);
   return plaintext_len;
 }
 /* only works with key_len <= 64 bytes */

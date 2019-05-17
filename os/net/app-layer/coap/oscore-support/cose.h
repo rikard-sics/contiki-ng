@@ -77,14 +77,9 @@ typedef struct cose_encrypt0_t {
   uint8_t *aad;
   int aad_len;
 
-//  uint8_t *external_aad;
-//  int external_aad_len;
+  uint8_t *content;
+  int content_len;
 
-  uint8_t *plaintext;
-  int plaintext_len;
-
-  uint8_t *ciphertext;
-  int ciphertext_len;
 } cose_encrypt0_t;
 
 /* Return length */
@@ -98,26 +93,24 @@ void cose_encrypt0_init(cose_encrypt0_t *ptr);
 
 void cose_encrypt0_set_alg(cose_encrypt0_t *ptr, uint8_t alg);
 
-void cose_encrypt0_set_plaintext(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
-void cose_encrypt0_set_ciphertext(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 /* Return length */
-int cose_encrypt0_get_plaintext(cose_encrypt0_t *ptr, uint8_t **buffer);
+int cose_encrypt0_get_content(cose_encrypt0_t *ptr, uint8_t **buffer);
+void cose_encrypt0_set_content(cose_encrypt0_t *ptr, uint8_t *buffer, uint16_t size);
 
-void cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
 /* Return length */
 int cose_encrypt0_get_partial_iv(cose_encrypt0_t *ptr, uint8_t **buffer);
+void cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
-void cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
 /* Return length */
 int cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, uint8_t **buffer);
+void cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
 void cose_encrypt0_set_aad(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
 /* Return length */
 int cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, uint8_t **buffer);
-
 void cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
 /* Returns 1 if successfull, 0 if key is of incorrect length. */
@@ -125,7 +118,7 @@ int cose_encrypt0_set_key(cose_encrypt0_t *ptr, uint8_t *key, int key_size);
 
 void cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
-int cose_encrypt0_encrypt(cose_encrypt0_t *ptr, uint8_t *ciphertext_buffer, int ciphertext_len);
-int cose_encrypt0_decrypt(cose_encrypt0_t *ptr, uint8_t *plaintext_buffer, int plaintext_len);
+int cose_encrypt0_encrypt(cose_encrypt0_t *ptr);
+int cose_encrypt0_decrypt(cose_encrypt0_t *ptr);
 
 #endif /* _COSE_H */
