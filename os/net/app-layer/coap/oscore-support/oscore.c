@@ -237,7 +237,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       return UNAUTHORIZED_4_01;
     }
     /* If message contains a partial IV, the received is used. */
-    if(cose->partial_iv_len == 0 && cose->partial_iv == NULL){
+    if(cose->partial_iv_len == 0){
       uint8_t seq_len = u64tob(seq, seq_buffer);
       cose_encrypt0_set_partial_iv(cose, seq_buffer, seq_len);
     }
