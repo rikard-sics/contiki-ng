@@ -160,10 +160,12 @@ coap_status_t
 oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose)
 {
   
-  if( option_len > 255 || option_len < 0 || (option_value[0] & 0x06) == 6 || (option_value[0] & 0x07) == 7 || (option_value[0] & 0xE0) != 0) {
+  if(option_len == 0){
+        return NO_ERROR;
+  } else if( option_len > 255 || option_len < 0 || (option_value[0] & 0x06) == 6 || (option_value[0] & 0x07) == 7 || (option_value[0] & 0xE0) != 0) {
     return BAD_OPTION_4_02;
   }
-
+  
   uint8_t partial_iv_len = (option_value[0] & 0x07);
   uint8_t offset = 1;
   if(partial_iv_len != 0) {    
