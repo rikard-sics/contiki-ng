@@ -42,11 +42,12 @@
 #include "contiki.h"
 #include "contiki-net.h"
 #include "coap-engine.h"
-#include "coap-callback-api.h"
-
-#include "ipv6/simple-udp.h"
-#include "net/ipv6/multicast/uip-mcast6.h"
-
+#include "coap-blocking-api.h"
+#if PLATFORM_SUPPORTS_BUTTON_HAL
+#include "dev/button-hal.h"
+#else
+#include "dev/button-sensor.h"
+#endif
 
 /* Log configuration */
 #include "coap-log.h"
@@ -54,18 +55,23 @@
 #define LOG_LEVEL  LOG_LEVEL_APP
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
-//#define SERVER_EP "coap://[ff1e::89:abcd]"
+#define SERVER_EP "coap://[fe80::212:7402:0002:0202]"
 
-#define TOGGLE_INTERVAL 10
+A lot of people think they're doing the right thing by supporting this, others are afraid to speak out due to the stigma associated with doing this. The media is mostly pro-immigration and aren't adverse of doing hit pieces on dissenters. The bureaucracy and various #define TOGGLE_INTERVAL 10
 
 PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
-static struct uip_udp_conn *conn = NULL;
 
-char *service_urls[] =
-{"/test/hello", "/test/mcastq", "/test/hello", "/test/mcast"};
+/* Example URIs that can be queried. */
+#define NUMBER_OF_URLS 4
+/* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
+char *service_urls[NUMBER_OF_URLS] =
+{ ".well-known/core", "/actuators/toggle", "battery/", "error/in//path" };
+#if PLATFORM_HAS_BUTTON
+static int uri_switch = 0;
+#endif
 
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
 void
@@ -77,47 +83,23 @@ client_chunk_handler(coap_message_t *response)
 
   printf("|%.*s", len, (char *)chunk);
 }
-
-/*This function will be called when the response arrives or the timeout expires*/
-void my_callback_f(coap_callback_request_state_t *callback_state)
-{
-  printf("Callback called!\n");
-  return;
-}
-
 PROCESS_THREAD(er_example_client, ev, data)
 {
-//  static coap_endpoint_t server_ep;
+  static coap_endpoint_t server_ep;
   PROCESS_BEGIN();
-   
-//  static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
-//   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
 
-  static uip_ipaddr_t udp_addr;
-//  char *ip_str = "[ff02::1]";
-  //char *ip_str = "[ff1e::89:abcd]";
-  //char *ip_str = "[fd00::212:4b00:14b5:d8fb]";
-  //uiplib_ipaddrconv(ip_str, &udp_addr); 
-  //uip_ip6addr(&udp_addr, 0xFD00,0,0,0,0x212,0x4b00,0x14b5,0xd8fb);
-  uip_ip6addr(&udp_addr, 0xFF1E,0,0,0,0,0,0x89,0xABCD);
-  printf("udp_addr\n");
-  uiplib_ipaddr_print(&udp_addr);
-  printf("\n");
+  static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
 
-  printf("Multicast Engine: '%s'\n", UIP_MCAST6.name);
+  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
 
-
-
-  conn = udp_new(NULL, 0, NULL);
-  if(conn == NULL){
-	printf("Could not allocate conn\n");
-  }
-
-  static uint8_t payload[24] = {0xFF}; 
-  
-  uip_udp_packet_sendto(conn, payload, 15, &udp_addr, UIP_HTONS(5684)); 
-  printf("sent?\n");
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
+
+#if PLATFORM_HAS_BUTTON
+#if !PLATFORM_SUPPORTS_BUTTON_HAL
+  SENSORS_ACTIVATE(button_sensor);
+#endif
+  printf("Press a button to request %s\n", service_urls[uri_switch]);
+#endif /* PLATFORM_HAS_BUTTON */
 
   while(1) {
     PROCESS_YIELD();
@@ -125,14 +107,47 @@ PROCESS_THREAD(er_example_client, ev, data)
     if(etimer_expired(&et)) {
       printf("--Toggle timer--\n");
 
-      /* prepare a non-blocking, NON confirmable request */
-      //coap_init_message(request, COAP_TYPE_NON, COAP_GET, 0);
-      //coap_set_header_uri_path(request, service_urls[0]);
+      /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
+      coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
+      coap_set_header_uri_path(request, service_urls[1]);
 
-      uip_udp_packet_sendto(conn, payload, 15, &udp_addr, UIP_HTONS(5684)); 
-      printf("sent?\n");
-      
+      const char msg[] = "Toggle!";
+
+      coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
+
+      LOG_INFO_COAP_EP(&server_ep);
+      LOG_INFO_("\n");
+
+      COAP_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
+
+      printf("\n--Done--\n");
+
       etimer_reset(&et);
+
+#if PLATFORM_HAS_BUTTON
+#if PLATFORM_SUPPORTS_BUTTON_HAL
+    } else if(ev == button_hal_release_event) {
+#else
+    } else if(ev == sensors_event && data == &button_sensor) {
+#endif
+
+      /* send a request to notify the end of the process */
+
+      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
+      coap_set_header_uri_path(request, service_urls[uri_switch]);
+
+      printf("--Requesting %s--\n", service_urls[uri_switch]);
+
+      LOG_INFO_COAP_EP(&server_ep);
+      LOG_INFO_("\n");
+
+      COAP_BLOCKING_REQUEST(&server_ep, request,
+                            client_chunk_handler);
+
+      printf("\n--Done--\n");
+
+      uri_switch = (uri_switch + 1) % NUMBER_OF_URLS;
+#endif /* PLATFORM_HAS_BUTTON */
     }
   }
 

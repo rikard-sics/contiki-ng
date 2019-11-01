@@ -39,22 +39,6 @@
 #ifndef PROJECT_CONF_H_
 #define PROJECT_CONF_H_
 
-#include "net/ipv6/multicast/uip-mcast6-engines.h"
-
-/* Change this to switch engines. Engine codes in uip-mcast6-engines.h */
-#ifndef UIP_MCAST6_CONF_ENGINE
-#define UIP_MCAST6_CONF_ENGINE UIP_MCAST6_ENGINE_SMRF
-#endif
-
-/* For Imin: Use 16 over CSMA, 64 over Contiki MAC */
-#define ROLL_TM_CONF_IMIN_1         64
-
-#define UIP_MCAST6_ROUTE_CONF_ROUTES 5
-
 #define LOG_LEVEL_APP LOG_LEVEL_DBG
-#define LOG_CONF_LEVEL_COAP LOG_LEVEL_DBG
-
-//force 2.4GHz/sub-GHz operation
-#define RF_CONF_MODE RF_MODE_SUB_1_GHZ//RF_MODE_2_4_GHZ
 
 #endif /* PROJECT_CONF_H_ */

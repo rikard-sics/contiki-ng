@@ -42,27 +42,14 @@
 #include "contiki.h"
 #include "coap-engine.h"
 
-//Added for Multicast
-#include "contiki-net.h"
-#include "net/ipv6/multicast/uip-mcast6.h"
-
-//for debug
-#include "dev/leds.h"
-
 #if PLATFORM_SUPPORTS_BUTTON_HAL
 #include "dev/button-hal.h"
 #else
 #include "dev/button-sensor.h"
 #endif
 
-#if !NETSTACK_CONF_WITH_IPV6 || !UIP_CONF_ROUTER || !UIP_IPV6_MULTICAST || !UIP_CONF_IPV6_RPL
-#error "This example can not work with the current contiki configuration"
-#error "Check the values of: NETSTACK_CONF_WITH_IPV6, UIP_CONF_ROUTER, UIP_CONF_IPV6_RPL"
-#endif
-
 /* Log configuration */
 #include "sys/log.h"
-#include "coap-log.h"
 #define LOG_MODULE "App"
 #define LOG_LEVEL LOG_LEVEL_APP
 /*
@@ -71,9 +58,13 @@
  */
 extern coap_resource_t
   res_hello,
-  res_mcast,
+  res_mirror,
+  res_chunks,
+  res_separate,
+  res_push,
   res_event,
-  res_mcastq;
+  res_sub,
+  res_b1_sep_b2;
 #if PLATFORM_HAS_LEDS
 extern coap_resource_t res_leds, res_toggle;
 #endif
@@ -90,78 +81,32 @@ extern coap_resource_t res_battery;
 extern coap_resource_t res_temperature;
 #endif
 
-
-#if UIP_MCAST6_CONF_ENGINE != UIP_MCAST6_ENGINE_MPL
-static uip_ds6_maddr_t *
-join_mcast_group(void)
-{
-  uip_ipaddr_t addr;
-  uip_ds6_maddr_t *rv;
-  const uip_ipaddr_t *default_prefix = uip_ds6_default_prefix();
-
-  /* First, set our v6 global */
-  uip_ip6addr_copy(&addr, default_prefix);
-  uip_ds6_set_addr_iid(&addr, &uip_lladdr);
-  uip_ds6_addr_add(&addr, 0, ADDR_AUTOCONF);
-
-  /*
-   * IPHC will use stateless multicast compression for this destination
-   * (M=1, DAC=0), with 32 inline bits (1E 89 AB CD)
-   */
-  uip_ip6addr(&addr, 0xFF1E,0,0,0,0,0,0x89,0xABCD);
-  rv = uip_ds6_maddr_add(&addr);
-
-  if(rv) {
-    LOG_INFO("Joined multicast group ");
-    LOG_INFO_6ADDR(&uip_ds6_maddr_lookup(&addr)->ipaddr);
-    LOG_INFO("\n");
-  }
-  return rv;
-}
-#endif
-
-
-static struct uip_udp_conn *sink_conn;
-static uint16_t count;
-
-static void
-tcpip_handler(void)
-{
-  if(uip_newdata()) {
-    leds_toggle(LEDS_RED);
-    count++;
-    LOG_INFO("In: [0x%08lx], TTL %u, total %u\n",
-        (unsigned long)uip_ntohl((unsigned long) *((uint32_t *)(uip_appdata))),
-        UIP_IP_BUF->ttl, count);
-  }
-  return;
-}
-
-#define MCAST_SINK_UDP_PORT 5684 /* Host byte order */
-
 PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 
 PROCESS_THREAD(er_example_server, ev, data)
 {
   PROCESS_BEGIN();
+
   PROCESS_PAUSE();
 
   LOG_INFO("Starting Erbium Example Server\n");
-  
+
   /*
    * Bind the resources to their Uri-Path.
    * WARNING: Activating twice only means alternate path, not two instances!
    * All static variables are the same for each URI path.
    */
-  coap_activate_resource(&res_hello, "test/hello"); //mcast disabled
-  coap_activate_resource(&res_mcast, "test/mcast"); //mcast+response
-  coap_activate_resource(&res_mcastq, "test/mcastq");//mcast without response
+  coap_activate_resource(&res_hello, "test/hello");
+  coap_activate_resource(&res_mirror, "debug/mirror");
+  coap_activate_resource(&res_chunks, "test/chunks");
+  coap_activate_resource(&res_separate, "test/separate");
+  coap_activate_resource(&res_push, "test/push");
 #if PLATFORM_HAS_BUTTON
   coap_activate_resource(&res_event, "sensors/button");
 #endif /* PLATFORM_HAS_BUTTON */
-  //coap_activate_resource(&res_sub, "test/sub");
-  //coap_activate_resource(&res_b1_sep_b2, "test/b1sepb2");
+  coap_activate_resource(&res_sub, "test/sub");
+  coap_activate_resource(&res_b1_sep_b2, "test/b1sepb2");
 #if PLATFORM_HAS_LEDS
 /*  coap_activate_resource(&res_leds, "actuators/leds"); */
   coap_activate_resource(&res_toggle, "actuators/toggle");
@@ -179,28 +124,9 @@ PROCESS_THREAD(er_example_server, ev, data)
   SENSORS_ACTIVATE(temperature_sensor);
 #endif
 
-  //multicast initialisation stuff here
-#if UIP_MCAST6_CONF_ENGINE != UIP_MCAST6_ENGINE_MPL
-  if(join_mcast_group() == NULL) {
-    LOG_ERR("Failed to join multicast group\n");
-    PROCESS_EXIT();
-  }
-#endif
-  sink_conn = udp_new(NULL, UIP_HTONS(0), NULL);
-  udp_bind(sink_conn, UIP_HTONS(MCAST_SINK_UDP_PORT));
-
-  LOG_INFO("Listening: ");
-  LOG_INFO_6ADDR(&sink_conn->ripaddr);
-  LOG_INFO(" local/remote port %u/%u\n",
-        UIP_HTONS(sink_conn->lport), UIP_HTONS(sink_conn->rport));
-  leds_toggle(LEDS_RED);
-  
   /* Define application-specific events here. */
   while(1) {
-    PROCESS_YIELD();
-    if(ev == tcpip_event) {
-      tcpip_handler();
-    }
+    PROCESS_WAIT_EVENT();
 #if PLATFORM_HAS_BUTTON
 #if PLATFORM_SUPPORTS_BUTTON_HAL
     if(ev == button_hal_release_event) {
@@ -212,17 +138,11 @@ PROCESS_THREAD(er_example_server, ev, data)
       /* Call the event_handler for this application-specific event. */
       res_event.trigger();
 
+      /* Also call the separate response example handler. */
+      res_separate.resume();
     }
 #endif /* PLATFORM_HAS_BUTTON */
   }                             /* while (1) */
 
   PROCESS_END();
-}
-
-void
-oscore_missing_security_context(const coap_endpoint_t *src)
-{
-  LOG_DBG("Missing security context for ")
-  LOG_DBG_COAP_EP(src);
-  LOG_DBG_("\n");
 }
