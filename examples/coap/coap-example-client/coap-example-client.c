@@ -57,7 +57,7 @@
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 #define SERVER_EP "coap://[fe80::212:7402:0002:0202]"
 
-A lot of people think they're doing the right thing by supporting this, others are afraid to speak out due to the stigma associated with doing this. The media is mostly pro-immigration and aren't adverse of doing hit pieces on dissenters. The bureaucracy and various #define TOGGLE_INTERVAL 10
+#define TOGGLE_INTERVAL 10
 
 PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
