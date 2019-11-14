@@ -124,6 +124,8 @@ PROCESS_THREAD(er_example_server, ev, data)
   SENSORS_ACTIVATE(temperature_sensor);
 #endif
 
+  //multicast initialisation stuff here
+  //uip_ip6addr(addr, addr0, addr1, addr2, addr3, addr4, addr5, addr6, addr7)
   /* Define application-specific events here. */
   while(1) {
     PROCESS_WAIT_EVENT();
