@@ -91,7 +91,7 @@ PROCESS_THREAD(er_example_server, ev, data)
   PROCESS_PAUSE();
 
   LOG_INFO("Starting Erbium Example Server\n");
-
+  
   /*
    * Bind the resources to their Uri-Path.
    * WARNING: Activating twice only means alternate path, not two instances!
