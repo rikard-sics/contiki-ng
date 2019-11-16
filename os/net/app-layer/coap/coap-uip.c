@@ -49,7 +49,7 @@
 #include "contiki.h"
 #include "net/ipv6/uip-udp-packet.h"
 #include "net/ipv6/uiplib.h"
-#include "net/ipv6/uip.h" /*ipaddr comparison*/
+#include "net/ipv6/uip.h" //ipaddr comparison
 #include "net/routing/routing.h"
 #include "coap.h"
 #include "coap-engine.h"
@@ -89,25 +89,10 @@ static struct uip_udp_conn *dtls_conn = NULL;
 PROCESS(coap_engine, "CoAP Engine");
 
 static struct uip_udp_conn *udp_conn = NULL;
-#ifdef WITH_GROUPCOM
-static coap_message_t request[1]; /*TODO enable multiple message processing*/
-static coap_message_t response[1];
-static coap_status_t parse_status; /*TODO enable multiple message processing*/
-static uint8_t *verify_result;
-static uint8_t is_mcast = 0;
-/*TODO change checking srcaddr into checking the dst group addr.*/
-#define is_addr_mcast_group(a)		\
-  ((((a)->u8[0]) == 0xfd) &&            \
-   (((a)->u8[1]) == 0x00) &&            \
-   (((a)->u16[1]) == 0) &&              \
-   (((a)->u16[2]) == 0) &&              \
-   (((a)->u16[3]) == 0) &&              \
-   (((a)->u16[4]) == 0) &&              \
-   (((a)->u16[5]) == 0) &&              \
-   (((a)->u16[6]) == 0) &&              \
-   (((a)->u8[14]) == 0) &&              \
-   (((a)->u8[15]) == 0x01))
-#endif /*WITH_GROUPCOM*/
+
+/*#ifdef WITH_GROUPCOM 
+static struct uip_udp_conn *mcast_group_udp_conn = NULL;
+#endif*/ /* WITH_GROUPCOM */
 /*---------------------------------------------------------------------------*/
 void
 coap_endpoint_log(const coap_endpoint_t *ep)
@@ -383,8 +368,10 @@ process_data(void)
   LOG_INFO_("]:%u\n", uip_ntohs(UIP_UDP_BUF->srcport));
   LOG_INFO("  Length: %u\n", uip_datalen());
 
-  coap_endpoint_t src;
-  coap_receive(get_src_endpoint(&src, 0), uip_appdata, uip_datalen());
+  int is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
+
+  LOG_INFO("\nis_mcast: %d\n", is_mcast);
+  coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen());
 }
 /*---------------------------------------------------------------------------*/
 #endif
@@ -441,6 +428,15 @@ PROCESS_THREAD(coap_engine, ev, data)
 
   udp_bind(udp_conn, SERVER_LISTEN_PORT);
   LOG_INFO("Listening on port %u\n", uip_ntohs(udp_conn->lport));
+/*
+#ifdef WITH_GROUPCOM
+  // another socket listeting on a multicast group (all-nodes for now)
+  mcast_group_udp_conn = udp_new(NULL, 0, NULL);
+  udp_bind(mcast_group_udp_conn, SERVER_LISTEN_PORT);
+  LOG_INFO("Listening on port %u\n", uip_ntohs(udp_conn->lport));
+
+#endif
+*/
 #ifdef WITH_DTLS
   /* create new context with app-data */
   dtls_conn = udp_new(NULL, 0, NULL);
