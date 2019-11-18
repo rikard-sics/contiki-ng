@@ -8,5 +8,7 @@ PLATFORMS_EXCLUDE = sky z1
 # Include the CoAP implementation
 MODULES += os/net/app-layer/coap
 
+CFLAGS += -DMAKE_WITH_GROUPCOM=1
+
 CONTIKI=../../..
 include $(CONTIKI)/Makefile.include
