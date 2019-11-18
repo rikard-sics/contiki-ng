@@ -88,7 +88,6 @@ void coap_send_postcrypto(coap_message_t *message, coap_message_t *response);
 
 int coap_receive(const coap_endpoint_t *src,
                  uint8_t *payload, uint16_t payload_length, uint8_t is_mcast);
-#endif/*WITH_GROUPCOM*/
 
 coap_handler_status_t coap_call_handlers(coap_message_t *request,
                                          coap_message_t *response,

@@ -368,10 +368,11 @@ process_data(void)
   LOG_INFO_("]:%u\n", uip_ntohs(UIP_UDP_BUF->srcport));
   LOG_INFO("  Length: %u\n", uip_datalen());
 
-  int is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
+  //FIXME right now it works only for a hard-coded ff02::1 group!
+  uint8_t is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
 
   LOG_INFO("\nis_mcast: %d\n", is_mcast);
-  coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen());
+  coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast);
 }
 /*---------------------------------------------------------------------------*/
 #endif
