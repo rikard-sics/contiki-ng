@@ -79,7 +79,7 @@ void coap_remove_handler(coap_handler_t *handler);
 void coap_engine_init(void);
 
 int coap_receive(const coap_endpoint_t *src,
-                 uint8_t *payload, uint16_t payload_length);
+                 uint8_t *payload, uint16_t payload_length, uint8_t is_mcast);
 
 coap_handler_status_t coap_call_handlers(coap_message_t *request,
                                          coap_message_t *response,
