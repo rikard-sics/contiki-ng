@@ -59,6 +59,38 @@
 #include "coap-transactions.h"
 #endif /* WITH_OSCORE */
 
+#ifdef WITH_GROUPCOM
+/*For leisure time randomisation*/
+#include "sys/node-id.h"
+//#include "sys/random.h"
+//#include "coap-timer.h"
+#include "sys/ctimer.h"
+/*The delayed server response to mcast request*/
+typedef struct {
+  const coap_endpoint_t *src;
+  uint8_t *payload;
+  coap_message_t *message;
+} delayed_response_t;
+//static coap_timer_t *dr_timer;
+static struct ctimer dr_timer;
+/*Callback function to actually send the delayed response*/
+//static void send_delayed_response_callback(coap_timer_t *t)
+static void send_delayed_response_callback(void *data)
+{
+ LOG_DBG("WOW!In send_delayed_response_callback:");	
+ delayed_response_t *tmp;
+ //tmp = coap_timer_get_user_data(t);
+ tmp = (delayed_response_t *) data;
+ if(tmp == NULL)
+ {
+   LOG_DBG("!!!The stored delayed response is NULL!!!");
+   return;
+ }
+ coap_sendto(tmp->src, tmp->payload, coap_serialize_message(tmp->message, tmp->payload));
+ 
+}
+#endif /*WITH_GROUPCOM*/
+
 static void process_callback(coap_timer_t *t);
 
 /*
@@ -144,21 +176,12 @@ call_service(coap_message_t *request, coap_message_t *response,
 extern coap_resource_t res_well_known_core;
 #endif
 
-#ifdef WITH_OSCORE
-static void oscore_missing_security_context_default(const coap_endpoint_t *src)
-{
-}
-
-extern void oscore_missing_security_context(const coap_endpoint_t *src)
-  __attribute__ ((weak, alias ("oscore_missing_security_context_default")));
-#endif
-
 /*---------------------------------------------------------------------------*/
 /*- Internal API ------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
 int
 coap_receive(const coap_endpoint_t *src,
-             uint8_t *payload, uint16_t payload_length)
+             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast)
 {
   /* static declaration reduces stack peaks and program code size */
   static coap_message_t message[1]; /* this way the message can be treated as pointer as usual */
@@ -201,20 +224,21 @@ coap_receive(const coap_endpoint_t *src,
           /* unreliable NON requests are answered with a NON as well */
           coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
                             coap_get_mid());
+          /* mirror token */
         }
-
-        /* mirror token */
+        #ifdef WITH_OSCORE 
+	if(coap_is_option(message, COAP_OPTION_OSCORE)){
+	  coap_set_oscore(response);
+	  if(message->security_context == NULL){
+		  printf("context is NULL\n");
+	  }
+          response->security_context = message->security_context;
+        }
+        #endif /* WITH_OSCORE */
         if(message->token_len) {
           coap_set_token(response, message->token, message->token_len);
+          /* get offset for blockwise transfers */
         }
-
-#ifdef WITH_OSCORE 
-        if(coap_is_option(message, COAP_OPTION_OSCORE)){
-          coap_set_oscore(response, message->security_context);
-        }
-#endif /* WITH_OSCORE */
-
-        /* get offset for blockwise transfers */
         if(coap_get_header_block2
            (message, &block_num, NULL, &block_size, &block_offset)) {
           LOG_DBG("Blockwise: block request %"PRIu32" (%u/%u) @ %"PRIu32" bytes\n",
@@ -366,42 +390,54 @@ coap_receive(const coap_endpoint_t *src,
     /* if(parsed correctly) */
   if(coap_status_code == NO_ERROR) {
     if(transaction) {
+#ifdef WITH_GROUPCOM
+      if(is_mcast) {
+      /*Copy transport data to a timer data. The response will be sent at timer expiration.*/
+      LOG_DBG("\nAbout to prepare delayed response!\n");
+      delayed_response_t dr = { src, payload, message };
+      //coap_timer_set(dr_timer, CLOCK_SECOND * 2);
+      //coap_timer_set_callback(dr_timer, send_delayed_response_callback);
+      //coap_timer_set_user_data(dr_timer, &dr);
+      //send after node_id seconds
+      //coap_timer_set(dr_timer, CLOCK_SECOND * node_id);
+      //coap_timer_set(dr_timer, CLOCK_SECOND * 2);
+      LOG_DBG("\nScheduling delayed response after %d seconds...\n", node_id);
+      ctimer_set(&dr_timer, CLOCK_SECOND, send_delayed_response_callback, &dr);
+      /*if(node_id == 2)
+	      ctimer_set(&dr_timer, CLOCK_SECOND * 2, send_delayed_response_callback, &dr);
+      else if(node_id == 4)
+              ctimer_set(&dr_timer, CLOCK_SECOND * 4, send_delayed_response_callback, &dr);
+      //ctimer_set(&dr_timer, CLOCK_SECOND * node_id, send_delayed_response_callback, &dr);*/
+      }
+      else {
+      LOG_DBG("\nNo mcast :( running coap_send_transation...\n");    
       coap_send_transaction(transaction);
+      }
+#endif /*WITH_GROUPCOM*/
+    
+      //coap_send_transaction(transaction);
     }
   } else if(coap_status_code == MANUAL_RESPONSE) {
     LOG_DBG("Clearing transaction for manual response");
     coap_clear_transaction(transaction);
   } else if(coap_status_code == OSCORE_DECRYPTION_ERROR) {
     LOG_WARN("OSCORE response decryption failed!\n");
-    if ((transaction = coap_get_transaction_by_mid(message->mid))) {
-      /* free transaction memory before callback, as it may create a new transaction */
-      coap_resource_response_handler_t callback = transaction->callback;
-      void *callback_data = transaction->callback_data;
-      
-      message->code = OSCORE_DECRYPTION_ERROR;
-      coap_clear_transaction(transaction);
-      printf("TODO send empty ACK!\n");
-      /* check if someone registered for the response */
-      if(callback) {
-        callback(callback_data, message);
-      }
+    coap_transaction_t *t = coap_get_transaction_by_mid(message->mid);
+    
+    /* free transaction memory before callback, as it may create a new transaction */
+    coap_resource_response_handler_t callback = t->callback;
+    void *callback_data = t->callback_data;
+    
+    message->code = OSCORE_DECRYPTION_ERROR;
+    coap_clear_transaction(t);
+    printf("TODO send empty ACK!\n");
+    /* check if someone registered for the response */
+    if(callback) {
+      callback(callback_data, message);
     }
+    
+    return coap_status_code;
   } else {
-#ifdef WITH_OSCORE
-    if (coap_status_code == OSCORE_MISSING_CONTEXT) {
-      LOG_WARN("OSCORE cannot decrypt, missing context!\n");
-
-      /* Need to inform receivers of failed decryption */
-      oscore_missing_security_context(src);
-
-      coap_status_code = UNAUTHORIZED_4_01;
-
-      // TODO: this return needs to be removed so that a
-      // UNAUTHORIZED_4_01 is sent if a context is unavailable.
-      return coap_status_code;
-    }
-#endif /* WITH_OSCORE */
-
     coap_message_type_t reply_type = COAP_TYPE_ACK;
 
 #if COAP_MESSAGE_ON_ERROR
@@ -419,19 +455,25 @@ coap_receive(const coap_endpoint_t *src,
       coap_status_code = INTERNAL_SERVER_ERROR_5_00;
       /* reuse input buffer for error message */
     }
-
-    coap_init_message(response, reply_type, coap_status_code,
-                      message->mid);
-#if 0
 #ifdef WITH_OSCORE
-    if(message->token_len){
-      coap_set_token(response, message->token, message->token_len);
+    uint8_t tmp_token[8];
+    uint8_t token_len = 0;
+    if(message->token_len) {
+          token_len = message->token_len;
+          memcpy(tmp_token, message->token, token_len);
     }
 #endif /* WITH_OSCORE */
-#endif
-    coap_set_payload(response, coap_error_message,
+    coap_init_message(message, reply_type, coap_status_code,
+                      message->mid);
+#ifdef WITH_OSCORE
+    if( token_len){
+        coap_set_token(message, tmp_token, token_len);
+    }
+#endif /* WITH_OSCORE */
+    coap_set_payload(message, coap_error_message,
                      strlen(coap_error_message));
-    coap_sendto(src, payload, coap_serialize_message(response, payload));
+    coap_sendto(src, payload, coap_serialize_message(message, payload));
+
   }
 
   /* if(new data) */
@@ -458,14 +500,17 @@ coap_engine_init(void)
 
   coap_transport_init();
   coap_init_connection();
-
-#ifdef WITH_OSCORE
-  oscore_init();
-#endif
+#ifdef WITH_GROUPCOM
+//  random_init(node_id);
+//  ctimer_init();
+//  LOG_INFO("Ctimers initialised!");
+#endif /*WITH_GROUPCOM*/
 }
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Makes a resource available under the given URI path
+ * \param resource A pointer to a resource implementation
+ * \param path The URI path string for this resource
  *
  * The resource implementation must be imported first using the
  * extern keyword. The build system takes care of compiling every
