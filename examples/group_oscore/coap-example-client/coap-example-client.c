@@ -60,6 +60,31 @@ AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
 
+static uint8_t cur_token[] = {0,0,0,0,0,0,0,0};//for incremental updates
+const uint8_t *token_next(void) 
+{
+  uint8_t i;
+  for (i = 7; i >= 0; i++)
+  {
+    if (cur_token[i] < 255)
+    {//just increment the last digit
+      cur_token[i]++;
+      break;
+    }
+    else
+    {
+      if (i == 0)
+      {//total_overflow
+        memset(cur_token, 0, sizeof(cur_token));
+	break;
+      }
+      cur_token[i] = 0; //overflow this digit, increment the higher one
+      continue;
+    }
+  }
+  return (const uint8_t *)(cur_token);
+}
+
 /* Example URIs that can be queried. */
 #define NUMBER_OF_URLS 2
 /* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
@@ -90,7 +115,6 @@ PROCESS_THREAD(er_example_client, ev, data)
   PROCESS_BEGIN();
 
   static coap_callback_request_state_t my_callback_request_state;
- 
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
 
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
@@ -115,8 +139,8 @@ PROCESS_THREAD(er_example_client, ev, data)
       LOG_INFO_("\n");
       //callback request
       //my_callback_request_state = {coap_request_state, my_callback_f};
-      const uint8_t my_token[] = {0,0,0,0,0,0,0,1};
-      coap_set_token(request, my_token, 8);
+//      const uint8_t my_token[] = {0,0,0,0,0,0,0,1};
+      coap_set_token(request, token_next(), 8);
       coap_send_request(&my_callback_request_state, &server_ep, request, my_callback_f);
  
       printf("\n--Done--\n");
