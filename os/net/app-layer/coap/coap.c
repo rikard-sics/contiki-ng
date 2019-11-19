@@ -363,7 +363,9 @@ coap_serialize_message_coap(coap_message_t *coap_pkt, uint8_t *buffer)
   COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_IF_MATCH, if_match, "If-Match");
   COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_URI_HOST, uri_host, '\0',
                                "Uri-Host");
+#ifndef WITH_GROUPCOM  
   COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_ETAG, etag, "ETag");
+#endif
   COAP_SERIALIZE_INT_OPTION(COAP_OPTION_IF_NONE_MATCH,
                             content_format -
                             coap_pkt->
