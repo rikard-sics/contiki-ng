@@ -409,10 +409,12 @@ coap_receive(const coap_endpoint_t *src,
       LOG_DBG("No groupcom, running coap_send_transation...\n");    
       coap_send_transaction(transaction);
       }
+#else  //no groupcom
+	coap_send_transaction(transaction);
+
 #endif /*WITH_GROUPCOM*/
     
-      //coap_send_transaction(transaction);
-    }
+          }
   } else if(coap_status_code == MANUAL_RESPONSE) {
     LOG_DBG("Clearing transaction for manual response");
     coap_clear_transaction(transaction);
