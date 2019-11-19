@@ -78,16 +78,22 @@ static struct ctimer dr_timer;
 //static void send_delayed_response_callback(coap_timer_t *t)
 static void send_delayed_response_callback(void *data)
 {
- LOG_DBG("WOW!In send_delayed_response_callback:");	
+ LOG_DBG("Send_delayed_response_callback:\n");
  delayed_response_t *tmp;
- //tmp = coap_timer_get_user_data(t);
  tmp = (delayed_response_t *) data;
+ coap_transaction_t *trans;
  if(tmp == NULL)
  {
    LOG_DBG("!!!The stored delayed response is NULL!!!");
    return;
  }
- coap_sendto(tmp->src, tmp->payload, coap_serialize_message(tmp->message, tmp->payload));
+ if((trans = coap_get_transaction_by_mid(tmp->message->mid))) {
+   LOG_DBG("Transaction found!!! Sending...\n");
+   coap_send_transaction(trans);
+ }
+ /*else {//TODO revise transaction concept for groupcom
+   LOG_DBG("No transaction found, no response will be sent...\n");
+ }*/
  
 }
 #endif /*WITH_GROUPCOM*/
@@ -488,24 +494,14 @@ coap_receive(const coap_endpoint_t *src,
 #ifdef WITH_GROUPCOM
       if(is_mcast) {
       /*Copy transport data to a timer data. The response will be sent at timer expiration.*/
-      LOG_DBG("\nAbout to prepare delayed response!\n");
+      LOG_DBG("About to prepare delayed response!\n");
       delayed_response_t dr = { src, payload, message };
-      //coap_timer_set(dr_timer, CLOCK_SECOND * 2);
-      //coap_timer_set_callback(dr_timer, send_delayed_response_callback);
-      //coap_timer_set_user_data(dr_timer, &dr);
-      //send after node_id seconds
-      //coap_timer_set(dr_timer, CLOCK_SECOND * node_id);
-      //coap_timer_set(dr_timer, CLOCK_SECOND * 2);
-      LOG_DBG("\nScheduling delayed response after %d seconds...\n", node_id);
-      ctimer_set(&dr_timer, CLOCK_SECOND, send_delayed_response_callback, &dr);
-      /*if(node_id == 2)
-	      ctimer_set(&dr_timer, CLOCK_SECOND * 2, send_delayed_response_callback, &dr);
-      else if(node_id == 4)
-              ctimer_set(&dr_timer, CLOCK_SECOND * 4, send_delayed_response_callback, &dr);
+      LOG_DBG("Scheduling delayed response after %d seconds...\n", node_id);
+      ctimer_set(&dr_timer, CLOCK_SECOND * (uint8_t) node_id, send_delayed_response_callback, &dr);
       //ctimer_set(&dr_timer, CLOCK_SECOND * node_id, send_delayed_response_callback, &dr);*/
       }
       else {
-      LOG_DBG("\nNo mcast :( running coap_send_transation...\n");    
+      LOG_DBG("No groupcom, running coap_send_transation...\n");    
       coap_send_transaction(transaction);
       }
 #endif /*WITH_GROUPCOM*/
