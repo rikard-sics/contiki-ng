@@ -39,56 +39,7 @@
 #ifndef PROJECT_CONF_H_
 #define PROJECT_CONF_H_
 
-#include "net/ipv6/multicast/uip-mcast6-engines.h"
-
-#define RF_CONF_MODE RF_MODE_2_4_GHZ
-
-/*(1) Memory occupancy (RAM and ROM)(2) Time spent by the CPU to process incoming/outgoing messages(3) Time spent by the radio to transmit CoAP messages(4) Time spent by the radio to receive CoAP messages(5) Energy consumed by the CPU to process incoming/outgoing messages(6) Energy consumed by the radio to transmit CoAP responses(7) Energy consumed by the radio to receive CoAP requests(8)Round Trip Time experienced by the client, measured since the time the CoAP request is sent until the last CoAPresponse is received. */
-
-#if TEST == 1 //Memory Tests
-
-#elif TEST == 2 //CPU Test
-
-#elif TEST == 3 //Radio Test send
-
-#elif TEST == 4 //Radio Test receive
-
-#elif TEST == 8 //Round Trip Time Test
-#else
-
-#endif /* TEST */
-
-/* Change this to switch engines. Engine codes in uip-mcast6-engines.h */
-#ifndef UIP_MCAST6_CONF_ENGINE
-#define UIP_MCAST6_CONF_ENGINE UIP_MCAST6_ENGINE_SMRF
-#endif
-
-#define STACK_CHECK_CONF_ENABLED 1 
-
-/* For Imin: Use 16 over CSMA, 64 over Contiki MAC */
-#define ROLL_TM_CONF_IMIN_1         64
-
-#define UIP_MCAST6_ROUTE_CONF_ROUTES 3
-
-/* Code/RAM footprint savings so that things will fit on our device */
-#ifndef NETSTACK_MAX_ROUTE_ENTRIES
-#define NETSTACK_MAX_ROUTE_ENTRIES  3 
-#endif
-
-#ifndef NBR_TABLE_CONF_MAX_NEIGHBORS
-#define NBR_TABLE_CONF_MAX_NEIGHBORS 3 
-#endif
-
-#define REST_MAX_CHUNK_SIZE 150
-
 #define LOG_LEVEL_APP LOG_LEVEL_DBG
 #define LOG_CONF_LEVEL_COAP LOG_LEVEL_DBG
-//#define LOG_CONF_LEVEL_RPL LOG_LEVEL_DBG
-/*Below defines for code-size limitation*/
-#define LOG_CONF_LEVEL_MAIN LOG_LEVEL_INFO
-#define UIP_CONF_UDP_CONNS 2
-#define UIP_CONF_BUFFER_SIZE 300
-//with the above 3 it was still 256 bytes too much
-#define QUEUEBUF_CONF_NUM 4 //decreased from 8
 
 #endif /* PROJECT_CONF_H_ */

@@ -10,8 +10,5 @@ MODULES += os/net/app-layer/coap
 MAKE_WITH_GROUPCOM = 1
 MAKE_WITH_OSCORE = 1
 
-#dissable Werror for now
-WERROR=0
-
 CONTIKI=../../..
 include $(CONTIKI)/Makefile.include
