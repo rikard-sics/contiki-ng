@@ -193,6 +193,9 @@ coap_receive(const coap_endpoint_t *src,
   coap_transaction_t *transaction = NULL;
   coap_handler_status_t status;
 
+  uint8_t is_testmcast = 0;
+  uint8_t is_testmcastq = 0;
+
   coap_status_code = coap_parse_message(message, payload, payload_length);
   coap_set_src_endpoint(message, src);
 
@@ -209,6 +212,48 @@ coap_receive(const coap_endpoint_t *src,
     LOG_DBG_COAP_STRING((const char *)message->payload, message->payload_len);
     LOG_DBG_("\n");
 
+    /*If requesting an unicast resource with a multicast address, or vice versa, ignore*/
+    if(is_mcast) {
+/*	    LOG_DBG("\nTIME TO CHECK THIS CRAP!\n");
+	    const char *temp;
+	    uint8_t leng = 0;
+	    temp = message->uri_path;
+	    while(1)
+	    {
+	      LOG_DBG("%d\n", *temp);
+	      ++leng;
+	      if(*temp++ == '\0')
+		      break;
+	    }
+	    LOG_DBG("\nLENGTH OF THIS SHIT: %d", leng);
+	    LOG_DBG("\nTIME TO CHECK THE FIXED CRAP!\n");
+	    const char *reference = "test/mcast\x08\x0C";
+	    temp = reference;
+	    leng = 0;
+	    while(1)
+	    {
+	      LOG_DBG("%d\n", *temp);
+	      ++leng;
+	      if(*temp++ == '\0')
+		      break;
+	    }
+	    LOG_DBG("\nLENGTH OF THIS SHIT: %d\n", leng);
+	    LOG_DBG("All in all diff: %d", strcmp(message->uri_path, reference));*/
+     is_testmcast = (strcmp(message->uri_path, "test/mcast\x08\x0C") == 0);
+     is_testmcastq = (strcmp(message->uri_path, "test/mcastq\x0C") == 0);
+
+     LOG_DBG("Is test/mcast: %d, is test/mcastq: %d\n", is_testmcast, is_testmcastq);
+     if(!is_testmcast && !is_testmcastq) {
+       LOG_INFO("\nERROR:Cannot request unicast resouces with multicast address! Ignoring...");
+       return 0;
+     }
+    }/*is_mcast*/
+    else {
+     if(strcmp(message->uri_path, "test/mcast\x08\x0C") == 0 || strcmp(message->uri_path, "test/mcastq\x0C") == 0) {
+       LOG_INFO("ERROR:Cannot request multicast resource with unicast address! Ignoring...\n");
+       return 0;
+     }
+    }/*else*/
     /* handle requests */
     if(message->code >= COAP_GET && message->code <= COAP_DELETE) {
 
@@ -225,10 +270,19 @@ coap_receive(const coap_endpoint_t *src,
           coap_init_message(response, COAP_TYPE_ACK, CONTENT_2_05,
                             message->mid);
         } else {
+	  if(is_testmcastq) {
+            LOG_INFO("\nGot a multicast request for a quiet resource (response suppression)...");
+	    status = call_service(message, response,
+                                transaction->message + COAP_MAX_HEADER_SIZE,
+                                block_size, &new_offset);
+	    return 0;
+
+	  } else {
+	    LOG_DBG("\nA response will be sent...");  
           /* unreliable NON requests are answered with a NON as well */
-          coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
-                            coap_get_mid());
-          /* mirror token */
+            coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
+                              coap_get_mid());
+	  }
         }
         #ifdef WITH_OSCORE 
 	if(coap_is_option(message, COAP_OPTION_OSCORE)){
@@ -239,6 +293,7 @@ coap_receive(const coap_endpoint_t *src,
           response->security_context = message->security_context;
         }
         #endif /* WITH_OSCORE */
+	/* mirror token */
         if(message->token_len) {
           coap_set_token(response, message->token, message->token_len);
           /* get offset for blockwise transfers */

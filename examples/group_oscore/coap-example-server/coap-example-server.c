@@ -58,13 +58,9 @@
  */
 extern coap_resource_t
   res_hello,
-  res_mirror,
-  res_chunks,
-  res_separate,
-  res_push,
+  res_mcast,
   res_event,
-  res_sub,
-  res_b1_sep_b2;
+  res_mcastq;
 #if PLATFORM_HAS_LEDS
 extern coap_resource_t res_leds, res_toggle;
 #endif
@@ -97,16 +93,14 @@ PROCESS_THREAD(er_example_server, ev, data)
    * WARNING: Activating twice only means alternate path, not two instances!
    * All static variables are the same for each URI path.
    */
-  coap_activate_resource(&res_hello, "test/hello");
-  coap_activate_resource(&res_mirror, "debug/mirror");
-  coap_activate_resource(&res_chunks, "test/chunks");
-  coap_activate_resource(&res_separate, "test/separate");
-  coap_activate_resource(&res_push, "test/push");
+  coap_activate_resource(&res_hello, "test/hello"); //mcast disabled
+  coap_activate_resource(&res_mcast, "test/mcast"); //mcast+response
+  coap_activate_resource(&res_mcastq, "test/mcastq");//mcast without response
 #if PLATFORM_HAS_BUTTON
   coap_activate_resource(&res_event, "sensors/button");
 #endif /* PLATFORM_HAS_BUTTON */
-  coap_activate_resource(&res_sub, "test/sub");
-  coap_activate_resource(&res_b1_sep_b2, "test/b1sepb2");
+  //coap_activate_resource(&res_sub, "test/sub");
+  //coap_activate_resource(&res_b1_sep_b2, "test/b1sepb2");
 #if PLATFORM_HAS_LEDS
 /*  coap_activate_resource(&res_leds, "actuators/leds"); */
   coap_activate_resource(&res_toggle, "actuators/toggle");
