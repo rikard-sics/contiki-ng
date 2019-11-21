@@ -51,7 +51,7 @@
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 //#define SERVER_EP "coap://[fe80::212:7402:0002:0202]"
-#define SERVER_EP "coap:://[ff02::1]" //multicast all nodes address
+//#define SERVER_EP "coap:://[ff02::1]" //multicast all nodes address
 
 #define TOGGLE_INTERVAL 10
 
@@ -86,11 +86,14 @@ const uint8_t *token_next(void)
 }
 
 /* Example URIs that can be queried. */
-#define NUMBER_OF_URLS 2
+//#define NUMBER_OF_URLS 2
 /* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
-char *service_urls[NUMBER_OF_URLS] =
-{ ".well-known/core", "/test/hello" };
-
+char *service_urls[] =
+{"/test/hello", "/test/mcastq", "/test/hello", "/test/mcast"};
+//{ ".well-known/core", "/test/hello" };
+//destinations: all-nodes, node 2, node 4
+char *server_eps[] = 
+{"coap:://[ff02::1]", "coap:://[fe80::202:2:2:2]", "coap:://[fe80::204:4:4:4]"};
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
 void
 client_chunk_handler(coap_message_t *response)
@@ -111,13 +114,19 @@ void my_callback_f(coap_callback_request_state_t *callback_state)
 
 PROCESS_THREAD(er_example_client, ev, data)
 {
-  static coap_endpoint_t server_ep;
+  //static coap_endpoint_t server_ep;
+  static coap_endpoint_t servers[3];
   PROCESS_BEGIN();
+   
+  static uint8_t i = 0;
 
   static coap_callback_request_state_t my_callback_request_state;
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
 
-  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
+  //coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
+  coap_endpoint_parse(server_eps[0], strlen(server_eps[0]), &servers[0]);
+  coap_endpoint_parse(server_eps[1], strlen(server_eps[1]), &servers[1]);
+  coap_endpoint_parse(server_eps[2], strlen(server_eps[2]), &servers[2]);
 
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
 
@@ -129,21 +138,19 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       /* prepare a non-blocking, NON confirmable request */
       coap_init_message(request, COAP_TYPE_NON, COAP_GET, 0);
-      coap_set_header_uri_path(request, service_urls[1]);
+      coap_set_header_uri_path(request, service_urls[i]);
 
-//      const char msg[] = "Hi";
-
-//      coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
-
-      LOG_INFO_COAP_EP(&server_ep);
+      LOG_INFO_COAP_EP(&servers[0]);
       LOG_INFO_("\n");
       //callback request
-      //my_callback_request_state = {coap_request_state, my_callback_f};
-//      const uint8_t my_token[] = {0,0,0,0,0,0,0,1};
       coap_set_token(request, token_next(), 8);
-      coap_send_request(&my_callback_request_state, &server_ep, request, my_callback_f);
- 
+      //coap_send_request(&my_callback_request_state, &server_ep, request, my_callback_f);
+      coap_send_request(&my_callback_request_state, &servers[0], request, my_callback_f);
+
       printf("\n--Done--\n");
+
+      i++;
+      if(i == 4) i = 0;
 
       etimer_reset(&et);
     }
