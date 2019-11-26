@@ -90,9 +90,6 @@ PROCESS(coap_engine, "CoAP Engine");
 
 static struct uip_udp_conn *udp_conn = NULL;
 
-/*#ifdef WITH_GROUPCOM 
-static struct uip_udp_conn *mcast_group_udp_conn = NULL;
-#endif*/ /* WITH_GROUPCOM */
 /*---------------------------------------------------------------------------*/
 void
 coap_endpoint_log(const coap_endpoint_t *ep)
@@ -367,10 +364,12 @@ process_data(void)
   LOG_INFO_6ADDR(&UIP_IP_BUF->srcipaddr);
   LOG_INFO_("]:%u\n", uip_ntohs(UIP_UDP_BUF->srcport));
   LOG_INFO("  Length: %u\n", uip_datalen());
-
+#ifdef WITH_GROUPCOM
   //FIXME right now it works only for a hard-coded ff02::1 group!
   uint8_t is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
-
+#else
+  uint8_t is_mcast = 0;
+#endif
   LOG_INFO("is_mcast: %d\n", is_mcast);
   coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast);
 }
@@ -429,15 +428,7 @@ PROCESS_THREAD(coap_engine, ev, data)
 
   udp_bind(udp_conn, SERVER_LISTEN_PORT);
   LOG_INFO("Listening on port %u\n", uip_ntohs(udp_conn->lport));
-/*
-#ifdef WITH_GROUPCOM
-  // another socket listeting on a multicast group (all-nodes for now)
-  mcast_group_udp_conn = udp_new(NULL, 0, NULL);
-  udp_bind(mcast_group_udp_conn, SERVER_LISTEN_PORT);
-  LOG_INFO("Listening on port %u\n", uip_ntohs(udp_conn->lport));
 
-#endif
-*/
 #ifdef WITH_DTLS
   /* create new context with app-data */
   dtls_conn = udp_new(NULL, 0, NULL);
