@@ -68,14 +68,14 @@
 /*The delayed server response to mcast request*/
 static struct ctimer dr_timer;
 static uint16_t dr_mid;
-void printf_hex(unsigned char *data, unsigned int len)
+/*void printf_hex(unsigned char *data, unsigned int len)
 {
   unsigned int i = 0;
   for(i = 0; i < len; i++) {
     LOG_DBG_("%02x ", data[i]);
   }
   LOG_DBG_("\n");
-}
+}*/
 /*Callback function to actually send the delayed response*/
 static void send_delayed_response_callback(void *data)
 {
@@ -85,10 +85,10 @@ LOG_DBG("Send_delayed_response_callback:\n");
  coap_transaction_t *trans;
  if((trans = coap_get_transaction_by_mid(*mid_))) {
    LOG_DBG("Transaction found!!! Sending...\n");
-   printf_hex(trans->message, trans->message_len);
+   //printf_hex(trans->message, trans->message_len);
    coap_send_transaction(trans);
  }
- else {//TODO revise transaction concept for groupcom
+ else {
    LOG_DBG("No transaction found, no response will be sent...\n");
  }
  
@@ -190,30 +190,11 @@ coap_receive(const coap_endpoint_t *src,
   static coap_message_t response[1];
   coap_transaction_t *transaction = NULL;
   coap_handler_status_t status;
-
+//#ifdef WITH_GROUPCOM
   uint8_t is_testmcast = 0;
   uint8_t is_testmcastq = 0;
   const char *res1 = "test/mcast", *res2 = "test/mcastq";
-
-  if(src == NULL)
-  {  
-	  printf("\n\nSRC is null!!!\n");
-	  return 0;
-  }
-  else if (payload == NULL)
-  {
-  	printf("\n\nPayload is NULL!!!\n");
-	return 0;
-  }
-  else if (payload_length == 0)
-  {
-	  printf("\nlength is 0!!\n\n");
-	  return 0;
-  }
-
-  
-  printf_hex(payload, payload_length);
-
+//#endif
   coap_status_code = coap_parse_message(message, payload, payload_length);
   coap_set_src_endpoint(message, src);
 
@@ -235,7 +216,7 @@ coap_receive(const coap_endpoint_t *src,
 	  return 0;
   }*/
 
-
+//#ifdef WITH_GROUPCOM
   if(message->uri_path)/*Server responses have NULL STR, so for client mcast check is not needed*/
   {
   
@@ -258,8 +239,8 @@ coap_receive(const coap_endpoint_t *src,
      }
     }/*else*/
 
-  } else LOG_DBG("A client receiving a response, no mcast check.");
-
+  } else LOG_DBG("\nA client receiving a response, no mcast check.\n");
+//#endif
     /* handle requests */
     if(message->code >= COAP_GET && message->code <= COAP_DELETE) {
 
@@ -276,6 +257,7 @@ coap_receive(const coap_endpoint_t *src,
           coap_init_message(response, COAP_TYPE_ACK, CONTENT_2_05,
                             message->mid);
         } else {
+#ifdef WITH_GROUPCOM		
 	  if(is_testmcastq) {
             LOG_INFO("\nGot a multicast request for a quiet resource (response suppression)...");
 	    status = call_service(message, response,
@@ -289,6 +271,11 @@ coap_receive(const coap_endpoint_t *src,
             coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
                               coap_get_mid());
 	  }
+#endif
+          /* unreliable NON requests are answered with a NON as well */
+            coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
+                              coap_get_mid());
+
         }
         #ifdef WITH_OSCORE 
 	if(coap_is_option(message, COAP_OPTION_OSCORE)){
@@ -455,9 +442,7 @@ coap_receive(const coap_endpoint_t *src,
       LOG_DBG("About to prepare delayed response!\n");
       LOG_DBG("Scheduling delayed response after %d seconds...\n", node_id);
       dr_mid = message->mid;
-      LOG_DBG("\ndr_mid is now: %d", dr_mid);
       ctimer_set(&dr_timer, CLOCK_SECOND * (uint8_t) node_id, send_delayed_response_callback, &dr_mid);
-      LOG_DBG("After ctimer\n");
       }
       else {
       LOG_DBG("No groupcom, running coap_send_transation...\n");    
@@ -467,7 +452,7 @@ coap_receive(const coap_endpoint_t *src,
 	coap_send_transaction(transaction);
 
 #endif /*WITH_GROUPCOM*/
-    
+        
           }
   } else if(coap_status_code == MANUAL_RESPONSE) {
     LOG_DBG("Clearing transaction for manual response");
