@@ -242,5 +242,18 @@
     <location_x>1089</location_x>
     <location_y>10</location_y>
   </plugin>
+  <plugin>
+    org.contikios.cooja.plugins.ScriptRunner
+    <plugin_config>
+      <scriptfile>[CONFIG_DIR]/js/hello-world.js</scriptfile>
+      <active>true</active>
+    </plugin_config>
+    <width>541</width>
+    <z>0</z>
+    <height>448</height>
+    <location_x>299</location_x>
+    <location_y>7</location_y>
+  </plugin>
+
 </simconf>
 
