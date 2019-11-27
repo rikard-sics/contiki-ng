@@ -65,26 +65,50 @@ typedef struct oscore_sender_ctx {
   uint64_t seq;
   const uint8_t *sender_id;
   uint8_t sender_id_len;
-} oscore_sender_ctx_t;
+  uint8_t token_len;
+#ifdef WITH_GROUPCOM
+  uint8_t public_key[ES256_PUBLIC_KEY_LEN];
+  uint8_t public_key_len;
+  uint8_t private_key[ES256_PRIVATE_KEY_LEN];
+  uint8_t private_key_len;
+#endif /* WITH_GROUPCOM */
+};
 
-typedef struct oscore_recipient_ctx {
+struct oscore_recipient_ctx_t {
+  int64_t largest_seq;
+  int64_t rollback_largest_seq;
+  uint64_t recent_seq;
+  uint32_t sliding_window;
+  int32_t rollback_sliding_window;
   uint8_t recipient_key[CONTEXT_KEY_LEN];
   const uint8_t *recipient_id;
   uint8_t recipient_id_len;
-  //oscore_recipient_ctx_t *recipient_context; /* This field facilitates easy integration of OSCOAP multicast */
+  uint8_t replay_window_size;
+  uint8_t initialized;
+#ifdef WITH_GROUPCOM
+  uint8_t public_key[ES256_PUBLIC_KEY_LEN];
+  uint8_t public_key_len;
+  uint8_t private_key[ES256_PRIVATE_KEY_LEN];
+  uint8_t private_key_len;
+  oscore_recipient_ctx_t *next_recipient; 
+            /* This field allows recipient chaining */
+#endif /* WITH_GROUPCOM */
+};
 
-  oscore_sliding_window_t sliding_window;
-} oscore_recipient_ctx_t;
-
-typedef struct oscore_ctx {
-  struct oscore_ctx *next;
-  const uint8_t *master_secret;
+struct oscore_ctx_t {
+  oscore_ctx_t *next;
+  uint8_t *master_secret;
+  uint8_t *master_salt;
   uint8_t common_iv[CONTEXT_INIT_VECT_LEN];
   uint8_t master_secret_len;
   uint8_t alg;
-  oscore_sender_ctx_t sender_context;
-  oscore_recipient_ctx_t recipient_context;
-} oscore_ctx_t;
+#ifdef WITH_GROUPCOM
+  oscore_recipient_ctx_t *recipient_chain;
+  int8_t counter_signature_algorithm;
+  int8_t counter_signature_parameters;
+  uint8_t mode;   /* OSCORE_SINGLE or OSCORE_GROUP  */
+#endif /* WITH_GROUPCOM */
+};
 
 typedef struct oscore_exchange {
   struct oscore_exchange *next;
