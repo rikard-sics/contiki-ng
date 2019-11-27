@@ -238,3 +238,33 @@ hkdf(
   hkdf_extract(salt, salt_len, ikm, ikm_len, prk_buffer);
   return hkdf_expand(prk_buffer, info, info_len, okm, okm_len);
 }
+
+/* Return 0 if key pair generation failure. Key lengths are derived fron ed25519 values. No check is done to ensure that buffers are of the correct length. */
+/*
+int
+oscore_edDSA_keypair(int8_t alg, int8_t alg_param, uint8_t *private_key, uint8_t *public_key, uint8_t *es256_seed)
+{
+    if(alg != COSE_Algorithm_EdDSA || alg_param != COSE_Elliptic_Curve_Ed25519)  {
+       return 0;
+    }
+    ed25519_create_keypair(public_key, private_key, ed25519_seed);
+
+  if (coap_get_log_level() >= LOG_INFO){
+
+    fprintf(stderr,"\nKeyPair:\n");
+    fprintf(stderr,"Public Key:\n");
+    for (uint u = 0 ; u < Ed25519_PUBLIC_KEY_LEN; u++)
+                fprintf(stderr," %02x",public_key[u]);
+    fprintf(stderr,"\nPrivate Key:\n");
+    for (uint u = 0 ; u < Ed25519_PRIVATE_KEY_LEN; u++)
+                fprintf(stderr," %02x",private_key[u]);
+    fprintf(stderr,"\nseed \n");
+    for (uint u = 0 ; u < Ed25519_SEED_LEN; u++)
+                fprintf(stderr," %02x",ed25519_seed[u]);
+    fprintf(stderr, "\n");
+  }
+
+  return 1;
+}
+*/
+
