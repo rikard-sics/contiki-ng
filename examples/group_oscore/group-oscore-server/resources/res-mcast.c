@@ -31,51 +31,53 @@
 
 /**
  * \file
- *      Erbium (Er) CoAP Engine example.
+ *      Example resource
  * \author
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "contiki.h"
 #include "coap-engine.h"
 
-/* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "App"
-#define LOG_LEVEL LOG_LEVEL_APP
+static void res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset);
+
 /*
- * Resources to be activated need to be imported through the extern keyword.
- * The build system automatically compiles the resources in the corresponding sub-directory.
+ * A handler function named [resource name]_handler must be implemented for each RESOURCE.
+ * A buffer for the response payload is provided through the buffer pointer. Simple resources can ignore
+ * preferred_size and offset, but must respect the REST_MAX_CHUNK_SIZE limit for the buffer.
+ * If a smaller block size is requested for CoAP, the REST framework automatically splits the data.
  */
-extern coap_resource_t
-  res_hello,
-  res_mcast,
-  res_mcastq;
+RESOURCE(res_mcast,
+         "title=\"Multicast: ?len=0..\";rt=\"Text\"",
+         res_get_handler,
+         NULL,
+         NULL,
+         NULL);
 
-PROCESS(er_example_server, "Erbium Example Server");
-AUTOSTART_PROCESSES(&er_example_server);
-
-PROCESS_THREAD(er_example_server, ev, data)
+static void
+res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  PROCESS_BEGIN();
+  const char *len = NULL;
+  /* Some data that has the length up to REST_MAX_CHUNK_SIZE. For more, see the chunk resource. */
+  char const *const message = "Hello mcast.";
+  int length = 12; /*           |<-------->| */
 
-  PROCESS_PAUSE();
+  /* The query string can be retrieved by rest_get_query() or parsed for its key-value pairs. */
+  if(coap_get_query_variable(request, "len", &len)) {
+    length = atoi(len);
+    if(length < 0) {
+      length = 0;
+    }
+    if(length > REST_MAX_CHUNK_SIZE) {
+      length = REST_MAX_CHUNK_SIZE;
+    }
+    memcpy(buffer, message, length);
+  } else {
+    memcpy(buffer, message, length);
+  }
 
-  LOG_INFO("Starting Erbium Example Server\n");
-  
-  coap_activate_resource(&res_hello, "test/hello");
-  coap_activate_resource(&res_mcast, "test/mcast");
-  coap_activate_resource(&res_mcastq, "test/mcastq");
-  
-  //multicast initialisation stuff here
-  //uip_ip6addr(addr, addr0, addr1, addr2, addr3, addr4, addr5, addr6, addr7)
-  /* Define application-specific events here. */
-  while(1) {
-    PROCESS_WAIT_EVENT();
-  }                             /* while (1) */
-
-  PROCESS_END();
+  coap_set_header_content_format(response, TEXT_PLAIN); /* text/plain is the default, hence this option could be omitted. */
+  coap_set_header_etag(response, (uint8_t *)&length, 1);//server can include ETag
+  coap_set_payload(response, buffer, length);
 }
