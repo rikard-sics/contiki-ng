@@ -51,7 +51,9 @@
  * The build system automatically compiles the resources in the corresponding sub-directory.
  */
 extern coap_resource_t
-  res_hello;
+  res_hello,
+  res_mcast,
+  res_mcastq;
 
 PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
@@ -65,6 +67,8 @@ PROCESS_THREAD(er_example_server, ev, data)
   LOG_INFO("Starting Erbium Example Server\n");
   
   coap_activate_resource(&res_hello, "test/hello");
+  coap_activate_resource(&res_mcast, "test/mcast");
+  coap_activate_resource(&res_mcastq, "test/mcastq");
   
   //multicast initialisation stuff here
   //uip_ip6addr(addr, addr0, addr1, addr2, addr3, addr4, addr5, addr6, addr7)
