@@ -121,6 +121,19 @@ bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b
 
   return memcmp(a_ptr, b_ptr, a_len) == 0;
 }
+#ifdef WITH_GROUPCOM
+oscore_ctx_t *
+oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window, uint8_t *gid)
+#else
+oscore_ctx_t *
+oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window)
+#endif
+{
+
+  oscore_ctx_t *common_ctx = memb_alloc(&common_context_memb);
+  if(common_ctx == NULL) {
+    return 0;
+  }
 
 void
 oscore_derive_ctx(oscore_ctx_t *common_ctx,
@@ -166,15 +179,27 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   common_ctx->master_secret = master_secret;
   common_ctx->master_secret_len = master_secret_len;
   common_ctx->alg = alg;
+  common_ctx->id_context = id_context;
+  common_ctx->id_context_len = id_context_len;
+#ifdef WITH_GROUPCOM 
+  common_ctx->gid = gid;
+#endif
+  common_ctx->recipient_context = recipient_ctx;
+  common_ctx->sender_context = sender_ctx;
 
-  common_ctx->sender_context.sender_id = sid;
-  common_ctx->sender_context.sender_id_len = sid_len;
-  common_ctx->sender_context.seq = 0; /* rfc8613 Section 3.2.2 */
+  sender_ctx->sender_id = sid;
+  sender_ctx->sender_id_len = sid_len;
+  sender_ctx->seq = 0;
 
-  common_ctx->recipient_context.recipient_id = rid;
-  common_ctx->recipient_context.recipient_id_len = rid_len;
-
-  oscore_sliding_window_init(&common_ctx->recipient_context.sliding_window);
+  recipient_ctx->recipient_id = rid;
+  recipient_ctx->recipient_id_len = rid_len;
+  recipient_ctx->largest_seq = -1;
+  recipient_ctx->recent_seq = 0;
+  recipient_ctx->replay_window_size = replay_window;
+  recipient_ctx->rollback_largest_seq = 0;
+  recipient_ctx->sliding_window = 0;
+  recipient_ctx->rollback_sliding_window = -1;
+  recipient_ctx->initialized = 0;
 
   list_add(common_context_list, common_ctx);
 }
