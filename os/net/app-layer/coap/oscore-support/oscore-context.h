@@ -118,6 +118,7 @@ struct oscore_ctx_t {
   uint8_t id_context_len;
   uint8_t alg;
 #ifdef WITH_GROUPCOM
+  uint8_t *gid;
   oscore_recipient_ctx_t *recipient_chain;
   int8_t counter_signature_algorithm;
   int8_t counter_signature_parameters;
@@ -140,10 +141,12 @@ struct ep_ctx_t {
   oscore_ctx_t *ctx;
 };
 void oscore_ctx_store_init();
-
+#ifdef WITH_GROUPCOM
 //replay window default is 32
+oscore_ctx_t *oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window, uint8_t *gid);
+#else
 oscore_ctx_t *oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window);
-
+#endif
 int oscore_free_ctx(oscore_ctx_t *ctx);
 
 oscore_ctx_t *oscore_find_ctx_by_rid(uint8_t *rid, uint8_t rid_len);
