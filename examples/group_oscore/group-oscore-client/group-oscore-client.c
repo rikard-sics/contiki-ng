@@ -141,6 +141,7 @@ PROCESS_THREAD(er_example_client, ev, data)
       //my_callback_request_state = {coap_request_state, my_callback_f};
 //      const uint8_t my_token[] = {0,0,0,0,0,0,0,1};
       coap_set_token(request, token_next(), 8);
+      coap_set_oscore(request);
       coap_send_request(&my_callback_request_state, &server_ep, request, my_callback_f);
  
       printf("\n--Done--\n");
