@@ -44,6 +44,9 @@ else ifeq ($(MAKE_WITH_DTLS),1)
  else
   ${error Unsupported CoAP DTLS keystore: $(MAKE_COAP_DTLS_KEYSTORE)}
  endif
-else ifeq ($(MAKE_WITH_GROUPCOM),1)
+endif 
+
+
+ifeq ($(MAKE_WITH_GROUPCOM),1)
  CFLAGS += -DWITH_GROUPCOM=1
 endif
