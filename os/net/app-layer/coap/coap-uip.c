@@ -366,8 +366,11 @@ process_data(void)
   LOG_INFO("  Length: %u\n", uip_datalen());
 #ifdef WITH_GROUPCOM
   //FIXME right now it works only for a hard-coded ff02::1 group!
-  uint8_t is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
+  //uint8_t is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
+//  LOG_INFO("GROUPCOM, JUHU!\n");
+  uint8_t is_mcast = 1;
 #else
+ // LOG_INFO("Not a groupcom:(\n");
   uint8_t is_mcast = 0;
 #endif
   LOG_INFO("is_mcast: %d\n", is_mcast);

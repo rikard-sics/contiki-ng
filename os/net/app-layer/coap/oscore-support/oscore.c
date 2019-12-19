@@ -190,8 +190,8 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
     return BAD_OPTION_4_02;
   }
 #ifdef WITH_GROUPCOM
-  /*h and k flags MUST be 1 in group OSCORE. h MUST be 1 only for requests. //TODO exclude h if client behaviour considered.*/
-  LOG_INFO("\nTime to check h and k!\n");
+  /*h and k flags MUST be 1 in group OSCORE. h MUST be 1 only for requests. //TODO exclude h if client behaviour considered.*/  
+  //LOG_INFO("\nTime to check h and k!\n");
   if ( (option_value[0] & 0x18) == 0) {
     return BAD_OPTION_4_02;
   }
@@ -280,7 +280,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       return UNAUTHORIZED_4_01;
     }
     else {
-      LOG_DBG_("Gid length=%d.\n", gid_len);
+      LOG_DBG_("Gid length=%d Value comes below.\n", gid_len);
       printf_hex(group_id, gid_len);
     }
 #endif    
