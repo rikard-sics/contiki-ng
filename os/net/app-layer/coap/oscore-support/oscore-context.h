@@ -44,6 +44,7 @@
 #include <inttypes.h>
 #include "coap-constants.h"
 #include "coap-endpoint.h"
+#include "cose.h"
 
 #define CONTEXT_KEY_LEN 16
 #define CONTEXT_INIT_VECT_LEN 13

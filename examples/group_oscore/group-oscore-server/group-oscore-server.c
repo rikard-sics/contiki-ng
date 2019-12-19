@@ -75,7 +75,7 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   /*Derive an OSCORE-Security-Context. */
   static oscore_ctx_t *context;
-  context = oscore_derive_ctx(master_secret, 10, salt, 8, 10, sender_id, 1, receiver_id, 1, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+  context = oscore_derive_ctx(master_secret, 10, salt, 8, 10, sender_id, 1, receiver_id, 1, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW, group_id);
   if(!context){
         printf("Could not create OSCORE Security Context!\n");
   }
