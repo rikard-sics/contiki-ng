@@ -44,10 +44,7 @@
 #include <string.h>
 #include "oscore-crypto.h"
 #include "oscore.h"
-#include "assert.h"
-
-#include "nanocbor/nanocbor.h"
-#include "nanocbor-helper.h"
+#include "coap-log.h"
 
 #include <stdio.h>
 
@@ -118,8 +115,12 @@ bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b
   if(a_len != b_len) {
     return false;
   }
-
-  return memcmp(a_ptr, b_ptr, a_len) == 0;
+oscore_add_group_keys
+  if(memcmp(a_ptr, b_ptr, a_len) == 0) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 #ifdef WITH_GROUPCOM
 oscore_ctx_t *
@@ -204,7 +205,7 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   list_add(common_context_list, common_ctx);
 }
 
-void
+int
 oscore_free_ctx(oscore_ctx_t *ctx)
 {
   list_remove(common_context_list, ctx); 
@@ -281,3 +282,86 @@ oscore_remove_exchange(const uint8_t *token, uint8_t token_len)
     memb_free(&exchange_memb, ptr);
   }
 }
+
+#ifdef WITH_GROUPCOM
+void
+oscore_add_group_keys(oscore_ctx_t *ctx,  
+   uint8_t *snd_public_key, 
+   uint8_t *snd_private_key,
+   uint8_t *rcv_public_key, 
+   uint8_t *rcv_private_key,
+   int8_t counter_signature_algorithm,
+   int8_t counter_signature_parameters)
+{
+    ctx->counter_signature_algorithm = 
+                            counter_signature_algorithm;
+    ctx->counter_signature_parameters = 
+                            counter_signature_parameters; 
+    ctx->mode = OSCORE_GROUP;
+
+    ctx->sender_context->private_key_len    = 0;
+    ctx->sender_context->public_key_len     = 0;
+    ctx->recipient_context->private_key_len = 0;
+    ctx->recipient_context->public_key_len  = 0;
+
+    if (snd_private_key != NULL){
+      memcpy(ctx->sender_context->private_key, snd_private_key,  
+                                        ES256_PRIVATE_KEY_LEN);
+      ctx->sender_context->private_key_len = 
+                                         ES256_PRIVATE_KEY_LEN;
+    }
+    if (snd_public_key != NULL){
+      memcpy(ctx->sender_context->public_key, snd_public_key,  
+                                        ES256_PUBLIC_KEY_LEN);
+      ctx->sender_context->public_key_len = 
+                                          ES256_PUBLIC_KEY_LEN;
+    }
+    if (rcv_private_key != NULL){
+      memcpy(ctx->recipient_context->private_key,
+                      rcv_private_key, ES256_PRIVATE_KEY_LEN);
+      ctx->recipient_context->private_key_len = 
+                                         ES256_PRIVATE_KEY_LEN;
+    }
+    if (rcv_public_key != NULL){
+      memcpy(ctx->recipient_context->public_key, rcv_public_key,  
+                                        ES256_PUBLIC_KEY_LEN); 
+      ctx->recipient_context->public_key_len = 
+                                          ES256_PUBLIC_KEY_LEN;
+    } 
+    /*if (coap_get_log_level() >= LOG_INFO){ 
+      int key_len= 0;
+      key_len = ctx->sender_context->private_key_len;
+      if (key_len > 0) {
+        fprintf(stderr,"sender private key:\n");
+        for (int qq = 0; qq <key_len; qq++)
+             fprintf(stderr,"%02x",
+                     ctx->sender_context->private_key[qq]);
+        fprintf(stderr,"\n");
+      }
+      key_len = ctx->sender_context->public_key_len;
+      if (key_len > 0) {
+        fprintf(stderr,"sender public key:\n");
+        for (int qq = 0; qq <key_len; qq++)
+             fprintf(stderr,"%02x",
+                     ctx->sender_context->public_key[qq]);
+        fprintf(stderr,"\n");
+      }
+      key_len = ctx->recipient_context->private_key_len;
+      if (key_len > 0) {
+        fprintf(stderr,"recipient private key:\n");
+        for (int qq = 0; qq <key_len; qq++)
+             fprintf(stderr,"%02x",
+                     ctx->recipient_context->private_key[qq]);
+        fprintf(stderr,"\n");
+      }
+      key_len = ctx->recipient_context->public_key_len;
+      if (key_len > 0) {
+        fprintf(stderr,"recipient public key:\n");
+        for (int qq = 0; qq <key_len; qq++)
+             fprintf(stderr,"%02x",
+                     ctx->recipient_context->public_key[qq]);
+        fprintf(stderr,"\n");
+      }
+    } */ 
+}
+#endif /* WITH_GROUPCOM */

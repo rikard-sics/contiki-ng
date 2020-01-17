@@ -62,6 +62,10 @@ uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40};
 uint8_t sender_id[1] = { 0x52 };
 uint8_t receiver_id[1] = { 0x25 };
 uint8_t group_id[3] = { 0x44, 0x61, 0x6c };
+uint8_t snd_public_key[64] = {0x00};
+uint8_t snd_private_key[32] = { 0x00 };
+uint8_t rcv_public_key[64] = {0x00};
+uint8_t rcv_private_key[32] = {0x00}; //{ 16D98942237CE103235D0EDF3AE45B0BB3B36F795E05DAEC9944302A7B260A3C  };
 
 PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
@@ -88,8 +92,10 @@ PROCESS_THREAD(er_example_server, ev, data)
   if(ctx == NULL){
     printf("CONTEXT NOT FOUND\n");
   }
-  
-  coap_activate_resource(&res_hello, "helloWorld");
+  oscore_add_group_keys(ctx, snd_public_key, snd_private_key, rcv_public_key, rcv_private_key, COSE_Algorithm_ES256, COSE_Elliptic_Curve_P256);  
+  coap_activate_resource(&res_hello, "test/hello");
+  coap_activate_resource(&res_mcast, "test/mcast");
+  coap_activate_resource(&res_mcastq, "test/mcastq");
   
   //multicast initialisation stuff here
   //uip_ip6addr(addr, addr0, addr1, addr2, addr3, addr4, addr5, addr6, addr7)

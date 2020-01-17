@@ -41,6 +41,7 @@
 #define _COSE_H
 
 #define COSE_Algorithm_ES256	 -7
+#define COSE_Elliptic_Curve_P256  1
 #define ES256_SIGNATURE_LEN      64
 #define ES256_PRIVATE_KEY_LEN  	 64
 #define ES256_PUBLIC_KEY_LEN     32
