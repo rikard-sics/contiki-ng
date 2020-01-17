@@ -56,6 +56,9 @@
 #define OSCORE_SENDER_ID_MAX_LEN(NONE_LENGTH) (NONE_LENGTH - 6)
 #define OSCORE_SENDER_ID_MAX_SUPPORTED_LEN OSCORE_SENDER_ID_MAX_LEN(COSE_LARGEST_IV_LENGTH)
 
+#define OSCORE_SINGLE 0
+#define OSCORE_GROUP 1
+
 size_t oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role);
 coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len, uint8_t role);
 
