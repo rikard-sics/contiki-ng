@@ -13,5 +13,8 @@ MAKE_WITH_GROUPCOM = 1
 # Include CoAP resources
 MODULES_REL += ./resources
 
+#dissable Werror for now
+WERROR=0
+
 CONTIKI=../../..
 include $(CONTIKI)/Makefile.include

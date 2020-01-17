@@ -49,4 +49,18 @@ endif
 
 ifeq ($(MAKE_WITH_GROUPCOM),1)
  CFLAGS += -DWITH_GROUPCOM=1
+ 
+  ifeq ($(TARGET), zoul)
+ 	#ecdsa is already included
+
+  else 
+	CFLAGS += -DSW_ECDSA=1
+	#defines for uECC
+	#assume Native
+	CFLAGS += -DuECC_PLATFORM=uECC_x86_64
+	#We will only use P256
+	CFLAGS += -uECC_CURVE=uECC_secp256r1
+	
+  endif 
+
 endif
