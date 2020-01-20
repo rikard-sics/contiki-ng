@@ -115,13 +115,13 @@ bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b
   if(a_len != b_len) {
     return false;
   }
-oscore_add_group_keys
   if(memcmp(a_ptr, b_ptr, a_len) == 0) {
     return 1;
   } else {
     return 0;
   }
 }
+
 #ifdef WITH_GROUPCOM
 oscore_ctx_t *
 oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window, uint8_t *gid)
