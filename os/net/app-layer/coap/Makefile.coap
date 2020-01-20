@@ -59,7 +59,7 @@ ifeq ($(MAKE_WITH_GROUPCOM),1)
 	#assume Native
 	CFLAGS += -DuECC_PLATFORM=uECC_x86_64
 	#We will only use P256
-	CFLAGS += -uECC_CURVE=uECC_secp256r1
+	CFLAGS += -DuECC_CURVE=uECC_secp256r1
 	
   endif 
 
