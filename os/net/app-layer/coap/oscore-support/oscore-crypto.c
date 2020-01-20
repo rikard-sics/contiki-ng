@@ -43,8 +43,7 @@
 
 #include <stdio.h>
 #include "dtls-hmac.h"
-#include "assert.h"
-//#include "dtls.h"
+#include "uECC.h"
 
 /* Log configuration */
 #include "sys/log.h"
@@ -239,16 +238,16 @@ hkdf(
   return hkdf_expand(prk_buffer, info, info_len, okm, okm_len);
 }
 
+#ifdef WITH_GROUPCOM
 /* Return 0 if key pair generation failure. Key lengths are derived fron ed25519 values. No check is done to ensure that buffers are of the correct length. */
-/*
 int
 oscore_edDSA_keypair(int8_t alg, int8_t alg_param, uint8_t *private_key, uint8_t *public_key, uint8_t *es256_seed)
 {
-    if(alg != COSE_Algorithm_EdDSA || alg_param != COSE_Elliptic_Curve_Ed25519)  {
+   if(alg != COSE_Algorithm_ES256 || alg_param != COSE_Elliptic_Curve_P256)  {
        return 0;
     }
-    ed25519_create_keypair(public_key, private_key, ed25519_seed);
-
+ //   es256_create_keypair(public_key, private_key, es256_seed);
+/*
   if (coap_get_log_level() >= LOG_INFO){
 
     fprintf(stderr,"\nKeyPair:\n");
@@ -262,9 +261,112 @@ oscore_edDSA_keypair(int8_t alg, int8_t alg_param, uint8_t *private_key, uint8_t
     for (uint u = 0 ; u < Ed25519_SEED_LEN; u++)
                 fprintf(stderr," %02x",ed25519_seed[u]);
     fprintf(stderr, "\n");
-  }
+  }*/
 
   return 1;
 }
-*/
 
+/* For ECDSA-Deterministic */
+#define SHA256_BLOCK_LENGTH  64
+#define SHA256_DIGEST_LENGTH 32
+typedef struct SHA256_HashContext {
+    uECC_HashContext uECC;
+    dtls_sha256_ctx ctx;
+} SHA256_HashContext;
+
+static void init_SHA256(uECC_HashContext *base) {
+    SHA256_HashContext *context = (SHA256_HashContext *)base;
+    //SHA256_Init(&context->ctx);
+    dtls_sha256_init(&context->ctx);
+}
+
+static void update_SHA256(uECC_HashContext *base,
+                          const uint8_t *message,
+                          unsigned message_size) {
+    SHA256_HashContext *context = (SHA256_HashContext *)base;
+    //SHA256_Update(&context->ctx, message, message_size);
+    dtls_sha256_update(&context->ctx, message, message_size);
+}
+
+static void finish_SHA256(uECC_HashContext *base, uint8_t *hash_result) {
+    SHA256_HashContext *context = (SHA256_HashContext *)base;
+    //SHA256_Final(hash_result, &context->ctx);
+    dtls_sha256_final(hash_result, &context->ctx);
+}
+
+
+int
+oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *ciphertext, uint16_t ciphertext_len, uint8_t *private_key, uint8_t *public_key){
+   if(alg != COSE_Algorithm_ES256 || alg_param != COSE_Elliptic_Curve_P256)  {
+    return 0;
+  }
+
+  uint8_t message_hash[SHA256_DIGEST_LENGTH];
+  dtls_sha256_ctx msg_hash_ctx;
+  dtls_sha256_init(&msg_hash_ctx);
+  dtls_sha256_update(&msg_hash_ctx, ciphertext, ciphertext_len);
+  dtls_sha256_final(message_hash, &msg_hash_ctx);
+  uint8_t tmp[32 + 32 + 64];
+  SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
+  uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);
+
+/*
+  if (coap_get_log_level() >= LOG_INFO){
+
+    fprintf(stderr,"Sign:\n");
+    fprintf(stderr,"Public Key:\n");
+    for (uint u = 0 ; u < Ed25519_PUBLIC_KEY_LEN; u++)
+                fprintf(stderr," %02x",public_key[u]);
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Private Key:\n");
+    for (uint u = 0 ; u < Ed25519_PRIVATE_KEY_LEN; u++)
+                fprintf(stderr," %02x",private_key[u]);
+    fprintf(stderr,"\n");
+    fprintf(stderr,"incoming ciphertext \n");
+    for (uint u = 0 ; u < ciphertext_len; u++)
+                fprintf(stderr," %02x",ciphertext[u]);
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Signature:\n");
+    for (uint u = 0 ; u < Ed25519_SIGNATURE_LEN; u++)
+                fprintf(stderr," %02x",signature[u]);
+    fprintf(stderr,"\n");
+  } */
+    
+    return 1;
+}
+
+/* Return 0 if signing failure. Signatue length otherwise, signature length and key length are derived fron ed25519 values. No check is done to ensure that buffers are of the correct length. */
+
+int
+oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *plaintext, uint16_t plaintext_len, uint8_t *public_key){
+  if(alg != COSE_Algorithm_ES256 || alg_param != COSE_Elliptic_Curve_P256)  {
+    return 0;
+  }
+/*
+  if (coap_get_log_level() >= LOG_INFO){
+     fprintf(stderr,"Verify:\n");
+     fprintf(stderr,"Public Key:\n");
+     for (uint u = 0 ; u < Ed25519_PUBLIC_KEY_LEN; u++)
+                fprintf(stderr," %02x",public_key[u]);
+     fprintf(stderr,"\n");
+     fprintf(stderr,"incoming ciphertext \n");
+     for (uint u = 0 ; u < plaintext_len; u++)
+                fprintf(stderr," %02x",plaintext[u]);
+     fprintf(stderr,"\n");
+     fprintf(stderr,"Signature:\n");
+     for (uint u = 0 ; u < Ed25519_SIGNATURE_LEN; u++)
+                fprintf(stderr," %02x",signature[u]);
+     fprintf(stderr,"\n");
+  }
+*/
+  uint8_t message_hash[SHA256_DIGEST_LENGTH];
+  dtls_sha256_ctx msg_hash_ctx;
+  dtls_sha256_init(&msg_hash_ctx);
+  dtls_sha256_update(&msg_hash_ctx, plaintext, plaintext_len);
+  dtls_sha256_final(message_hash, &msg_hash_ctx);
+  
+  int res = uECC_verify(public_key, message_hash, signature);
+  return res;  
+}
+
+#endif /*WITH_GROUPCOM*/
