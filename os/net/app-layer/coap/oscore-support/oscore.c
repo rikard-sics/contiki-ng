@@ -411,8 +411,24 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buf
   /* Serialize the External AAD*/
   external_aad_len += cbor_put_array(&external_aad_ptr, 5);
   external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1); /* Version, always for this version of the draft 1 */
-  external_aad_len += cbor_put_array(&external_aad_ptr, 1); /* Algoritms array */
-  external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); /* Algorithm */
+#ifdef WITH_GROUPCOM
+  if(coap_pkt->security_context->mode == OSCORE_GROUP){
+    external_aad_len += cbor_put_array(&external_aad_ptr, 4); /* Algoritms array */
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); 
+    external_aad_len += cbor_put_negative(&external_aad_ptr, (coap_pkt->security_context->counter_signature_algorithm)); 
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->counter_signature_parameters)); 
+    external_aad_len += cbor_put_array(&external_aad_ptr, 2); /* Countersign Key Parameters array */
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, 26); /*ECDSA_256 Hard coded */ 
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1); /*ECDSA_256 Hard coded */ 
+  } else {
+    external_aad_len += cbor_put_array(&external_aad_ptr, 1); /* Algoritms array */
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); /* Algorithm */
+}
+#else 
+    external_aad_len += cbor_put_array(&external_aad_ptr, 1); /* Algoritms array */
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); /* Algorithm */
+#endif /*"WITH_GROUPCOM */
+
   /*When sending responses. */
   if( !coap_is_request(coap_pkt)) { 
     external_aad_len += cbor_put_bytes(&external_aad_ptr, coap_pkt->security_context->recipient_context->recipient_id,  coap_pkt->security_context->recipient_context->recipient_id_len);
