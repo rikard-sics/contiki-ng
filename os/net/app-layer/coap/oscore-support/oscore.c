@@ -214,8 +214,12 @@ oscore_decode_message(coap_message_t *coap_pkt)
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
   cose_encrypt0_init(cose);
-  /* Options are discarded later when they are overwritten. This should be improved */
-	  coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
+#ifdef WITH_GROUPCOM
+  cose_sign1_t sign[1];
+  cose_sign1_init(sign);
+#endif /*WITH_GROUPCOM*/
+ /* Options are discarded later when they are overwritten. This should be improved */
+  coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
 
   if( ret != NO_ERROR){
 	 LOG_DBG_("OSCORE option value could not be parsed.\n");
@@ -280,7 +284,14 @@ oscore_decode_message(coap_message_t *coap_pkt)
   
   oscore_generate_nonce(cose, coap_pkt, nonce_buffer, 13);
   cose_encrypt0_set_nonce(cose, nonce_buffer, 13);
-  
+
+#ifdef WITH_GROUPCOM
+  uint16_t encrypt_len;
+  if (ctx->mode == OSCORE_GROUP){
+    encrypt_len = encrypt_len - ES256_SIGNATURE_LEN;
+  }
+#endif /* WITH_GROUPCOM */
+
   cose_encrypt0_set_content(cose, coap_pkt->payload, coap_pkt->payload_len);
   int res = cose_encrypt0_decrypt(cose);
   if(res <= 0) {
@@ -294,6 +305,26 @@ oscore_decode_message(coap_message_t *coap_pkt)
       return OSCORE_DECRYPTION_ERROR;
     }  
   }
+#ifdef WITH_GROUPCOM
+  if (ctx->mode == OSCORE_GROUP){
+  /* verify signature     */
+     uint8_t *st_signature = coap_pkt->payload + encrypt_len;
+     uint8_t sig_buffer[aad_len + encrypt_len + 24];
+     
+     oscore_populate_sign(coap_is_request(coap_pkt), sign, ctx);
+     size_t sig_len = oscore_prepare_sig_structure(sig_buffer, 
+                  aad_buffer, aad_len, coap_pkt->payload, encrypt_len);
+     cose_sign1_set_signature(sign, st_signature);
+     cose_sign1_set_ciphertext(sign, sig_buffer, sig_len);
+     int sign_res = cose_sign1_verify(sign);
+     if (sign_res == 0){
+       //coap_log(LOG_WARNING,
+        //   "OSCORE signature verification Failure, result code");
+        return OSCORE_DECRYPTION_ERROR;
+     }
+  } 
+#endif /* WITH_GROUPCOM */
+
 
   coap_status_t status = oscore_parser(coap_pkt, cose->content, res, ROLE_CONFIDENTIAL);
   return status;
@@ -579,3 +610,40 @@ oscore_init_client()
   oscore_ctx_store_init();
   oscore_ep_ctx_store_init();
 }
+
+#ifdef WITH_GROUPCOM
+/* Sets alg and keys in COSE SIGN  */
+void
+oscore_populate_sign(uint8_t coap_request, cose_sign1_t *sign, oscore_ctx_t *ctx)
+{
+  cose_sign1_set_alg(sign, ctx->counter_signature_algorithm,
+                     ctx->counter_signature_parameters);
+  if (coap_request){
+    cose_sign1_set_private_key(sign, ctx->sender_context->private_key); 
+    cose_sign1_set_public_key(sign, ctx->sender_context->public_key);
+  } else {
+    cose_sign1_set_private_key(sign, ctx->recipient_context->private_key); 
+    cose_sign1_set_public_key(sign, ctx->recipient_context->public_key);
+  }
+}
+
+//
+// oscore_prepare_sig_structure
+// creates and sets structure to be signed
+size_t
+oscore_prepare_sig_structure(uint8_t *sig_ptr,
+uint8_t *aad_buffer, uint8_t aad_len,
+uint8_t *text, uint8_t text_len)
+{
+  uint8_t sig_len = 0;
+  char countersig0[] = "CounterSignature0";
+  sig_len += cbor_put_array(&sig_ptr, 5);
+  sig_len += cbor_put_text(&sig_ptr, countersig0, strlen(countersig0));
+  sig_len += cbor_put_bytes(&sig_ptr, NULL, 0);
+  sig_len += cbor_put_bytes(&sig_ptr, NULL, 0);
+  sig_len += cbor_put_bytes(&sig_ptr, 
+                  aad_buffer, aad_len); 
+  sig_len += cbor_put_bytes(&sig_ptr, text, text_len); 
+  return sig_len;
+}
+#endif /*WITH_GROUPCOM*/
