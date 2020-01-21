@@ -94,4 +94,11 @@ bool oscore_is_request_protected(const coap_message_t *request);
 /* Initialize the context storage, the token - seq association storrage and the URI - context association storage. */
 void oscore_init(void);
 
+#ifdef WITH_GROUPCOM
+void oscore_populate_sign(uint8_t coap_request, cose_sign1_t *sign, oscore_ctx_t *ctx);
+
+size_t oscore_prepare_sig_structure(uint8_t *sig_ptr, uint8_t *aad_buffer, uint8_t aad_len, uint8_t *text, uint8_t text_len);
+
+#endif /* WITH_GROUPCOM */
+
 #endif /* _OSCORE_H */
