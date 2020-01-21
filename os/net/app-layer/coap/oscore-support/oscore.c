@@ -480,24 +480,31 @@ oscore_prepare_aad(const coap_message_t *coap_pkt, const cose_encrypt0_t *cose, 
   nanocbor_encoder_init(&aad_enc, external_aad_buffer, sizeof(external_aad_buffer));
 
   /* Serialize the External AAD*/
-  NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 5));
-  NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, 1)); /* Version, always for this version of the draft 1 */
-  NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 1)); /* Algorithms array */
-  NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, coap_pkt->security_context->alg)); /* Algorithm */
-
-  /* When sending responses. */
-  if(coap_is_request(coap_pkt)) {
-    NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc, cose->key_id, cose->key_id_len));
+  external_aad_len += cbor_put_array(&external_aad_ptr, 5);
+  external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1); /* Version, always for this version of the draft 1 */
+#ifdef WITH_GROUPCOM
+  if(coap_pkt->security_context->mode == OSCORE_GROUP){
+    external_aad_len += cbor_put_array(&external_aad_ptr, 4); /* Algoritms array */
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); 
+    external_aad_len += cbor_put_negative(&external_aad_ptr, (coap_pkt->security_context->counter_signature_algorithm)); 
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->counter_signature_parameters)); 
+    external_aad_len += cbor_put_array(&external_aad_ptr, 2); /* Countersign Key Parameters array */
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, 26); /*ECDSA_256 Hard coded */ 
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1); /*ECDSA_256 Hard coded */ 
   } else {
-    if (sending) {
-      NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc,
-        coap_pkt->security_context->recipient_context.recipient_id,
-        coap_pkt->security_context->recipient_context.recipient_id_len));
-    } else {
-      NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc,
-        coap_pkt->security_context->sender_context.sender_id,
-        coap_pkt->security_context->sender_context.sender_id_len));
-    }
+    external_aad_len += cbor_put_array(&external_aad_ptr, 1); /* Algoritms array */
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); /* Algorithm */
+}
+#else 
+    external_aad_len += cbor_put_array(&external_aad_ptr, 1); /* Algoritms array */
+    external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); /* Algorithm */
+#endif /*"WITH_GROUPCOM */
+
+  /*When sending responses. */
+  if( !coap_is_request(coap_pkt)) { 
+    external_aad_len += cbor_put_bytes(&external_aad_ptr, coap_pkt->security_context->recipient_context->recipient_id,  coap_pkt->security_context->recipient_context->recipient_id_len);
+  } else {	 
+    external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->key_id, cose->key_id_len);
   }
   NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc, cose->partial_iv, cose->partial_iv_len));
   NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc, NULL, 0)); /* Put integrety protected option, at present there are none. */
