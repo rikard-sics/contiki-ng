@@ -142,6 +142,17 @@ decrypt(uint8_t alg,
 
   uint8_t tag_buffer[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
   
+  CCM_STAR.set_key(key);
+    printf("Decrypt:\n");
+     printf("Key:\n");
+     kprintf_hex(key, key_len);
+     printf("IV:\n");
+     kprintf_hex(nonce, nonce_len);
+     printf("AAD:\n");
+     kprintf_hex(aad, aad_len);
+     printf("Ciphertext&Tag:\n");
+     kprintf_hex(buffer, ciphertext_len);
+ 
   uint16_t plaintext_len = ciphertext_len - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
 
 #ifdef OSCORE_ENC_DEC_DEBUG
@@ -359,6 +370,12 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
      fprintf(stderr,"\n");
   }
 */
+  printf("public key\n");
+  kprintf_hex(public_key, 64); 
+  printf("bytes to verify\n");
+  kprintf_hex(plaintext, plaintext_len);
+  printf("signature bytes\n");
+  kprintf_hex(signature, 64);
   uint8_t message_hash[SHA256_DIGEST_LENGTH];
   dtls_sha256_ctx msg_hash_ctx;
   dtls_sha256_init(&msg_hash_ctx);
