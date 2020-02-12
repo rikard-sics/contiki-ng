@@ -279,20 +279,22 @@ oscore_decode_message(coap_message_t *coap_pkt)
   coap_pkt->security_context = ctx;
 
   size_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, 0);
+  printf_hex(aad_buffer, aad_len);
   cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
   cose_encrypt0_set_alg(cose, ctx->alg);
   
   oscore_generate_nonce(cose, coap_pkt, nonce_buffer, 13);
   cose_encrypt0_set_nonce(cose, nonce_buffer, 13);
-
+  
+uint16_t encrypt_len = coap_pkt->payload_len;
 #ifdef WITH_GROUPCOM
-  uint16_t encrypt_len;
   if (ctx->mode == OSCORE_GROUP){
-    encrypt_len = encrypt_len - ES256_SIGNATURE_LEN;
+    encrypt_len = coap_pkt->payload_len - ES256_SIGNATURE_LEN;
   }
 #endif /* WITH_GROUPCOM */
-
-  cose_encrypt0_set_content(cose, coap_pkt->payload, coap_pkt->payload_len);
+  uint8_t tmp_buffer[encrypt_len];
+  memcpy(tmp_buffer, coap_pkt->payload, encrypt_len); 
+  cose_encrypt0_set_content(cose, coap_pkt->payload, encrypt_len);
   int res = cose_encrypt0_decrypt(cose);
   if(res <= 0) {
     LOG_DBG_("OSCORE Decryption Failure, result code: %d\n", res);
@@ -310,17 +312,25 @@ oscore_decode_message(coap_message_t *coap_pkt)
   /* verify signature     */
      uint8_t *st_signature = coap_pkt->payload + encrypt_len;
      uint8_t sig_buffer[aad_len + encrypt_len + 24];
-     
+     //TODO optimize so we dont have to do this twice
+     aad_len = oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len,aad_buffer);
+ 
      oscore_populate_sign(coap_is_request(coap_pkt), sign, ctx);
+     //size_t sig_len = oscore_prepare_sig_structure(sig_buffer, 
+   //               aad_buffer, aad_len, coap_pkt->payload, encrypt_len);
      size_t sig_len = oscore_prepare_sig_structure(sig_buffer, 
-                  aad_buffer, aad_len, coap_pkt->payload, encrypt_len);
+                  aad_buffer, aad_len, tmp_buffer, encrypt_len);
      cose_sign1_set_signature(sign, st_signature);
      cose_sign1_set_ciphertext(sign, sig_buffer, sig_len);
+     printf("sign validation start!\n");
+     printf("signature bytes\n");
+     printf_hex(st_signature, 64);
      int sign_res = cose_sign1_verify(sign);
      if (sign_res == 0){
        //coap_log(LOG_WARNING,
         //   "OSCORE signature verification Failure, result code");
-        return OSCORE_DECRYPTION_ERROR;
+        printf("signature validation fail!");
+  	return OSCORE_DECRYPTION_ERROR;
      }
   } 
 #endif /* WITH_GROUPCOM */
@@ -446,7 +456,7 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buf
   if(coap_pkt->security_context->mode == OSCORE_GROUP){
     external_aad_len += cbor_put_array(&external_aad_ptr, 4); /* Algoritms array */
     external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); 
-    external_aad_len += cbor_put_negative(&external_aad_ptr, (coap_pkt->security_context->counter_signature_algorithm)); 
+    external_aad_len += cbor_put_negative(&external_aad_ptr, -(coap_pkt->security_context->counter_signature_algorithm)); 
     external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->counter_signature_parameters)); 
     external_aad_len += cbor_put_array(&external_aad_ptr, 2); /* Countersign Key Parameters array */
     external_aad_len += cbor_put_unsigned(&external_aad_ptr, 26); /*ECDSA_256 Hard coded */ 
@@ -586,15 +596,8 @@ oscore_increment_sender_seq(oscore_ctx_t *ctx)
 void
 oscore_roll_back_seq(oscore_recipient_ctx_t *ctx)
 {
- // if(ctx->rollback_sliding_window != -1){
     ctx->sliding_window = ctx->rollback_sliding_window;
- //   ctx->rollback_sliding_window = -1;
-//  }
-  
- // if( ctx->rollback_largest_seq !=  -1) {
     ctx->largest_seq = ctx->rollback_largest_seq;
-//    ctx->rollback_largest_seq = -1;
-//  }
 }
 /* Initialize the security_context storage and the protected resource storage. */
 void
@@ -614,19 +617,18 @@ oscore_init_client()
 #ifdef WITH_GROUPCOM
 /* Sets alg and keys in COSE SIGN  */
 void
-oscore_populate_sign(uint8_t coap_request, cose_sign1_t *sign, oscore_ctx_t *ctx)
+oscore_populate_sign(uint8_t coap_is_request, cose_sign1_t *sign, oscore_ctx_t *ctx)
 {
   cose_sign1_set_alg(sign, ctx->counter_signature_algorithm,
                      ctx->counter_signature_parameters);
-  if (coap_request){
-    cose_sign1_set_private_key(sign, ctx->sender_context->private_key); 
-    cose_sign1_set_public_key(sign, ctx->sender_context->public_key);
-  } else {
+  if (coap_is_request){
     cose_sign1_set_private_key(sign, ctx->recipient_context->private_key); 
     cose_sign1_set_public_key(sign, ctx->recipient_context->public_key);
+  } else {
+    cose_sign1_set_private_key(sign, ctx->sender_context->private_key); 
+    cose_sign1_set_public_key(sign, ctx->sender_context->public_key);
   }
 }
-
 //
 // oscore_prepare_sig_structure
 // creates and sets structure to be signed
@@ -646,4 +648,48 @@ uint8_t *text, uint8_t text_len)
   sig_len += cbor_put_bytes(&sig_ptr, text, text_len); 
   return sig_len;
 }
+
+size_t
+oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,     uint8_t *oscore_option, size_t oscore_option_len, uint8_t *external_aad_ptr)
+{
+  size_t external_aad_len = 0;
+  if ((oscore_option_len > 0) && (oscore_option != NULL)){
+    external_aad_len += cbor_put_array(&external_aad_ptr, 6);
+  }else{
+    external_aad_len += cbor_put_array(&external_aad_ptr, 5);
+  }
+  external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1);
+  /* Version, always "1" for this version of the draft */
+  if (ctx->mode == OSCORE_SINGLE){
+  /* Algoritms array with one item*/
+    external_aad_len += cbor_put_array(&external_aad_ptr, 1); 
+  /* Encryption Algorithm   */
+    external_aad_len += 
+           cbor_put_unsigned(&external_aad_ptr, (ctx->alg));
+  } else {  /* ctx-> mode == OSCORE_GROUP */
+  /* Algoritms array with 4 items */
+     external_aad_len += cbor_put_array(&external_aad_ptr, 4);
+  /* Encryption Algorithm   */
+     external_aad_len += cbor_put_unsigned(&external_aad_ptr, (ctx->alg));     
+  /* signature Algorithm */
+     external_aad_len += cbor_put_negative(&external_aad_ptr, 
+                             -(ctx->counter_signature_algorithm) );
+     external_aad_len += cbor_put_unsigned(&external_aad_ptr, 
+                             ctx->counter_signature_parameters);
+  /* Signature algorithm array */
+     external_aad_len += cbor_put_array(&external_aad_ptr, 2);
+     external_aad_len += cbor_put_unsigned(&external_aad_ptr, 26); 
+     external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1);
+/* fill in correct 1 and 6  */
+  }
+  external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->key_id, cose->key_id_len);
+  external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->partial_iv, cose->partial_iv_len);
+  external_aad_len += cbor_put_bytes(&external_aad_ptr, NULL, 0); 
+if(oscore_option != NULL && oscore_option_len > 0){
+  external_aad_len += cbor_put_bytes(&external_aad_ptr, oscore_option, oscore_option_len);
+}
+  /* Put integrity protected option, at present there are none. */
+  return external_aad_len;
+}
+
 #endif /*WITH_GROUPCOM*/
