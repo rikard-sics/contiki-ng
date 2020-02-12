@@ -57,7 +57,7 @@ extern coap_resource_t
   res_mcast,
   res_mcastq;
 
-uint8_t master_secret[35] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10 };
+uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10 };
 uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40};
 uint8_t sender_id[1] = { 0x52 };
 uint8_t receiver_id[1] = { 0x25 };
@@ -81,7 +81,7 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   /*Derive an OSCORE-Security-Context. */
   static oscore_ctx_t *context;
-  context = oscore_derive_ctx(master_secret, 10, salt, 8, 10, sender_id, 1, receiver_id, 1, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW, group_id);
+  context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 1, group_id, 3, OSCORE_DEFAULT_REPLAY_WINDOW, group_id);
   if(!context){
         printf("Could not create OSCORE Security Context!\n");
   }
