@@ -158,7 +158,23 @@ oscore_encode_option_value(uint8_t *option_buffer, const cose_encrypt0_t *cose, 
     memcpy(&(option_buffer[offset]), cose->partial_iv, cose->partial_iv_len);
     offset += cose->partial_iv_len;
   }
-
+#ifdef WITH_GROUPCOM
+  //Always set the 4th LSB to 1 and set kid context = Gid. kid = rid.
+  //TODO right now hardcoded to only respond the Java client!
+  uint8_t kid[1] = { 0x52 }; //values taken from Java client and group-oscore-server.c
+  uint8_t gid[3] = { 0x44, 0x61, 0x6c };
+  uint8_t gid_len = 3, kid_len = 1;
+  //add kid_context = group id
+  option_buffer[0] |= 0x10;
+  option_buffer[offset] = gid_len; 
+  offset++;
+  memcpy(&(option_buffer[offset]), gid, gid_len);
+  offset += gid_len;
+  //add kid
+  option_buffer[0] |= 0x08;
+  memcpy(&(option_buffer[offset]), kid, kid_len);
+  offset += kid_len;
+#else
   if(cose->kid_context_len > 0 && cose->kid_context != NULL) {
     option_buffer[0] |= 0x10;
     option_buffer[offset] = cose->kid_context_len;
@@ -172,6 +188,10 @@ oscore_encode_option_value(uint8_t *option_buffer, const cose_encrypt0_t *cose, 
     memcpy(&(option_buffer[offset]), cose->key_id, cose->key_id_len);
     offset += cose->key_id_len;
   }
+#endif
+printf("\nOscore encode option value: the encoded option:\n");  
+printf_hex(option_buffer, offset);
+
   if(offset == 1 && option_buffer[0] == 0) { /* If option_value is 0x00 it should be empty. */
 	  return 0;
   }
@@ -368,7 +388,7 @@ uint16_t encrypt_len = coap_pkt->payload_len;
 #ifdef WITH_GROUPCOM
   if (ctx->mode == OSCORE_GROUP){
   /* verify signature     */
-     uint8_t *st_signature = coap_pkt->payload + encrypt_len;
+     uint8_t *st_signature = coap_pkt->payload + encrypt_len;//address of the signature (after the ciphertext)
      uint8_t sig_buffer[aad_len + encrypt_len + 24];
      //TODO optimize so we dont have to do this twice
      aad_len = oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len,aad_buffer);
@@ -431,7 +451,11 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
   cose_encrypt0_t cose[1];
   cose_encrypt0_init(cose);
-
+#ifdef WITH_GROUPCOM
+  cose_sign1_t sign[1];
+  cose_sign1_init(sign);
+#endif /*WITH_GROUPCOM*/
+ 
   uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
@@ -444,24 +468,18 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     return PACKET_SERIALIZATION_ERROR;
   }
 
-  oscore_populate_cose(coap_pkt, cose, coap_pkt->security_context, true);
-
-  size_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, ROLE_CONFIDENTIAL);
-  if(plaintext_len > COAP_MAX_CHUNK_SIZE){
-    LOG_ERR("OSCORE Message to large (%zu > %u) to process.\n", plaintext_len, COAP_MAX_CHUNK_SIZE);
+/* 2 Compose the AAD and the plaintext, as described in Sections 5.3 and 5.4.*/
+  uint8_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, ROLE_CONFIDENTIAL);
+  if( plaintext_len > COAP_MAX_CHUNK_SIZE){
+    LOG_DBG_("OSCORE Message to large to process.\n");
     return PACKET_SERIALIZATION_ERROR;
   }
 
   cose_encrypt0_set_content(cose, content_buffer, plaintext_len);
   
-  nanocbor_encoder_t aad_enc;
-  nanocbor_encoder_init(&aad_enc, aad_buffer, sizeof(aad_buffer));
-  if (oscore_prepare_aad(coap_pkt, cose, &aad_enc, true) != NANOCBOR_OK) {
-    return INTERNAL_SERVER_ERROR_5_00;
-  }
-
-  cose_encrypt0_set_aad(cose, aad_buffer, nanocbor_encoded_len(&aad_enc));
-  
+  uint8_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, 1);
+  cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
+ /*3 Compute the AEAD nonce as described in Section 5.2*/ 
   oscore_generate_nonce(cose, coap_pkt, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
   cose_encrypt0_set_nonce(cose, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
   
@@ -472,6 +490,10 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     }
     oscore_increment_sender_seq(ctx);
   }
+  /*4 Encrypt the COSE object using the Sender Key*/
+  /*Groupcomm 4.2: The payload of the OSCORE messages SHALL encode the ciphertext of the COSE object
+   * concatenated with the value of the CounterSignature0 of the COSE object as in Appendix A.2 of RFC8152
+   * according to the Counter Signature Algorithm and Counter Signature Parameters in the Security Context.*/
 
   int ciphertext_len = cose_encrypt0_encrypt(cose);
   if(ciphertext_len < 0){
@@ -479,11 +501,72 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     return PACKET_SERIALIZATION_ERROR;
   }
   
-  // Partial IV shall NOT be included in responses if not a request
-  const bool include_partial_iv = coap_is_request(coap_pkt);
-  uint8_t option_value_len = oscore_encode_option_value(option_value_buffer, cose, include_partial_iv);
+  uint8_t option_value_len = 0;
+  if(coap_is_request(coap_pkt)){
+	option_value_len = oscore_encode_option_value(option_value_buffer, cose, 1);
+  } else { //Partial IV shall NOT be included in responses
+	option_value_len = oscore_encode_option_value(option_value_buffer, cose, 0);
+  }
+
+#ifdef WITH_GROUPCOM
+  //Calculate CounterSignature0 of the COSE object
   
+  //uint8_t tmp_buffer[ciphertext_len];
+  //memcpy(tmp_buffer, content_buffer, ciphertext_len); 
+
+  //cose_sign1_set_alg(sign, COSE_Algorithm_ES256, COSE_Elliptic_Curve_P256);
+
+  //printf("\nSign1 algorithm set!\n");
+  //cose_sign1_set_ciphertext(sign, content_buffer, ciphertext_len);
+
+  //uint8_t public_key[64] = {0x4C,0x04,0x3D,0xCB,0xA7,0xDC,0x9B,0x21,0x39,0xF7,0x49,0x7C,0x03,0x0F,0x4B,0xE1,0x3B,0xB6,0x62,0xD3,0x62,0x4C,0xA5,0x5D,0x8D,0x96,0xEB,0x40,0xD9,0xB0,0x33,0x6F,0x67,0xEB,0x2F,0xB7,0x26,0x92,0x71,0xEB,0x04,0x9E,0xC6,0x8A,0xA9,0x9B,0xB1,0x11,0x08,0x45,0xA0,0x20,0xC6,0x27,0x94,0x1B,0x37,0x6F,0x03,0xD9,0xB0,0x49,0x81,0x89 };
+  //uint8_t private_key[32] = {0x16,0xD9,0x89,0x42,0x23,0x7C,0xE1,0x03,0x23,0x5D,0x0E,0xDF,0x3A,0xE4,0x5B,0x0B,0xB3,0xB3,0x6F,0x79,0x5E,0x05,0xDA,0xEC,0x99,0x44,0x30,0x2A,0x7B,0x26,0x0A,0x3C};
+  /*uint8_t rcv_public_key[64] = { 0xCA,0x37,0x63,0x38,0x99,0x87,0x8F,0xD0,0x32,0xA6,0xCA,0x20,0xBF,0xE3,0x45,0x09,0x88,0x02,0x91,0x6D,0xB3,0xD2,0xAA,0xF5,0xC7,0xAA,0x4F,0x06,0x52,0xF7,0x17,0x74,0xEB,0x7D,0xAB,0x8B,0x46,0x49,0x03,0xF5,0xE2,0x67,0x75,0x4E,0x76,0x04,0x79,0x93,0x25,0x97,0x92,0x06,0x48,0x48,0x3C,0xE0,0xD3,0x50,0xE6,0xE4,0x96,0x4E,0x93,0xDD};
+  uint8_t rcv_private_key[32] = {0xE8,0x98,0x69,0xAF,0xA7,0x69,0x87,0xBC,0xBC,0xBF,0xE3,0x10,0xB6,0xFA,0xE8,0x6E,0x31,0x50,0x64,0xC0,0x76,0x93,0x32,0x28,0x48,0xF2,0x24,0x15,0x43,0x07,0xAE,0xF9};*/
+  //cose_sign1_set_public_key(sign, public_key);
+  //cose_sign1_set_private_key(sign, private_key);
+
+  int total_len = ciphertext_len + ES256_SIGNATURE_LEN;//len of the whole oscore payload
+
+  //set the keys and algorithms
+  oscore_populate_sign(coap_is_request(coap_pkt), sign, ctx);
+  uint8_t sig_buffer[aad_len + ciphertext_len + 24];
+  //prepare external_aad structure with algs, params, etc. to later populate the sig_structure
+  aad_len = oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len,aad_buffer);
+ 
+  //size_t sig_len = oscore_prepare_sig_structure(sig_buffer, 
+  //             aad_buffer, aad_len, coap_pkt->payload, ciphertext_len);
+  //will be stored in sig_buffer: "CounterSignature0", NULL, NULL, external_aad, payload
+  size_t sig_len = oscore_prepare_sig_structure(sig_buffer, 
+               aad_buffer, aad_len, cose->content, ciphertext_len); //content_buffer is not encrypted
+  printf("\nPrepared sig_structure!\n");
+  //uint8_t *st_signature = coap_pkt->payload + ciphertext_len;
+  //cose_sign1_set_signature(sign, st_signature);
+  cose_sign1_set_ciphertext(sign, sig_buffer, sig_len);
+
+  //printf("sign calculation start!\n");
+  //printf("signature bytes\n");
+  //printf_hex(st_signature, 64);
+  printf("\nSigning the signature now... \n");
+  int sign_res = cose_sign1_sign(sign); //segmentation fault at this point!!!
+  if (sign_res == 0){
+    //coap_log(LOG_WARNING,
+     //   "OSCORE signature calculation Failure, result code");
+     printf("signature validation fail!");
+     return OSCORE_DECRYPTION_ERROR;
+  }
+  uint8_t *st_signature; //len=64
+  printf("Getting the signature now...\n");
+  cose_sign1_get_signature(sign, &st_signature);
+
+  //concatenate the cipertherxt of the cose with the signature
+  uint8_t *total_buffer;
+  memset(total_buffer, 0, total_len * sizeof(uint8_t));
+  coap_set_payload(coap_pkt, st_signature, total_len);
+#else
   coap_set_payload(coap_pkt, content_buffer, ciphertext_len);
+#endif /* WITH_GROUPCOM */
+
   coap_set_header_object_security(coap_pkt, option_value_buffer, option_value_len);
   
   /* Overwrite the CoAP code. */

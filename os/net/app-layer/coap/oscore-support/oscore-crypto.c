@@ -312,13 +312,26 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
     return 0;
   }
 
+  printf("\nAlgorithms OK!");
+  printf("\nPrinting private_key;...\n");
+  kprintf_hex(private_key, 32);
+  //printf("\nLen of ciphertext (var): %d", ciphertext_len);
+  //printf("\nLen of ciphertext: %d", strlen(ciphertext));
+  //printf("\nLen of priv_k: %d", strlen(private_key));
+  //printf("\nLen of pub_k: %d", strlen(public_key));
+  //printf("\nLen of signature: %d", strlen(signature));
+  printf("\nEverything good!");
+
   uint8_t message_hash[SHA256_DIGEST_LENGTH];
   dtls_sha256_ctx msg_hash_ctx;
   dtls_sha256_init(&msg_hash_ctx);
   dtls_sha256_update(&msg_hash_ctx, ciphertext, ciphertext_len);
   dtls_sha256_final(message_hash, &msg_hash_ctx);
-  uint8_t tmp[32 + 32 + 64];
+  printf("\nPrinting message_hash after dtls_sha256_final:\n");
+  kprintf_hex(message_hash, SHA256_DIGEST_LENGTH);
+  uint8_t tmp[32 + 32 + 64];//32+32+64
   SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
+  printf("\nAfter all shas... Now uEECsign deterministic...");
   uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);
 
 /*
@@ -341,8 +354,8 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
     for (uint u = 0 ; u < Ed25519_SIGNATURE_LEN; u++)
                 fprintf(stderr," %02x",signature[u]);
     fprintf(stderr,"\n");
-  } */
-    
+  } 
+  */  
     return 1;
 }
 
