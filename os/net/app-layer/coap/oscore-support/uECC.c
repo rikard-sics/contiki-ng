@@ -1,5 +1,5 @@
 /* Copyright 2014, Kenneth MacKay. Licensed under the BSD 2-clause license. */
-
+#include <stdio.h>//FIXME
 #include "uECC.h"
 
 #ifndef uECC_PLATFORM
@@ -2488,6 +2488,7 @@ static int uECC_sign_with_k(const uint8_t private_key[uECC_BYTES],
         tmp[0] = 1;
     }
 
+    printf("\nSign_with_k: before prevent side channel...");
     /* Prevent side channel analysis of vli_modInv() to determine
        bits of k / the private key by premultiplying by a random number */
     vli_modMult_n(k, k, tmp); /* k' = rand * k */
@@ -2595,6 +2596,7 @@ int uECC_sign_deterministic(const uint8_t private_key[uECC_BYTES],
         K[i] = 0;
     }
 
+    printf("\nuECC_sign_deterministic: K and V initialised.");
     // K = HMAC_K(V || 0x00 || int2octets(x) || h(m))
     HMAC_init(hash_context, K);
     V[hash_context->result_size] = 0x00;
@@ -2605,6 +2607,7 @@ int uECC_sign_deterministic(const uint8_t private_key[uECC_BYTES],
 
     update_V(hash_context, K, V);
 
+    printf("\nuECC_sign_deterministic: After first update V.");
     // K = HMAC_K(V || 0x01 || int2octets(x) || h(m))
     HMAC_init(hash_context, K);
     V[hash_context->result_size] = 0x01;
@@ -2615,6 +2618,7 @@ int uECC_sign_deterministic(const uint8_t private_key[uECC_BYTES],
 
     update_V(hash_context, K, V);
 
+    printf("\nuECC_sign_deterministic: After second update V.");
     for (tries = 0; tries < MAX_TRIES; ++tries) {
         uECC_word_t T[uECC_N_WORDS];
         uint8_t *T_ptr = (uint8_t *)T;
@@ -2629,6 +2633,7 @@ int uECC_sign_deterministic(const uint8_t private_key[uECC_BYTES],
         T[uECC_WORDS] &= 0x01;
     #endif
 
+	printf("\nuECC_sign_deterministic: In the loop tries=%lld, before sign_with_k...", tries);
         if (uECC_sign_with_k(private_key, message_hash, T, signature)) {
             return 1;
         }
