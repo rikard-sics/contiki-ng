@@ -92,26 +92,23 @@ encrypt(uint8_t alg,
     LOG_ERR("Invalid nonce length %u != %u\n", nonce_len, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
     return OSCORE_CRYPTO_INVALID_NONCE_LEN;
   }
-
-  uint8_t* tag_buffer = &buffer[plaintext_len];
-
-#ifdef OSCORE_ENC_DEC_DEBUG
-  LOG_DBG("Encrypt:\n");
-  printf_hex("Key", key, key_len);
-  printf_hex("IV", nonce, nonce_len);
-  printf_hex("AAD", aad, aad_len);
-  printf_hex("Plaintext", buffer, plaintext_len);
-  printf_hex("Tag", tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
-#endif
-
+   /*
+   printf("Encrypt:\n");
+   printf("Key:\n");
+   kprintf_hex(key, key_len);
+   printf("IV:\n");
+   kprintf_hex(nonce, nonce_len);
+   printf("AAD:\n");
+   kprintf_hex(aad, aad_len);
+   printf("Plaintext:\n");
+   kprintf_hex(buffer, plaintext_len);
+   */
   CCM_STAR.set_key(key);
-  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
-
-#ifdef OSCORE_ENC_DEC_DEBUG
-  printf_hex("Tag'", tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
-  printf_hex("Ciphertext", buffer, plaintext_len);
-#endif
-
+  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
+   /*
+   printf("Ciphertext&Tag:\n");
+   kprintf_hex(buffer, plaintext_len + 8);
+   */
   return plaintext_len + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
 }
 
@@ -143,7 +140,7 @@ decrypt(uint8_t alg,
   uint8_t tag_buffer[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
   
   CCM_STAR.set_key(key);
-    printf("Decrypt:\n");
+  /*  printf("Decrypt:\n");
      printf("Key:\n");
      kprintf_hex(key, key_len);
      printf("IV:\n");
@@ -152,7 +149,7 @@ decrypt(uint8_t alg,
      kprintf_hex(aad, aad_len);
      printf("Ciphertext&Tag:\n");
      kprintf_hex(buffer, ciphertext_len);
- 
+   */
   uint16_t plaintext_len = ciphertext_len - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
 
 #ifdef OSCORE_ENC_DEC_DEBUG
@@ -311,27 +308,22 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
    if(alg != COSE_Algorithm_ES256 || alg_param != COSE_Elliptic_Curve_P256)  {
     return 0;
   }
-
-  printf("\nAlgorithms OK!");
-  printf("\nPrinting private_key;...\n");
+  /*
+  printf("Printing private_key;...\n");
   kprintf_hex(private_key, 32);
-  //printf("\nLen of ciphertext (var): %d", ciphertext_len);
-  //printf("\nLen of ciphertext: %d", strlen(ciphertext));
-  //printf("\nLen of priv_k: %d", strlen(private_key));
-  //printf("\nLen of pub_k: %d", strlen(public_key));
-  //printf("\nLen of signature: %d", strlen(signature));
-  printf("\nEverything good!");
+  printf("Printing public_key;...\n");
+  kprintf_hex(public_key, 64);
+  printf("ciphertext:\n");
+  kprintf_hex(ciphertext, ciphertext_len);
+  */
 
   uint8_t message_hash[SHA256_DIGEST_LENGTH];
   dtls_sha256_ctx msg_hash_ctx;
   dtls_sha256_init(&msg_hash_ctx);
   dtls_sha256_update(&msg_hash_ctx, ciphertext, ciphertext_len);
   dtls_sha256_final(message_hash, &msg_hash_ctx);
-  printf("\nPrinting message_hash after dtls_sha256_final:\n");
-  kprintf_hex(message_hash, SHA256_DIGEST_LENGTH);
   uint8_t tmp[32 + 32 + 64];//32+32+64
   SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
-  printf("\nAfter all shas... Now uEECsign deterministic...");
   uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);
 
 /*
@@ -383,12 +375,12 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
      fprintf(stderr,"\n");
   }
 */
-  printf("public key\n");
-  kprintf_hex(public_key, 64); 
-  printf("bytes to verify\n");
-  kprintf_hex(plaintext, plaintext_len);
-  printf("signature bytes\n");
-  kprintf_hex(signature, 64);
+  //printf("public key\n");
+  //kprintf_hex(public_key, 64); 
+  //printf("bytes to verify\n");
+  //kprintf_hex(plaintext, plaintext_len);
+  //printf("signature bytes\n");
+  //kprintf_hex(signature, 64);
   uint8_t message_hash[SHA256_DIGEST_LENGTH];
   dtls_sha256_ctx msg_hash_ctx;
   dtls_sha256_init(&msg_hash_ctx);

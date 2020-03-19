@@ -388,7 +388,7 @@ uint16_t encrypt_len = coap_pkt->payload_len;
 #ifdef WITH_GROUPCOM
   if (ctx->mode == OSCORE_GROUP){
   /* verify signature     */
-     uint8_t *st_signature = coap_pkt->payload + encrypt_len;//address of the signature (after the ciphertext)
+     uint8_t *signature_ptr = coap_pkt->payload + encrypt_len;//address of the signature (after the ciphertext)
      uint8_t sig_buffer[aad_len + encrypt_len + 24];
      //TODO optimize so we dont have to do this twice
      aad_len = oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len,aad_buffer);
@@ -398,11 +398,8 @@ uint16_t encrypt_len = coap_pkt->payload_len;
    //               aad_buffer, aad_len, coap_pkt->payload, encrypt_len);
      size_t sig_len = oscore_prepare_sig_structure(sig_buffer, 
                   aad_buffer, aad_len, tmp_buffer, encrypt_len);
-     cose_sign1_set_signature(sign, st_signature);
+     cose_sign1_set_signature(sign, signature_ptr);
      cose_sign1_set_ciphertext(sign, sig_buffer, sig_len);
-     printf("sign validation start!\n");
-     printf("signature bytes\n");
-     printf_hex(st_signature, 64);
      int sign_res = cose_sign1_verify(sign);
      if (sign_res == 0){
        //coap_log(LOG_WARNING,
@@ -421,7 +418,22 @@ static void
 oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const oscore_ctx_t *ctx, bool sending)
 {
   cose_encrypt0_set_alg(cose, ctx->alg);
+  uint8_t partial_iv_buffer[8];
+  uint8_t partial_iv_len;
 
+#ifdef WITH_GROUPCOM
+    if(sending){
+      partial_iv_len = u64tob(ctx->sender_context->seq, partial_iv_buffer);
+      cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
+      cose_encrypt0_set_key_id(cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
+      cose_encrypt0_set_key(cose, ctx->sender_context->sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+  } else {
+  
+    cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
+    cose_encrypt0_set_key(cose, ctx->recipient_context->recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+  }
+
+#else
   if(coap_is_request(pkt)) {
     if(sending){
       cose->partial_iv_len = u64tob(ctx->sender_context.seq, cose->partial_iv);
@@ -443,6 +455,8 @@ oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const osc
       cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     }
   }
+#endif /* WITH_GROUPCOM */
+  return 0;
 }
 
 /* Prepares a new OSCORE message, returns the size of the message. */
@@ -504,46 +518,49 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     LOG_ERR("OSCORE internal error %d.\n", ciphertext_len);
     return PACKET_SERIALIZATION_ERROR;
   }
-  
   uint8_t option_value_len = 0;
   if(coap_is_request(coap_pkt)){
 	option_value_len = oscore_encode_option_value(option_value_buffer, cose, 1);
   } else { //Partial IV shall NOT be included in responses
+#ifdef WITH_GROUPCOM
+	option_value_len = oscore_encode_option_value(option_value_buffer, cose, 1);
+#else	
 	option_value_len = oscore_encode_option_value(option_value_buffer, cose, 0);
+#endif
   }
+  
+  coap_set_header_object_security(coap_pkt, option_value_buffer, option_value_len);
 
 #ifdef WITH_GROUPCOM
-  int total_len = ciphertext_len + ES256_SIGNATURE_LEN;//len of the whole oscore payload
+  int total_len = ciphertext_len + ES256_SIGNATURE_LEN;
 
   //set the keys and algorithms
   oscore_populate_sign(coap_is_request(coap_pkt), sign, ctx);
   uint8_t sign_encoded_buffer[aad_len + ciphertext_len + 24]; //TODO remove magic number
 
+  //When we are sending responses the Key-ID in the Signature AAD shall be the REQUEST Key ID.
+  if(!coap_is_request(coap_pkt)){ 
+    cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
+  }
   //prepare external_aad structure with algs, params, etc. to later populate the sig_structure
+  
   aad_len = oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len,aad_buffer);
- 
+   
   size_t sign_encoded_len = oscore_prepare_sig_structure(sign_encoded_buffer, 
                aad_buffer, aad_len, cose->content, ciphertext_len); 
-  printf("\nPrepared sig_structure!\n");
   
   cose_sign1_set_signature(sign, &(content_buffer[ciphertext_len]));
   cose_sign1_set_ciphertext(sign, sign_encoded_buffer, sign_encoded_len);
-  
-  printf("\nSigning the signature now... \n");
   int sign_res = cose_sign1_sign(sign); 
   if (sign_res == 0){
-    coap_log(LOG_WARNING,
-        "OSCORE signature calculation Failure, result code");
+    LOG_WARN_("OSCORE signature calculation Failure, result code\n");
     return OSCORE_DECRYPTION_ERROR;
   }
-
-
   coap_set_payload(coap_pkt, content_buffer, total_len);
 #else
   coap_set_payload(coap_pkt, content_buffer, ciphertext_len);
 #endif /* WITH_GROUPCOM */
 
-  coap_set_header_object_security(coap_pkt, option_value_buffer, option_value_len);
   
   /* Overwrite the CoAP code. */
   if(coap_is_request(coap_pkt)) {
@@ -746,7 +763,7 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,     uint8_t *oscore
   external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1);
   /* Version, always "1" for this version of the draft */
   if (ctx->mode == OSCORE_SINGLE){
-  /* Algoritms array with one item*/
+ /* Algoritms array with one item*/
     external_aad_len += cbor_put_array(&external_aad_ptr, 1); 
   /* Encryption Algorithm   */
     external_aad_len += 
@@ -767,6 +784,7 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,     uint8_t *oscore
      external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1);
 /* fill in correct 1 and 6  */
   }
+  //Request Key ID should go here
   external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->key_id, cose->key_id_len);
   external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->partial_iv, cose->partial_iv_len);
   external_aad_len += cbor_put_bytes(&external_aad_ptr, NULL, 0); 
