@@ -422,8 +422,8 @@ oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const osc
   uint8_t partial_iv_len;
 
 #ifdef WITH_GROUPCOM
-    if(sending){
-      partial_iv_len = u64tob(ctx->sender_context->seq, partial_iv_buffer);
+    if(sending){//recent_seq is the one that actually gets updated
+      partial_iv_len = u64tob(ctx->recipient_context->recent_seq, partial_iv_buffer);
       cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
       cose_encrypt0_set_key_id(cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
       cose_encrypt0_set_key(cose, ctx->sender_context->sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
