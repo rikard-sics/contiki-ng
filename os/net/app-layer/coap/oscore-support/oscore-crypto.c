@@ -47,6 +47,10 @@
 #include "dtls-hmac.h"
 #include "uECC.h"
 
+#ifndef CONTIKI_TARGET_NATIVE
+#include "dev/watchdog.h"
+#endif /*CONTIKI_TARGET_NATIVE */
+
 void
 kprintf_hex(unsigned char *data, unsigned int len)
 {
@@ -258,6 +262,11 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
   kprintf_hex(ciphertext, ciphertext_len);
   */
 
+#ifdef CONTIKI_TARGET_ZOUL
+#ifdef OSCORE_WITH_HW_CRYPTO
+//Zoul HW goes here
+#else
+  watchdog_stop();
   uint8_t message_hash[SHA256_DIGEST_LENGTH];
   dtls_sha256_ctx msg_hash_ctx;
   dtls_sha256_init(&msg_hash_ctx);
@@ -266,6 +275,21 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
   uint8_t tmp[32 + 32 + 64];//32+32+64
   SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
   uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);
+  
+  watchdog_start();
+#endif /*OSCORE_WITH_HW_CRYPTO */
+ 
+#elif CONTIKI_TARGET_NATIVE
+  uint8_t message_hash[SHA256_DIGEST_LENGTH];
+  dtls_sha256_ctx msg_hash_ctx;
+  dtls_sha256_init(&msg_hash_ctx);
+  dtls_sha256_update(&msg_hash_ctx, ciphertext, ciphertext_len);
+  dtls_sha256_final(message_hash, &msg_hash_ctx);
+  uint8_t tmp[32 + 32 + 64];//32+32+64
+  SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
+  uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);
+
+#endif /* CONTIKI_TARGET_NATIVE */
 
 /*
   if (coap_get_log_level() >= LOG_INFO){
@@ -323,12 +347,28 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
   //printf("signature bytes\n");
   //kprintf_hex(signature, 64);
   uint8_t message_hash[SHA256_DIGEST_LENGTH];
+#ifdef CONTIKI_TARGET_ZOUL
+#ifdef OSCORE_WITH_HW_CRYPTO
+//Zoul HW goes here
+#else
+  watchdog_stop();
   dtls_sha256_ctx msg_hash_ctx;
   dtls_sha256_init(&msg_hash_ctx);
   dtls_sha256_update(&msg_hash_ctx, plaintext, plaintext_len);
   dtls_sha256_final(message_hash, &msg_hash_ctx);
   
   int res = uECC_verify(public_key, message_hash, signature);
+  watchdog_start();
+#endif /*OSCORE_WITH_HW_CRYPTO */
+ 
+#elif CONTIKI_TARGET_NATIVE
+  dtls_sha256_ctx msg_hash_ctx;
+  dtls_sha256_init(&msg_hash_ctx);
+  dtls_sha256_update(&msg_hash_ctx, plaintext, plaintext_len);
+  dtls_sha256_final(message_hash, &msg_hash_ctx);
+  
+  int res = uECC_verify(public_key, message_hash, signature);
+#endif /* CONTIKI_TARGET_NATIVE */
   return res;  
 }
 
