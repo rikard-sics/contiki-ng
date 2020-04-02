@@ -75,6 +75,12 @@ watchdog_start(void)
   REG(SMWDTHROSC_WDCTL) = WATCHDOG_ENABLE;
 }
 
+void
+watchdog_stop(void){
+  REG(SMWDTHROSC_WDCTL) &= ~WATCHDOG_ENABLE;
+}
+
+
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Writes the WDT clear sequence.
