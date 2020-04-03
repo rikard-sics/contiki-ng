@@ -49,6 +49,12 @@
 #include "dev/watchdog.h"
 #endif /*CONTIKI_TARGET_NATIVE */
 
+#ifdef CONTIKI_TARGET_ZOUL
+#include "dev/ecc-algorithm.h"
+#include "dev/ecc-curve.h"
+#include "sys/pt.h"
+#endif /* CONTIKI_TARGET_ZOUL */
+
 void
 kprintf_hex(unsigned char *data, unsigned int len)
 {
@@ -309,9 +315,35 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
 
 #ifdef CONTIKI_TARGET_ZOUL
 #ifdef OSCORE_WITH_HW_CRYPTO
-//Zoul HW goes here
+  uint8_t message_hash[SHA256_DIGEST_LENGTH];
+  dtls_sha256_ctx msg_hash_ctx;
+  dtls_sha256_init(&msg_hash_ctx);
+  dtls_sha256_update(&msg_hash_ctx, ciphertext, ciphertext_len);
+  dtls_sha256_final(message_hash, &msg_hash_ctx);
+  uint8_t tmp[32 + 32 + 64];//32+32+64
+  
+  pka_init();
+  static ecc_compare_state_t comp_state = {
+    .process = &ecdsa_sign_test,
+    .size    = 8,
+  };
+
+  static ecc_dsa_sign_state_t state = {
+    .process = &ecdsa_sign_test,
+    .curve_info = &nist_p_256,
+    .secret  = { 0x94A949FA, 0x401455A1, 0xAD7294CA, 0x896A33BB,
+                 0x7A80E714, 0x4321435B, 0x51247A14, 0x41C1CB6B },
+    .k_e     = { 0x1D1E1F20, 0x191A1B1C, 0x15161718, 0x11121314,
+                 0x0D0E0F10, 0x090A0B0C, 0x05060708, 0x01020304 },
+    .hash    = { 0x65637572, 0x20612073, 0x68206F66, 0x20686173,
+                 0x69732061, 0x68697320, 0x6F2C2054, 0x48616C6C },
+  };
+
+  memcpy(state.hash, message_hash, 32);
+
+  PT_SPAWN(&(ecdsa_sign_test.pt), &(state.pt), ecc_dsa_sign(&state));
 #else
-  watchdog_stop();
+  watchdog_periodic();
   uint8_t message_hash[SHA256_DIGEST_LENGTH];
   dtls_sha256_ctx msg_hash_ctx;
   dtls_sha256_init(&msg_hash_ctx);
@@ -321,7 +353,7 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
   SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
   uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);
   
-  watchdog_start();
+  watchdog_periodic();
 #endif /*OSCORE_WITH_HW_CRYPTO */
  
 #elif CONTIKI_TARGET_NATIVE
@@ -396,14 +428,14 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
 #ifdef OSCORE_WITH_HW_CRYPTO
 //Zoul HW goes here
 #else
-  watchdog_stop();
+  watchdog_periodic();
   dtls_sha256_ctx msg_hash_ctx;
   dtls_sha256_init(&msg_hash_ctx);
   dtls_sha256_update(&msg_hash_ctx, plaintext, plaintext_len);
   dtls_sha256_final(message_hash, &msg_hash_ctx);
   
   int res = uECC_verify(public_key, message_hash, signature);
-  watchdog_start();
+  watchdog_periodic();
 #endif /*OSCORE_WITH_HW_CRYPTO */
  
 #elif CONTIKI_TARGET_NATIVE
