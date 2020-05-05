@@ -47,6 +47,8 @@
 #include "dtls-hmac.h"
 #include "uECC.h"
 
+#include "sys/rtimer.h"
+
 #ifndef CONTIKI_TARGET_NATIVE
 #include "dev/watchdog.h"
 #endif /*CONTIKI_TARGET_NATIVE */
@@ -298,7 +300,8 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
 
   PT_SPAWN(&(ecdsa_sign_test.pt), &(state.pt), ecc_dsa_sign(&state));
 #else
-  watchdog_periodic();
+ // watchdog_periodic();
+  rtimer_clock_t start = RTIMER_NOW();
   uint8_t message_hash[SHA256_DIGEST_LENGTH];
   dtls_sha256_ctx msg_hash_ctx;
   dtls_sha256_init(&msg_hash_ctx);
@@ -308,7 +311,9 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
   SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
   uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);
   
-  watchdog_periodic();
+ // watchdog_periodic();
+  rtimer_clock_t stop = RTIMER_NOW();
+  printf("verify took %lu ticks, %lu s\n", (stop - start), (stop - start)/RTIMER_SECOND );
 #endif /*OSCORE_WITH_HW_CRYPTO */
  
 #elif CONTIKI_TARGET_NATIVE
@@ -383,14 +388,17 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
 #ifdef OSCORE_WITH_HW_CRYPTO
 //Zoul HW goes here
 #else
-  watchdog_periodic();
+ // watchdog_periodic();
+  rtimer_clock_t start = RTIMER_NOW();
   dtls_sha256_ctx msg_hash_ctx;
   dtls_sha256_init(&msg_hash_ctx);
   dtls_sha256_update(&msg_hash_ctx, plaintext, plaintext_len);
   dtls_sha256_final(message_hash, &msg_hash_ctx);
   
   int res = uECC_verify(public_key, message_hash, signature);
-  watchdog_periodic();
+ // watchdog_periodic();
+  rtimer_clock_t stop = RTIMER_NOW();
+  printf("verify took %lu ticks %lu s\n", (stop - start), (stop - start)/RTIMER_SECOND);
 #endif /*OSCORE_WITH_HW_CRYPTO */
  
 #elif CONTIKI_TARGET_NATIVE
