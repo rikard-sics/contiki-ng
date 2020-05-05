@@ -55,7 +55,10 @@ ifeq ($(MAKE_WITH_GROUPCOM),1)
   ifeq ($(TARGET), native)
     CFLAGS += -DuECC_PLATFORM=uECC_x86_64
   else
+    #Disable WDT
+    CFLAGS += -DWATCHDOG_CONF_ENABLE=0
     CFLAGS += -DuECC_PLATFORM=uECC_arm
+    CFLAGS += -DWATCHDOG_CONF_ENABLE=0
   endif
   #We will only use P256
   CFLAGS += -DuECC_CURVE=uECC_secp256r1
