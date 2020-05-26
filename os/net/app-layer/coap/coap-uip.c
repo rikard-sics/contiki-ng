@@ -414,6 +414,9 @@ coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t length)
   }
 #endif /* WITH_DTLS */
   
+  LOG_INFO("DEBUG seding to ");
+  LOG_INFO_COAP_EP(ep);
+  LOG_INFO_("DEBUG  %u bytes\n", length);
   uip_udp_packet_sendto(udp_conn, data, length, &ep->ipaddr, ep->port);
   return length;
 }
