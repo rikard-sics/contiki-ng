@@ -7,6 +7,10 @@ PLATFORMS_EXCLUDE = sky z1
 # Include the CoAP implementation
 MODULES += os/net/app-layer/coap
 
+# Include the Multicast implementation
+MODULES += os/net/ipv6/multicast
+
+
 MAKE_WITH_OSCORE = 1
 MAKE_WITH_GROUPCOM = 1
 

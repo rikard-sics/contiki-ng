@@ -77,7 +77,7 @@ static uint16_t dr_mid;
   LOG_DBG_("\n");
 }*/
 /*Callback function to actually send the delayed response*/
-static void send_delayed_response_callback(void *data)
+void send_delayed_response_callback(void *data)
 {
 LOG_DBG("Send_delayed_response_callback:\n");
  uint16_t *mid_;
@@ -446,19 +446,20 @@ coap_receive(const coap_endpoint_t *src,
     if(transaction) {
 #ifdef WITH_GROUPCOM
       if(is_mcast) {
-      /*Copy transport data to a timer data. The response will be sent at timer expiration.*/
-      LOG_DBG("About to prepare delayed response!\n");
-      LOG_DBG("Scheduling delayed response after %d seconds...\n", node_id);
-      dr_mid = message->mid;
-      ctimer_set(&dr_timer, CLOCK_SECOND * (uint8_t) node_id, send_delayed_response_callback, &dr_mid);
+        /*Copy transport data to a timer data. The response will be sent at timer expiration.*/
+        uint8_t tmp_time = 1;
+        LOG_DBG("About to prepare delayed response!\n");
+        LOG_DBG("Scheduling delayed response after %d seconds...\n", tmp_time);
+        dr_mid = message->mid;
+        //dr_mid should point to message or something else
+        send_delayed_response_callback(&(message->mid));
+	//ctimer_set(&dr_timer, CLOCK_SECOND * tmp_time, send_delayed_response_callback, NULL);
+      } else {
+        LOG_DBG("No groupcom, running coap_send_transation...\n");    
+        coap_send_transaction(transaction);
       }
-      else {
-      LOG_DBG("No groupcom, running coap_send_transation...\n");    
-      coap_send_transaction(transaction);
-      }
-#else  //no groupcom
+#else   /* No WITH_GROUPCOM */
 	coap_send_transaction(transaction);
-
 #endif /*WITH_GROUPCOM*/
         
           }

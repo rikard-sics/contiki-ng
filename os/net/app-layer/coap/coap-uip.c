@@ -250,6 +250,8 @@ int
 coap_endpoint_is_connected(const coap_endpoint_t *ep)
 {
 #ifndef CONTIKI_TARGET_NATIVE
+  printf("is link local %d\n", uip_is_addr_linklocal(&ep->ipaddr));
+  printf("is reachable %d\n", NETSTACK_ROUTING.node_is_reachable());
   if(!uip_is_addr_linklocal(&ep->ipaddr)
     && NETSTACK_ROUTING.node_is_reachable() == 0) {
     return 0;
@@ -410,7 +412,10 @@ coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t length)
     }
   }
 #endif /* WITH_DTLS */
-
+  
+  LOG_INFO("DEBUG seding to ");
+  LOG_INFO_COAP_EP(ep);
+  LOG_INFO_("DEBUG  %u bytes\n", length);
   uip_udp_packet_sendto(udp_conn, data, length, &ep->ipaddr, ep->port);
   LOG_INFO("sent to ");
   LOG_INFO_COAP_EP(ep);
