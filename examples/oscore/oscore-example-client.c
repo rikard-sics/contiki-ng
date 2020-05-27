@@ -107,7 +107,7 @@ PROCESS_THREAD(er_example_client, ev, data)
   #ifdef WITH_OSCORE
   /*Derive an OSCORE-Security-Context. */
   static oscore_ctx_t context;
-  oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0);
+  oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
 
   /* Set the association between a remote URL and a security contect. When sending a message the specified context will be used to 
    * protect the message. Note that this can be done on a resource-by-resource basis. Thus any requests to .well-known/core will not 
