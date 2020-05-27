@@ -92,10 +92,8 @@ uint8_t oscore_protected_request(void *request);
 uint8_t oscore_is_resource_protected(char uri);
 
 /* Initialize the context storage and the protected resource storage. */
-void oscore_init_server();
-
 /* Initialize the context storage, the token - seq association storrage and the URI - context association storage. */
-void oscore_init_client();
+void oscore_init(void);
 
 /* TEMP */
 void printf_hex(unsigned char *data, unsigned int len);

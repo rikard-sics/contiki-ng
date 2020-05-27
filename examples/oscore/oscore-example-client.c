@@ -103,14 +103,8 @@ PROCESS_THREAD(er_example_client, ev, data)
   static coap_endpoint_t server_ep;
 
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
-  
-  /* receives all CoAP messages */
-  coap_engine_init();
 
   #ifdef WITH_OSCORE
-  /* Initiate the OSCORE client, this includes storage for OSCORE-Security-Contexts. */
-  oscore_init_client();
- 
   /*Derive an OSCORE-Security-Context. */
   static oscore_ctx_t *context;
   context = oscore_derive_ctx(master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
