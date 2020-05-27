@@ -95,10 +95,8 @@ uint8_t oscore_protected_request(void *request);
 uint8_t oscore_is_resource_protected(char uri);
 
 /* Initialize the context storage and the protected resource storage. */
-void oscore_init_server();
-
 /* Initialize the context storage, the token - seq association storrage and the URI - context association storage. */
-void oscore_init_client();
+void oscore_init(void);
 
 #ifdef WITH_GROUPCOM
 void oscore_populate_sign(uint8_t coap_is_request, cose_sign1_t *sign, oscore_ctx_t *ctx);
