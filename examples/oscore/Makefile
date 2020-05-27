@@ -14,6 +14,7 @@ ifeq ($(TARGET),native)
 	MODULES_REL += ./resources-plugtest
 endif
 MODULES_REL += ./resources
+MODULES_REL += ../coap/coap-example-server/resources
 MODULES_REL += $(TARGET)
 
 CONTIKI_TARGET_SOURCEFILES += plugtest_resources.c
