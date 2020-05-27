@@ -91,11 +91,9 @@ PROCESS_THREAD(er_example_client, ev, data)
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
 
   #ifdef WITH_OSCORE
-  static oscore_ctx_t *context;
-  context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 0, receiver_id, 1, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
-  if(!context){
-	printf("Could not create OSCORE Security Context!\n");
-  }
+  static oscore_ctx_t context;
+  oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 0, receiver_id, 1, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+
   uint8_t ret = 0;
   ret += oscore_ep_ctx_set_association(&server_ep, service_urls[2], &context);
   ret += oscore_ep_ctx_set_association(&server_ep, service_urls[3], &context);

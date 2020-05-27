@@ -48,19 +48,6 @@
 
 #include <stdio.h>
 
-/* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "oscore"
-#ifdef LOG_CONF_LEVEL_OSCORE
-#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
-#else
-#define LOG_LEVEL LOG_LEVEL_WARN
-#endif
-
-#ifndef OSCORE_MAX_ID_CONTEXT_LEN
-#define OSCORE_MAX_ID_CONTEXT_LEN 1
-#endif
-
 MEMB(exchange_memb, oscore_exchange_t, TOKEN_SEQ_NUM);
 
 LIST(common_context_list);
@@ -122,52 +109,25 @@ bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b
   }
 }
 
+
 #ifdef WITH_GROUPCOM
-oscore_ctx_t *
-oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window, uint8_t *gid)
+void
+oscore_derive_ctx(oscore_ctx_t *common_ctx, uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window, uint8_t *gid)
 #else
-oscore_ctx_t *
-oscore_derive_ctx(uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window)
+void
+oscore_derive_ctx(oscore_ctx_t *common_ctx, uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window)
 #endif
 {
-
-  oscore_ctx_t *common_ctx = memb_alloc(&common_context_memb);
-  if(common_ctx == NULL) {
-    return 0;
-  }
-
-void
-oscore_derive_ctx(oscore_ctx_t *common_ctx,
-  const uint8_t *master_secret, uint8_t master_secret_len,
-  const uint8_t *master_salt, uint8_t master_salt_len,
-  uint8_t alg,
-  const uint8_t *sid, uint8_t sid_len,
-  const uint8_t *rid, uint8_t rid_len,
-  const uint8_t *id_context, uint8_t id_context_len)
-{
-  uint8_t info_buffer[INFO_BUFFER_LENGTH];
+  uint8_t info_buffer[15];
   uint8_t info_len;
 
-  if (id_context_len > OSCORE_MAX_ID_CONTEXT_LEN)
-  {
-    LOG_WARN("Please increase OSCORE_MAX_ID_CONTEXT_LEN to be at least %u\n", id_context_len);
-  }
-
-  /* sender_key */
-  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, sid, sid_len, id_context, id_context_len, "Key", CONTEXT_KEY_LEN);
-  assert(info_len > 0);
-  hkdf(master_salt, master_salt_len,
-       master_secret, master_secret_len,
-       info_buffer, info_len,
-       common_ctx->sender_context.sender_key, CONTEXT_KEY_LEN);
+  /* sender_ key */
+  info_len = compose_info(info_buffer, alg, sid, sid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
+  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->sender_context.sender_key, CONTEXT_KEY_LEN);
 
   /* Receiver key */
-  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, rid, rid_len, id_context, id_context_len, "Key", CONTEXT_KEY_LEN);
-  assert(info_len > 0);
-  hkdf(master_salt, master_salt_len,
-       master_secret, master_secret_len,
-       info_buffer, info_len,
-       common_ctx->recipient_context.recipient_key, CONTEXT_KEY_LEN);
+  info_len = compose_info(info_buffer, alg, rid, rid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
+  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->recipient_context.recipient_key, CONTEXT_KEY_LEN);
 
   /* common IV */
   info_len = compose_info(info_buffer, sizeof(info_buffer), alg, NULL, 0, id_context, id_context_len, "IV", CONTEXT_INIT_VECT_LEN);
@@ -185,27 +145,26 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
 #ifdef WITH_GROUPCOM 
   common_ctx->gid = gid;
 #endif
-  common_ctx->recipient_context = recipient_ctx;
-  common_ctx->sender_context = sender_ctx;
 
-  sender_ctx->sender_id = sid;
-  sender_ctx->sender_id_len = sid_len;
-  sender_ctx->seq = 0;
+  common_ctx->sender_context.sender_id = sid;
+  common_ctx->sender_context.sender_id_len = sid_len;
+  common_ctx->sender_context.seq = 0;
 
-  recipient_ctx->recipient_id = rid;
-  recipient_ctx->recipient_id_len = rid_len;
-  recipient_ctx->largest_seq = -1;
-  recipient_ctx->recent_seq = 0;
-  recipient_ctx->replay_window_size = replay_window;
-  recipient_ctx->rollback_largest_seq = 0;
-  recipient_ctx->sliding_window = 0;
-  recipient_ctx->rollback_sliding_window = -1;
-  recipient_ctx->initialized = 0;
+  common_ctx->recipient_context.recipient_id = rid;
+  common_ctx->recipient_context.recipient_id_len = rid_len;
+  common_ctx->recipient_context.largest_seq = -1;
+  common_ctx->recipient_context.recent_seq = 0;
+  common_ctx->recipient_context.replay_window_size = replay_window;
+  common_ctx->recipient_context.rollback_largest_seq = 0;
+  common_ctx->recipient_context.sliding_window = 0;
+  common_ctx->recipient_context.rollback_sliding_window = -1;
+  common_ctx->recipient_context.initialized = 0;
 
   list_add(common_context_list, common_ctx);
 }
 
-int
+
+void
 oscore_free_ctx(oscore_ctx_t *ctx)
 {
   list_remove(common_context_list, ctx); 
@@ -216,9 +175,9 @@ oscore_ctx_t *
 oscore_find_ctx_by_rid(const uint8_t *rid, uint8_t rid_len)
 {
   oscore_ctx_t *ptr = NULL;
-  for(ptr = list_head(common_context_list); ptr != NULL; ptr = list_item_next(ptr)){
-    if(bytes_equal(ptr->recipient_context.recipient_id, ptr->recipient_context.recipient_id_len, rid, rid_len)) {
-      return ptr;
+  for( ptr = list_head(common_context_list); ptr != NULL; ptr = list_item_next(ptr) ){
+    if( bytes_equal(ptr->recipient_context.recipient_id, ptr->recipient_context.recipient_id_len, rid, rid_len) ){
+ 	return ptr;
     }
   }
   return NULL;
@@ -270,7 +229,32 @@ oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscor
   /* Add to end of the exchange list */
   list_add(exchange_list, new_exchange);
 
-  return true;
+}
+/* URI <=> RID association */
+void
+oscore_ep_ctx_store_init(void)
+{
+  memb_init(&ep_ctx_memb);
+  list_init(ep_ctx_list);
+}
+uint8_t
+oscore_ep_ctx_set_association(coap_endpoint_t *ep, char *uri, oscore_ctx_t *ctx)
+{
+  if( list_length(ep_ctx_list) == EP_CTX_NUM){ /* If we are at capacity for Endpoint <-> Context associations: */
+	/* Remove first element in list, to make space for a new one. */
+        ep_ctx_t *tmp = list_pop(ep_ctx_list);
+	memb_free(&ep_ctx_memb, tmp);
+  }
+  ep_ctx_t *new_ep_ctx = memb_alloc(&ep_ctx_memb);
+  if(new_ep_ctx == NULL) {
+    return 0;
+  }
+  new_ep_ctx->ep = ep;
+  new_ep_ctx->uri = uri;
+  new_ep_ctx->ctx = ctx;
+  list_add(ep_ctx_list, new_ep_ctx);
+ 
+  return 1;
 }
 
 void
