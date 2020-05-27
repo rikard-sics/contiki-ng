@@ -91,16 +91,18 @@ PROCESS_THREAD(er_example_client, ev, data)
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
 
   #ifdef WITH_OSCORE
-  static oscore_ctx_t context;
-  oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 0, receiver_id, 1, NULL, 0);
-
+  static oscore_ctx_t *context;
+  context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 0, receiver_id, 1, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+  if(!context){
+	printf("Could not create OSCORE Security Context!\n");
+  }
   uint8_t ret = 0;
-  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[2], &context);
-  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[3], &context);
-  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[4], &context);
-  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[5], &context);
-  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[6], &context);
-  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[7], &context);
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[2], context);
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[3], context);
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[4], context);
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[5], context);
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[6], context);
+  ret += oscore_ep_ctx_set_association(&server_ep, service_urls[7], context);
   if( ret != 6) {
 	 printf("Not all URIs associated with contexts!\n");
   } 
@@ -169,7 +171,7 @@ PROCESS_THREAD(er_example_client, ev, data)
           break; 
 	case 16:
 	  //Associate /oscore/hello/coap with context to provide encryption 
-          if(!oscore_ep_ctx_set_association(&server_ep, service_urls[1], &context)){
+          if(!oscore_ep_ctx_set_association(&server_ep, service_urls[1], context)){
 		  printf("EP ERROR!\n");
 	  }
 	  test16_a(request);
