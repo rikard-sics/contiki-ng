@@ -4,7 +4,14 @@ MAKE_WITH_GROUPCOM ?= 0
 MAKE_WITH_HW_CRYPTO ?= 0
 
 ifeq ($(MAKE_WITH_OSCORE),1)
- MODULES += os/net/security/tinydtls/sha2
+
+ TINYDTLS_PATH := os/net/security/tinydtls
+
+ ifeq (${wildcard $(CONTIKI)/$(TINYDTLS_PATH)/Makefile},)
+  ${error Could not find the tinyDTLS submodule. Please run "git submodule update --init" and try again}
+ endif
+
+ MODULES += $(TINYDTLS_PATH)/sha2
  CFLAGS += -DSHA2_USE_INTTYPES_H -DWITH_SHA256 -DHAVE_ASSERT_H
  
  CFLAGS += -DWITH_OSCORE=1
