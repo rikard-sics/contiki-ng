@@ -677,7 +677,7 @@ oscore_roll_back_seq(oscore_recipient_ctx_t *ctx)
     ctx->sliding_window = ctx->rollback_sliding_window;
     ctx->largest_seq = ctx->rollback_largest_seq;
 }
-/* Initialize the security_context storage and the protected resource storage. */
+
 void
 oscore_init(void)
 {
@@ -685,15 +685,12 @@ oscore_init(void)
 
   /* Initialize the security_context storage and the protected resource storage. */
   oscore_exchange_store_init();
+
 #ifdef WITH_GROUPCOM
   oscore_crypto_init();
 #endif
-}
-/* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
-void
-oscore_init_client()
-{
-  oscore_ctx_store_init();
+
+  /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
   oscore_ep_ctx_store_init();
 #endif
 }
