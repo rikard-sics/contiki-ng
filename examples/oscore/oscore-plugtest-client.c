@@ -90,12 +90,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
 
-  /* receives all CoAP messages */
-  coap_engine_init();
-
   #ifdef WITH_OSCORE
-  oscore_init_client();
-
   static oscore_ctx_t *context;
   context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 0, receiver_id, 1, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
   if(!context){
