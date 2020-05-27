@@ -84,9 +84,6 @@ void oscore_roll_back_seq(oscore_recipient_ctx_t *ctx);
 uint8_t oscore_cose_compress(cose_encrypt0_t *cose, uint8_t *buffer);
 uint8_t oscore_cose_decompress(cose_encrypt0_t *cose, uint8_t *buffer, size_t buffer_len);
 
-/* Start protected resource storage. */
-void oscore_protected_resource_store_init();
-
 /* Mark a resource as protected by OSCORE, incoming COAP requests to that resource will be rejected. */
 void oscore_protect_resource(coap_resource_t *resource);
 
