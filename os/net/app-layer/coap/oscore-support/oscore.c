@@ -522,17 +522,15 @@ oscore_roll_back_seq(oscore_recipient_ctx_t *ctx)
 //    ctx->rollback_largest_seq = -1;
 //  }
 }
-/* Initialize the security_context storage and the protected resource storage. */
+
 void
-oscore_init_server()
+oscore_init(void)
 {
   oscore_ctx_store_init();
+
+  /* Initialize the security_context storage and the protected resource storage. */
   oscore_exchange_store_init();
-}
-/* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
-void
-oscore_init_client()
-{
-  oscore_ctx_store_init();
+
+  /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
   oscore_ep_ctx_store_init();
 }

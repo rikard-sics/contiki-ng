@@ -87,11 +87,6 @@ PROCESS_THREAD(plugtest_server, ev, data)
 
   PRINTF("OSCORE Plugtests Server\n");
 
-  /* Initialize the REST engine. */
-  coap_engine_init();
-  
-  oscore_init_server();
-
   static oscore_ctx_t *context;
   context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 0, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
   //context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 0, id_context, 8, OSCORE_DEFAULT_REPLAY_WINDOW);

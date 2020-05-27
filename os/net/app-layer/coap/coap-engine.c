@@ -428,6 +428,10 @@ coap_engine_init(void)
 
   coap_transport_init();
   coap_init_connection();
+
+#ifdef WITH_OSCORE
+  oscore_init();
+#endif
 }
 /*---------------------------------------------------------------------------*/
 /**
