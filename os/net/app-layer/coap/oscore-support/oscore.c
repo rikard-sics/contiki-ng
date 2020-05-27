@@ -270,12 +270,12 @@ oscore_decode_message(coap_message_t *coap_pkt)
     }
 #endif    
     /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
-    if(!oscore_validate_sender_seq(ctx->recipient_context, cose)) {
+    if(!oscore_validate_sender_seq(&ctx->recipient_context, cose)) {
       LOG_DBG_("OSCORE Replayed or old message\n");
       coap_error_message = "Replay detected";
       return UNAUTHORIZED_4_01;
     }
-    cose_encrypt0_set_key(cose, ctx->recipient_context->recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+    cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   } else { /* Message is a response */
     uint64_t seq;
     uint8_t seq_buffer[8];
@@ -314,7 +314,7 @@ uint16_t encrypt_len = coap_pkt->payload_len;
   if(res <= 0) {
     LOG_DBG_("OSCORE Decryption Failure, result code: %d\n", res);
     if(coap_is_request(coap_pkt)) {
-      oscore_roll_back_seq(ctx->recipient_context);
+      oscore_roll_back_seq(&ctx->recipient_context);
       coap_error_message = "Decryption failure";
       return BAD_REQUEST_4_00;
     } else {
@@ -366,25 +366,25 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
 #else
   if(coap_is_request(pkt)) {
     if(sending){
-      partial_iv_len = u64tob(ctx->sender_context->seq, partial_iv_buffer);
+      partial_iv_len = u64tob(ctx->sender_context.seq, partial_iv_buffer);
       cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
-      cose_encrypt0_set_key_id(cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
-      cose_encrypt0_set_key(cose, ctx->sender_context->sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+      cose_encrypt0_set_key_id(cose, ctx->sender_context.sender_id, ctx->sender_context.sender_id_len);
+      cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     } else { /* receiving */
       /* Partial IV set by decode option value. */
       /* Key ID set by decode option value. */	  
-      cose_encrypt0_set_key(cose, ctx->recipient_context->recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+      cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     }
   } else { /* coap is response */
     if(sending){
-      partial_iv_len = u64tob(ctx->recipient_context->recent_seq, partial_iv_buffer);
+      partial_iv_len = u64tob(ctx->recipient_context.recent_seq, partial_iv_buffer);
       cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
-      cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
-      cose_encrypt0_set_key(cose, ctx->sender_context->sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+      cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
+      cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     } else { /* receiving */
       /* Partial IV set when getting seq from exchange. */
-      cose_encrypt0_set_key_id(cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
-      cose_encrypt0_set_key(cose, ctx->recipient_context->recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+      cose_encrypt0_set_key_id(cose, ctx->sender_context.sender_id, ctx->sender_context.sender_id_len);
+      cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     }
   }
 #endif /* WITH_GROUPCOM */
@@ -439,7 +439,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   cose_encrypt0_set_nonce(cose, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
   
   if(coap_is_request(coap_pkt)){
-    if(!oscore_set_exchange(coap_pkt->token, coap_pkt->token_len, ctx->sender_context->seq, ctx)){
+    if(!oscore_set_exchange(coap_pkt->token, coap_pkt->token_len, ctx->sender_context.seq, ctx)){
 	LOG_DBG_("OSCORE Could not store exchange.\n");
     	return PACKET_SERIALIZATION_ERROR;
     }
@@ -543,7 +543,7 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buf
 
   /*When sending responses. */
   if( !coap_is_request(coap_pkt)) { 
-    external_aad_len += cbor_put_bytes(&external_aad_ptr, coap_pkt->security_context->recipient_context->recipient_id,  coap_pkt->security_context->recipient_context->recipient_id_len);
+    external_aad_len += cbor_put_bytes(&external_aad_ptr, coap_pkt->security_context->recipient_context.recipient_id,  coap_pkt->security_context->recipient_context.recipient_id_len);
   } else {	 
     external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->key_id, cose->key_id_len);
   }
@@ -655,9 +655,9 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 uint8_t
 oscore_increment_sender_seq(oscore_ctx_t *ctx)
 {
-  ctx->sender_context->seq++;
+  ctx->sender_context.seq++;
 
-  if(ctx->sender_context->seq >= OSCORE_SEQ_MAX) {
+  if(ctx->sender_context.seq >= OSCORE_SEQ_MAX) {
     return 0;
   } else {
     return 1;
