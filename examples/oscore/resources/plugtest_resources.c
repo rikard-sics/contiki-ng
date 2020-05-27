@@ -346,8 +346,8 @@ void test12_a(coap_message_t* request){
 	  printf("COULD NOT FIND CONTEXT!\n");
   }
 
-  security_context->sender_context->sender_id = false_sender_id;
-  security_context->sender_context->sender_id_len = false_sender_id_len;
+  security_context->sender_context.sender_id = false_sender_id;
+  security_context->sender_context.sender_id_len = false_sender_id_len;
   printf("Test 12a: Sending!\n");
 }
 
@@ -368,8 +368,8 @@ void test12_a_handler(void* response){
     failed_tests++;
   }
 
-  security_context->sender_context->sender_id = real_sender_id;
-  security_context->sender_context->sender_id_len = real_sender_id_len;
+  security_context->sender_context.sender_id = real_sender_id;
+  security_context->sender_context.sender_id_len = real_sender_id_len;
 } 
 
 void test13_a(coap_message_t* request){
@@ -379,7 +379,7 @@ void test13_a(coap_message_t* request){
 
   coap_set_oscore(request);
   
-  memcpy(security_context->sender_context->sender_key, false_sender_key, 16);
+  memcpy(security_context->sender_context.sender_key, false_sender_key, 16);
   printf("Test 13a: Sending!\n");
 }
 
@@ -399,7 +399,7 @@ void test13_a_handler(void* response){
 
     failed_tests++;
   }
-  memcpy(security_context->sender_context->sender_key, real_sender_key, 16);
+  memcpy(security_context->sender_context.sender_key, real_sender_key, 16);
 }
 
 void test14_a(coap_message_t* request){
@@ -409,7 +409,7 @@ void test14_a(coap_message_t* request){
 
   coap_set_oscore(request);
   
-  memcpy(security_context->recipient_context->recipient_key, false_recipient_key, 16);
+  memcpy(security_context->recipient_context.recipient_key, false_recipient_key, 16);
   printf("Test 14a: Sending!\n");
 }
 
@@ -429,7 +429,7 @@ void test14_a_handler(void* response){
     printf("Got : %d\n", ((coap_message_t*)response)->code);
     failed_tests++;
   }
-  memcpy(security_context->recipient_context->recipient_key, real_recipient_key, 16);
+  memcpy(security_context->recipient_context.recipient_key, real_recipient_key, 16);
 }
 
 void test15_a(coap_message_t* request){
@@ -439,8 +439,8 @@ void test15_a(coap_message_t* request){
 
   coap_set_oscore(request);
   
-  real_sender_seq = security_context->sender_context->seq;
-  security_context->sender_context->seq = 1;
+  real_sender_seq = security_context->sender_context.seq;
+  security_context->sender_context.seq = 1;
   printf("Test 15a: Sending!\n");
 }
 
@@ -460,7 +460,7 @@ void test15_a_handler(void* response){
 
     failed_tests++;
   }
-  security_context->sender_context->seq = real_sender_seq;
+  security_context->sender_context.seq = real_sender_seq;
 }
 
 void test16_a(coap_message_t* request){
