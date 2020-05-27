@@ -87,12 +87,9 @@ PROCESS_THREAD(plugtest_server, ev, data)
 
   PRINTF("OSCORE Plugtests Server\n");
 
-  static oscore_ctx_t *context;
-  context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 0, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
-  //context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 0, id_context, 8, OSCORE_DEFAULT_REPLAY_WINDOW);
-  if(!context){
-        printf("Could not create OSCORE Security Context!\n");
-  }
+  static oscore_ctx_t context;
+  oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 0, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+  //oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 0, id_context, 8, OSCORE_DEFAULT_REPLAY_WINDOW);
 
   uint8_t *key_id = NULL;
   oscore_ctx_t *ctx;
