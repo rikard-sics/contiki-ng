@@ -49,6 +49,11 @@
 
 #include <stdio.h>
 
+/* Log configuration */
+#include "coap-log.h"
+#define LOG_MODULE "oscore"
+#define LOG_LEVEL LOG_LEVEL_COAP
+
 MEMB(exchange_memb, oscore_exchange_t, TOKEN_SEQ_NUM);
 MEMB(ep_ctx_memb, ep_ctx_t, EP_CTX_NUM);
 
@@ -61,6 +66,7 @@ oscore_ctx_store_init(void)
 {
   list_init(common_context_list);
 }
+
 static uint8_t
 compose_info(
   uint8_t *buffer, uint8_t buffer_len,
@@ -95,19 +101,15 @@ compose_info(
   ret += cbor_put_unsigned(&buffer, out_len);
   return ret;
 }
-uint8_t
+
+static bool
 bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b_len)
 {
   if(a_len != b_len) {
-    return 0;
+    return false;
   }
-  if(memcmp(a_ptr, b_ptr, a_len) == 0) {
-    return 1;
-  } else {
-    return 0;
-  }
+  return memcmp(a_ptr, b_ptr, a_len) == 0;
 }
-
 
 #ifdef WITH_GROUPCOM
 void
@@ -175,20 +177,20 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   list_add(common_context_list, common_ctx);
 }
 
-
 void
 oscore_free_ctx(oscore_ctx_t *ctx)
 {
   list_remove(common_context_list, ctx); 
   memset(ctx, 0, sizeof(*ctx));
 }
+
 oscore_ctx_t *
 oscore_find_ctx_by_rid(const uint8_t *rid, uint8_t rid_len)
 {
   oscore_ctx_t *ptr = NULL;
-  for( ptr = list_head(common_context_list); ptr != NULL; ptr = list_item_next(ptr) ){
-    if( bytes_equal(ptr->recipient_context.recipient_id, ptr->recipient_context.recipient_id_len, rid, rid_len) ){
- 	return ptr;
+  for(ptr = list_head(common_context_list); ptr != NULL; ptr = list_item_next(ptr)){
+    if(bytes_equal(ptr->recipient_context.recipient_id, ptr->recipient_context.recipient_id_len, rid, rid_len) ){
+      return ptr;
     }
   }
   return NULL;
@@ -202,32 +204,38 @@ oscore_exchange_store_init(void)
   list_init(exchange_list);
 }
 
-oscore_ctx_t*
-oscore_get_exchange(uint8_t *token, uint8_t token_len, uint64_t *seq)
+static oscore_exchange_t*
+oscore_get_exchange(const uint8_t *token, uint8_t token_len)
 {
-  oscore_exchange_t *ptr = NULL;
-  for( ptr = list_head(exchange_list); ptr != NULL; ptr = list_item_next(ptr)) {
+  for(oscore_exchange_t *ptr = list_head(exchange_list); ptr != NULL; ptr = list_item_next(ptr)) {
     if(bytes_equal(ptr->token, ptr->token_len, token, token_len)) {
-      *seq = ptr->seq;
-      return ptr->context;
+      return ptr;
     }
   }
-  *seq = 0;
   return NULL;
 }
 
-uint8_t
-oscore_set_exchange(uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context)
+
+oscore_ctx_t*
+oscore_get_contex_from_exchange(const uint8_t *token, uint8_t token_len, uint64_t *seq)
 {
-  if(list_length(exchange_list) == TOKEN_SEQ_NUM) { /* If we are at capacity for exchanges: */
-	/* Remove first element in list, to make space for a new one. */
-	oscore_exchange_t *tmp = list_pop(exchange_list);
-    	memb_free(&exchange_memb, tmp);
+  oscore_exchange_t *ptr = oscore_get_exchange(token, token_len);
+  if (ptr) {
+    *seq = ptr->seq;
+    return ptr->context;
+  } else {
+    *seq = 0;
+    return NULL;
   }
-  
+}
+
+bool
+oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context)
+{
   oscore_exchange_t *new_exchange = memb_alloc(&exchange_memb);
-  if( new_exchange == NULL){
-	  return 0;
+  if(new_exchange == NULL){
+    LOG_ERR("oscore_set_exchange: out of memory\n");
+    return false;
   }
 
   memcpy(new_exchange->token, token, token_len);
@@ -236,21 +244,17 @@ oscore_set_exchange(uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_
   new_exchange->context = context;
 
   list_add(exchange_list, new_exchange);
-  return 1;
+  return true;
 }
 
 void
-oscore_remove_exchange(uint8_t *token, uint8_t token_len)
+oscore_remove_exchange(const uint8_t *token, uint8_t token_len)
 {
-  oscore_exchange_t *ptr = NULL;
-  for( ptr = list_head(exchange_list); ptr != NULL; ptr = list_item_next(ptr)) {
-    if(bytes_equal(ptr->token, ptr->token_len, token, token_len)) {
-      list_remove(exchange_list, ptr);
-      memb_free(&exchange_memb, ptr);
-      return;
-    }
+  oscore_exchange_t *ptr = oscore_get_exchange(token, token_len);
+  if (ptr) {
+    list_remove(exchange_list, ptr);
+    memb_free(&exchange_memb, ptr);
   }
-
 }
 /* URI <=> RID association */
 void
@@ -259,59 +263,71 @@ oscore_ep_ctx_store_init(void)
   memb_init(&ep_ctx_memb);
   list_init(ep_ctx_list);
 }
-uint8_t
+
+static int
+_strcmp(const char *a, const char *b){
+  if(a == NULL && b != NULL){
+    return -1;
+  } else if (a != NULL && b == NULL) {
+    return 1;
+  } else if (a == NULL && b == NULL) {
+    return 0;
+  }
+  return strcmp(a,b);
+}
+
+static ep_ctx_t *
+oscore_ep_ctx_find(coap_endpoint_t *ep, const char *uri)
+{
+  for(ep_ctx_t *ptr = list_head(ep_ctx_list); ptr != NULL; ptr = list_item_next(ptr)) {
+    if((coap_endpoint_cmp(ep, ptr->ep) && (_strcmp(uri, ptr->uri) == 0))) {
+      return ptr;
+    }
+  }
+  return NULL;
+}
+
+bool
 oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx)
 {
-  if( list_length(ep_ctx_list) == EP_CTX_NUM){ /* If we are at capacity for Endpoint <-> Context associations: */
-	/* Remove first element in list, to make space for a new one. */
-        ep_ctx_t *tmp = list_pop(ep_ctx_list);
-	memb_free(&ep_ctx_memb, tmp);
+  ep_ctx_t *new_ep_ctx;
+
+  new_ep_ctx = oscore_ep_ctx_find(ep, uri);
+  if (new_ep_ctx) {
+    LOG_INFO("oscore_ep_ctx_set_association: updating existing context 0x%" PRIXPTR " -> 0x%" PRIXPTR "\n",
+      (uintptr_t)new_ep_ctx->ctx, (uintptr_t)ctx);
+    new_ep_ctx->ctx = ctx;
+    return true;
   }
-  ep_ctx_t *new_ep_ctx = memb_alloc(&ep_ctx_memb);
+
+  new_ep_ctx = memb_alloc(&ep_ctx_memb);
   if(new_ep_ctx == NULL) {
-    return 0;
+    return false;
   }
   new_ep_ctx->ep = ep;
   new_ep_ctx->uri = uri;
   new_ep_ctx->ctx = ctx;
   list_add(ep_ctx_list, new_ep_ctx);
  
-  return 1;
+  return true;
 }
-
-int _strcmp(const char *a, const char *b){
-  if( a == NULL && b != NULL){
-    return -1;
-  } else if ( a != NULL && b == NULL) {
-    return 1;
-  } else if ( a == NULL && b == NULL) {
-    return 0;
-  }
-  return strcmp(a,b);
-}		
-
-
 
 oscore_ctx_t *
 oscore_get_context_from_ep(coap_endpoint_t *ep, const char *uri)
 {
-  ep_ctx_t *ptr = NULL;
-  for( ptr = list_head(ep_ctx_list); ptr != NULL; ptr = list_item_next(ptr)) {
-    if((coap_endpoint_cmp(ep, ptr->ep) && (_strcmp(uri, ptr->uri) == 0))) {
-      return ptr->ctx;
-    }
+  ep_ctx_t *ptr = oscore_ep_ctx_find(ep, uri);
+  if (ptr) {
+    return ptr->ctx;
   }
   return NULL;
 }
 
-void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri){
-  ep_ctx_t *ptr = NULL;
-  for( ptr = list_head(ep_ctx_list); ptr != NULL; ptr = list_item_next(ptr)) {
-    if((coap_endpoint_cmp(ep, ptr->ep) && (_strcmp(uri, ptr->uri) == 0))) {
-      list_remove(ep_ctx_list, ptr);
-      memb_free(&ep_ctx_memb, ptr);
-      return;
-    }
+void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri)
+{
+  ep_ctx_t *ptr = oscore_ep_ctx_find(ep, uri);
+  if (ptr) {
+    list_remove(ep_ctx_list, ptr);
+    memb_free(&ep_ctx_memb, ptr);
   }
 }
 
