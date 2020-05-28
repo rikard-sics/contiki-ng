@@ -66,10 +66,10 @@ coap_status_t oscore_decode_option_value(uint8_t *option_value, int option_len, 
 size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer);
 
 /*Sets Alg, Partial IV Key ID and Key in COSE. Returns status*/
-uint8_t oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, uint8_t sending);
+void oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending);
 
 /* Creates AAD, creates External AAD and serializes it into the complete AAD structure. Returns serialized size. */
-size_t oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buffer, uint8_t sending);
+size_t oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buffer, bool sending);
 
 /* Creates Nonce */
 void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size);
@@ -81,7 +81,7 @@ void oscore_clear_options(coap_message_t *ptr);
 uint8_t oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose);
 
 /* Return 0 if SEQ MAX, return 1 if OK */
-uint8_t oscore_increment_sender_seq(oscore_ctx_t *ctx);
+bool oscore_increment_sender_seq(oscore_ctx_t *ctx);
 
 /* Restore the sequence number and replay-window to the previous state. This is to be used when decryption fail. */
 void oscore_roll_back_seq(oscore_recipient_ctx_t *ctx);
@@ -92,9 +92,9 @@ uint8_t oscore_cose_decompress(cose_encrypt0_t *cose, uint8_t *buffer, size_t bu
 
 /* Mark a resource as protected by OSCORE, incoming COAP requests to that resource will be rejected. */
 void oscore_protect_resource(coap_resource_t *resource);
-bool oscore_is_resource_protected(coap_resource_t *resource);
+bool oscore_is_resource_protected(const coap_resource_t *resource);
 
-bool oscore_protected_request(void *request);
+bool oscore_protected_request(const coap_message_t *request);
 /*Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
 
 
@@ -111,6 +111,6 @@ size_t oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose, uint8_t *osc
 #endif /* WITH_GROUPCOM */
 
 /* TEMP */
-void printf_hex(const uint8_t *data, unsigned int len);
+void printf_hex(const uint8_t *data, size_t len);
 
 #endif /* _OSCORE_H */
