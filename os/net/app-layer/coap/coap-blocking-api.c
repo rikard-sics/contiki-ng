@@ -93,6 +93,7 @@ PT_THREAD(coap_blocking_request
 
   do {
     request->mid = coap_get_mid();
+#ifdef WITH_OSCORE
 
 #if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
     const char *uri;
@@ -106,10 +107,22 @@ PT_THREAD(coap_blocking_request
         coap_set_oscore(request, context);
       }
     } else {
-      LOG_WARN("OSCORE: No URI to fetch context from\n");
+      LOG_DBG("NO URI PATH\n");
     }
 #endif /* WITH_OSCORE */
 
+    if(context){
+      LOG_DBG("OSCORE found!\n");
+      coap_set_oscore(request);
+      request->security_context = context;
+      //TODO maybe an if and random token should be added here
+      const uint8_t token[2] = {0xA, 0xA};
+      coap_set_token(request, token, sizeof(token));
+    } else {
+      LOG_DBG("NO OSCORE!\n");
+      LOG_DBG("URL %s \n", uri);
+    }
+#endif /* WITH_OSCORE */
     if((state->transaction = coap_new_transaction(request->mid, remote_ep))) {
       state->transaction->callback = coap_blocking_request_callback;
       state->transaction->callback_data = blocking_state;
