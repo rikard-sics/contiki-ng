@@ -44,11 +44,11 @@
 
 int cbor_put_nil(uint8_t **buffer);
 
-int cbor_put_text(uint8_t **buffer, char *text, uint8_t text_len);
+int cbor_put_text(uint8_t **buffer, const char *text, uint8_t text_len);
 
 int cbor_put_array(uint8_t **buffer, uint8_t elements);
 
-int cbor_put_bytes(uint8_t **buffer, uint8_t *bytes, uint8_t bytes_len);
+int cbor_put_bytes(uint8_t **buffer, const uint8_t *bytes, uint8_t bytes_len);
 
 int cbor_put_map(uint8_t **buffer, uint8_t elements);
 

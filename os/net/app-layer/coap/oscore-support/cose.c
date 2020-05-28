@@ -91,14 +91,14 @@ cose_encrypt0_get_partial_iv(cose_encrypt0_t *ptr, uint8_t **buffer)
   return ptr->partial_iv_len;
 }
 void
-cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
+cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
 {
   ptr->key_id = buffer;
   ptr->key_id_len = size;
 }
 /* Return length */
-int
-cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, uint8_t **buffer)
+uint8_t
+cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, const uint8_t **buffer)
 {
   *buffer = ptr->key_id;
   return ptr->key_id_len;

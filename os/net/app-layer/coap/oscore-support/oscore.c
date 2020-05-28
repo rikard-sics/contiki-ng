@@ -44,13 +44,14 @@
 #include "coap.h"
 #include "stdio.h"
 #include "inttypes.h"
+
 /* Log configuration */
 #include "coap-log.h"
-#define LOG_MODULE "coap"
-#define LOG_LEVEL  LOG_LEVEL_COAP
+#define LOG_MODULE "oscore"
+#define LOG_LEVEL LOG_LEVEL_COAP
 
 void
-printf_hex(unsigned char *data, unsigned int len)
+printf_hex(const uint8_t *data, unsigned int len)
 {
   unsigned int i = 0;
   for(i = 0; i < len; i++) {
@@ -58,30 +59,30 @@ printf_hex(unsigned char *data, unsigned int len)
   }
   LOG_DBG_("\n");
 }
-uint8_t
-coap_is_request(coap_message_t *coap_pkt)
+static bool
+coap_is_request(const coap_message_t *coap_pkt)
 {
-  if(coap_pkt->code >= COAP_GET && coap_pkt->code <= COAP_DELETE) {
-    return 1;
-  } else {
-    return 0;
-  }
+  return coap_pkt->code >= COAP_GET && coap_pkt->code <= COAP_DELETE;
 }
-uint8_t
+bool
 oscore_protected_request(void *request)
 {
   if(request != NULL) {
     coap_message_t *coap_pkt = (coap_message_t *)request;
     if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)) {
-      return 1;
+      return true;
     }
   }
-  return 0;
+  return false;
 }
 void
 oscore_protect_resource(coap_resource_t *resource)
 {
   resource->oscore_protected = 1;
+}
+bool oscore_is_resource_protected(coap_resource_t *resource)
+{
+  return resource->oscore_protected;
 }
 uint8_t
 u64tob(uint64_t value, uint8_t *buffer)
@@ -214,8 +215,8 @@ oscore_decode_message(coap_message_t *coap_pkt)
 	 return ret;
   }
   if(coap_is_request(coap_pkt)) {
-    uint8_t *key_id;
-    int key_id_len = cose_encrypt0_get_key_id(cose, &key_id);
+    const uint8_t *key_id;
+    uint8_t key_id_len = cose_encrypt0_get_key_id(cose, &key_id);
     ctx = oscore_find_ctx_by_rid(key_id, key_id_len);
     if(ctx == NULL) {
       LOG_DBG_("OSCORE Security Context not found.\n");

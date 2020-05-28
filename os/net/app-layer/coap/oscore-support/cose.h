@@ -65,8 +65,8 @@ typedef struct cose_encrypt0_t {
   uint8_t partial_iv[8];
   int partial_iv_len;
 
-  uint8_t *key_id;
-  int key_id_len;
+  const uint8_t *key_id;
+  uint8_t key_id_len;
 
   uint8_t *kid_context;
   int kid_context_len;
@@ -104,8 +104,8 @@ void cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, uint8_t *buffer, int siz
 
 
 /* Return length */
-int cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, uint8_t **buffer);
-void cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
+uint8_t cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, const uint8_t **buffer);
+void cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size);
 
 void cose_encrypt0_set_aad(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
