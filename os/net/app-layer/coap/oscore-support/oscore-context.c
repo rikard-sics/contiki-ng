@@ -260,7 +260,7 @@ oscore_ep_ctx_store_init(void)
   list_init(ep_ctx_list);
 }
 uint8_t
-oscore_ep_ctx_set_association(coap_endpoint_t *ep, char *uri, oscore_ctx_t *ctx)
+oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx)
 {
   if( list_length(ep_ctx_list) == EP_CTX_NUM){ /* If we are at capacity for Endpoint <-> Context associations: */
 	/* Remove first element in list, to make space for a new one. */
