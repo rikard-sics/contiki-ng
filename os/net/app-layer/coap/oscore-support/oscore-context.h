@@ -52,16 +52,12 @@
 
 #define OSCORE_SEQ_MAX (((uint64_t)1 << 40) - 1)
 
-#ifndef CONTEXT_NUM
-#define CONTEXT_NUM 2
-#endif
-
 #ifndef TOKEN_SEQ_NUM
-#define TOKEN_SEQ_NUM 2
+#define TOKEN_SEQ_NUM 10
 #endif
 
 #ifndef EP_CTX_NUM
-#define EP_CTX_NUM 2
+#define EP_CTX_NUM 10
 #endif
 
 typedef struct oscore_sender_ctx_t oscore_sender_ctx_t;
@@ -183,13 +179,13 @@ oscore_ctx_t *oscore_find_ctx_by_rid(const uint8_t *rid, uint8_t rid_len);
 
 /* Token <=> SEQ association */
 void oscore_exchange_store_init(void);
-uint8_t oscore_set_exchange(uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context);
-oscore_ctx_t* oscore_get_exchange(uint8_t *token, uint8_t token_len, uint64_t *seq);
-void oscore_remove_exchange(uint8_t *token, uint8_t token_len);
+bool oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context);
+oscore_ctx_t* oscore_get_contex_from_exchange(const uint8_t *token, uint8_t token_len, uint64_t *seq);
+void oscore_remove_exchange(const uint8_t *token, uint8_t token_len);
 
 /* URI <=> CTX association */
 void oscore_ep_ctx_store_init(void);
-uint8_t oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx);
+bool oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx);
 oscore_ctx_t *oscore_get_context_from_ep(coap_endpoint_t *ep, const char *uri);
 void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri);
 #endif /* _OSCORE_CONTEXT_H */
