@@ -55,7 +55,7 @@ int cbor_put_nil(uint8_t **buffer){
 	return 1;
 }
 int
-cbor_put_text(uint8_t **buffer, char *text, uint8_t text_len)
+cbor_put_text(uint8_t **buffer, const char *text, uint8_t text_len)
 {
   uint8_t ret = 0;
 
@@ -90,7 +90,7 @@ cbor_put_array(uint8_t **buffer, uint8_t elements)
   return 1;
 }
 int
-cbor_put_bytes(uint8_t **buffer, uint8_t *bytes, uint8_t bytes_len)
+cbor_put_bytes(uint8_t **buffer, const uint8_t *bytes, uint8_t bytes_len)
 {
   uint8_t ret = 0;
   if(bytes_len > 23) {
