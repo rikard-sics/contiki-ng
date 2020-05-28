@@ -694,7 +694,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
       LOG_DBG_COAP_STRING((char *)(coap_pkt->object_security), coap_pkt->object_security_len);
       LOG_DBG_("]\n");  
       oscore_found = true;
-#else /* WITH_OSCORE */
+      #else /* WITH_OSCORE */
       LOG_DBG_("OSCORE NOT IMPLEMENTED!\n");
       coap_error_message = "OSCORE not supported";
       return BAD_OPTION_4_02;
@@ -751,8 +751,8 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
     current_option += option_length;
   }                             /* for */
   LOG_DBG("-Done parsing-------\n");
-  #if WITH_OSCORE
-  if(oscore_found) {
+#if WITH_OSCORE
+  if(oscore_found){
    	LOG_DBG_("REMOVE: OSCORE found, decoding\n"); 
 	 return	oscore_decode_message(coap_pkt);
   }
@@ -1686,20 +1686,10 @@ int coap_set_header_object_security(coap_message_t *coap_pkt, uint8_t *object_se
   return coap_pkt->object_security_len;
 }
 
-
-int
+void
 coap_set_oscore(coap_message_t *coap_pkt)
 {
   coap_set_option(coap_pkt, COAP_OPTION_OSCORE);
-  coap_pkt->security_context = ctx;
-
-  if(ctx == NULL) {
-    LOG_WARN("coap_set_oscore: Setting NULL security context\n");
-  }
-
-  if(coap_pkt->token_len == 0) {
-    LOG_WARN("coap_set_oscore: 0-length token\n");
-  }
 }
 #endif /* WITH_OSCORE */
 /** @} */
