@@ -290,7 +290,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
   } else { /* Message is a response */
     uint64_t seq;
     uint8_t seq_buffer[8];
-    ctx = oscore_get_exchange(coap_pkt->token, coap_pkt->token_len, &seq);
+    ctx = oscore_get_contex_from_exchange(coap_pkt->token, coap_pkt->token_len, &seq);
     if(ctx == NULL) {
       LOG_DBG_("OSCORE Security Context not found.\n");
       coap_error_message = "Security context not found";
