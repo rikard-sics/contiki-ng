@@ -153,7 +153,7 @@ cose_encrypt0_encrypt(cose_encrypt0_t *ptr)
     return -3;
   }
   if(ptr->content == NULL ) {
-      return -4;
+    return -4;
   }
 
   return encrypt(ptr->alg, ptr->key, ptr->key_len, ptr->nonce, ptr->nonce_len, ptr->aad, ptr->aad_len, ptr->content, ptr->content_len);

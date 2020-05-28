@@ -95,16 +95,16 @@ UNIT_TEST(test_exchange_storage){
   UNIT_TEST_ASSERT(ret == 1);
   
   uint64_t seq_1_ptr; 
-  oscore_ctx_t *ctx_ptr_1 = oscore_get_exchange(token_1, 4, &seq_1_ptr);
+  oscore_ctx_t *ctx_ptr_1 = oscore_get_contex_from_exchange(token_1, 4, &seq_1_ptr);
   UNIT_TEST_ASSERT(ctx_ptr_1 == ctx_1);
 
   uint64_t seq_2_ptr; 
-  oscore_ctx_t *ctx_ptr_2 = oscore_get_exchange(token_2, 5, &seq_2_ptr);
+  oscore_ctx_t *ctx_ptr_2 = oscore_get_contex_from_exchange(token_2, 5, &seq_2_ptr);
   UNIT_TEST_ASSERT(ctx_ptr_2 == ctx_2);
    
     /* Test to fetch non-existing exchange. */
   oscore_remove_exchange(token_1, 4);
-  ctx_ptr_1 = oscore_get_exchange(token_1, 4, &seq_1_ptr);
+  ctx_ptr_1 = oscore_get_contex_from_exchange(token_1, 4, &seq_1_ptr);
   UNIT_TEST_ASSERT(ctx_ptr_1 == NULL);
   UNIT_TEST_ASSERT(seq_1_ptr == 0); 
  
@@ -112,10 +112,10 @@ UNIT_TEST(test_exchange_storage){
   UNIT_TEST_ASSERT(ret == 1);
 
   uint64_t seq_3_ptr;
-  oscore_ctx_t *ctx_ptr_3 = oscore_get_exchange(token_3, 1, &seq_3_ptr);
+  oscore_ctx_t *ctx_ptr_3 = oscore_get_contex_from_exchange(token_3, 1, &seq_3_ptr);
   UNIT_TEST_ASSERT( ctx_ptr_3 == ctx_3);
  
-  ctx_ptr_2 = oscore_get_exchange(token_2, 5, &seq_2_ptr);
+  ctx_ptr_2 = oscore_get_contex_from_exchange(token_2, 5, &seq_2_ptr);
   UNIT_TEST_ASSERT(ctx_ptr_2 == ctx_2);
   
 
@@ -123,11 +123,11 @@ UNIT_TEST(test_exchange_storage){
   oscore_remove_exchange(token_2, 5);
   oscore_remove_exchange(token_3, 1);
 
-  ctx_ptr_1 = oscore_get_exchange(token_1, 4, &seq_1_ptr);
+  ctx_ptr_1 = oscore_get_contex_from_exchange(token_1, 4, &seq_1_ptr);
   UNIT_TEST_ASSERT( ctx_ptr_1 == 0);
-  ctx_ptr_2 = oscore_get_exchange(token_2, 5, &seq_2_ptr);
+  ctx_ptr_2 = oscore_get_contex_from_exchange(token_2, 5, &seq_2_ptr);
   UNIT_TEST_ASSERT( ctx_ptr_2 == 0);
-  ctx_ptr_3 = oscore_get_exchange(token_3, 1, &seq_3_ptr);
+  ctx_ptr_3 = oscore_get_contex_from_exchange(token_3, 1, &seq_3_ptr);
   UNIT_TEST_ASSERT( ctx_ptr_3 == 0);
 
   UNIT_TEST_END();
