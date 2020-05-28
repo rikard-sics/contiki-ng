@@ -74,17 +74,25 @@ compose_info(
   uint8_t alg,
   const uint8_t *id, uint8_t id_len,
   const uint8_t *id_context, uint8_t id_context_len,
-  const char* kind,
   uint8_t out_len)
 {
-  nanocbor_encoder_t enc;
-  nanocbor_encoder_init(&enc, buffer, buffer_len);
+  uint8_t ret = 0;
 
-  NANOCBOR_CHECK(nanocbor_fmt_array(&enc, 5));
-  NANOCBOR_CHECK(nanocbor_put_bstr(&enc, id, id_len));
+  // TODO: Needs bounds checking on buffer_len
 
-  if(id_context != NULL && id_context_len > 0) {
-    NANOCBOR_CHECK(nanocbor_put_bstr(&enc, id_context, id_context_len));
+  ret += cbor_put_array(&buffer, 5);
+  ret += cbor_put_bytes(&buffer, id, id_len);
+  if(id_context != NULL && id_context_len > 0){
+  	ret += cbor_put_bytes(&buffer, id_context, id_context_len);
+  } else {
+	ret += cbor_put_nil(&buffer); 
+  }
+  ret += cbor_put_unsigned(&buffer, alg);
+  char *text;
+  uint8_t text_len;
+  if(out_len != 16) {
+    text = "IV";
+    text_len = 2;
   } else {
     NANOCBOR_CHECK(nanocbor_fmt_null(&enc));
   }
@@ -95,8 +103,7 @@ compose_info(
 
   return nanocbor_encoded_len(&enc);
 }
-
-static bool
+uint8_t
 bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b_len)
 {
   if(a_len != b_len) {
@@ -112,30 +119,41 @@ bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b
 
 #ifdef WITH_GROUPCOM
 void
-oscore_derive_ctx(oscore_ctx_t *common_ctx, uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window, uint8_t *gid)
+oscore_derive_ctx(oscore_ctx_t *common_ctx,
+  const uint8_t *master_secret, uint8_t master_secret_len,
+  const uint8_t *master_salt, uint8_t master_salt_len,
+  uint8_t alg,
+  const uint8_t *sid, uint8_t sid_len,
+  const uint8_t *rid, uint8_t rid_len,
+  const uint8_t *id_context, uint8_t id_context_len,
+  uint8_t replay_window,
+  const uint8_t *gid)
 #else
 void
-oscore_derive_ctx(oscore_ctx_t *common_ctx, uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window)
+oscore_derive_ctx(oscore_ctx_t *common_ctx,
+  const uint8_t *master_secret, uint8_t master_secret_len,
+  const uint8_t *master_salt, uint8_t master_salt_len,
+  uint8_t alg,
+  const uint8_t *sid, uint8_t sid_len,
+  const uint8_t *rid, uint8_t rid_len,
+  const uint8_t *id_context, uint8_t id_context_len,
+  uint8_t replay_window)
 #endif
 {
   uint8_t info_buffer[15];
   uint8_t info_len;
 
   /* sender_ key */
-  info_len = compose_info(info_buffer, alg, sid, sid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, sid, sid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
   hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->sender_context.sender_key, CONTEXT_KEY_LEN);
 
   /* Receiver key */
-  info_len = compose_info(info_buffer, alg, rid, rid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, rid, rid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
   hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->recipient_context.recipient_key, CONTEXT_KEY_LEN);
 
   /* common IV */
-  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, NULL, 0, id_context, id_context_len, "IV", CONTEXT_INIT_VECT_LEN);
-  assert(info_len > 0);
-  hkdf(master_salt, master_salt_len,
-       master_secret, master_secret_len,
-       info_buffer, info_len,
-       common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, NULL, 0, id_context, id_context_len, CONTEXT_INIT_VECT_LEN);
+  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
 
   common_ctx->master_secret = master_secret;
   common_ctx->master_secret_len = master_secret_len;

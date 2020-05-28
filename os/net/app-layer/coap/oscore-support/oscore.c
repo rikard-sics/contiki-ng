@@ -45,29 +45,40 @@
 #include "coap-log.h"
 #include "stdio.h"
 #include "inttypes.h"
-#include "assert.h"
 
-#include "nanocbor/nanocbor.h"
-#include "nanocbor-helper.h"
-
-/* Log configuration */
-#include "coap-log.h"
 #ifdef WITH_GROUPCOM
 #include "oscore-crypto.h"
 #endif
-#define LOG_MODULE "coap"
-#define LOG_LEVEL  LOG_LEVEL_COAP
 
-uint8_t
-coap_is_request(coap_message_t *coap_pkt)
+/* Log configuration */
+#include "coap-log.h"
+#define LOG_MODULE "oscore"
+#define LOG_LEVEL LOG_LEVEL_COAP
+
+void
+printf_hex(const uint8_t *data, unsigned int len)
+{
+  unsigned int i = 0;
+  for(i = 0; i < len; i++) {
+    LOG_DBG_("%02x ", data[i]);
+  }
+  LOG_DBG_("\n");
+}
+static bool
+coap_is_request(const coap_message_t *coap_pkt)
 {
   return coap_pkt->code >= COAP_GET && coap_pkt->code <= COAP_DELETE;
 }
-
 bool
-oscore_is_request_protected(const coap_message_t *request)
+oscore_protected_request(void *request)
 {
-  return request != NULL && coap_is_option(request, COAP_OPTION_OSCORE);
+  if(request != NULL) {
+    coap_message_t *coap_pkt = (coap_message_t *)request;
+    if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void
@@ -75,13 +86,11 @@ oscore_protect_resource(coap_resource_t *resource)
 {
   resource->oscore_protected = true;
 }
-
-bool oscore_is_resource_protected(const coap_resource_t *resource)
+bool oscore_is_resource_protected(coap_resource_t *resource)
 {
   return resource->oscore_protected;
 }
-
-static uint8_t
+uint8_t
 u64tob(uint64_t value, uint8_t *buffer)
 {
   memset(buffer, 0, sizeof(uint64_t));
@@ -254,11 +263,11 @@ oscore_decode_message(coap_message_t *coap_pkt)
   }
 
   if(coap_is_request(coap_pkt)) {
-    uint8_t *key_id;
 #ifdef WITH_GROUPCOM
     uint8_t *group_id; /*used to extract gid from OSCORE option*/
 #endif
-    int key_id_len = cose_encrypt0_get_key_id(cose, &key_id);
+    const uint8_t *key_id;
+    uint8_t key_id_len = cose_encrypt0_get_key_id(cose, &key_id);
     ctx = oscore_find_ctx_by_rid(key_id, key_id_len);
     if(ctx == NULL) {
       LOG_ERR("OSCORE Security Context not found (rid='");
