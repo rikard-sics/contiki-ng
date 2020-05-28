@@ -302,32 +302,11 @@ oscore_decode_message(coap_message_t *coap_pkt)
     }
     cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   } else { /* Message is a response */
-
-    /* try and find this exchange */
-    oscore_exchange_t* exchange = oscore_get_exchange(coap_pkt->token, coap_pkt->token_len);
-    if (exchange == NULL) {
-      LOG_ERR("OSCORE exchange not found (token='");
-      LOG_ERR_BYTES(coap_pkt->token, coap_pkt->token_len);
-      LOG_ERR_("' src='");
-      LOG_ERR_COAP_EP(coap_pkt->src_ep);
-      LOG_ERR_("').\n");
-      coap_error_message = "Security context not found";
-      return UNAUTHORIZED_4_01;
-    }
-
-    const uint64_t seq = exchange->seq;
-    ctx = exchange->context;
-
-    /* Remove it, as we are done with this round of communication */
-    oscore_remove_exchange(coap_pkt->token, coap_pkt->token_len);
-
-    /* Check that the context is valid */
-    if (ctx == NULL) {
-      LOG_ERR("OSCORE exchange has no valid context (token='");
-      LOG_ERR_BYTES(coap_pkt->token, coap_pkt->token_len);
-      LOG_ERR_("' src='");
-      LOG_ERR_COAP_EP(coap_pkt->src_ep);
-      LOG_ERR_("').\n");
+    uint64_t seq;
+    uint8_t seq_buffer[8];
+    ctx = oscore_get_contex_from_exchange(coap_pkt->token, coap_pkt->token_len, &seq);
+    if(ctx == NULL) {
+      LOG_DBG_("OSCORE Security Context not found.\n");
       coap_error_message = "Security context not found";
       return UNAUTHORIZED_4_01;
     }
