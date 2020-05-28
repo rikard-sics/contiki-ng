@@ -144,6 +144,10 @@ call_service(coap_message_t *request, coap_message_t *response,
 extern coap_resource_t res_well_known_core;
 #endif
 
+#ifdef WITH_OSCORE
+extern void oscore_missing_security_context(const coap_endpoint_t *src);
+#endif
+
 /*---------------------------------------------------------------------------*/
 /*- Internal API ------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -379,6 +383,12 @@ coap_receive(const coap_endpoint_t *src,
         callback(callback_data, message);
       }
     }
+
+  } else if(coap_status_code == OSCORE_MISSING_CONTEXT) {
+    LOG_WARN("OSCORE cannot decrypt, missing context!\n");
+
+    // Need to inform receivers of failed decryption
+    oscore_missing_security_context(src);
 
   } else {
     coap_message_type_t reply_type = COAP_TYPE_ACK;
