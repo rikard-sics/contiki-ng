@@ -426,21 +426,21 @@ coap_serialize_message_coap(coap_message_t *coap_pkt, uint8_t *buffer)
 size_t
 coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
-    #ifdef WITH_OSCORE
-    if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)){
-       size_t message_len = oscore_prepare_message(coap_pkt, buffer);
-       LOG_DBG("Sending OSCORE message, len %zu, full [",message_len);
-       LOG_DBG_COAP_BYTES(buffer, message_len);
-       LOG_DBG_("]\n");
-       return message_len;
-    }else{
-       LOG_DBG_("Sending COAP message.\n");
-       size_t message_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
-       return message_len;
-    }
-    #else /* WITH_OSCORE */
+#ifdef WITH_OSCORE
+  if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)){
+    size_t message_len = oscore_prepare_message(coap_pkt, buffer);
+    LOG_DBG("Sending OSCORE message, len %zu, full [", message_len);
+    LOG_DBG_COAP_BYTES(buffer, message_len);
+    LOG_DBG_("]\n");
+    return message_len;
+  } else {
+    LOG_DBG_("Sending COAP message.\n");
+    size_t message_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
+    return message_len;
+  }
+#else /* WITH_OSCORE */
     return coap_serialize_message_coap(coap_pkt, buffer);
-    #endif /* WITH_OSCORE */
+#endif /* WITH_OSCORE */
 }
 #ifdef WITH_GROUPCOM
 size_t
@@ -712,7 +712,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
       LOG_DBG_("]\n");
       break;
     case COAP_OPTION_OSCORE:
-      #ifdef WITH_OSCORE
+#ifdef WITH_OSCORE
       coap_pkt->object_security = (uint8_t *)current_option;
       coap_pkt->object_security_len = option_length;
       LOG_DBG_("Object-Security [");
@@ -723,7 +723,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
       LOG_DBG_("OSCORE NOT IMPLEMENTED!\n");
       coap_error_message = "OSCORE not supported";
       return BAD_OPTION_4_02;
-      #endif /* WITH_OSCORE */    
+#endif /* WITH_OSCORE */    
       break;
     case COAP_OPTION_OBSERVE:
       coap_pkt->observe = coap_parse_int_option(current_option,
