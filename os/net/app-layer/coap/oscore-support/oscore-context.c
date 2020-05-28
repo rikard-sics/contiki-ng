@@ -62,9 +62,17 @@ oscore_ctx_store_init(void)
   list_init(common_context_list);
 }
 static uint8_t
-compose_info(uint8_t *buffer, uint8_t alg, uint8_t *id, uint8_t id_len, uint8_t *id_context, uint8_t id_context_len, uint8_t out_len)
+compose_info(
+  uint8_t *buffer, uint8_t buffer_len,
+  uint8_t alg,
+  const uint8_t *id, uint8_t id_len,
+  const uint8_t *id_context, uint8_t id_context_len,
+  uint8_t out_len)
 {
   uint8_t ret = 0;
+
+  // TODO: Needs bounds checking on buffer_len
+
   ret += cbor_put_array(&buffer, 5);
   ret += cbor_put_bytes(&buffer, id, id_len);
   if(id_context != NULL && id_context_len > 0){
@@ -88,7 +96,7 @@ compose_info(uint8_t *buffer, uint8_t alg, uint8_t *id, uint8_t id_len, uint8_t 
   return ret;
 }
 uint8_t
-bytes_equal(uint8_t *a_ptr, uint8_t a_len, uint8_t *b_ptr, uint8_t b_len)
+bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b_len)
 {
   if(a_len != b_len) {
     return 0;
@@ -103,25 +111,40 @@ bytes_equal(uint8_t *a_ptr, uint8_t a_len, uint8_t *b_ptr, uint8_t b_len)
 
 #ifdef WITH_GROUPCOM
 void
-oscore_derive_ctx(oscore_ctx_t *common_ctx, uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window, uint8_t *gid)
+oscore_derive_ctx(oscore_ctx_t *common_ctx,
+  const uint8_t *master_secret, uint8_t master_secret_len,
+  const uint8_t *master_salt, uint8_t master_salt_len,
+  uint8_t alg,
+  const uint8_t *sid, uint8_t sid_len,
+  const uint8_t *rid, uint8_t rid_len,
+  const uint8_t *id_context, uint8_t id_context_len,
+  uint8_t replay_window,
+  const uint8_t *gid)
 #else
 void
-oscore_derive_ctx(oscore_ctx_t *common_ctx, uint8_t *master_secret, uint8_t master_secret_len, uint8_t *master_salt, uint8_t master_salt_len, uint8_t alg, uint8_t *sid, uint8_t sid_len, uint8_t *rid, uint8_t rid_len, uint8_t *id_context, uint8_t id_context_len, uint8_t replay_window)
+oscore_derive_ctx(oscore_ctx_t *common_ctx,
+  const uint8_t *master_secret, uint8_t master_secret_len,
+  const uint8_t *master_salt, uint8_t master_salt_len,
+  uint8_t alg,
+  const uint8_t *sid, uint8_t sid_len,
+  const uint8_t *rid, uint8_t rid_len,
+  const uint8_t *id_context, uint8_t id_context_len,
+  uint8_t replay_window)
 #endif
 {
   uint8_t info_buffer[15];
   uint8_t info_len;
 
   /* sender_ key */
-  info_len = compose_info(info_buffer, alg, sid, sid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, sid, sid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
   hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->sender_context.sender_key, CONTEXT_KEY_LEN);
 
   /* Receiver key */
-  info_len = compose_info(info_buffer, alg, rid, rid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, rid, rid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
   hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->recipient_context.recipient_key, CONTEXT_KEY_LEN);
 
   /* common IV */
-  info_len = compose_info(info_buffer, alg, NULL, 0, id_context, id_context_len, CONTEXT_INIT_VECT_LEN);
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, NULL, 0, id_context, id_context_len, CONTEXT_INIT_VECT_LEN);
   hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
 
   common_ctx->master_secret = master_secret;
@@ -160,7 +183,7 @@ oscore_free_ctx(oscore_ctx_t *ctx)
   memset(ctx, 0, sizeof(*ctx));
 }
 oscore_ctx_t *
-oscore_find_ctx_by_rid(uint8_t *rid, uint8_t rid_len)
+oscore_find_ctx_by_rid(const uint8_t *rid, uint8_t rid_len)
 {
   oscore_ctx_t *ptr = NULL;
   for( ptr = list_head(common_context_list); ptr != NULL; ptr = list_item_next(ptr) ){
