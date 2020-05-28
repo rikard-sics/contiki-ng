@@ -45,8 +45,14 @@
 #include <string.h>
 #include "oscore-crypto.h"
 #include "oscore.h"
+#include "assert.h"
 
 #include <stdio.h>
+
+/* Log configuration */
+#include "coap-log.h"
+#define LOG_MODULE "oscore"
+#define LOG_LEVEL LOG_LEVEL_COAP
 
 MEMB(exchange_memb, oscore_exchange_t, TOKEN_SEQ_NUM);
 MEMB(ep_ctx_memb, ep_ctx_t, EP_CTX_NUM);
@@ -239,24 +245,28 @@ oscore_ep_ctx_store_init(void)
   memb_init(&ep_ctx_memb);
   list_init(ep_ctx_list);
 }
-uint8_t
+bool
 oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx)
 {
-  if( list_length(ep_ctx_list) == EP_CTX_NUM){ /* If we are at capacity for Endpoint <-> Context associations: */
+#if 0
+  if(list_length(ep_ctx_list) == EP_CTX_NUM){ /* If we are at capacity for Endpoint <-> Context associations: */
 	/* Remove first element in list, to make space for a new one. */
         ep_ctx_t *tmp = list_pop(ep_ctx_list);
 	memb_free(&ep_ctx_memb, tmp);
   }
+#endif
+
   ep_ctx_t *new_ep_ctx = memb_alloc(&ep_ctx_memb);
   if(new_ep_ctx == NULL) {
-    return 0;
+    LOG_ERR("oscore_ep_ctx_set_association: out of memory\n");
+    return false;
   }
   new_ep_ctx->ep = ep;
   new_ep_ctx->uri = uri;
   new_ep_ctx->ctx = ctx;
   list_add(ep_ctx_list, new_ep_ctx);
  
-  return 1;
+  return true;
 }
 
 int _strcmp(const char *a, const char *b){
