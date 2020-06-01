@@ -248,6 +248,8 @@ encrypt(uint8_t alg,
   kprintf_hex(aad, aad_len);
   printf("Plaintext: (%" PRIu16 ")\n", plaintext_len);
   kprintf_hex(buffer, plaintext_len);
+  printf("Tag: (%" PRIu8 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  kprintf_hex(tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
 #endif
   
 #ifdef OSCORE_WITH_HW_CRYPTO
@@ -300,10 +302,10 @@ encrypt(uint8_t alg,
 #endif /* OSCORE_WITH_HW_CRYPTO */
 
 #ifdef OSCORE_ENC_DEC_DEBUG
+  printf("Tag': (%" PRIu8 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  kprintf_hex(tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
   printf("Ciphertext: (%" PRIu16 ")\n", plaintext_len);
   kprintf_hex(buffer, plaintext_len);
-  printf("Tag: (%" PRIu16 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
-  kprintf_hex(tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
 #endif
 
   return plaintext_len + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
@@ -347,7 +349,7 @@ decrypt(uint8_t alg,
   kprintf_hex(aad, aad_len);
   printf("Ciphertext: (%" PRIu16 ")\n", plaintext_len);
   kprintf_hex(buffer, plaintext_len);
-  printf("Tag: (%" PRIu16 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  printf("Tag: (%" PRIu8 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
   kprintf_hex(&buffer[plaintext_len], COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
 #endif
   
@@ -365,7 +367,6 @@ decrypt(uint8_t alg,
   AESCCM_Params_init(&params);
 
   handle = AESCCM_open(0, &params);
-
   if (handle == NULL) {
     LOG_ERR("Could not open AESCCM handle!\n");
     return -1; 
