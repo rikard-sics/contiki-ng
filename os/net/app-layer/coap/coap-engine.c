@@ -145,7 +145,12 @@ extern coap_resource_t res_well_known_core;
 #endif
 
 #ifdef WITH_OSCORE
-extern void oscore_missing_security_context(const coap_endpoint_t *src);
+static void oscore_missing_security_context_default(const coap_endpoint_t *src)
+{
+}
+
+extern void oscore_missing_security_context(const coap_endpoint_t *src)
+  __attribute__ ((weak, alias ("oscore_missing_security_context_default")));
 #endif
 
 /*---------------------------------------------------------------------------*/
