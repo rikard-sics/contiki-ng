@@ -264,7 +264,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       printf_hex(key_id, key_id_len);
       LOG_ERR_("' len=%u).\n", key_id_len);
       coap_error_message = "Security context not found";
-      return OSCORE_MISSING_CONTEXT;//UNAUTHORIZED_4_01;
+      return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
     }
 #ifdef WITH_GROUPCOM
     uint8_t gid_len = cose_encrypt0_get_kid_context(cose, &group_id);
@@ -299,7 +299,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       printf_hex(coap_pkt->token, coap_pkt->token_len);
       LOG_ERR_("' len=%u).\n", coap_pkt->token_len);
       coap_error_message = "Security context not found";
-      return OSCORE_MISSING_CONTEXT;//UNAUTHORIZED_4_01;
+      return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
     }
 
     LOG_DBG("cose->partial_iv_len == %"PRIu16" (%"PRIu64")\n", cose->partial_iv_len, seq);
