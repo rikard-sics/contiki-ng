@@ -65,6 +65,9 @@
 #define LOG_MODULE "Main"
 #define LOG_LEVEL LOG_LEVEL_MAIN
 /*---------------------------------------------------------------------------*/
+#define STRINGIFY(a) STRINGIFY_(a)
+#define STRINGIFY_(a) #a
+/*---------------------------------------------------------------------------*/
 int
 #if PLATFORM_MAIN_ACCEPTS_ARGS
 main(int argc, char **argv)
@@ -132,10 +135,10 @@ main(void)
 #endif /* NETSTACK_CONF_WITH_IPV6 */
 
 #ifdef AES_128_CONF
-  LOG_INFO("AES_128_CONF Driver: " CC_STRINGIFY(AES_128_CONF) "\n");
+  LOG_INFO("AES_128_CONF Driver: " STRINGIFY(AES_128_CONF) "\n");
 #endif
 #ifdef CCM_STAR_CONF
-  LOG_INFO("CCM_STAR_CONF Driver: " CC_STRINGIFY(CCM_STAR_CONF) "\n");
+  LOG_INFO("CCM_STAR_CONF Driver: " STRINGIFY(CCM_STAR_CONF) "\n");
 #endif
 
 
