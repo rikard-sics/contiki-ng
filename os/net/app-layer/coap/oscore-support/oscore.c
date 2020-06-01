@@ -44,6 +44,7 @@
 #include "coap.h"
 #include "stdio.h"
 #include "inttypes.h"
+#include "assert.h"
 
 /* Log configuration */
 #include "coap-log.h"
@@ -81,16 +82,16 @@ u64tob(uint64_t value, uint8_t *buffer)
 {
   memset(buffer, 0, 8);
   uint8_t length = 0;
-  for( int i = 0; i < 8; i++){
-        uint8_t temp = (value >> (8*i)) & 0xFF;
+  for(int i = 0; i < 8; i++){
+    uint8_t temp = (value >> (8*i)) & 0xFF;
 
-        if( temp != 0){
-                length = i+1;
-        }
+    if(temp != 0){
+      length = i+1;
+    }
   }
 
-  for ( int i = 0; i < length; i++){
-          buffer[length - i -1] = (value >> (8*i)) & 0xFF;
+  for (int i = 0; i < length; i++){
+    buffer[length - i - 1] = (value >> (8*i)) & 0xFF;
   }  
   return length == 0 ? 1 : length;
 
@@ -284,8 +285,8 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
       cose_encrypt0_set_key_id(cose, ctx->sender_context.sender_id, ctx->sender_context.sender_id_len);
       cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     } else { /* receiving */
-      /* Partial IV set by decode option value. */
-      /* Key ID set by decode option value. */	  
+      assert(cose->partial_iv_len > 0); /* Partial IV set by decode option value. */
+      assert(cose->key_id != NULL); /* Key ID set by decode option value. */
       cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     }
   } else { /* coap is response */
@@ -295,7 +296,7 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
       cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
       cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     } else { /* receiving */
-      /* Partial IV set when getting seq from exchange. */
+      assert(cose->partial_iv_len > 0); /* Partial IV set when getting seq from exchange. */
       cose_encrypt0_set_key_id(cose, ctx->sender_context.sender_id, ctx->sender_context.sender_id_len);
       cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     }
@@ -334,10 +335,10 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   oscore_generate_nonce(cose, coap_pkt, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
   cose_encrypt0_set_nonce(cose, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
   
-  if(coap_is_request(coap_pkt)){
-    if(!oscore_set_exchange(coap_pkt->token, coap_pkt->token_len, ctx->sender_context.seq, ctx)){
+  if(coap_is_request(coap_pkt)) {
+    if(!oscore_set_exchange(coap_pkt->token, coap_pkt->token_len, ctx->sender_context.seq, ctx)) {
       LOG_ERR("OSCORE Could not store exchange.\n");
-    	return PACKET_SERIALIZATION_ERROR;
+      return PACKET_SERIALIZATION_ERROR;
     }
     oscore_increment_sender_seq(ctx);
   }
@@ -348,7 +349,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   }
   
   uint8_t option_value_len = 0;
-  if(coap_is_request(coap_pkt)){
+  if(coap_is_request(coap_pkt)) {
     option_value_len = oscore_encode_option_value(option_value_buffer, cose, 1);
   } else { //Partial IV shall NOT be included in responses
     option_value_len = oscore_encode_option_value(option_value_buffer, cose, 0);
@@ -378,15 +379,21 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buf
   /* Serialize the External AAD*/
   external_aad_len += cbor_put_array(&external_aad_ptr, 5);
   external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1); /* Version, always for this version of the draft 1 */
-  external_aad_len += cbor_put_array(&external_aad_ptr, 1); /* Algoritms array */
+  external_aad_len += cbor_put_array(&external_aad_ptr, 1); /* Algorithms array */
   external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); /* Algorithm */
   /*When sending responses. */
-  if(!coap_is_request(coap_pkt)) {
-    external_aad_len += cbor_put_bytes(&external_aad_ptr,
+  if(coap_is_request(coap_pkt)) {
+    external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->key_id, cose->key_id_len);
+  } else {
+    if (sending) {
+      external_aad_len += cbor_put_bytes(&external_aad_ptr,
       coap_pkt->security_context->recipient_context.recipient_id,
       coap_pkt->security_context->recipient_context.recipient_id_len);
-  } else {	 
-    external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->key_id, cose->key_id_len);
+    } else {
+      external_aad_len += cbor_put_bytes(&external_aad_ptr,
+        coap_pkt->security_context->sender_context.sender_id,
+        coap_pkt->security_context->sender_context.sender_id_len);
+    }
   }
   external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->partial_iv, cose->partial_iv_len);  
   external_aad_len += cbor_put_bytes(&external_aad_ptr, NULL, 0); /* Put integrety protected option, at present there are none. */
