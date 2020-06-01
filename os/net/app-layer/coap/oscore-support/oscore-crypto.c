@@ -37,7 +37,6 @@
  *
  */
 
-
 #include "oscore-crypto.h"
 #include "ccm-star.h"
 #include <string.h>
@@ -50,6 +49,20 @@
 #include "coap-log.h"
 #define LOG_MODULE "oscore"
 #define LOG_LEVEL LOG_LEVEL_COAP
+
+//#define OSCORE_ENC_DEC_DEBUG
+
+#ifdef OSCORE_ENC_DEC_DEBUG
+static void
+kprintf_hex(const uint8_t *data, unsigned int len)
+{
+  unsigned int i = 0;
+  for(i = 0; i < len; i++) {
+    printf("%02x", data[i]);
+  }
+  printf("\n");
+}
+#endif
 
 #ifdef WITH_GROUPCOM
 #include "sys/pt.h"
@@ -202,22 +215,40 @@ void convert_simplelink(uint8_t *a, size_t len) {
    Tag-length and ciphertext length is derived from algorithm. No check is done to ensure
    that ciphertext buffer is of the correct length. */
 int
-encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len,
-        uint8_t *aad, uint8_t aad_len, uint8_t *buffer, uint16_t plaintext_len) {
+encrypt(uint8_t alg,
+        const uint8_t *key, uint8_t key_len,
+        const uint8_t *nonce, uint8_t nonce_len,
+        const uint8_t *aad, uint8_t aad_len,
+        uint8_t *buffer, uint16_t plaintext_len)
+{
   if(alg != COSE_Algorithm_AES_CCM_16_64_128) {
     LOG_ERR("Unsupported algorithm %u\n", alg);
-    return -5;
+    return OSCORE_CRYPTO_UNSUPPORTED_ALGORITHM;
   }
 
   if(key_len != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN) {
     LOG_ERR("Invalid key length %u != %u\n", key_len, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
-    return -5;
+    return OSCORE_CRYPTO_INVALID_KEY_LEN;
   }
 
   if(nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
     LOG_ERR("Invalid nonce length %u != %u\n", nonce_len, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
-    return -5;
+    return OSCORE_CRYPTO_INVALID_NONCE_LEN;
   }
+
+  uint8_t* tag_buffer = &buffer[plaintext_len];
+
+#ifdef OSCORE_ENC_DEC_DEBUG
+  printf("Encrypt:\n");
+  printf("Key: (%" PRIu8 ")\n", key_len);
+  kprintf_hex(key, key_len);
+  printf("IV: (%" PRIu8 ")\n", nonce_len);
+  kprintf_hex(nonce, nonce_len);
+  printf("AAD: (%" PRIu8 ")\n", aad_len);
+  kprintf_hex(aad, aad_len);
+  printf("Plaintext: (%" PRIu16 ")\n", plaintext_len);
+  kprintf_hex(buffer, plaintext_len);
+#endif
   
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
@@ -268,6 +299,13 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
 #endif /* OSCORE_WITH_HW_CRYPTO */
 
+#ifdef OSCORE_ENC_DEC_DEBUG
+  printf("Ciphertext: (%" PRIu16 ")\n", plaintext_len);
+  kprintf_hex(buffer, plaintext_len);
+  printf("Tag: (%" PRIu16 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  kprintf_hex(tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+#endif
+
   return plaintext_len + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
 }
 /*---------------------------------------------------------------------------*/
@@ -275,25 +313,44 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
    Tag-length and plaintext length is derived from algorithm. No check is done to ensure
    that plaintext buffer is of the correct length. */
 int
-decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len,
-        uint8_t *aad, uint8_t aad_len, uint8_t *buffer, uint16_t ciphertext_len) {
+decrypt(uint8_t alg,
+        const uint8_t *key, uint8_t key_len,
+        const uint8_t *nonce, uint8_t nonce_len,
+        const uint8_t *aad, uint8_t aad_len,
+        uint8_t *buffer, uint16_t ciphertext_len)
+{
   if(alg != COSE_Algorithm_AES_CCM_16_64_128) {
     LOG_ERR("Unsupported algorithm %u\n", alg);
-    return -5;
+    return OSCORE_CRYPTO_UNSUPPORTED_ALGORITHM;
   }
 
   if(key_len != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN) {
     LOG_ERR("Invalid key length %u != %u\n", key_len, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
-    return -5;
+    return OSCORE_CRYPTO_INVALID_KEY_LEN;
   }
 
   if(nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
     LOG_ERR("Invalid nonce length %u != %u\n", nonce_len, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
-    return -5;
+    return OSCORE_CRYPTO_INVALID_NONCE_LEN;
   }
-  
+
   uint8_t tag_buffer[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
   uint16_t plaintext_len = ciphertext_len - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
+
+#ifdef OSCORE_ENC_DEC_DEBUG
+  printf("Decrypt:\n");
+  printf("Key: (%" PRIu8 ")\n", key_len);
+  kprintf_hex(key, key_len);
+  printf("IV: (%" PRIu8 ")\n", nonce_len);
+  kprintf_hex(nonce, nonce_len);
+  printf("AAD: (%" PRIu8 ")\n", aad_len);
+  kprintf_hex(aad, aad_len);
+  printf("Ciphertext: (%" PRIu16 ")\n", plaintext_len);
+  kprintf_hex(buffer, plaintext_len);
+  printf("Tag: (%" PRIu16 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  kprintf_hex(&buffer[plaintext_len], COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+#endif
+  
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
   cc2538_ccm_star_driver.set_key(key);
@@ -343,8 +400,16 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   CCM_STAR.set_key(key);
   CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
 #endif /* OSCORE_WITH_HW_CRYPTO */
+
+#ifdef OSCORE_ENC_DEC_DEBUG
+  printf("Tag': (%" PRIu8 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  kprintf_hex(tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  printf("Plaintext: (%" PRIu16 ")\n", plaintext_len);
+  kprintf_hex(buffer, plaintext_len);
+#endif
+
   if(memcmp(tag_buffer, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN) != 0) {
-    return 0; /* Decryption failure */
+    return OSCORE_CRYPTO_DECRYPTION_FAILURE; /* Decryption failure */
   }
   return plaintext_len;
 }
@@ -379,10 +444,10 @@ static int
 hkdf_expand(const uint8_t *prk, const uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t okm_len)
 {
   if(info_len > HKDF_INFO_MAXLEN) {
-    return -1;
+    return OSCORE_CRYPTO_HKDF_INVALID_INFO_LEN;
   }
   if(okm_len > HKDF_OUTPUT_MAXLEN) {
-    return -2;
+    return OSCORE_CRYPTO_HKDF_INVALID_OKM_LEN;
   }
   int N = (okm_len + 32 - 1) / 32; /* ceil(okm_len/32) */
   uint8_t aggregate_buffer[32 + HKDF_INFO_MAXLEN + 1];
@@ -403,6 +468,7 @@ hkdf_expand(const uint8_t *prk, const uint8_t *info, uint8_t info_len, uint8_t *
   }
 
   memcpy(okm, out_buffer, okm_len);
+
   return 0;
 }
 /*---------------------------------------------------------------------------*/
@@ -415,8 +481,7 @@ hkdf(
 {
   uint8_t prk_buffer[32];
   hkdf_extract(salt, salt_len, ikm, ikm_len, prk_buffer);
-  hkdf_expand(prk_buffer, info, info_len, okm, okm_len);
-  return 0;
+  return hkdf_expand(prk_buffer, info, info_len, okm, okm_len);
 }
 /*---------------------------------------------------------------------------*/
 #ifdef WITH_GROUPCOM
