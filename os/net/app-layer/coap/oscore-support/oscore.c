@@ -248,8 +248,8 @@ oscore_decode_message(coap_message_t *coap_pkt)
   cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
   cose_encrypt0_set_alg(cose, ctx->alg);
   
-  oscore_generate_nonce(cose, coap_pkt, nonce_buffer, 13);
-  cose_encrypt0_set_nonce(cose, nonce_buffer, 13);
+  oscore_generate_nonce(cose, coap_pkt, nonce_buffer, sizeof(nonce_buffer));
+  cose_encrypt0_set_nonce(cose, nonce_buffer, sizeof(nonce_buffer));
   
   cose_encrypt0_set_content(cose, coap_pkt->payload, coap_pkt->payload_len);
   int res = cose_encrypt0_decrypt(cose);
