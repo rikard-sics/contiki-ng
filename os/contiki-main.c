@@ -180,6 +180,9 @@ parse_argv(int *argc, char ***argv)
 #define STRINGIFY(a) STRINGIFY_(a)
 #define STRINGIFY_(a) #a
 /*---------------------------------------------------------------------------*/
+#define STRINGIFY(a) STRINGIFY_(a)
+#define STRINGIFY_(a) #a
+/*---------------------------------------------------------------------------*/
 int
 main(int argc, char **argv)
 {
