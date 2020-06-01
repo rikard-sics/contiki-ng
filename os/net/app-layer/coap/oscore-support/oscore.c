@@ -216,7 +216,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       printf_hex(key_id, key_id_len);
       LOG_ERR_("' len=%u).\n", key_id_len);
       coap_error_message = "Security context not found";
-      return OSCORE_MISSING_CONTEXT;//UNAUTHORIZED_4_01;
+      return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
     }
     /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
     if(!oscore_validate_sender_seq(&ctx->recipient_context, cose)) {
@@ -235,7 +235,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       printf_hex(coap_pkt->token, coap_pkt->token_len);
       LOG_ERR_("' len=%u).\n", coap_pkt->token_len);
       coap_error_message = "Security context not found";
-      return OSCORE_MISSING_CONTEXT;//UNAUTHORIZED_4_01;
+      return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
     }
     /* If message contains a partial IV, the received is used. */
     if(cose->partial_iv_len == 0){
