@@ -388,14 +388,18 @@ coap_receive(const coap_endpoint_t *src,
         callback(callback_data, message);
       }
     }
-
-  } else if(coap_status_code == OSCORE_MISSING_CONTEXT) {
-    LOG_WARN("OSCORE cannot decrypt, missing context!\n");
-
-    // Need to inform receivers of failed decryption
-    oscore_missing_security_context(src);
-
   } else {
+#ifdef WITH_OSCORE
+    if (coap_status_code == OSCORE_MISSING_CONTEXT) {
+      LOG_WARN("OSCORE cannot decrypt, missing context!\n");
+
+      /* Need to inform receivers of failed decryption */
+      oscore_missing_security_context(src);
+
+      coap_status_code = UNAUTHORIZED_4_01;
+    }
+#endif /* WITH_OSCORE */
+
     coap_message_type_t reply_type = COAP_TYPE_ACK;
 
 #if COAP_MESSAGE_ON_ERROR
