@@ -102,16 +102,18 @@ encrypt(uint8_t alg,
   kprintf_hex(aad, aad_len);
   printf("Plaintext: (%" PRIu16 ")\n", plaintext_len);
   kprintf_hex(buffer, plaintext_len);
+  printf("Tag: (%" PRIu8 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  kprintf_hex(tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
 #endif
 
   CCM_STAR.set_key(key);
   CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
 
 #ifdef OSCORE_ENC_DEC_DEBUG
+  printf("Tag': (%" PRIu8 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  kprintf_hex(tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
   printf("Ciphertext: (%" PRIu16 ")\n", plaintext_len);
   kprintf_hex(buffer, plaintext_len);
-  printf("Tag: (%" PRIu16 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
-  kprintf_hex(tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
 #endif
 
   return plaintext_len + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
@@ -144,8 +146,6 @@ decrypt(uint8_t alg,
 
   uint8_t tag_buffer[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
   
-  CCM_STAR.set_key(key);
-
   uint16_t plaintext_len = ciphertext_len - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
 
 #ifdef OSCORE_ENC_DEC_DEBUG
@@ -158,10 +158,11 @@ decrypt(uint8_t alg,
   kprintf_hex(aad, aad_len);
   printf("Ciphertext: (%" PRIu16 ")\n", plaintext_len);
   kprintf_hex(buffer, plaintext_len);
-  printf("Tag: (%" PRIu16 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  printf("Tag: (%" PRIu8 ")\n", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
   kprintf_hex(&buffer[plaintext_len], COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
 #endif
 
+  CCM_STAR.set_key(key);
   CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
 
 #ifdef OSCORE_ENC_DEC_DEBUG
