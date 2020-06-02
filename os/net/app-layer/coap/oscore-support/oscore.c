@@ -52,9 +52,13 @@
 #endif
 
 /* Log configuration */
-#include "coap-log.h"
+#include "sys/log.h"
 #define LOG_MODULE "oscore"
-#define LOG_LEVEL LOG_LEVEL_COAP
+#ifdef LOG_CONF_LEVEL_OSCORE
+#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
+#else
+#define LOG_LEVEL LOG_LEVEL_WARN
+#endif
 
 void
 printf_hex(const uint8_t *data, size_t len)
@@ -170,7 +174,7 @@ oscore_encode_option_value(uint8_t *option_buffer, const cose_encrypt0_t *cose, 
   }
 #endif
   LOG_DBG("OSCORE encoded option value, len %d, full [",offset);
-  LOG_DBG_COAP_BYTES(option_buffer, offset);
+  LOG_DBG_BYTES(option_buffer, offset);
   LOG_DBG_("]\n");
 
   if(offset == 1 && option_buffer[0] == 0) { /* If option_value is 0x00 it should be empty. */
@@ -242,6 +246,11 @@ oscore_decode_message(coap_message_t *coap_pkt)
   cose_sign1_t sign[1];
   cose_sign1_init(sign);
 #endif /*WITH_GROUPCOM*/
+
+  LOG_ERR("object_security: ");
+  LOG_ERR_BYTES(coap_pkt->object_security, coap_pkt->object_security_len);
+  LOG_ERR_("\n");
+
   /* Options are discarded later when they are overwritten. This should be improved */
   coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
 
@@ -277,10 +286,10 @@ oscore_decode_message(coap_message_t *coap_pkt)
     }
     else {
        LOG_DBG("Group-ID, len %d, full [",gid_len);
-       LOG_DBG_COAP_BYTES(group_id, gid_len);
+       LOG_DBG_BYTES(group_id, gid_len);
        LOG_DBG_("]\n");
     }
-#endif    
+#endif
     /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
     if(!oscore_validate_sender_seq(&ctx->recipient_context, cose)) {
       LOG_WARN("OSCORE Replayed or old message\n");
@@ -305,8 +314,11 @@ oscore_decode_message(coap_message_t *coap_pkt)
 
     /* If message contains a partial IV, the received is used. */
     if(cose->partial_iv_len == 0){
+      LOG_DBG("cose->partial_iv_len == 0 (%"PRIu64")\n", seq);
       uint8_t seq_len = u64tob(seq, seq_buffer);
       cose_encrypt0_set_partial_iv(cose, seq_buffer, seq_len);
+    } else {
+      LOG_DBG("cose->partial_iv_len == %"PRIu16" (%"PRIu64")\n", cose->partial_iv_len, seq);
     }
   }
   oscore_populate_cose(coap_pkt, cose, ctx, false);
@@ -644,7 +656,7 @@ oscore_clear_options(coap_message_t *coap_pkt)
 
 /*Return 1 if OK, Error code otherwise */
 bool
-oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, const cose_encrypt0_t *cose)
+oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
   int64_t incomming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
 //todo add LOG_DBG here 
@@ -665,10 +677,36 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, const cose_encrypt0_t *c
   */
    if(incomming_seq >= OSCORE_SEQ_MAX) {
     LOG_WARN("OSCORE Replay protection, SEQ larger than SEQ_MAX.\n");
-    return 0;
+    return false;
   }
 
-  return oscore_sliding_window_validate(&ctx->sliding_window, incoming_seq);
+  if(incomming_seq > ctx->largest_seq) {
+    /* Update the replay window */
+    int shift = incomming_seq - ctx->largest_seq;
+    ctx->sliding_window = ctx->sliding_window << shift;
+    ctx->sliding_window = ctx->sliding_window | 1;
+    ctx->largest_seq = incomming_seq;
+  } else if(incomming_seq == ctx->largest_seq) {
+      LOG_WARN("OSCORE Replay protection, replayed SEQ.\n");
+      return false;
+  } else { /* seq < recipient_seq */
+    if(incomming_seq + ctx->replay_window_size < ctx->largest_seq) {
+      LOG_WARN("OSCORE Replay protection, SEQ outside of replay window.\n");
+      return false;
+    }
+    /* seq+replay_window_size > recipient_seq */
+    int shift = ctx->largest_seq - incomming_seq;
+    uint32_t pattern = 1 << shift;
+    uint32_t verifier = ctx->sliding_window & pattern;
+    verifier = verifier >> shift;
+    if(verifier == 1) {
+	      LOG_WARN("OSCORE Replay protection, replayed SEQ.\n");
+      return false;
+    }
+    ctx->sliding_window = ctx->sliding_window | pattern;
+  }
+  ctx->recent_seq = incomming_seq;
+  return true;
 }
 
 /* Return 0 if SEQ MAX, return 1 if OK */
