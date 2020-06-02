@@ -51,9 +51,13 @@
 #endif
 
 /* Log configuration */
-#include "coap-log.h"
+#include "sys/log.h"
 #define LOG_MODULE "oscore"
-#define LOG_LEVEL LOG_LEVEL_COAP
+#ifdef LOG_CONF_LEVEL_OSCORE
+#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
+#else
+#define LOG_LEVEL LOG_LEVEL_WARN
+#endif
 
 void
 printf_hex(const uint8_t *data, size_t len)
@@ -167,7 +171,7 @@ oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose, uint8_
   }
 #endif
   LOG_DBG("OSCORE encoded option value, len %d, full [",offset);
-  LOG_DBG_COAP_BYTES(option_buffer, offset);
+  LOG_DBG_BYTES(option_buffer, offset);
   LOG_DBG_("]\n");
 
   if(offset == 1 && option_buffer[0] == 0) { /* If option_value is 0x00 it should be empty. */
@@ -236,6 +240,11 @@ oscore_decode_message(coap_message_t *coap_pkt)
   cose_sign1_t sign[1];
   cose_sign1_init(sign);
 #endif /*WITH_GROUPCOM*/
+
+  LOG_ERR("object_security: ");
+  LOG_ERR_BYTES(coap_pkt->object_security, coap_pkt->object_security_len);
+  LOG_ERR_("\n");
+
   /* Options are discarded later when they are overwritten. This should be improved */
   coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
 
@@ -271,10 +280,10 @@ oscore_decode_message(coap_message_t *coap_pkt)
     }
     else {
        LOG_DBG("Group-ID, len %d, full [",gid_len);
-       LOG_DBG_COAP_BYTES(group_id, gid_len);
+       LOG_DBG_BYTES(group_id, gid_len);
        LOG_DBG_("]\n");
     }
-#endif    
+#endif
     /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
     if(!oscore_validate_sender_seq(&ctx->recipient_context, cose)) {
       LOG_WARN("OSCORE Replayed or old message\n");
@@ -296,8 +305,11 @@ oscore_decode_message(coap_message_t *coap_pkt)
     }
     /* If message contains a partial IV, the received is used. */
     if(cose->partial_iv_len == 0){
+      LOG_DBG("cose->partial_iv_len == 0 (%"PRIu64")\n", seq);
       uint8_t seq_len = u64tob(seq, seq_buffer);
       cose_encrypt0_set_partial_iv(cose, seq_buffer, seq_len);
+    } else {
+      LOG_DBG("cose->partial_iv_len == %"PRIu16" (%"PRIu64")\n", cose->partial_iv_len, seq);
     }
   }
   oscore_populate_cose(coap_pkt, cose, ctx, false);
@@ -349,8 +361,7 @@ uint16_t encrypt_len = coap_pkt->payload_len;
 #endif /* WITH_GROUPCOM */
 
 
-  coap_status_t status = oscore_parser(coap_pkt, cose->content, res, ROLE_CONFIDENTIAL);
-  return status;
+  return oscore_parser(coap_pkt, cose->content, res, ROLE_CONFIDENTIAL);
 }
 
 void
@@ -617,7 +628,7 @@ oscore_clear_options(coap_message_t *coap_pkt)
   /* Size1 should be duplicated */
 }
 /*Return 1 if OK, Error code otherwise */
-uint8_t
+bool
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
   int64_t incomming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
@@ -639,7 +650,7 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
   */
    if(incomming_seq >= OSCORE_SEQ_MAX) {
     LOG_WARN("OSCORE Replay protection, SEQ larger than SEQ_MAX.\n");
-    return 0;
+    return false;
   }
 
   if(incomming_seq > ctx->largest_seq) {
@@ -650,11 +661,11 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
     ctx->largest_seq = incomming_seq;
   } else if(incomming_seq == ctx->largest_seq) {
       LOG_WARN("OSCORE Replay protection, replayed SEQ.\n");
-      return 0;
+      return false;
   } else { /* seq < recipient_seq */
     if(incomming_seq + ctx->replay_window_size < ctx->largest_seq) {
       LOG_WARN("OSCORE Replay protection, SEQ outside of replay window.\n");
-      return 0;
+      return false;
     }
     /* seq+replay_window_size > recipient_seq */
     int shift = ctx->largest_seq - incomming_seq;
@@ -663,12 +674,12 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
     verifier = verifier >> shift;
     if(verifier == 1) {
 	      LOG_WARN("OSCORE Replay protection, replayed SEQ.\n");
-      return 0;
+      return false;
     }
     ctx->sliding_window = ctx->sliding_window | pattern;
   }
   ctx->recent_seq = incomming_seq;
-  return 1;
+  return true;
 }
 /* Return 0 if SEQ MAX, return 1 if OK */
 bool
