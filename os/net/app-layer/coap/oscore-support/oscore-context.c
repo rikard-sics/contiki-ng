@@ -50,9 +50,13 @@
 #include <stdio.h>
 
 /* Log configuration */
-#include "coap-log.h"
+#include "sys/log.h"
 #define LOG_MODULE "oscore"
-#define LOG_LEVEL LOG_LEVEL_COAP
+#ifdef LOG_CONF_LEVEL_OSCORE
+#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
+#else
+#define LOG_LEVEL LOG_LEVEL_WARN
+#endif
 
 MEMB(exchange_memb, oscore_exchange_t, TOKEN_SEQ_NUM);
 MEMB(ep_ctx_memb, ep_ctx_t, EP_CTX_NUM);
