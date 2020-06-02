@@ -77,7 +77,7 @@ bool oscore_is_resource_protected(const coap_resource_t *resource)
 {
   return resource->oscore_protected;
 }
-uint8_t
+static uint8_t
 u64tob(uint64_t value, uint8_t *buffer)
 {
   memset(buffer, 0, 8);
@@ -96,7 +96,7 @@ u64tob(uint64_t value, uint8_t *buffer)
   return length == 0 ? 1 : length;
 
 }
-uint64_t
+static uint64_t
 btou64(uint8_t *bytes, size_t len)
 {
   uint8_t buffer[8];
@@ -153,7 +153,6 @@ oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose, uint8_
 coap_status_t
 oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose)
 {
-  
   if(option_len == 0){
     return NO_ERROR;
   } else if( option_len > 255 || option_len < 0 || (option_value[0] & 0x06) == 6 || (option_value[0] & 0x07) == 7 || (option_value[0] & 0xE0) != 0) {
@@ -381,7 +380,7 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buf
   external_aad_len += cbor_put_array(&external_aad_ptr, 5);
   external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1); /* Version, always for this version of the draft 1 */
   external_aad_len += cbor_put_array(&external_aad_ptr, 1); /* Algorithms array */
-  external_aad_len += cbor_put_unsigned(&external_aad_ptr, (coap_pkt->security_context->alg)); /* Algorithm */
+  external_aad_len += cbor_put_unsigned(&external_aad_ptr, coap_pkt->security_context->alg); /* Algorithm */
   /*When sending responses. */
   if(coap_is_request(coap_pkt)) {
     external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->key_id, cose->key_id_len);
@@ -398,6 +397,8 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buf
   }
   external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->partial_iv, cose->partial_iv_len);  
   external_aad_len += cbor_put_bytes(&external_aad_ptr, NULL, 0); /* Put integrety protected option, at present there are none. */
+
+  assert(external_aad_len <= sizeof(external_aad_buffer));
 
   uint8_t ret = 0;
   const char* encrypt0 = "Encrypt0";
