@@ -430,7 +430,7 @@ hmac_sha256(const uint8_t *key, uint8_t key_len, const uint8_t *data, uint8_t da
 static void
 hkdf_extract(const uint8_t *salt, uint8_t salt_len, const uint8_t *ikm, uint8_t ikm_len, uint8_t *prk_buffer)
 {
-  uint8_t zeroes[32];
+  uint8_t zeroes[DTLS_SHA256_DIGEST_LENGTH];
   memset(zeroes, 0, sizeof(zeroes));
 
   if(salt == NULL || salt_len == 0){
@@ -480,7 +480,7 @@ hkdf(
   uint8_t *info, uint8_t info_len,
   uint8_t *okm, uint8_t okm_len)
 {
-  uint8_t prk_buffer[32];
+  uint8_t prk_buffer[DTLS_SHA256_DIGEST_LENGTH];
   hkdf_extract(salt, salt_len, ikm, ikm_len, prk_buffer);
   return hkdf_expand(prk_buffer, info, info_len, okm, okm_len);
 }
