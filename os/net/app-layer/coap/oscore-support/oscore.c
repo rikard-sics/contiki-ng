@@ -47,9 +47,13 @@
 #include "assert.h"
 
 /* Log configuration */
-#include "coap-log.h"
+#include "sys/log.h"
 #define LOG_MODULE "oscore"
-#define LOG_LEVEL LOG_LEVEL_COAP
+#ifdef LOG_CONF_LEVEL_OSCORE
+#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
+#else
+#define LOG_LEVEL LOG_LEVEL_WARN
+#endif
 
 void
 printf_hex(const uint8_t *data, size_t len)
@@ -199,6 +203,11 @@ oscore_decode_message(coap_message_t *coap_pkt)
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
   cose_encrypt0_init(cose);
+
+  LOG_ERR("object_security: ");
+  printf_hex(coap_pkt->object_security, coap_pkt->object_security_len);
+  LOG_ERR_("\n");
+
   /* Options are discarded later when they are overwritten. This should be improved */
   coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
   if(ret != NO_ERROR){
@@ -238,8 +247,11 @@ oscore_decode_message(coap_message_t *coap_pkt)
     }
     /* If message contains a partial IV, the received is used. */
     if(cose->partial_iv_len == 0){
+      LOG_DBG("cose->partial_iv_len == 0 (%"PRIu64")\n", seq);
       uint8_t seq_len = u64tob(seq, seq_buffer);
       cose_encrypt0_set_partial_iv(cose, seq_buffer, seq_len);
+    } else {
+      LOG_DBG("cose->partial_iv_len == %"PRIu16" (%"PRIu64")\n", cose->partial_iv_len, seq);
     }
   }
   oscore_populate_cose(coap_pkt, cose, ctx, false);
@@ -266,8 +278,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
     }  
   }
 
-  coap_status_t status = oscore_parser(coap_pkt, cose->content, res, ROLE_CONFIDENTIAL);
-  return status;
+  return oscore_parser(coap_pkt, cose->content, res, ROLE_CONFIDENTIAL);
 }
 
 void
@@ -447,7 +458,7 @@ oscore_clear_options(coap_message_t *coap_pkt)
   /* Size1 should be duplicated */
 }
 /*Return 1 if OK, Error code otherwise */
-uint8_t
+bool
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
   int64_t incomming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
@@ -469,7 +480,7 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
   */
    if(incomming_seq >= OSCORE_SEQ_MAX) {
     LOG_WARN("OSCORE Replay protection, SEQ larger than SEQ_MAX.\n");
-    return 0;
+    return false;
   }
 
   if(incomming_seq > ctx->largest_seq) {
@@ -480,11 +491,11 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
     ctx->largest_seq = incomming_seq;
   } else if(incomming_seq == ctx->largest_seq) {
       LOG_WARN("OSCORE Replay protection, replayed SEQ.\n");
-      return 0;
+      return false;
   } else { /* seq < recipient_seq */
     if(incomming_seq + ctx->replay_window_size < ctx->largest_seq) {
       LOG_WARN("OSCORE Replay protection, SEQ outside of replay window.\n");
-      return 0;
+      return false;
     }
     /* seq+replay_window_size > recipient_seq */
     int shift = ctx->largest_seq - incomming_seq;
@@ -493,12 +504,12 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
     verifier = verifier >> shift;
     if(verifier == 1) {
 	      LOG_WARN("OSCORE Replay protection, replayed SEQ.\n");
-      return 0;
+      return false;
     }
     ctx->sliding_window = ctx->sliding_window | pattern;
   }
   ctx->recent_seq = incomming_seq;
-  return 1;
+  return true;
 }
 /* Return 0 if SEQ MAX, return 1 if OK */
 bool
