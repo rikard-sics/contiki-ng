@@ -55,6 +55,9 @@
 #define LOG_LEVEL LOG_LEVEL_WARN
 #endif
 
+/* Sets Alg, Partial IV Key ID and Key in COSE. */
+static void oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending, uint8_t partial_iv_buffer[8]);
+
 void
 printf_hex(const uint8_t *data, size_t len)
 {
@@ -62,6 +65,7 @@ printf_hex(const uint8_t *data, size_t len)
     LOG_ERR_("%02x", data[i]);
   }
 }
+
 static bool
 coap_is_request(const coap_message_t *coap_pkt)
 {
@@ -202,11 +206,9 @@ oscore_decode_message(coap_message_t *coap_pkt)
   oscore_ctx_t *ctx = NULL;
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
+  uint8_t seq_buffer[8];
+  uint8_t partial_iv_buffer[8];
   cose_encrypt0_init(cose);
-
-  LOG_ERR("object_security: ");
-  printf_hex(coap_pkt->object_security, coap_pkt->object_security_len);
-  LOG_ERR_("\n");
 
   /* Options are discarded later when they are overwritten. This should be improved */
   coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
@@ -235,7 +237,6 @@ oscore_decode_message(coap_message_t *coap_pkt)
     cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   } else { /* Message is a response */
     uint64_t seq;
-    uint8_t seq_buffer[8];
     ctx = oscore_get_contex_from_exchange(coap_pkt->token, coap_pkt->token_len, &seq);
     oscore_remove_exchange(coap_pkt->token, coap_pkt->token_len);
     if(ctx == NULL) {
@@ -254,7 +255,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       LOG_DBG("cose->partial_iv_len == %"PRIu16" (%"PRIu64")\n", cose->partial_iv_len, seq);
     }
   }
-  oscore_populate_cose(coap_pkt, cose, ctx, false);
+  oscore_populate_cose(coap_pkt, cose, ctx, false, partial_iv_buffer);
   coap_pkt->security_context = ctx;
 
   size_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, false);
@@ -281,12 +282,11 @@ oscore_decode_message(coap_message_t *coap_pkt)
   return oscore_parser(coap_pkt, cose->content, res, ROLE_CONFIDENTIAL);
 }
 
-void
-oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending)
+static void
+oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending, uint8_t partial_iv_buffer[8])
 {
   cose_encrypt0_set_alg(cose, ctx->alg);
 
-  uint8_t partial_iv_buffer[8];
   uint8_t partial_iv_len;
 
   if(coap_is_request(pkt)) {
@@ -324,13 +324,14 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
   uint8_t option_value_buffer[15];
+  uint8_t partial_iv_buffer[8];
   /*  1 Retrieve the Sender Context associated with the target resource. */
   oscore_ctx_t *ctx = coap_pkt->security_context;
   if(ctx == NULL) {
     LOG_ERR("No context in OSCORE!\n");
     return PACKET_SERIALIZATION_ERROR;
   }
-  oscore_populate_cose(coap_pkt, cose, coap_pkt->security_context, true);
+  oscore_populate_cose(coap_pkt, cose, coap_pkt->security_context, true, partial_iv_buffer);
 
   uint8_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, ROLE_CONFIDENTIAL);
   if(plaintext_len > COAP_MAX_CHUNK_SIZE){

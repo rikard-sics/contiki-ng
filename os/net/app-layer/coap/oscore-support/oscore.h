@@ -63,9 +63,6 @@ coap_status_t oscore_decode_option_value(uint8_t *option_value, int option_len, 
 /* Prepares a new OSCORE message, returns the size of the message. */
 size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer);
 
-/*Sets Alg, Partial IV Key ID and Key in COSE. Returns status*/
-void oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending);
-
 /* Creates AAD, creates External AAD and serializes it into the complete AAD structure. Returns serialized size. */
 size_t oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buffer, bool sending);
 /* Creates Nonce */
@@ -75,7 +72,7 @@ void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8
 void oscore_clear_options(coap_message_t *ptr);
 
 /*Return 1 if OK, Error code otherwise */
-uint8_t oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose);
+bool oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose);
 
 /* Return 0 if SEQ MAX, return 1 if OK */
 bool oscore_increment_sender_seq(oscore_ctx_t *ctx);
