@@ -107,7 +107,4 @@ size_t oscore_prepare_sig_structure(uint8_t *sig_ptr, uint8_t *aad_buffer, uint8
 size_t oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose, uint8_t *oscore_option, size_t oscore_option_len, uint8_t *external_aad_ptr);
 #endif /* WITH_GROUPCOM */
 
-/* TEMP */
-void printf_hex(const uint8_t *data, size_t len);
-
 #endif /* _OSCORE_H */
