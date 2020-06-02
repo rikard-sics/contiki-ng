@@ -63,12 +63,17 @@
 static void
 oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending);
 
-void
+static void
 printf_hex(const uint8_t *data, size_t len)
 {
-  for(size_t i = 0; i < len; i++) {
-    LOG_ERR_("%02x", data[i]);
-  }
+  LOG_ERR_BYTES(data, len);
+}
+static void
+printf_hex_detailed(const char* name, const uint8_t *data, size_t len)
+{
+  LOG_DBG("%s (len=%u): ", name, len);
+  LOG_DBG_BYTES(data, len);
+  LOG_DBG_("\n");
 }
 
 static bool
@@ -131,8 +136,8 @@ btou64(uint8_t *bytes, size_t len)
 
   return num;
 }
-int
-oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose, uint8_t include_partial_iv)
+static int
+oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose, bool include_partial_iv)
 {
   uint8_t offset = 1;
   if(cose->partial_iv_len > 5){
@@ -246,6 +251,8 @@ oscore_decode_message(coap_message_t *coap_pkt)
   cose_sign1_t sign[1];
   cose_sign1_init(sign);
 #endif /*WITH_GROUPCOM*/
+
+  printf_hex_detailed("object_security", coap_pkt->object_security, coap_pkt->object_security_len);
 
   /* Options are discarded later when they are overwritten. This should be improved */
   coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
@@ -477,16 +484,14 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     LOG_ERR("OSCORE internal error %d.\n", ciphertext_len);
     return PACKET_SERIALIZATION_ERROR;
   }
-  uint8_t option_value_len = 0;
-  if(coap_is_request(coap_pkt)) {
-    option_value_len = oscore_encode_option_value(option_value_buffer, cose, 1);
-  } else { //Partial IV shall NOT be included in responses
+  
+  // Partial IV shall NOT be included in responses if not a request
 #ifdef WITH_GROUPCOM
-	  option_value_len = oscore_encode_option_value(option_value_buffer, cose, 1);
-#else	
-	  option_value_len = oscore_encode_option_value(option_value_buffer, cose, 0);
+  const bool include_partial_iv = true;
+#else
+  const bool include_partial_iv = coap_is_request(coap_pkt);
 #endif
-  }
+  const uint8_t option_value_len = oscore_encode_option_value(option_value_buffer, cose, include_partial_iv);
   
   coap_set_header_object_security(coap_pkt, option_value_buffer, option_value_len);
 
@@ -597,6 +602,10 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buf
 void
 oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size)
 {
+  printf_hex_detailed("key_id", ptr->key_id, ptr->key_id_len);
+  printf_hex_detailed("partial_iv", ptr->partial_iv, ptr->partial_iv_len);
+  printf_hex_detailed("common_iv", coap_pkt->security_context->common_iv, CONTEXT_INIT_VECT_LEN);
+
   memset(buffer, 0, size);
   buffer[0] = (uint8_t)(ptr->key_id_len);
   memcpy(&(buffer[((size - 5) - ptr->key_id_len)]), ptr->key_id, ptr->key_id_len);
@@ -605,6 +614,8 @@ oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *b
   for(i = 0; i < size; i++) {
     buffer[i] ^= (uint8_t)coap_pkt->security_context->common_iv[i];
   }
+
+  printf_hex_detailed("result", buffer, size);
 }
 /*Remove all protected options */
 void
@@ -634,8 +645,9 @@ bool
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
   int64_t incomming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
-//todo add LOG_DBG here 
+
   LOG_DBG("Incomming SEQ %" PRIi64 "\n", incomming_seq);
+
   ctx->rollback_largest_seq = ctx->largest_seq;
   ctx->rollback_sliding_window = ctx->sliding_window;
 
@@ -687,6 +699,8 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 bool
 oscore_increment_sender_seq(oscore_ctx_t *ctx)
 {
+  LOG_DBG("Incrementing seq to %"PRIu64"\n", ctx->sender_context.seq + 1);
+
   ctx->sender_context.seq++;
   return ctx->sender_context.seq < OSCORE_SEQ_MAX;
 }
@@ -694,8 +708,12 @@ oscore_increment_sender_seq(oscore_ctx_t *ctx)
 void
 oscore_roll_back_seq(oscore_recipient_ctx_t *ctx)
 {
-    ctx->sliding_window = ctx->rollback_sliding_window;
-    ctx->largest_seq = ctx->rollback_largest_seq;
+  LOG_DBG("Rolling back seq (window %"PRIu32" = %"PRIi32") (seq %"PRIi64" = %"PRIi64")\n",
+    ctx->sliding_window, ctx->rollback_sliding_window,
+    ctx->largest_seq, ctx->rollback_largest_seq);
+
+  ctx->sliding_window = ctx->rollback_sliding_window;
+  ctx->largest_seq = ctx->rollback_largest_seq;
 }
 
 void
