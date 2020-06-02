@@ -39,9 +39,13 @@
 #include "cbor.h"
 #include <string.h>
 
-#include "coap-log.h"
+#include "sys/log.h"
 #define LOG_MODULE "oscore"
-#define LOG_LEVEL LOG_LEVEL_COAP
+#ifdef LOG_CONF_LEVEL_OSCORE
+#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
+#else
+#define LOG_LEVEL LOG_LEVEL_WARN
+#endif
 
 int cbor_put_nil(uint8_t **buffer){
 	**buffer = 0xF6;
