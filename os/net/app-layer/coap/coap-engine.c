@@ -389,6 +389,10 @@ coap_receive(const coap_endpoint_t *src,
       oscore_missing_security_context(src);
 
       coap_status_code = UNAUTHORIZED_4_01;
+
+      // TODO: this return needs to be removed so that a
+      // UNAUTHORIZED_4_01 is sent if a context is unavailable.
+      return coap_status_code;
     }
 #endif /* WITH_OSCORE */
 
