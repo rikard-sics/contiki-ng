@@ -78,7 +78,7 @@ void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8
 void oscore_clear_options(coap_message_t *ptr);
 
 /*Return 1 if OK, Error code otherwise */
-uint8_t oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose);
+bool oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose);
 
 /* Return 0 if SEQ MAX, return 1 if OK */
 bool oscore_increment_sender_seq(oscore_ctx_t *ctx);
