@@ -426,14 +426,12 @@ coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
 #ifdef WITH_OSCORE
   if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)) {
-    //LOG_INFO("Sending OSCORE message: ");
     size_t s = oscore_prepare_message(coap_pkt, buffer);
-    //printf_hex(buffer, s);
-    //LOG_INFO_("\n");
+    LOG_DBG("Sending OSCORE message (size=%zu).\n", s);
     return s;
   } else {
-    LOG_DBG("Sending COAP message.\n");
     size_t s = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
+    LOG_DBG("Sending COAP message (size=%zu).\n", s);
     return s;
   }
 #else /* WITH_OSCORE */
