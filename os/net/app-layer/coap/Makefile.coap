@@ -1,6 +1,7 @@
 MAKE_WITH_DTLS ?= 0
 MAKE_WITH_OSCORE ?= 0
 MAKE_WITH_GROUPCOM ?= 0
+MAKE_WITH_HW_CRYPTO ?= 0
 
 ifeq ($(MAKE_WITH_OSCORE),1)
 
@@ -51,6 +52,13 @@ ifeq ($(MAKE_WITH_GROUPCOM),1)
   CFLAGS += -DWITH_GROUPCOM=1
  
   CFLAGS += -DSW_ECDSA=1
+  #for cc1352r1
+  ifeq ($(TARGET), simplelink)
+    #MODULES += arch/cpu/simplelink-cc13xx-cc26xx/lib/coresdk_cc13xx_cc26xx/source/ti/devices/cc13x2_cc26x2/
+    MODULES += arch/cpu/simplelink-cc13xx-cc26xx/lib/coresdk_cc13xx_cc26xx/source/ti/drivers/cryptoutils/cryptokey
+    #CONTIKI_SOURCEFILES += arch/cpu/simplelink-cc13xx-cc26xx/lib/coresdk_cc13xx_cc26xx/source/ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintextCC26XX.c
+  endif
+
   #defines for uECC
   ifeq ($(TARGET), native)
     CFLAGS += -DuECC_PLATFORM=uECC_x86_64
@@ -58,7 +66,9 @@ ifeq ($(MAKE_WITH_GROUPCOM),1)
     #Disable WDT
     CFLAGS += -DWATCHDOG_CONF_ENABLE=0
     CFLAGS += -DuECC_PLATFORM=uECC_arm
-    CFLAGS += -DWATCHDOG_CONF_ENABLE=0
+    ifeq ($(MAKE_WITH_HW_CRYPTO),1)
+	CFLAGS += -DOSCORE_WITH_HW_CRYPTO=1
+    endif
   endif
   #We will only use P256
   CFLAGS += -DuECC_CURVE=uECC_secp256r1
