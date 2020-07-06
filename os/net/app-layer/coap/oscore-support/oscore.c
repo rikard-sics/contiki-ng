@@ -65,14 +65,9 @@ static void
 oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending);
 
 static void
-printf_hex(const uint8_t *data, size_t len)
-{
-  LOG_ERR_BYTES(data, len);
-}
-static void
 printf_hex_detailed(const char* name, const uint8_t *data, size_t len)
 {
-  LOG_DBG("%s (len=%u): ", name, len);
+  LOG_DBG("%s (len=%zu): ", name, len);
   LOG_DBG_BYTES(data, len);
   LOG_DBG_("\n");
 }
@@ -276,7 +271,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
     ctx = oscore_find_ctx_by_rid(key_id, key_id_len);
     if(ctx == NULL) {
       LOG_ERR("OSCORE Security Context not found (rid = '");
-      printf_hex(key_id, key_id_len);
+      LOG_ERR_BYTES(key_id, key_id_len);
       LOG_ERR_("' len=%u).\n", key_id_len);
       coap_error_message = "Security context not found";
       return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
@@ -310,7 +305,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
     oscore_remove_exchange(coap_pkt->token, coap_pkt->token_len);
     if(ctx == NULL) {
       LOG_ERR("OSCORE Security Context not found (token = '");
-      printf_hex(coap_pkt->token, coap_pkt->token_len);
+      LOG_ERR_BYTES(coap_pkt->token, coap_pkt->token_len);
       LOG_ERR_("' len=%u).\n", coap_pkt->token_len);
       coap_error_message = "Security context not found";
       return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
