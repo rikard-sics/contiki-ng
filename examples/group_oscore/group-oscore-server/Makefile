@@ -13,6 +13,7 @@ MODULES += os/net/ipv6/multicast
 
 MAKE_WITH_OSCORE = 1
 MAKE_WITH_GROUPCOM = 1
+MAKE_WITH_HW_CRYPTO = 1
 
 # Include CoAP resources
 MODULES_REL += ./resources
