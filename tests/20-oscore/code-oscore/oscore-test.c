@@ -23,13 +23,6 @@ test_setup(void)
   oscore_init_client();
 }
 
-void t_printf_hex(uint8_t *hex, int len){
-	for ( int i = 0; i < len; i++){
-		printf("%02X ", hex[i]);
-	}
-	printf("\n");
-}
-
 UNIT_TEST_REGISTER(test_validate_sender_seq,
                    "validate_sender_seq()");
 UNIT_TEST(test_validate_sender_seq)
