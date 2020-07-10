@@ -172,16 +172,8 @@
 #define CC_CONCAT_EXT_3(s1, s2, s3) CC_CONCAT3(s1, s2, s3)
 
 /**
- * A C preprocessing macro to obtain the length of a C array.
+ * A C preprocessing macro fto obtain the length of a C array.
  */
-#define CC_ARRAY_SIZE(a) (sizeof(a)/sizeof(*(a)))
-
-/**
- * A C preprocessing macro to obtain size of a field in a struct.
- */
-#define CC_FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
-
-#define CC_STRINGIFY_IMPL(s) #s
-#define CC_STRINGIFY(s) CC_STRINGIFY_IMPL(s)
+#define CC_ARRAY_SIZE(a) (sizeof(a)/(sizeof(*a)))
 
 #endif /* CC_H_ */
