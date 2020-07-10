@@ -32,6 +32,7 @@
 #include "contiki.h"
 
 #include <strformat.h>
+#include <strformat-float.h>
 /*---------------------------------------------------------------------------*/
 #define HAVE_DOUBLE
 #define HAVE_LONGLONG
@@ -709,6 +710,17 @@ format_str_v(const strformat_context_t *ctxt, const char *format, va_list ap)
       int *p = va_arg(ap, int *);
       *p = written;
     }
+#ifdef HAVE_DOUBLE
+    case CONV_FLOAT:
+    {
+      double d = va_arg(ap, double);
+
+      size_t ftoa_written = 0;
+      CHECKCB(_ftoa(ctxt, d, &ftoa_written));
+      written += ftoa_written;
+
+    } break;
+#endif
     break;
     }
   }
