@@ -46,7 +46,6 @@
 #define COAP_CALLBACK_API_H_
 
 #include "coap-engine.h"
-#include "coap-transactions.h"
 #include "coap-request-state.h"
 #include "sys/cc.h"
 
