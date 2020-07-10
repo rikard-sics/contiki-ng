@@ -52,6 +52,9 @@ typedef enum {
   COAP_REQUEST_STATUS_BLOCK_ERROR /* Blocks in wrong order */
 } coap_request_status_t;
 
+const char*
+coap_request_status_to_string(coap_request_status_t status);
+
 typedef struct coap_request_state {
   coap_transaction_t *transaction;
   coap_message_t *response;
