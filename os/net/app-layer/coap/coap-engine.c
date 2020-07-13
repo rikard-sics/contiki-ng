@@ -307,25 +307,14 @@ coap_receive(const coap_endpoint_t *src,
 	  } else {
 	    LOG_DBG("\nA response will be sent...");  
           /* unreliable NON requests are answered with a NON as well */
-            coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
-                              coap_get_mid());
+          coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
+                            coap_get_mid());
 	  }
 #endif /*WITH_GROUPCOM*/
           /* unreliable NON requests are answered with a NON as well */
-            coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
-                              coap_get_mid());
-
+          coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
+                            coap_get_mid());
         }
-
-#ifdef WITH_OSCORE 
-        if(coap_is_option(message, COAP_OPTION_OSCORE)){
-          coap_set_oscore(response);
-          if(message->security_context == NULL){
-            LOG_WARN("OSCORE security context is NULL in coap_receive\n");
-          }
-          response->security_context = message->security_context;
-        }
-#endif /* WITH_OSCORE */
 
         /* mirror token */
         if(message->token_len) {
@@ -566,27 +555,19 @@ coap_receive(const coap_endpoint_t *src,
       coap_status_code = INTERNAL_SERVER_ERROR_5_00;
       /* reuse input buffer for error message */
     }
-#ifdef WITH_OSCORE
-    uint8_t tmp_token[8];
-    uint8_t token_len = 0;
-    if(message->token_len) {
-      token_len = message->token_len;
-      memcpy(tmp_token, message->token, token_len);
-    }
-#endif /* WITH_OSCORE */
-    coap_init_message(message, reply_type, coap_status_code,
+
+    coap_init_message(response, reply_type, coap_status_code,
                       message->mid);
 #if 0
 #ifdef WITH_OSCORE
-    if(token_len){
-      coap_set_token(message, tmp_token, token_len);
+    if(message->token_len){
+      coap_set_token(response, message->token, message->token_len);
     }
 #endif /* WITH_OSCORE */
-
+#endif
     coap_set_payload(message, coap_error_message,
                      strlen(coap_error_message));
     coap_sendto(src, payload, coap_serialize_message(message, payload));
-
   }
 
   /* if(new data) */
