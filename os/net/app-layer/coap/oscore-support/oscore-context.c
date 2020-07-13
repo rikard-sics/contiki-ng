@@ -59,11 +59,15 @@
 #endif
 
 MEMB(exchange_memb, oscore_exchange_t, TOKEN_SEQ_NUM);
-MEMB(ep_ctx_memb, ep_ctx_t, EP_CTX_NUM);
 
 LIST(common_context_list);
 LIST(exchange_list);
+
+
+#ifdef OSCORE_EP_CTX_ASSOCIATION
+MEMB(ep_ctx_memb, ep_ctx_t, EP_CTX_NUM);
 LIST(ep_ctx_list);
+#endif
 
 void
 oscore_ctx_store_init(void)
@@ -260,6 +264,9 @@ oscore_remove_exchange(const uint8_t *token, uint8_t token_len)
     memb_free(&exchange_memb, ptr);
   }
 }
+
+#ifdef OSCORE_EP_CTX_ASSOCIATION
+
 /* URI <=> RID association */
 void
 oscore_ep_ctx_store_init(void)
@@ -334,6 +341,8 @@ void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri)
     memb_free(&ep_ctx_memb, ptr);
   }
 }
+
+#endif
 
 #ifdef WITH_GROUPCOM
 void
