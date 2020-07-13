@@ -129,6 +129,6 @@
 /**
  * A C preprocessing macro fto obtain the length of a C array.
  */
-#define CC_ARRAY_SIZE(a) (sizeof(a)/(sizeof(*a)))
+#define CC_ARRAY_SIZE(a) (sizeof(a)/sizeof(*(a)))
 
 #endif /* CC_H_ */
