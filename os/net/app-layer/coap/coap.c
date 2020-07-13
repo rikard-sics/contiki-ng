@@ -1689,12 +1689,18 @@ int coap_set_header_object_security(coap_message_t *coap_pkt, uint8_t *object_se
   return coap_pkt->object_security_len;
 }
 
-
-//TODO for oscore
-void
-coap_set_oscore(coap_message_t *coap_pkt)
+void coap_set_oscore(coap_message_t *coap_pkt, oscore_ctx_t* ctx)
 {
   coap_set_option(coap_pkt, COAP_OPTION_OSCORE);
+  coap_pkt->security_context = ctx;
+
+  if(ctx == NULL) {
+    LOG_WARN("coap_set_oscore: Setting NULL security context\n");
+  }
+
+  if(coap_pkt->token_len == 0) {
+    LOG_WARN("coap_set_oscore: 0-length token\n");
+  }
 }
 #endif /* WITH_OSCORE */
 /** @} */
