@@ -88,8 +88,9 @@ uint8_t oscore_cose_decompress(cose_encrypt0_t *cose, uint8_t *buffer, size_t bu
 void oscore_protect_resource(coap_resource_t *resource);
 bool oscore_is_resource_protected(const coap_resource_t *resource);
 
-bool oscore_protected_request(const coap_message_t *request);
 /*Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
+bool oscore_is_request_protected(const coap_message_t *request);
+
 
 
 /* Initialize the context storage and the protected resource storage. */
