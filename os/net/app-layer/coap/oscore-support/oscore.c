@@ -81,7 +81,7 @@ coap_is_request(const coap_message_t *coap_pkt)
   return coap_pkt->code >= COAP_GET && coap_pkt->code <= COAP_DELETE;
 }
 bool
-oscore_protected_request(const coap_message_t *request)
+oscore_is_request_protected(const coap_message_t *request)
 {
   return request != NULL && coap_is_option(request, COAP_OPTION_OSCORE);
 }
@@ -725,8 +725,10 @@ oscore_init(void)
   oscore_crypto_init();
 #endif
 
+#ifdef OSCORE_EP_CTX_ASSOCIATION
   /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
   oscore_ep_ctx_store_init();
+#endif
 }
 
 #ifdef WITH_GROUPCOM
