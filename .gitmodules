@@ -31,6 +31,3 @@
 [submodule "arch/cpu/nrf52840/lib/nrf52-sdk"]
 	path = arch/cpu/nrf52840/lib/nrf52-sdk
 	url = https://github.com/contiki-ng/nrf-sdk-contiki-ng.git
-[submodule "tools/nanocbor"]
-	path = os/lib/nanocbor
-	url = git@github.com:bergzand/NanoCBOR.git

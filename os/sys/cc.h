@@ -181,7 +181,6 @@
  */
 #define CC_FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
 
-
 #define CC_STRINGIFY_IMPL(s) #s
 #define CC_STRINGIFY(s) CC_STRINGIFY_IMPL(s)
 
