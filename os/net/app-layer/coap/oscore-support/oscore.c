@@ -40,11 +40,14 @@
 
 
 #include "oscore.h"
-#include "cbor.h"
+//#include "cbor.h"
 #include "coap.h"
 #include "stdio.h"
 #include "inttypes.h"
 #include "assert.h"
+
+#include "nanocbor/nanocbor.h"
+#include "nanocbor-helper.h"
 
 /* Log configuration */
 #include "sys/log.h"
@@ -56,7 +59,12 @@
 #endif
 
 /* Sets Alg, Partial IV Key ID and Key in COSE. */
-static void oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending, uint8_t partial_iv_buffer[8]);
+static void
+oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending, uint8_t partial_iv_buffer[8]);
+
+/* Creates and sets External AAD */
+static int
+oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, nanocbor_encoder_t* enc, bool sending);
 
 static void
 printf_hex_detailed(const char* name, const uint8_t *data, size_t len)
@@ -163,7 +171,10 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
 {
   if(option_len == 0){
     return NO_ERROR;
-  } else if( option_len > 255 || option_len < 0 || (option_value[0] & 0x06) == 6 || (option_value[0] & 0x07) == 7 || (option_value[0] & 0xE0) != 0) {
+  } else if(option_len > 255 || option_len < 0 ||
+            (option_value[0] & 0x06) == 6 ||
+            (option_value[0] & 0x07) == 7 ||
+            (option_value[0] & 0xE0) != 0) {
     return BAD_OPTION_4_02;
   }
   
@@ -240,7 +251,9 @@ oscore_decode_message(coap_message_t *coap_pkt)
   } else { /* Message is a response */
     uint64_t seq;
     ctx = oscore_get_contex_from_exchange(coap_pkt->token, coap_pkt->token_len, &seq);
+
     oscore_remove_exchange(coap_pkt->token, coap_pkt->token_len);
+
     if(ctx == NULL) {
       LOG_ERR("OSCORE Security Context not found (token = '");
       LOG_ERR_BYTES(coap_pkt->token, coap_pkt->token_len);
@@ -248,6 +261,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       coap_error_message = "Security context not found";
       return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
     }
+
     /* If message contains a partial IV, the received is used. */
     if(cose->partial_iv_len == 0){
       LOG_DBG("cose->partial_iv_len == 0 (%"PRIu64")\n", seq);
@@ -257,11 +271,17 @@ oscore_decode_message(coap_message_t *coap_pkt)
       LOG_DBG("cose->partial_iv_len == %"PRIu16" (%"PRIu64")\n", cose->partial_iv_len, seq);
     }
   }
+
   oscore_populate_cose(coap_pkt, cose, ctx, false, partial_iv_buffer);
   coap_pkt->security_context = ctx;
 
-  size_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, false);
-  cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
+  nanocbor_encoder_t aad_enc;
+  nanocbor_encoder_init(&aad_enc, aad_buffer, sizeof(aad_buffer));
+  if (oscore_prepare_aad(coap_pkt, cose, &aad_enc, false) != NANOCBOR_OK) {
+    return INTERNAL_SERVER_ERROR_5_00;
+  }
+
+  cose_encrypt0_set_aad(cose, aad_buffer, nanocbor_encoded_len(&aad_enc));
   cose_encrypt0_set_alg(cose, ctx->alg);
   
   oscore_generate_nonce(cose, coap_pkt, nonce_buffer, sizeof(nonce_buffer));
@@ -343,8 +363,13 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   cose_encrypt0_set_content(cose, content_buffer, plaintext_len);
   
-  uint8_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, true);
-  cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
+  nanocbor_encoder_t aad_enc;
+  nanocbor_encoder_init(&aad_enc, aad_buffer, sizeof(aad_buffer));
+  if (oscore_prepare_aad(coap_pkt, cose, &aad_enc, true) != NANOCBOR_OK) {
+    return INTERNAL_SERVER_ERROR_5_00;
+  }
+
+  cose_encrypt0_set_aad(cose, aad_buffer, nanocbor_encoded_len(&aad_enc));
   
   oscore_generate_nonce(cose, coap_pkt, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
   cose_encrypt0_set_nonce(cose, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
@@ -381,45 +406,46 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   return serialized_len;
 }
 /* Creates and sets External AAD */
-size_t
-oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buffer, bool sending)
+static int
+oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, nanocbor_encoder_t* enc, bool sending)
 {
   uint8_t external_aad_buffer[25];
-  uint8_t *external_aad_ptr = external_aad_buffer;
-  uint8_t external_aad_len = 0;
+
+  nanocbor_encoder_t aad_enc;
+  nanocbor_encoder_init(&aad_enc, external_aad_buffer, sizeof(external_aad_buffer));
+
   /* Serialize the External AAD*/
-  external_aad_len += cbor_put_array(&external_aad_ptr, 5);
-  external_aad_len += cbor_put_unsigned(&external_aad_ptr, 1); /* Version, always for this version of the draft 1 */
-  external_aad_len += cbor_put_array(&external_aad_ptr, 1); /* Algorithms array */
-  external_aad_len += cbor_put_unsigned(&external_aad_ptr, coap_pkt->security_context->alg); /* Algorithm */
+  NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 5));
+  NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, 1)); /* Version, always for this version of the draft 1 */
+  NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 1)); /* Algorithms array */
+  NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, coap_pkt->security_context->alg)); /* Algorithm */
+
   /*When sending responses. */
   if(coap_is_request(coap_pkt)) {
-    external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->key_id, cose->key_id_len);
+    NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc, cose->key_id, cose->key_id_len));
   } else {
     if (sending) {
-      external_aad_len += cbor_put_bytes(&external_aad_ptr,
-      coap_pkt->security_context->recipient_context.recipient_id,
-      coap_pkt->security_context->recipient_context.recipient_id_len);
+      NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc,
+        coap_pkt->security_context->recipient_context.recipient_id,
+        coap_pkt->security_context->recipient_context.recipient_id_len));
     } else {
-      external_aad_len += cbor_put_bytes(&external_aad_ptr,
+      NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc,
         coap_pkt->security_context->sender_context.sender_id,
-        coap_pkt->security_context->sender_context.sender_id_len);
+        coap_pkt->security_context->sender_context.sender_id_len));
     }
   }
-  external_aad_len += cbor_put_bytes(&external_aad_ptr, cose->partial_iv, cose->partial_iv_len);  
-  external_aad_len += cbor_put_bytes(&external_aad_ptr, NULL, 0); /* Put integrety protected option, at present there are none. */
+  NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc, cose->partial_iv, cose->partial_iv_len));
+  NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc, NULL, 0)); /* Put integrety protected option, at present there are none. */
 
-  assert(external_aad_len <= sizeof(external_aad_buffer));
+  const size_t external_aad_len = nanocbor_encoded_len(&aad_enc);
 
-  uint8_t ret = 0;
-  const char* encrypt0 = "Encrypt0";
   /* Begin creating the AAD */
-  ret += cbor_put_array(&buffer, 3);
-  ret += cbor_put_text(&buffer, encrypt0, strlen(encrypt0));
-  ret += cbor_put_bytes(&buffer, NULL, 0);
-  ret += cbor_put_bytes(&buffer, external_aad_buffer, external_aad_len);  
+  NANOCBOR_CHECK(nanocbor_fmt_array(enc, 3));
+  NANOCBOR_CHECK(nanocbor_put_tstr(enc, "Encrypt0"));
+  NANOCBOR_CHECK(nanocbor_put_bstr(enc, NULL, 0));
+  NANOCBOR_CHECK(nanocbor_put_bstr(enc, external_aad_buffer, external_aad_len));
 
-  return ret;
+  return NANOCBOR_OK;
 }
 /* Creates Nonce */
 void
