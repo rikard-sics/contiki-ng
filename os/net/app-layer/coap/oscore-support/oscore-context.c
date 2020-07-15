@@ -47,6 +47,9 @@
 #include "oscore.h"
 #include "assert.h"
 
+#include "nanocbor/nanocbor.h"
+#include "nanocbor-helper.h"
+
 #include <stdio.h>
 
 /* Log configuration */
@@ -75,39 +78,32 @@ oscore_ctx_store_init(void)
   list_init(common_context_list);
 }
 
-static uint8_t
+static int
 compose_info(
   uint8_t *buffer, uint8_t buffer_len,
   uint8_t alg,
   const uint8_t *id, uint8_t id_len,
   const uint8_t *id_context, uint8_t id_context_len,
+  const char* kind,
   uint8_t out_len)
 {
-  uint8_t ret = 0;
+  nanocbor_encoder_t enc;
+  nanocbor_encoder_init(&enc, buffer, buffer_len);
 
-  // TODO: Needs bounds checking on buffer_len
+  NANOCBOR_CHECK(nanocbor_fmt_array(&enc, 5));
+  NANOCBOR_CHECK(nanocbor_put_bstr(&enc, id, id_len));
 
-  ret += cbor_put_array(&buffer, 5);
-  ret += cbor_put_bytes(&buffer, id, id_len);
-  if(id_context != NULL && id_context_len > 0){
-  	ret += cbor_put_bytes(&buffer, id_context, id_context_len);
+  if(id_context != NULL && id_context_len > 0) {
+    NANOCBOR_CHECK(nanocbor_put_bstr(&enc, id_context, id_context_len));
   } else {
-	ret += cbor_put_nil(&buffer); 
-  }
-  ret += cbor_put_unsigned(&buffer, alg);
-  char *text;
-  uint8_t text_len;
-  if(out_len != 16) {
-    text = "IV";
-    text_len = 2;
-  } else {
-    text = "Key";
-    text_len = 3;
+    NANOCBOR_CHECK(nanocbor_fmt_null(&enc));
   }
 
-  ret += cbor_put_text(&buffer, text, text_len);
-  ret += cbor_put_unsigned(&buffer, out_len);
-  return ret;
+  NANOCBOR_CHECK(nanocbor_fmt_uint(&enc, alg));
+  NANOCBOR_CHECK(nanocbor_put_tstr(&enc, kind));
+  NANOCBOR_CHECK(nanocbor_fmt_uint(&enc, out_len));
+
+  return nanocbor_encoded_len(&enc);
 }
 
 static bool
@@ -131,18 +127,21 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   uint8_t replay_window)
 {
   uint8_t info_buffer[15];
-  uint8_t info_len;
+  int info_len;
 
-  /* sender_ key */
-  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, sid, sid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
+  /* sender_key */
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, sid, sid_len, id_context, id_context_len, "Key", CONTEXT_KEY_LEN);
+  assert(info_len > 0);
   hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->sender_context.sender_key, CONTEXT_KEY_LEN);
 
   /* Receiver key */
-  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, rid, rid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, rid, rid_len, id_context, id_context_len, "Key", CONTEXT_KEY_LEN);
+  assert(info_len > 0);
   hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->recipient_context.recipient_key, CONTEXT_KEY_LEN);
 
   /* common IV */
-  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, NULL, 0, id_context, id_context_len, CONTEXT_INIT_VECT_LEN);
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, NULL, 0, id_context, id_context_len, "IV", CONTEXT_INIT_VECT_LEN);
+  assert(info_len > 0);
   hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
 
   common_ctx->master_secret = master_secret;
