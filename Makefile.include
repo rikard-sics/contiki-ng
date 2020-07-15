@@ -372,6 +372,15 @@ else ifeq ($(MAKE_ROUTING),MAKE_ROUTING_NULLROUTING)
   MODULES += $(CONTIKI_NG_ROUTING_DIR)/nullrouting
 endif
 
+# OSCORE requires NanoCBOR
+ifeq ($(MAKE_WITH_OSCORE),1)
+  MAKE_WITH_NANOCBOR = 1
+endif
+ifeq ($(MAKE_WITH_NANOCBOR),1)
+  MODULES += $(CONTIKI_NG_LIB_DIR)/nanocbor/src $(CONTIKI_NG_LIB_DIR)/nanocbor/include
+  CFLAGS += -DNANOCBOR_BYTEORDER_HEADER=\"nanocbor-endian-helper.h\"
+endif
+
 MODULEDIRS = $(MODULES_REL) ${addprefix $(CONTIKI)/, $(MODULES)}
 # Sort removes duplicates.
 UNIQUEMODULES = $(sort $(MODULEDIRS))
