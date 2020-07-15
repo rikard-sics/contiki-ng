@@ -38,23 +38,8 @@
 
 
 #include "cose.h"
-#include "cbor.h"
 #include "oscore-crypto.h"
 #include "string.h"
-
-/* Return length */
-int
-cose_encrypt0_encode(cose_encrypt0_t *ptr, uint8_t *buffer)
-{
-  int ret = 0;
-  ret += cbor_put_array(&buffer, 3);
-  ret += cbor_put_bytes(&buffer, NULL, 0);
-  /* ret += cose encode attributyes */
-  ret += cbor_put_bytes(&buffer, ptr->content, ptr->content_len);
-  return ret;
-}
-/*Return status */
-int cose_encrypt0_decode(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
 
 /* Initiate a new COSE Encrypt0 object. */
 void

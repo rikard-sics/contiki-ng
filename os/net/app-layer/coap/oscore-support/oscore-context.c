@@ -41,7 +41,6 @@
 #include <stddef.h>
 #include "lib/memb.h"
 #include "lib/list.h"
-#include "cbor.h"
 #include <string.h>
 #include "oscore-crypto.h"
 #include "oscore.h"
