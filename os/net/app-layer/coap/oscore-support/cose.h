@@ -82,12 +82,6 @@ typedef struct cose_encrypt0_t {
 
 } cose_encrypt0_t;
 
-/* Return length */
-int cose_encrypt0_encode(cose_encrypt0_t *ptr, uint8_t *buffer);
-
-/*Return status */
-int cose_encrypt0_decode(cose_encrypt0_t *ptr, uint8_t *buffer, int size);
-
 /* Initiate a new COSE Encrypt0 object. */
 void cose_encrypt0_init(cose_encrypt0_t *ptr);
 
