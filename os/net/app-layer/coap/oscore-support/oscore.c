@@ -553,21 +553,26 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   }
   //prepare external_aad structure with algs, params, etc. to later populate the sig_structure
   
-  nanocbor_encoder_t sig_enc;
-  nanocbor_encoder_init(&sig_enc, aad_buffer, sizeof(aad_buffer));
-  if (oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len, &sig_enc) != NANOCBOR_OK) {
+  nanocbor_encoder_t int_enc;
+  nanocbor_encoder_init(&int_enc, aad_buffer, sizeof(aad_buffer));
+  if (oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len, &int_enc) != NANOCBOR_OK) {
     LOG_ERR("oscore_prepare_int failed\n");
     return INTERNAL_SERVER_ERROR_5_00;
   }
 
-  size_t sign_encoded_len = oscore_prepare_sig_structure(sign_encoded_buffer, 
+  nanocbor_encoder_t sig_enc;
+  nanocbor_encoder_init(&sig_enc, sign_encoded_buffer, sizeof(sign_encoded_buffer));
+  if (oscore_prepare_sig_structure(&sig_enc, 
                aad_buffer, nanocbor_encoded_len(&sig_enc),
-               cose->content, ciphertext_len); 
+               cose->content, ciphertext_len) != NANOCBOR_OK) {
+    LOG_ERR("oscore_prepare_sig_structure failed\n");
+    return INTERNAL_SERVER_ERROR_5_00;
+  }
   memset(&(content_buffer[ciphertext_len]), 0xAA, 64);
 
 //printf("SIGNATURE SHOULD GO HERE %p \n", &(content_buffer[ciphertext_len]));
   cose_sign1_set_signature(sign, &(content_buffer[ciphertext_len]));
-  cose_sign1_set_ciphertext(sign, sign_encoded_buffer, sign_encoded_len);
+  cose_sign1_set_ciphertext(sign, sign_encoded_buffer, nanocbor_encoded_len(&sig_enc));
   /* Queue message to sign */
   cose_sign1_sign(sign); //don't care about the result, it will be in progress
   
