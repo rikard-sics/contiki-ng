@@ -64,6 +64,10 @@
 static void
 oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending);
 
+/* Creates and sets External AAD */
+static size_t
+oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buffer, bool sending);
+
 static void
 printf_hex_detailed(const char* name, const uint8_t *data, size_t len)
 {
@@ -322,6 +326,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       LOG_DBG("cose->partial_iv_len == %"PRIu16" (%"PRIu64")\n", cose->partial_iv_len, seq);
     }
   }
+
   oscore_populate_cose(coap_pkt, cose, ctx, false);
   coap_pkt->security_context = ctx;
 
@@ -393,12 +398,10 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
     cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
     cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   }
-
 #else
   if(coap_is_request(pkt)) {
     if(sending){
-      partial_iv_len = u64tob(ctx->sender_context.seq, partial_iv_buffer);
-      cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
+      cose->partial_iv_len = u64tob(ctx->sender_context.seq, cose->partial_iv);
       cose_encrypt0_set_key_id(cose, ctx->sender_context.sender_id, ctx->sender_context.sender_id_len);
       cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     } else { /* receiving */
@@ -408,8 +411,7 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
     }
   } else { /* coap is response */
     if(sending){
-      partial_iv_len = u64tob(ctx->recipient_context.recent_seq, partial_iv_buffer);
-      cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
+      cose->partial_iv_len = u64tob(ctx->recipient_context.recent_seq, cose->partial_iv);
       cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
       cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     } else { /* receiving */
@@ -454,8 +456,8 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   }
   oscore_populate_cose(coap_pkt, cose, coap_pkt->security_context, true);
 
-/* 2 Compose the AAD and the plaintext, as described in Sections 5.3 and 5.4.*/
-  uint8_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, ROLE_CONFIDENTIAL);
+  /* 2 Compose the AAD and the plaintext, as described in Sections 5.3 and 5.4.*/
+  size_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, ROLE_CONFIDENTIAL);
   if(plaintext_len > COAP_MAX_CHUNK_SIZE){
     LOG_ERR("OSCORE Message to large to process.\n");
     return PACKET_SERIALIZATION_ERROR;
@@ -463,7 +465,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   cose_encrypt0_set_content(cose, content_buffer, plaintext_len);
   
-  uint8_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, true);
+  size_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, true);
   cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
  /*3 Compute the AEAD nonce as described in Section 5.2*/ 
   oscore_generate_nonce(cose, coap_pkt, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
