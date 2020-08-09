@@ -238,8 +238,18 @@ oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscor
 {
   oscore_exchange_t *new_exchange = memb_alloc(&exchange_memb);
   if(new_exchange == NULL){
-    LOG_ERR("oscore_set_exchange: out of memory\n");
-    return false;
+    /* If we are at capacity for Endpoint <-> Context associations: */
+    LOG_WARN("oscore_set_exchange: out of memory\n");
+
+    /* Remove first element in list, to make space for a new one. */
+    /* The head of the list contains the oldest inserted item,
+     * so most likely to never be coming back to us */
+    new_exchange = list_pop(exchange_list);
+
+    if (new_exchange == NULL) {
+      LOG_ERR("oscore_set_exchange: failed to make room\n");
+      return false;
+    }
   }
 
   memcpy(new_exchange->token, token, token_len);
@@ -249,6 +259,7 @@ oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscor
 
   /* Add to end of the exchange list */
   list_add(exchange_list, new_exchange);
+
   return true;
 }
 

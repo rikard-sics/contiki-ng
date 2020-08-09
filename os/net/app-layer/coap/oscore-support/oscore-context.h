@@ -54,12 +54,13 @@
 #define OSCORE_SEQ_MAX (((uint64_t)1 << 40) - 1)
 
 #ifndef TOKEN_SEQ_NUM
-#define TOKEN_SEQ_NUM 10
+#define TOKEN_SEQ_NUM 20
 #endif
 
 #ifdef OSCORE_EP_CTX_ASSOCIATION
 #ifndef EP_CTX_NUM
 #define EP_CTX_NUM 10
+#endif
 #endif
 
 typedef struct oscore_sender_ctx {
@@ -116,13 +117,13 @@ struct oscore_ctx_t {
 #endif /* WITH_GROUPCOM */
 };
 
-typedef struct oscore_exchange {
-  struct oscore_exchange *next;
+struct oscore_exchange_t {
+  oscore_exchange_t *next;
   oscore_ctx_t *context;
   uint64_t seq;
-  uint8_t token[COAP_TOKEN_LEN];
+  uint8_t token[8];
   uint8_t token_len;
-} oscore_exchange_t;
+};
 
 struct ep_ctx_t {
   ep_ctx_t *next;
