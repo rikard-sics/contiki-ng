@@ -50,6 +50,8 @@ typedef struct coap_periodic_resource_s coap_periodic_resource_t;
 #include "coap.h"
 #include "coap-timer.h"
 
+#include <stdbool.h>
+
 typedef enum {
   COAP_HANDLER_STATUS_CONTINUE,
   COAP_HANDLER_STATUS_PROCESSED
@@ -112,7 +114,7 @@ struct coap_resource_s {
     coap_resource_trigger_handler_t resume;
   };
   #ifdef WITH_OSCORE
-  uint8_t oscore_protected;
+  bool oscore_protected;
   #endif /* WITH_OSCORE */
 };
 
