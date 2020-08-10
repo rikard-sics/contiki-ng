@@ -97,20 +97,24 @@ coap_is_request(const coap_message_t *coap_pkt)
 {
   return coap_pkt->code >= COAP_GET && coap_pkt->code <= COAP_DELETE;
 }
+
 bool
 oscore_is_request_protected(const coap_message_t *request)
 {
   return request != NULL && coap_is_option(request, COAP_OPTION_OSCORE);
 }
+
 void
 oscore_protect_resource(coap_resource_t *resource)
 {
-  resource->oscore_protected = 1;
+  resource->oscore_protected = true;
 }
+
 bool oscore_is_resource_protected(const coap_resource_t *resource)
 {
   return resource->oscore_protected;
 }
+
 static uint8_t
 u64tob(uint64_t value, uint8_t *buffer)
 {
@@ -130,6 +134,7 @@ u64tob(uint64_t value, uint8_t *buffer)
   return length == 0 ? 1 : length;
 
 }
+
 static uint64_t
 btou64(uint8_t *bytes, size_t len)
 {
@@ -152,6 +157,7 @@ btou64(uint8_t *bytes, size_t len)
 
   return num;
 }
+
 static int
 oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose, bool include_partial_iv)
 {
@@ -256,6 +262,7 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
   }
   return NO_ERROR;
 }
+
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
 coap_status_t
 oscore_decode_message(coap_message_t *coap_pkt)
@@ -346,6 +353,8 @@ oscore_decode_message(coap_message_t *coap_pkt)
   oscore_populate_cose(coap_pkt, cose, ctx, false);
   coap_pkt->security_context = ctx;
 
+  // TODO: AAD should not be generated here, but should come from
+  // the received message?
   nanocbor_encoder_t aad_enc;
   nanocbor_encoder_init(&aad_enc, aad_buffer, sizeof(aad_buffer));
   if (oscore_prepare_aad(coap_pkt, cose, &aad_enc, false) != NANOCBOR_OK) {
@@ -495,7 +504,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   /* 2 Compose the AAD and the plaintext, as described in Sections 5.3 and 5.4.*/
   size_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, ROLE_CONFIDENTIAL);
   if(plaintext_len > COAP_MAX_CHUNK_SIZE){
-    LOG_ERR("OSCORE Message to large to process.\n");
+    LOG_ERR("OSCORE Message to large (%zu > %u) to process.\n", plaintext_len, COAP_MAX_CHUNK_SIZE);
     return PACKET_SERIALIZATION_ERROR;
   }
 
@@ -656,6 +665,7 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, nanocbor_enc
 
   return NANOCBOR_OK;
 }
+
 /* Creates Nonce */
 void
 oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size)
@@ -675,22 +685,29 @@ oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *b
 
   printf_hex_detailed("result", buffer, size);
 }
+
 /*Remove all protected options */
+static void
+oscore_clear_option(coap_message_t *coap_pkt, coap_option_t option)
+{
+  coap_pkt->options[option / COAP_OPTION_MAP_SIZE] &= ~(1 << (option % COAP_OPTION_MAP_SIZE));
+}
+
 void
 oscore_clear_options(coap_message_t *coap_pkt)
 {
-  coap_pkt->options[COAP_OPTION_IF_MATCH / COAP_OPTION_MAP_SIZE] &= ~(1 << (COAP_OPTION_IF_MATCH % COAP_OPTION_MAP_SIZE));
+  oscore_clear_option(coap_pkt, COAP_OPTION_IF_MATCH);
   /* URI-Host should be unprotected */
-  coap_pkt->options[COAP_OPTION_ETAG / COAP_OPTION_MAP_SIZE] &= ~(1 << (COAP_OPTION_ETAG % COAP_OPTION_MAP_SIZE));
-  coap_pkt->options[COAP_OPTION_IF_NONE_MATCH / COAP_OPTION_MAP_SIZE] &= ~(1 << (COAP_OPTION_IF_NONE_MATCH % COAP_OPTION_MAP_SIZE));
+  oscore_clear_option(coap_pkt, COAP_OPTION_ETAG);
+  oscore_clear_option(coap_pkt, COAP_OPTION_IF_NONE_MATCH);
   /* Observe should be duplicated */
-  coap_pkt->options[COAP_OPTION_LOCATION_PATH / COAP_OPTION_MAP_SIZE] &= ~(1 << (COAP_OPTION_LOCATION_PATH % COAP_OPTION_MAP_SIZE));
-  coap_pkt->options[COAP_OPTION_URI_PATH / COAP_OPTION_MAP_SIZE] &= ~(1 << (COAP_OPTION_URI_PATH % COAP_OPTION_MAP_SIZE));
-  coap_pkt->options[COAP_OPTION_CONTENT_FORMAT / COAP_OPTION_MAP_SIZE] &= ~(1 << (COAP_OPTION_CONTENT_FORMAT % COAP_OPTION_MAP_SIZE));
+  oscore_clear_option(coap_pkt, COAP_OPTION_LOCATION_PATH);
+  oscore_clear_option(coap_pkt, COAP_OPTION_URI_PATH);
+  oscore_clear_option(coap_pkt, COAP_OPTION_CONTENT_FORMAT);
   /* Max-Age shall me duplicated */
-  coap_pkt->options[COAP_OPTION_URI_QUERY / COAP_OPTION_MAP_SIZE] &= ~(1 << (COAP_OPTION_URI_QUERY % COAP_OPTION_MAP_SIZE));
-  coap_pkt->options[COAP_OPTION_ACCEPT / COAP_OPTION_MAP_SIZE] &= ~(1 << (COAP_OPTION_ACCEPT % COAP_OPTION_MAP_SIZE));
-  coap_pkt->options[COAP_OPTION_LOCATION_QUERY / COAP_OPTION_MAP_SIZE] &= ~(1 << (COAP_OPTION_LOCATION_QUERY % COAP_OPTION_MAP_SIZE));
+  oscore_clear_option(coap_pkt, COAP_OPTION_URI_QUERY);
+  oscore_clear_option(coap_pkt, COAP_OPTION_ACCEPT);
+  oscore_clear_option(coap_pkt, COAP_OPTION_LOCATION_QUERY);
   /* Block2 should be duplicated */
   /* Block1 should be duplicated */
   /* Size2 should be duplicated */
@@ -698,6 +715,7 @@ oscore_clear_options(coap_message_t *coap_pkt)
   /* Proxy-Scheme should be unprotected */
   /* Size1 should be duplicated */
 }
+
 /*Return 1 if OK, Error code otherwise */
 bool
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
@@ -721,7 +739,8 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
   }
   */
    if(incomming_seq >= OSCORE_SEQ_MAX) {
-    LOG_WARN("OSCORE Replay protection, SEQ larger than SEQ_MAX.\n");
+    LOG_WARN("OSCORE Replay protection, SEQ %" PRIi64 " larger than SEQ_MAX %" PRIi64 ".\n",
+      incomming_seq, OSCORE_SEQ_MAX);
     return false;
   }
 
@@ -732,11 +751,13 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
     ctx->sliding_window = ctx->sliding_window | 1;
     ctx->largest_seq = incomming_seq;
   } else if(incomming_seq == ctx->largest_seq) {
-      LOG_WARN("OSCORE Replay protection, replayed SEQ.\n");
+      LOG_WARN("OSCORE Replay protection, replayed SEQ incomming_seq (%" PRIi64 ") == ctx->largest_seq (%" PRIi64 ").\n",
+        incomming_seq, ctx->largest_seq);
       return false;
   } else { /* seq < recipient_seq */
     if(incomming_seq + ctx->replay_window_size < ctx->largest_seq) {
-      LOG_WARN("OSCORE Replay protection, SEQ outside of replay window.\n");
+      LOG_WARN("OSCORE Replay protection, SEQ outside of replay window (incomming_seq %" PRIi64 " + replay_window_size %" PRIu8 " < largest_seq %" PRId64 ").\n",
+        incomming_seq, ctx->replay_window_size, ctx->largest_seq);
       return false;
     }
     /* seq+replay_window_size > recipient_seq */
@@ -745,7 +766,8 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
     uint32_t verifier = ctx->sliding_window & pattern;
     verifier = verifier >> shift;
     if(verifier == 1) {
-	      LOG_WARN("OSCORE Replay protection, replayed SEQ.\n");
+      LOG_WARN("OSCORE Replay protection, replayed SEQ (sliding_window=%" PRIu32 ", pattern=%" PRIu32 ", shift=%d).\n",
+        ctx->sliding_window, pattern, shift);
       return false;
     }
     ctx->sliding_window = ctx->sliding_window | pattern;
@@ -753,6 +775,7 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
   ctx->recent_seq = incomming_seq;
   return true;
 }
+
 /* Return 0 if SEQ MAX, return 1 if OK */
 bool
 oscore_increment_sender_seq(oscore_ctx_t *ctx)
@@ -762,6 +785,7 @@ oscore_increment_sender_seq(oscore_ctx_t *ctx)
   ctx->sender_context.seq++;
   return ctx->sender_context.seq < OSCORE_SEQ_MAX;
 }
+
 /* Restore the sequence number and replay-window to the previous state. This is to be used when decryption fail. */
 void
 oscore_roll_back_seq(oscore_recipient_ctx_t *ctx)
