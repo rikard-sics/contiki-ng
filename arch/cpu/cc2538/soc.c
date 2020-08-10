@@ -65,7 +65,7 @@
 /* Log configuration */
 #include "sys/log.h"
 #define LOG_MODULE "CC2538 SoC"
-#define LOG_LEVEL LOG_LEVEL_NONE
+#define LOG_LEVEL LOG_LEVEL_INFO
 /*----------------------------------------------------------------------------*/
 uint8_t
 soc_get_rev(void)
@@ -99,7 +99,7 @@ soc_print_info(void)
   uint8_t rev = soc_get_rev();
   uint32_t features = soc_get_features();
 
-  LOG_DBG("CC2538: ID: 0x%04lx, rev.: PG%d.%d, Flash: %lu KiB, "
+  LOG_INFO("CC2538: ID: 0x%04lx, rev.: PG%d.%d, Flash: %lu KiB, "
           "SRAM: %lu KiB, AES/SHA: %u, ECC/RSA: %u\n"
           "System clock: %lu Hz\n"
           "I/O clock: %lu Hz\n"
