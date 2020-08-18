@@ -153,7 +153,7 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
 
   common_ctx->sender_context.sender_id = sid;
   common_ctx->sender_context.sender_id_len = sid_len;
-  common_ctx->sender_context.seq = 0;
+  common_ctx->sender_context.seq = 0; // rfc8613 Section 3.2.2
 
   common_ctx->recipient_context.recipient_id = rid;
   common_ctx->recipient_context.recipient_id_len = rid_len;
