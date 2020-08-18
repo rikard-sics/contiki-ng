@@ -501,6 +501,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     LOG_ERR("No context in OSCORE!\n");
     return PACKET_SERIALIZATION_ERROR;
   }
+
   oscore_populate_cose(coap_pkt, cose, coap_pkt->security_context, true);
 
   /* 2 Compose the AAD and the plaintext, as described in Sections 5.3 and 5.4.*/
@@ -601,12 +602,11 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   }
 
   oscore_clear_options(coap_pkt);
+
 #ifdef WITH_GROUPCOM
   return 0;
 #else
-  uint8_t serialized_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
-
-  return serialized_len;
+  return oscore_serializer(coap_pkt, buffer, ROLE_COAP);
 #endif
 }
 
@@ -723,48 +723,50 @@ oscore_clear_options(coap_message_t *coap_pkt)
 bool
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
-  const uint64_t incomming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
+  const uint64_t incoming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
 
-  LOG_DBG("Incomming SEQ %" PRIi64 "\n", incomming_seq);
+  LOG_DBG("incoming SEQ %" PRIi64 "\n", incoming_seq);
 
+  /* Save the current state for potential rollback */
   ctx->rollback_largest_seq = ctx->largest_seq;
   ctx->rollback_sliding_window = ctx->sliding_window;
 
-   /* Special case since we do not use unisgned int for seq */
- /* if(!ctx->initialized) {
+  /* Special case since we do not use unsigned int for seq */
+  /* if(!ctx->initialized) {
       ctx->initialized = 1;
-      int shift = incomming_seq - ctx->largest_seq;
+      int shift = incoming_seq - ctx->largest_seq;
       ctx->sliding_window = ctx->sliding_window << shift;
       ctx->sliding_window = ctx->sliding_window | 1;
-      ctx->largest_seq = incomming_seq;
-      ctx->recent_seq = incomming_seq;
+      ctx->largest_seq = incoming_seq;
+      ctx->recent_seq = incoming_seq;
       return 1;
   }
   */
-   if(incomming_seq >= OSCORE_SEQ_MAX) {
+
+  if(incoming_seq >= OSCORE_SEQ_MAX) {
     LOG_WARN("OSCORE Replay protection, SEQ %" PRIi64 " larger than SEQ_MAX %" PRIi64 ".\n",
-      incomming_seq, OSCORE_SEQ_MAX);
+      incoming_seq, OSCORE_SEQ_MAX);
     return false;
   }
 
-  if(incomming_seq > ctx->largest_seq) {
+  if(incoming_seq > ctx->largest_seq) {
     /* Update the replay window */
-    int shift = incomming_seq - ctx->largest_seq;
+    int shift = incoming_seq - ctx->largest_seq;
     ctx->sliding_window = ctx->sliding_window << shift;
     ctx->sliding_window = ctx->sliding_window | 1;
-    ctx->largest_seq = incomming_seq;
-  } else if(incomming_seq == ctx->largest_seq) {
-      LOG_WARN("OSCORE Replay protection, replayed SEQ incomming_seq (%" PRIi64 ") == ctx->largest_seq (%" PRIi64 ").\n",
-        incomming_seq, ctx->largest_seq);
+    ctx->largest_seq = incoming_seq;
+  } else if(incoming_seq == ctx->largest_seq) {
+      LOG_WARN("OSCORE Replay protection, replayed SEQ incoming_seq (%" PRIi64 ") == ctx->largest_seq (%" PRIi64 ").\n",
+        incoming_seq, ctx->largest_seq);
       return false;
   } else { /* seq < recipient_seq */
-    if(incomming_seq + ctx->replay_window_size < ctx->largest_seq) {
-      LOG_WARN("OSCORE Replay protection, SEQ outside of replay window (incomming_seq %" PRIi64 " + replay_window_size %" PRIu8 " < largest_seq %" PRId64 ").\n",
-        incomming_seq, ctx->replay_window_size, ctx->largest_seq);
+    if(incoming_seq + ctx->replay_window_size < ctx->largest_seq) {
+      LOG_WARN("OSCORE Replay protection, SEQ outside of replay window (incoming_seq %" PRIi64 " + replay_window_size %" PRIu8 " < largest_seq %" PRId64 ").\n",
+        incoming_seq, ctx->replay_window_size, ctx->largest_seq);
       return false;
     }
     /* seq+replay_window_size > recipient_seq */
-    int shift = ctx->largest_seq - incomming_seq;
+    int shift = ctx->largest_seq - incoming_seq;
     uint32_t pattern = 1 << shift;
     uint32_t verifier = ctx->sliding_window & pattern;
     verifier = verifier >> shift;
@@ -775,7 +777,7 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
     }
     ctx->sliding_window = ctx->sliding_window | pattern;
   }
-  ctx->recent_seq = incomming_seq;
+  ctx->recent_seq = incoming_seq;
   return true;
 }
 
