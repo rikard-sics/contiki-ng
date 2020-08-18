@@ -54,7 +54,9 @@
 #define LOG_LEVEL LOG_LEVEL_WARN
 #endif
 
+#if LOG_LEVEL == LOG_LEVEL_DBG
 #define OSCORE_ENC_DEC_DEBUG
+#endif
 
 #ifdef OSCORE_ENC_DEC_DEBUG
 static void
