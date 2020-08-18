@@ -42,15 +42,16 @@
 #define _OSCORE_CONTEXT_H
 
 #include <inttypes.h>
+
 #include "coap-constants.h"
 #include "coap-endpoint.h"
 #include "cose.h"
 
+#include "sliding-window.h"
+
 #define CONTEXT_KEY_LEN 16
 #define CONTEXT_INIT_VECT_LEN 13
 #define CONTEXT_SEQ_LEN sizeof(uint64_t)
-
-#define OSCORE_SEQ_MAX (((uint64_t)1 << 40) - 1)
 
 #ifndef TOKEN_SEQ_NUM
 #define TOKEN_SEQ_NUM 20
@@ -79,16 +80,10 @@ typedef struct oscore_sender_ctx {
 
 
 typedef struct oscore_recipient_ctx {
-  int64_t largest_seq;
-  int64_t rollback_largest_seq;
-  uint64_t recent_seq;
-  uint32_t sliding_window;
-  int32_t rollback_sliding_window;
   uint8_t recipient_key[CONTEXT_KEY_LEN];
   const uint8_t *recipient_id;
   uint8_t recipient_id_len;
-  uint8_t replay_window_size;
-  uint8_t initialized;
+
 #ifdef WITH_GROUPCOM
   uint8_t public_key[ES256_PUBLIC_KEY_LEN];
   uint8_t public_key_len;
@@ -97,6 +92,8 @@ typedef struct oscore_recipient_ctx {
   struct oscore_recipient_ctx *next_recipient; 
   /* This field allows recipient chaining */
 #endif /* WITH_GROUPCOM */
+
+  oscore_sliding_window_t sliding_window;
 } oscore_recipient_ctx_t;
 
 typedef struct oscore_ctx {
@@ -150,25 +147,24 @@ oscore_recipient_ctx_t *
 oscore_add_recipient(oscore_ctx_t *ctx, 
         uint8_t *rid, uint8_t rid_len);
 
-//replay window default is 32
-void oscore_derive_ctx(oscore_ctx_t *common_ctx,
+bool oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *master_secret, uint8_t master_secret_len,
   const uint8_t *master_salt, uint8_t master_salt_len,
   uint8_t alg,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,
   const uint8_t *id_context, uint8_t id_context_len,
-  uint8_t replay_window,
+  uint8_t replay_window_size,
   const uint8_t *gid);
 #else
-void oscore_derive_ctx(oscore_ctx_t *common_ctx,
+bool oscore_derive_ctx(oscore_ctx_t *common_ctx,
   uint8_t *master_secret, uint8_t master_secret_len,
   uint8_t *master_salt, uint8_t master_salt_len,
   uint8_t alg,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,
   const uint8_t *id_context, uint8_t id_context_len,
-  uint8_t replay_window);
+  uint8_t replay_window_size);
 #endif
 
 void oscore_free_ctx(oscore_ctx_t *ctx);
