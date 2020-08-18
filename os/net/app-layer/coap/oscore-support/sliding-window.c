@@ -29,8 +29,6 @@ bool oscore_sliding_window_init(oscore_sliding_window_t* w, uint8_t replay_windo
 
     w->recent_seq = OSCORE_INVALID_SEQ;
 
-    //w->initialized = false;
-
     return true;
 }
 
@@ -88,12 +86,26 @@ void oscore_sliding_window_set(oscore_sliding_window_t* w, uint64_t seq)
         w->largest_seq = seq;
 
     } else {
-        assert(seq + w->replay_window_size >= w->largest_seq);
+        assert(oscore_sliding_window_contains(w, seq));
 
         const int64_t shift = w->largest_seq - seq;
 
+        assert(shift >= 0);
+        assert(shift < w->replay_window_size);
+
         w->sliding_window |= (1 << shift);
     }
+}
+
+bool oscore_sliding_window_contains(const oscore_sliding_window_t* w, uint64_t seq)
+{
+    /* Seq needs to be in the range (largest_seq - replay_window_size : largest_seq] */
+    return w->largest_seq != OSCORE_INVALID_SEQ &&
+
+        seq <= w->largest_seq &&
+
+        /* Rearranged to prevent underflow */
+        seq + w->replay_window_size > w->largest_seq;
 }
 
 bool oscore_sliding_window_validate(oscore_sliding_window_t* w, uint64_t incoming_seq)
@@ -119,7 +131,7 @@ bool oscore_sliding_window_validate(oscore_sliding_window_t* w, uint64_t incomin
         return false;
 
     } else { /* seq < recipient_seq */
-        if(incoming_seq + w->replay_window_size < w->largest_seq) {
+        if(!oscore_sliding_window_contains(w, incoming_seq)) {
             LOG_WARN("OSCORE Replay protection, SEQ outside of replay window "
                 "(incoming_seq %" PRIu64 " + replay_window_size %" PRIu8 " < largest_seq %" PRIu64 ").\n",
                 incoming_seq, w->replay_window_size, w->largest_seq);
