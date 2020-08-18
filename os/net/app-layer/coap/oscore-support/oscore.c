@@ -66,6 +66,10 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
 static int
 oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, nanocbor_encoder_t* enc, bool sending);
 
+/*Return 1 if OK, Error code otherwise */
+static bool
+oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose);
+
 static void
 printf_hex_detailed(const char* name, const uint8_t *data, size_t len)
 {
@@ -302,7 +306,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
   if(res <= 0) {
     LOG_ERR("OSCORE Decryption Failure, result code: %d\n", res);
     if(coap_is_request(coap_pkt)) {
-      oscore_roll_back_seq(&ctx->recipient_context);
+      oscore_sliding_window_rollback(&ctx->recipient_context.sliding_window);
       coap_error_message = "Decryption failure";
       return BAD_REQUEST_4_00;
     } else {
@@ -331,7 +335,7 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
     }
   } else { /* coap is response */
     if(sending){
-      cose->partial_iv_len = u64tob(ctx->recipient_context.recent_seq, cose->partial_iv);
+      cose->partial_iv_len = u64tob(ctx->recipient_context.sliding_window.recent_seq, cose->partial_iv);
       cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
       cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     } else { /* receiving */
@@ -514,60 +518,7 @@ oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
 {
   const uint64_t incoming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
 
-  LOG_DBG("incoming SEQ %" PRIi64 "\n", incoming_seq);
-
-  /* Save the current state for potential rollback */
-  ctx->rollback_largest_seq = ctx->largest_seq;
-  ctx->rollback_sliding_window = ctx->sliding_window;
-
-  /* Special case since we do not use unsigned int for seq */
-  /* if(!ctx->initialized) {
-      ctx->initialized = 1;
-      int shift = incoming_seq - ctx->largest_seq;
-      ctx->sliding_window = ctx->sliding_window << shift;
-      ctx->sliding_window = ctx->sliding_window | 1;
-      ctx->largest_seq = incoming_seq;
-      ctx->recent_seq = incoming_seq;
-      return 1;
-  }
-  */
-
-  if(incoming_seq >= OSCORE_SEQ_MAX) {
-    LOG_WARN("OSCORE Replay protection, SEQ %" PRIi64 " larger than SEQ_MAX %" PRIi64 ".\n",
-      incoming_seq, OSCORE_SEQ_MAX);
-    return false;
-  }
-
-  if(incoming_seq > ctx->largest_seq) {
-    /* Update the replay window */
-    int shift = incoming_seq - ctx->largest_seq;
-    ctx->sliding_window = ctx->sliding_window << shift;
-    ctx->sliding_window = ctx->sliding_window | 1;
-    ctx->largest_seq = incoming_seq;
-  } else if(incoming_seq == ctx->largest_seq) {
-      LOG_WARN("OSCORE Replay protection, replayed SEQ incoming_seq (%" PRIi64 ") == ctx->largest_seq (%" PRIi64 ").\n",
-        incoming_seq, ctx->largest_seq);
-      return false;
-  } else { /* seq < recipient_seq */
-    if(incoming_seq + ctx->replay_window_size < ctx->largest_seq) {
-      LOG_WARN("OSCORE Replay protection, SEQ outside of replay window (incoming_seq %" PRIi64 " + replay_window_size %" PRIu8 " < largest_seq %" PRId64 ").\n",
-        incoming_seq, ctx->replay_window_size, ctx->largest_seq);
-      return false;
-    }
-    /* seq+replay_window_size > recipient_seq */
-    int shift = ctx->largest_seq - incoming_seq;
-    uint32_t pattern = 1 << shift;
-    uint32_t verifier = ctx->sliding_window & pattern;
-    verifier = verifier >> shift;
-    if(verifier == 1) {
-      LOG_WARN("OSCORE Replay protection, replayed SEQ (sliding_window=%" PRIu32 ", pattern=%" PRIu32 ", shift=%d).\n",
-        ctx->sliding_window, pattern, shift);
-      return false;
-    }
-    ctx->sliding_window = ctx->sliding_window | pattern;
-  }
-  ctx->recent_seq = incoming_seq;
-  return true;
+  return oscore_sliding_window_validate(&ctx->sliding_window, incoming_seq);
 }
 
 /* Return 0 if SEQ MAX, return 1 if OK */
@@ -578,25 +529,6 @@ oscore_increment_sender_seq(oscore_ctx_t *ctx)
 
   ctx->sender_context.seq++;
   return ctx->sender_context.seq < OSCORE_SEQ_MAX;
-}
-
-/* Restore the sequence number and replay-window to the previous state. This is to be used when decryption fail. */
-void
-oscore_roll_back_seq(oscore_recipient_ctx_t *ctx)
-{
-  LOG_DBG("Rolling back seq (window %"PRIu32" = %"PRIi32") (seq %"PRIi64" = %"PRIi64")\n",
-    ctx->sliding_window, ctx->rollback_sliding_window,
-    ctx->largest_seq, ctx->rollback_largest_seq);
-
- // if(ctx->rollback_sliding_window != -1){
-    ctx->sliding_window = ctx->rollback_sliding_window;
- //   ctx->rollback_sliding_window = -1;
-//  }
-  
- // if( ctx->rollback_largest_seq !=  -1) {
-    ctx->largest_seq = ctx->rollback_largest_seq;
-//    ctx->rollback_largest_seq = -1;
-//  }
 }
 
 void

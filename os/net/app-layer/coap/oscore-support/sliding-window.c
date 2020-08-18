@@ -1,6 +1,4 @@
 #include "sliding-window.h"
-#include <inttypes.h>
-#include "assert.h"
 
 /* Log configuration */
 #include "sys/log.h"
@@ -11,142 +9,103 @@
 #define LOG_LEVEL LOG_LEVEL_WARN
 #endif
 
-// From MBradbury
-// GCC 9 newlib is broken
-// https://stackoverflow.com/questions/14535556/why-doesnt-priu64-work-in-this-code
-#ifndef PRIu64
-#define PRIu64 "llu"
-#endif
-
-void oscore_sliding_window_init(oscore_sliding_window_t* w)
+bool oscore_sliding_window_init(oscore_sliding_window_t* w, uint8_t replay_window_size)
 {
-    w->largest_seq = OSCORE_INVALID_SEQ;
-    w->rollback_largest_seq = w->largest_seq;
-    
-    w->sliding_window = 0;
-    w->rollback_sliding_window = w->sliding_window;
+    if (replay_window_size > OSCORE_MAX_REPLAY_WINDOW_SIZE)
+    {
+        LOG_ERR("Invalid replay window size\n");
+        return false;
+    }
 
-    w->recent_seq = OSCORE_INVALID_SEQ;
+    w->largest_seq = -1;
+    w->recent_seq = 0;
+    w->replay_window_size = replay_window_size;
+    w->rollback_largest_seq = 0;
+    w->sliding_window = 0;
+    w->rollback_sliding_window = -1;
+    //w->initialized = false;
+
+    return true;
 }
 
 void oscore_sliding_window_rollback(oscore_sliding_window_t* w)
 {
-    LOG_DBG("Rolling back seq (window %"PRIu32" = %"PRIu32") (seq %"PRIu64" = %"PRIu64")\n",
+    LOG_DBG("Rolling back seq (window %"PRIu32" = %"PRIi32") (seq %"PRIi64" = %"PRIi64")\n",
     w->sliding_window, w->rollback_sliding_window,
     w->largest_seq, w->rollback_largest_seq);
 
+ // if(w->rollback_sliding_window != -1){
     w->sliding_window = w->rollback_sliding_window;
+ //   w->rollback_sliding_window = -1;
+//  }
+  
+ // if( w->rollback_largest_seq !=  -1) {
     w->largest_seq = w->rollback_largest_seq;
-}
-
-bool oscore_sliding_window_test(const oscore_sliding_window_t* w, uint64_t seq)
-{
-    /* Check that seq is within the sliding window */
-    if (w->largest_seq == OSCORE_INVALID_SEQ)
-    {
-        /* no sliding window yet */
-        return false;
-    }
-    if (seq > w->largest_seq)
-    {
-        /* too big */
-        return false;
-    }
-    if (seq + OSCORE_DEFAULT_REPLAY_WINDOW < w->largest_seq)
-    {
-        /* too small */
-        return false;
-    }
-
-    const int64_t shift = w->largest_seq - seq;
-
-    return (w->sliding_window & (1 << shift)) != 0;
-}
-
-void oscore_sliding_window_set(oscore_sliding_window_t* w, uint64_t seq)
-{
-    if (w->largest_seq == OSCORE_INVALID_SEQ) {
-        /* Set the 0th bit */
-        w->sliding_window = (1 << 0);
-
-        w->largest_seq = seq;
-    }
-    else if (seq > w->largest_seq) {
-        const int64_t shift = seq - w->largest_seq;
-
-        /* Move the window along so the 0th bit is this new seq */
-        w->sliding_window <<= shift;
-
-        /* Set the 0th bit */
-        w->sliding_window |= (1 << 0);
-
-        w->largest_seq = seq;
-
-    } else {
-        assert(oscore_sliding_window_contains(w, seq));
-
-        const int64_t shift = w->largest_seq - seq;
-
-        assert(shift >= 0);
-        assert(shift < OSCORE_DEFAULT_REPLAY_WINDOW);
-
-        w->sliding_window |= (1 << shift);
-    }
-}
-
-bool oscore_sliding_window_contains(const oscore_sliding_window_t* w, uint64_t seq)
-{
-    /* Seq needs to be in the range (largest_seq - OSCORE_DEFAULT_REPLAY_WINDOW : largest_seq] */
-    return w->largest_seq != OSCORE_INVALID_SEQ &&
-
-        seq <= w->largest_seq &&
-
-        /* Rearranged to prevent underflow */
-        seq + OSCORE_DEFAULT_REPLAY_WINDOW > w->largest_seq;
+//    w->rollback_largest_seq = -1;
+//  }
 }
 
 bool oscore_sliding_window_validate(oscore_sliding_window_t* w, uint64_t incoming_seq)
 {
-    LOG_DBG("incoming SEQ %" PRIu64 "\n", incoming_seq);
+  LOG_DBG("incoming SEQ %" PRIi64 "\n", incoming_seq);
 
-    /* Save the current state for potential rollback */
-    w->rollback_largest_seq = w->largest_seq;
-    w->rollback_sliding_window = w->sliding_window;
+  /* Save the current state for potential rollback */
+  w->rollback_largest_seq = w->largest_seq;
+  w->rollback_sliding_window = w->sliding_window;
 
-    if(incoming_seq >= OSCORE_SEQ_MAX) {
-        LOG_WARN("Replay protection, SEQ %" PRIu64 " larger than SEQ_MAX %" PRIu64 ".\n",
-          incoming_seq, OSCORE_SEQ_MAX);
-        return false;
+  /* Special case since we do not use unsigned int for seq */
+  /* if(!w->initialized) {
+      w->initialized = 1;
+      int shift = incoming_seq - w->largest_seq;
+      w->sliding_window = w->sliding_window << shift;
+      w->sliding_window = w->sliding_window | 1;
+      w->largest_seq = incoming_seq;
+      w->recent_seq = incoming_seq;
+      return 1;
+  }
+  */
+
+  if(incoming_seq >= OSCORE_SEQ_MAX) {
+    LOG_WARN("OSCORE Replay protection, SEQ %" PRIi64 " larger than SEQ_MAX %" PRIi64 ".\n",
+      incoming_seq, OSCORE_SEQ_MAX);
+    return false;
+  }
+
+  if(incoming_seq > w->largest_seq) {
+    /* Update the replay window */
+    int shift = incoming_seq - w->largest_seq;
+    w->sliding_window = w->sliding_window << shift;
+    w->sliding_window = w->sliding_window | 1;
+    w->largest_seq = incoming_seq;
+
+  } else if(incoming_seq == w->largest_seq) {
+      LOG_WARN("OSCORE Replay protection, replayed SEQ incoming_seq (%" PRIi64 ") == w->largest_seq (%" PRIi64 ").\n",
+        incoming_seq, w->largest_seq);
+      return false;
+
+  } else { /* seq < recipient_seq */
+    if(incoming_seq + w->replay_window_size < w->largest_seq) {
+      LOG_WARN("OSCORE Replay protection, SEQ outside of replay window "
+        "(incoming_seq %" PRIi64 " + replay_window_size %" PRIu8 " < largest_seq %" PRId64 ").\n",
+        incoming_seq, w->replay_window_size, w->largest_seq);
+      return false;
     }
 
-    if(incoming_seq > w->largest_seq || w->largest_seq == OSCORE_INVALID_SEQ) {
-        oscore_sliding_window_set(w, incoming_seq);
-
-    } else if(incoming_seq == w->largest_seq) {
-        LOG_WARN("Replay protection, replayed SEQ incoming_seq (%" PRIu64 ") == w->largest_seq (%" PRIu64 ").\n",
-            incoming_seq, w->largest_seq);
-        return false;
-
-    } else { /* seq < recipient_seq */
-        if(!oscore_sliding_window_contains(w, incoming_seq)) {
-            LOG_WARN("Replay protection, SEQ outside of replay window "
-                "(incoming_seq=%" PRIu64 ", replay_window_size=%" PRIu8 ", largest_seq=%" PRIu64 ").\n",
-                incoming_seq, OSCORE_DEFAULT_REPLAY_WINDOW, w->largest_seq);
-            return false;
-        }
-
-        const bool set = oscore_sliding_window_test(w, incoming_seq);
-        if(set) {
-            LOG_WARN("Replay protection, replayed SEQ %"PRIu64" (sliding_window=%" PRIu32 ").\n",
-                incoming_seq, w->sliding_window);
-            return false;
-        } else {
-            oscore_sliding_window_set(w, incoming_seq);
-        }
+    /* seq+replay_window_size > recipient_seq */
+    int shift = w->largest_seq - incoming_seq;
+    uint32_t pattern = 1 << shift;
+    uint32_t verifier = w->sliding_window & pattern;
+    verifier = verifier >> shift;
+    if(verifier == 1) {
+      LOG_WARN("OSCORE Replay protection, replayed SEQ (sliding_window=%" PRIu32 ", pattern=%" PRIu32 ", shift=%d).\n",
+        w->sliding_window, pattern, shift);
+      return false;
     }
+    w->sliding_window = w->sliding_window | pattern;
+  }
 
-    /* Update the last seen seq */
-    w->recent_seq = incoming_seq;
+  /* Update the last seen seq */
+  w->recent_seq = incoming_seq;
 
-    return true;
+  return true;
 }

@@ -176,4 +176,6 @@
  */
 #define CC_ARRAY_SIZE(a) (sizeof(a)/sizeof(*(a)))
 
+#define CC_FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
+
 #endif /* CC_H_ */
