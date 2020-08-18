@@ -9,12 +9,14 @@
 
 #define OSCORE_SEQ_MAX (((uint64_t)1 << 40) - 1)
 
+#define OSCORE_INVALID_SEQ UINT64_MAX
+
 typedef struct {
     uint32_t sliding_window;
-    int32_t rollback_sliding_window;
+    uint32_t rollback_sliding_window;
 
-    int64_t largest_seq;
-    int64_t rollback_largest_seq;
+    uint64_t largest_seq;
+    uint64_t rollback_largest_seq;
 
     uint64_t recent_seq;
     
@@ -39,5 +41,9 @@ bool oscore_sliding_window_init(oscore_sliding_window_t* window, uint8_t replay_
 void oscore_sliding_window_rollback(oscore_sliding_window_t* window);
 
 bool oscore_sliding_window_validate(oscore_sliding_window_t* window, uint64_t incoming_seq);
+
+bool oscore_sliding_window_test(const oscore_sliding_window_t* w, uint64_t seq);
+
+void oscore_sliding_window_set(oscore_sliding_window_t* w, uint64_t seq);
 
 #endif /* _OSCORE_SLIDING_WINDOW_H */
