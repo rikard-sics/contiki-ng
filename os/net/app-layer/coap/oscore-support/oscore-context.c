@@ -115,7 +115,7 @@ bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b
   return memcmp(a_ptr, b_ptr, a_len) == 0;
 }
 
-void
+bool
 oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *master_secret, uint8_t master_secret_len,
   const uint8_t *master_salt, uint8_t master_salt_len,
@@ -123,7 +123,7 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,
   const uint8_t *id_context, uint8_t id_context_len,
-  uint8_t replay_window)
+  uint8_t replay_window_size)
 {
   uint8_t info_buffer[15];
   int info_len;
@@ -157,15 +157,22 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
 
   common_ctx->recipient_context.recipient_id = rid;
   common_ctx->recipient_context.recipient_id_len = rid_len;
-  common_ctx->recipient_context.largest_seq = -1;
+  /*common_ctx->recipient_context.largest_seq = -1;
   common_ctx->recipient_context.recent_seq = 0;
   common_ctx->recipient_context.replay_window_size = replay_window;
   common_ctx->recipient_context.rollback_largest_seq = 0;
   common_ctx->recipient_context.sliding_window = 0;
   common_ctx->recipient_context.rollback_sliding_window = -1;
-  common_ctx->recipient_context.initialized = 0;
+  common_ctx->recipient_context.initialized = 0;*/
+
+  if (!oscore_sliding_window_init(&common_ctx->recipient_context.sliding_window, replay_window_size))
+  {
+    return false;
+  }
 
   list_add(common_context_list, common_ctx);
+
+  return true;
 }
 
 void
