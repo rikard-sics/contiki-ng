@@ -62,13 +62,7 @@
 #endif
 #endif
 
-typedef struct oscore_sender_ctx_t oscore_sender_ctx_t;
-typedef struct oscore_recipient_ctx_t oscore_recipient_ctx_t;
-typedef struct oscore_ctx_t oscore_ctx_t;
-typedef struct oscore_exchange_t oscore_exchange_t;
-typedef struct ep_ctx_t ep_ctx_t;
-
-struct oscore_sender_ctx_t {
+typedef struct oscore_sender_ctx {
   uint8_t sender_key[CONTEXT_KEY_LEN];
   uint8_t token[COAP_TOKEN_LEN];
   uint64_t seq;
@@ -81,9 +75,10 @@ struct oscore_sender_ctx_t {
   uint8_t private_key[ES256_PRIVATE_KEY_LEN];
   uint8_t private_key_len;
 #endif /* WITH_GROUPCOM */
-};
+} oscore_sender_ctx_t;
 
-struct oscore_recipient_ctx_t {
+
+typedef struct oscore_recipient_ctx {
   int64_t largest_seq;
   int64_t rollback_largest_seq;
   uint64_t recent_seq;
@@ -99,13 +94,13 @@ struct oscore_recipient_ctx_t {
   uint8_t public_key_len;
   uint8_t private_key[ES256_PRIVATE_KEY_LEN];
   uint8_t private_key_len;
-  oscore_recipient_ctx_t *next_recipient; 
+  struct oscore_recipient_ctx *next_recipient; 
   /* This field allows recipient chaining */
 #endif /* WITH_GROUPCOM */
-};
+} oscore_recipient_ctx_t;
 
-struct oscore_ctx_t {
-  oscore_ctx_t *next;
+typedef struct oscore_ctx {
+  struct oscore_ctx *next;
   const uint8_t *master_secret;
   const uint8_t *master_salt;
   uint8_t common_iv[CONTEXT_INIT_VECT_LEN];
@@ -123,22 +118,23 @@ struct oscore_ctx_t {
   int8_t counter_signature_parameters;
   uint8_t mode;   /* OSCORE_SINGLE or OSCORE_GROUP  */
 #endif /* WITH_GROUPCOM */
-};
+} oscore_ctx_t;
 
-struct oscore_exchange_t {
-  oscore_exchange_t *next;
+typedef struct oscore_exchange {
+  struct oscore_exchange *next;
   oscore_ctx_t *context;
   uint64_t seq;
   uint8_t token[8];
   uint8_t token_len;
-};
+} oscore_exchange_t;
 
-struct ep_ctx_t {
-  ep_ctx_t *next;
+typedef struct ep_ctx {
+  struct ep_ctx *next;
   coap_endpoint_t *ep;
   const char *uri;
   oscore_ctx_t *ctx;
-};
+} ep_ctx_t;
+
 void oscore_ctx_store_init();
 #ifdef WITH_GROUPCOM
 void
