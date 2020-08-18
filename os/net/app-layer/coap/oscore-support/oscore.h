@@ -48,8 +48,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define OSCORE_DEFAULT_REPLAY_WINDOW 32
-
 size_t oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role);
 coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len, uint8_t role);
 
@@ -69,18 +67,12 @@ void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8
 /*Remove all protected options */
 void oscore_clear_options(coap_message_t *ptr);
 
-/*Return 1 if OK, Error code otherwise */
-bool oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose);
-
 /* Return 0 if SEQ MAX, return 1 if OK */
 bool oscore_increment_sender_seq(oscore_ctx_t *ctx);
 
-/* Restore the sequence number and replay-window to the previous state. This is to be used when decryption fail. */
-void oscore_roll_back_seq(oscore_recipient_ctx_t *ctx);
-
 /*Compress and extract COSE messages as per the OSCORE standard. */
-uint8_t oscore_cose_compress(cose_encrypt0_t *cose, uint8_t *buffer);
-uint8_t oscore_cose_decompress(cose_encrypt0_t *cose, uint8_t *buffer, size_t buffer_len);
+//uint8_t oscore_cose_compress(cose_encrypt0_t *cose, uint8_t *buffer);
+//uint8_t oscore_cose_decompress(cose_encrypt0_t *cose, uint8_t *buffer, size_t buffer_len);
 
 /* Mark a resource as protected by OSCORE, incoming COAP requests to that resource will be rejected. */
 void oscore_protect_resource(coap_resource_t *resource);
