@@ -61,22 +61,16 @@
 #endif
 #endif
 
-typedef struct oscore_sender_ctx_t oscore_sender_ctx_t;
-typedef struct oscore_recipient_ctx_t oscore_recipient_ctx_t;
-typedef struct oscore_ctx_t oscore_ctx_t;
-typedef struct oscore_exchange_t oscore_exchange_t;
-typedef struct ep_ctx_t ep_ctx_t;
-
-struct oscore_sender_ctx_t {
+typedef struct oscore_sender_ctx {
   uint8_t sender_key[CONTEXT_KEY_LEN];
   uint8_t token[COAP_TOKEN_LEN];
   uint64_t seq;
   const uint8_t *sender_id;
   uint8_t sender_id_len;
   uint8_t token_len;
-};
+} oscore_sender_ctx_t;
 
-struct oscore_recipient_ctx_t {
+typedef struct oscore_recipient_ctx {
   int64_t largest_seq;
   int64_t rollback_largest_seq;
   uint64_t recent_seq;
@@ -88,10 +82,10 @@ struct oscore_recipient_ctx_t {
   uint8_t recipient_id_len;
   uint8_t replay_window_size;
   uint8_t initialized;
-};
+} oscore_recipient_ctx_t;
 
-struct oscore_ctx_t {
-  oscore_ctx_t *next;
+typedef struct oscore_ctx {
+  struct oscore_ctx *next;
   const uint8_t *master_secret;
   const uint8_t *master_salt;
   uint8_t common_iv[CONTEXT_INIT_VECT_LEN];
@@ -102,22 +96,23 @@ struct oscore_ctx_t {
   uint8_t master_salt_len;
   uint8_t id_context_len;
   uint8_t alg;
-};
+} oscore_ctx_t;
 
-struct oscore_exchange_t {
-  oscore_exchange_t *next;
+typedef struct oscore_exchange {
+  struct oscore_exchange *next;
   oscore_ctx_t *context;
   uint64_t seq;
   uint8_t token[8];
   uint8_t token_len;
-};
+} oscore_exchange_t;
 
-struct ep_ctx_t {
-  ep_ctx_t *next;
+typedef struct ep_ctx {
+  struct ep_ctx *next;
   coap_endpoint_t *ep;
   const char *uri;
   oscore_ctx_t *ctx;
-};
+} ep_ctx_t;
+
 void oscore_ctx_store_init();
 
 //replay window default is 32
