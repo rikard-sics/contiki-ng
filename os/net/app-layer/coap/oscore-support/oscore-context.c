@@ -144,11 +144,11 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
 
   common_ctx->master_secret = master_secret;
   common_ctx->master_secret_len = master_secret_len;
-  common_ctx->master_salt = master_salt;
-  common_ctx->master_salt_len = master_salt_len;
+  //common_ctx->master_salt = master_salt;
+  //common_ctx->master_salt_len = master_salt_len;
   common_ctx->alg = alg;
-  common_ctx->id_context = id_context;
-  common_ctx->id_context_len = id_context_len;
+  //common_ctx->id_context = id_context;
+  //common_ctx->id_context_len = id_context_len;
 
   common_ctx->sender_context.sender_id = sid;
   common_ctx->sender_context.sender_id_len = sid_len;
@@ -156,13 +156,6 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
 
   common_ctx->recipient_context.recipient_id = rid;
   common_ctx->recipient_context.recipient_id_len = rid_len;
-  /*common_ctx->recipient_context.largest_seq = -1;
-  common_ctx->recipient_context.recent_seq = 0;
-  common_ctx->recipient_context.replay_window_size = replay_window;
-  common_ctx->recipient_context.rollback_largest_seq = 0;
-  common_ctx->recipient_context.sliding_window = 0;
-  common_ctx->recipient_context.rollback_sliding_window = -1;
-  common_ctx->recipient_context.initialized = 0;*/
 
   oscore_sliding_window_init(&common_ctx->recipient_context.sliding_window);
 
