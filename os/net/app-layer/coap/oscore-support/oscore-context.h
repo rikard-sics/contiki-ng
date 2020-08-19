@@ -96,9 +96,7 @@ typedef struct oscore_recipient_ctx {
 typedef struct oscore_ctx {
   struct oscore_ctx *next;
   const uint8_t *master_secret;
-  const uint8_t *master_salt;
   uint8_t common_iv[CONTEXT_INIT_VECT_LEN];
-  const uint8_t *id_context;
   oscore_sender_ctx_t sender_context;
   oscore_recipient_ctx_t recipient_context;
   uint8_t master_secret_len;
