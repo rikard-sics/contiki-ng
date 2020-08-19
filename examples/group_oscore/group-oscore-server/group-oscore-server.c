@@ -97,7 +97,7 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   /*Derive an OSCORE-Security-Context. */
   static oscore_ctx_t context;
-  oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 1, group_id, 3, OSCORE_DEFAULT_REPLAY_WINDOW, group_id);
+  oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 1, group_id, 3, group_id);
 
   uint8_t key_id[1] = { 0x25 };
   oscore_ctx_t *ctx;
