@@ -147,24 +147,22 @@ oscore_recipient_ctx_t *
 oscore_add_recipient(oscore_ctx_t *ctx, 
         uint8_t *rid, uint8_t rid_len);
 
-bool oscore_derive_ctx(oscore_ctx_t *common_ctx,
+void oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *master_secret, uint8_t master_secret_len,
   const uint8_t *master_salt, uint8_t master_salt_len,
   uint8_t alg,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,
   const uint8_t *id_context, uint8_t id_context_len,
-  uint8_t replay_window_size,
   const uint8_t *gid);
 #else
-bool oscore_derive_ctx(oscore_ctx_t *common_ctx,
+void oscore_derive_ctx(oscore_ctx_t *common_ctx,
   uint8_t *master_secret, uint8_t master_secret_len,
   uint8_t *master_salt, uint8_t master_salt_len,
   uint8_t alg,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,
-  const uint8_t *id_context, uint8_t id_context_len,
-  uint8_t replay_window_size);
+  const uint8_t *id_context, uint8_t id_context_len);
 #endif
 
 void oscore_free_ctx(oscore_ctx_t *ctx);

@@ -115,7 +115,7 @@ bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b
 }
 
 #ifdef WITH_GROUPCOM
-bool
+void
 oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *master_secret, uint8_t master_secret_len,
   const uint8_t *master_salt, uint8_t master_salt_len,
@@ -123,18 +123,16 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,
   const uint8_t *id_context, uint8_t id_context_len,
-  uint8_t replay_window_size,
   const uint8_t *gid)
 #else
-bool
+void
 oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *master_secret, uint8_t master_secret_len,
   const uint8_t *master_salt, uint8_t master_salt_len,
   uint8_t alg,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,
-  const uint8_t *id_context, uint8_t id_context_len,
-  uint8_t replay_window_size)
+  const uint8_t *id_context, uint8_t id_context_len)
 #endif
 {
   uint8_t info_buffer[15];
@@ -180,14 +178,9 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   common_ctx->recipient_context.rollback_sliding_window = -1;
   common_ctx->recipient_context.initialized = 0;*/
 
-  if (!oscore_sliding_window_init(&common_ctx->recipient_context.sliding_window, replay_window_size))
-  {
-    return false;
-  }
+  oscore_sliding_window_init(&common_ctx->recipient_context.sliding_window);
 
   list_add(common_context_list, common_ctx);
-
-  return true;
 }
 
 void
