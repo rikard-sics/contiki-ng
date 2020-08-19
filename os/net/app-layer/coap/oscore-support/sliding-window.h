@@ -19,8 +19,6 @@ typedef struct {
     uint64_t rollback_largest_seq;
 
     uint64_t recent_seq;
-    
-    uint8_t replay_window_size;
 
 } oscore_sliding_window_t;
 
@@ -35,7 +33,7 @@ typedef struct {
 _Static_assert(OSCORE_DEFAULT_REPLAY_WINDOW >= 1, "OSCORE Replay window too small");
 _Static_assert(OSCORE_DEFAULT_REPLAY_WINDOW <= OSCORE_MAX_REPLAY_WINDOW_SIZE, "OSCORE Replay window too large");
 
-bool oscore_sliding_window_init(oscore_sliding_window_t* window, uint8_t replay_window_size);
+void oscore_sliding_window_init(oscore_sliding_window_t* window);
 
 /* Restore the sequence number and replay-window to the previous state. This is to be used when decryption fails. */
 void oscore_sliding_window_rollback(oscore_sliding_window_t* window);
