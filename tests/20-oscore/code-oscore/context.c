@@ -28,8 +28,8 @@ UNIT_TEST(test_client_context_derivation)
 {
 
   UNIT_TEST_BEGIN();
-  oscore_ctx_t *ctx  = oscore_derive_ctx(master_secret, master_secret_len, master_salt, master_salt_len, 10, sender_id, sender_id_len, recipient_id, recipient_id_len, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
-  UNIT_TEST_ASSERT(ctx != NULL);
+  oscore_ctx_t ctx[1];
+  oscore_derive_ctx(ctx, master_secret, master_secret_len, master_salt, master_salt_len, 10, sender_id, sender_id_len, recipient_id, recipient_id_len, NULL, 0);
   UNIT_TEST_ASSERT(memcmp(ctx->common_iv, client_common_iv, CONTEXT_INIT_VECT_LEN) == 0);
   UNIT_TEST_ASSERT(memcmp(ctx->sender_context->sender_key, client_sender_key,CONTEXT_KEY_LEN) == 0);
   UNIT_TEST_ASSERT(memcmp(ctx->recipient_context->recipient_key, client_recipient_key,CONTEXT_KEY_LEN) == 0);
@@ -39,8 +39,7 @@ UNIT_TEST(test_client_context_derivation)
  
   oscore_free_ctx(ctx);
  
-  ctx = oscore_derive_ctx(master_secret_2, master_secret_2_len, NULL, 0, 10, sender_id_2, sender_id_2_len, recipient_id, recipient_id_len, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
-  UNIT_TEST_ASSERT(ctx != NULL);
+  oscore_derive_ctx(ctx, master_secret_2, master_secret_2_len, NULL, 0, 10, sender_id_2, sender_id_2_len, recipient_id, recipient_id_len, NULL, 0);
   
   UNIT_TEST_ASSERT(memcmp(ctx->common_iv, client_common_iv_no_salt, CONTEXT_INIT_VECT_LEN) == 0);
   UNIT_TEST_ASSERT(memcmp(ctx->sender_context->sender_key, client_sender_key_no_salt, CONTEXT_KEY_LEN) == 0);
@@ -49,7 +48,6 @@ UNIT_TEST(test_client_context_derivation)
   UNIT_TEST_ASSERT(ctx->sender_context->sender_id_len == 1);
   UNIT_TEST_ASSERT(ctx->recipient_context->recipient_id_len == 1);
  
-
   UNIT_TEST_END();
 }
 

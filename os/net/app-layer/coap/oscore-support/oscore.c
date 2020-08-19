@@ -188,11 +188,12 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
             (option_value[0] & 0xE0) != 0) {
     return BAD_OPTION_4_02;
   }
+
+  uint8_t offset = 1;
   
   uint8_t partial_iv_len = (option_value[0] & 0x07);
-  uint8_t offset = 1;
   if(partial_iv_len != 0) {    
-    if( offset + partial_iv_len > option_len) {
+    if(offset + partial_iv_len > option_len) {
       return BAD_OPTION_4_02;
     }
 
@@ -210,6 +211,7 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
     cose_encrypt0_set_kid_context(cose, &(option_value[offset]), kid_context_len);
     offset += kid_context_len;
   }
+
   /* IF k-flag is set Key ID field is present. */
   if((option_value[0] & 0x08) != 0) {
     int kid_len = option_len - offset;
@@ -218,6 +220,7 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
     }
     cose_encrypt0_set_key_id(cose, &(option_value[offset]), kid_len);
   }
+
   return NO_ERROR;
 }
 
@@ -245,6 +248,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
   if(coap_is_request(coap_pkt)) {
     const uint8_t *key_id;
     uint8_t key_id_len = cose_encrypt0_get_key_id(cose, &key_id);
+
     ctx = oscore_find_ctx_by_rid(key_id, key_id_len);
     if(ctx == NULL) {
       LOG_ERR("OSCORE Security Context not found (rid = '");
@@ -253,12 +257,14 @@ oscore_decode_message(coap_message_t *coap_pkt)
       coap_error_message = "Security context not found";
       return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
     }
+
     /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
     if(!oscore_validate_sender_seq(&ctx->recipient_context, cose)) {
       LOG_WARN("OSCORE Replayed or old message\n");
       coap_error_message = "Replay detected";
       return UNAUTHORIZED_4_01;
     }
+
     cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   } else { /* Message is a response */
     uint64_t seq;
@@ -302,6 +308,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
   cose_encrypt0_set_nonce(cose, nonce_buffer, sizeof(nonce_buffer));
   
   cose_encrypt0_set_content(cose, coap_pkt->payload, coap_pkt->payload_len);
+
   int res = cose_encrypt0_decrypt(cose);
   if(res <= 0) {
     LOG_ERR("OSCORE Decryption Failure, result code: %d\n", res);
@@ -392,6 +399,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     }
     oscore_increment_sender_seq(ctx);
   }
+
   int ciphertext_len = cose_encrypt0_encrypt(cose);
   if(ciphertext_len < 0){
     LOG_ERR("OSCORE internal error %d.\n", ciphertext_len);
@@ -434,7 +442,7 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, nanocbor_enc
   NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 1)); /* Algorithms array */
   NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, coap_pkt->security_context->alg)); /* Algorithm */
 
-  /*When sending responses. */
+  /* When sending responses. */
   if(coap_is_request(coap_pkt)) {
     NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc, cose->key_id, cose->key_id_len));
   } else {
