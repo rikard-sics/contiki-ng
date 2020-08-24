@@ -46,6 +46,7 @@
 #include "inttypes.h"
 /* Log configuration */
 #include "coap-log.h"
+#include "oscore-crypto.h"
 #define LOG_MODULE "coap"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
@@ -682,6 +683,7 @@ oscore_init_server()
 {
   oscore_ctx_store_init();
   oscore_exchange_store_init();
+  oscore_crypto_init();
 }
 /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
 void
