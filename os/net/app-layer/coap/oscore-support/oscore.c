@@ -51,13 +51,10 @@
 #include "nanocbor-helper.h"
 
 /* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "oscore"
-#ifdef LOG_CONF_LEVEL_OSCORE
-#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
-#else
-#define LOG_LEVEL LOG_LEVEL_WARN
-#endif
+#include "coap-log.h"
+#include "oscore-crypto.h"
+#define LOG_MODULE "coap"
+#define LOG_LEVEL  LOG_LEVEL_COAP
 
 /* Sets Alg, Partial IV Key ID and Key in COSE. */
 static void
@@ -709,9 +706,13 @@ oscore_init(void)
 
   /* Initialize the security_context storage and the protected resource storage. */
   oscore_exchange_store_init();
-
-#ifdef OSCORE_EP_CTX_ASSOCIATION
-  /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
+  oscore_crypto_init();
+}
+/* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
+void
+oscore_init_client()
+{
+  oscore_ctx_store_init();
   oscore_ep_ctx_store_init();
 #endif
 }
