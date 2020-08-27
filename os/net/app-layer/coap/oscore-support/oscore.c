@@ -344,13 +344,14 @@ uint16_t encrypt_len = coap_pkt->payload_len;
                   aad_buffer, aad_len, tmp_buffer, encrypt_len);
      cose_sign1_set_signature(sign, signature_ptr);
      cose_sign1_set_ciphertext(sign, sig_buffer, sig_len);
-     int sign_res = cose_sign1_verify(sign);
-     if (sign_res == 0){
+     //int sign_res = cose_sign1_verify(sign);
+     cose_sign1_verify(sign);//we do not care about the response; the thing will be in progress
+     /*if (sign_res == 0){
        //coap_log(LOG_WARNING,
         //   "OSCORE signature verification Failure, result code");
         printf("signature validation fail!");
   	return OSCORE_DECRYPTION_ERROR;
-     }
+     }*/
   } 
 #endif /* WITH_GROUPCOM */
 
@@ -520,6 +521,116 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   return serialized_len;
 }
+/* Prepares a new OSCORE message, returns after scheduling the signing. */
+size_t
+oscore_prepare_message_no_serialize(coap_message_t *coap_pkt, uint8_t *buffer)
+{
+  cose_encrypt0_t cose[1];
+  cose_encrypt0_init(cose);
+#ifdef WITH_GROUPCOM
+  cose_sign1_t sign[1];
+  cose_sign1_init(sign);
+#endif /*WITH_GROUPCOM*/
+
+#ifdef WITH_GROUPCOM
+  uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN + ES256_SIGNATURE_LEN];
+#else
+  uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
+#endif /* WITH_GROUPCOM */
+  uint8_t aad_buffer[35];
+  uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
+  uint8_t option_value_buffer[15];
+/*  1 Retrieve the Sender Context associated with the target resource. */
+  oscore_ctx_t *ctx = coap_pkt->security_context;
+  if(ctx == NULL) {
+    LOG_DBG_("No context in OSCORE!\n");
+    return PACKET_SERIALIZATION_ERROR;
+  }
+  oscore_populate_cose(coap_pkt, cose, coap_pkt->security_context, 1);
+
+/* 2 Compose the AAD and the plaintext, as described in Sections 5.3 and 5.4.*/
+  uint8_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, ROLE_CONFIDENTIAL);
+  if( plaintext_len > COAP_MAX_CHUNK_SIZE){
+    LOG_DBG_("OSCORE Message to large to process.\n");
+    return PACKET_SERIALIZATION_ERROR;
+  }
+
+  cose_encrypt0_set_content(cose, content_buffer, plaintext_len);
+  
+  uint8_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, 1);
+  cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
+ /*3 Compute the AEAD nonce as described in Section 5.2*/ 
+  oscore_generate_nonce(cose, coap_pkt, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
+  cose_encrypt0_set_nonce(cose, nonce_buffer, COSE_algorithm_AES_CCM_16_64_128_IV_LEN);
+  
+  if(coap_is_request(coap_pkt)){
+    if(!oscore_set_exchange(coap_pkt->token, coap_pkt->token_len, ctx->sender_context->seq, ctx)){
+	LOG_DBG_("OSCORE Could not store exchange.\n");
+    	return PACKET_SERIALIZATION_ERROR;
+    }
+    oscore_increment_sender_seq(ctx);
+  }
+  /*4 Encrypt the COSE object using the Sender Key*/
+  /*Groupcomm 4.2: The payload of the OSCORE messages SHALL encode the ciphertext of the COSE object
+   * concatenated with the value of the CounterSignature0 of the COSE object as in Appendix A.2 of RFC8152
+   * according to the Counter Signature Algorithm and Counter Signature Parameters in the Security Context.*/
+
+  int ciphertext_len = cose_encrypt0_encrypt(cose);
+  if( ciphertext_len < 0){
+    LOG_DBG_("OSCORE internal error %d.\n", ciphertext_len);
+    return PACKET_SERIALIZATION_ERROR;
+  }
+  uint8_t option_value_len = 0;
+  if(coap_is_request(coap_pkt)){
+	option_value_len = oscore_encode_option_value(option_value_buffer, cose, 1);
+  } else { //Partial IV shall NOT be included in responses
+#ifdef WITH_GROUPCOM
+	option_value_len = oscore_encode_option_value(option_value_buffer, cose, 1);
+#else	
+	option_value_len = oscore_encode_option_value(option_value_buffer, cose, 0);
+#endif
+  }
+  
+  coap_set_header_object_security(coap_pkt, option_value_buffer, option_value_len);
+
+#ifdef WITH_GROUPCOM
+  int total_len = ciphertext_len + ES256_SIGNATURE_LEN;
+
+  //set the keys and algorithms
+  oscore_populate_sign(coap_is_request(coap_pkt), sign, ctx);
+  uint8_t sign_encoded_buffer[aad_len + ciphertext_len + 24]; //TODO remove magic number
+
+  //When we are sending responses the Key-ID in the Signature AAD shall be the REQUEST Key ID.
+  if(!coap_is_request(coap_pkt)){ 
+    cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
+  }
+  //prepare external_aad structure with algs, params, etc. to later populate the sig_structure
+  
+  aad_len = oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len,aad_buffer);
+   
+  size_t sign_encoded_len = oscore_prepare_sig_structure(sign_encoded_buffer, 
+               aad_buffer, aad_len, cose->content, ciphertext_len); 
+  
+  cose_sign1_set_signature(sign, &(content_buffer[ciphertext_len]));
+  cose_sign1_set_ciphertext(sign, sign_encoded_buffer, sign_encoded_len);
+  cose_sign1_sign(sign); 
+  coap_set_payload(coap_pkt, content_buffer, total_len);
+#else
+  coap_set_payload(coap_pkt, content_buffer, ciphertext_len);
+#endif /* WITH_GROUPCOM */
+
+  
+  /* Overwrite the CoAP code. */
+  if(coap_is_request(coap_pkt)) {
+    coap_pkt->code = COAP_POST;
+  } else {
+    coap_pkt->code = CHANGED_2_04;
+  }
+  oscore_clear_options(coap_pkt);
+
+  return 0;
+}
+
 /* Creates and sets External AAD */
 size_t
 oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, uint8_t *buffer, uint8_t sending)
