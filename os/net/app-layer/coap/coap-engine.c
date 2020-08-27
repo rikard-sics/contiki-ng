@@ -67,7 +67,7 @@
 //#include "coap-timer.h"
 #include "sys/ctimer.h"
 /*The delayed server response to mcast request*/
-static struct ctimer dr_timer;
+//static struct ctimer dr_timer;
 static uint16_t dr_mid;
 /*void printf_hex(unsigned char *data, unsigned int len)
 {
@@ -202,31 +202,24 @@ extern void oscore_missing_security_context(const coap_endpoint_t *src)
 /*---------------------------------------------------------------------------*/
 /*- Internal API ------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
-#ifdef WITH_GROUPCOM
 /*Only capture the data and start the signature verification*/
 coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_message_t *message)
-{
-	LOG_DBG("Coap_receive: calling coap_parse for initial processing...\n");
+{//we neglect the output because the oscore code only schedules the verification process
+	printf("Coap_receive: calling coap_parse for initial processing...\n");
 	return coap_parse_message(message, payload, payload_length);
 }
-/*---------------------------------------------------------------------------*/
 /*This function can only be called after the signature verification has finished*/
 int
 coap_receive_cont(const coap_endpoint_t *src,
-             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, uint8_t verify_res, coap_status_t in_status, coap_message_t *msg, coap_message_t *response)
-#else
-int
-coap_receive(const coap_endpoint_t *src,
-             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast)
+             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, void *queue_entry, coap_status_t in_status, coap_message_t *msg, coap_message_t *resp)
 {
   /* static declaration reduces stack peaks and program code size */
-  static coap_message_t message[1]; /* this way the message can be treated as pointer as usual */
-#ifdef WITH_GROUPCOM
+  //static coap_message_t message[1]; /* this way the message can be treated as pointer as usual */
+  messages_to_verify_entry_t *item = (messages_to_verify_entry_t *) queue_entry;
+  static coap_message_t message[1];// = item->message;
   message[0] = *msg;
-#else
   static coap_message_t response[1];
   response[0] = *response;
-#endif /*WITH_GROUPCOM*/
   coap_transaction_t *transaction = NULL;
   coap_handler_status_t status;
 //#ifdef WITH_GROUPCOM
@@ -234,16 +227,13 @@ coap_receive(const coap_endpoint_t *src,
   uint8_t is_testmcastq = 0;
   const char *res1 = "test/mcast", *res2 = "test/mcastq";
 //#endif
-  coap_status_code = coap_parse_message(message, payload, payload_length);
-#endif /*WITH_GROUPCOM*/
-#ifdef OSCORE_WITH_HW_CRYPTO
-#ifdef CONTIKI_TARGET_ZOUL
-  if(verify_res != 0) {
-	  LOG_DBG("The ECC verification failed with the following code: %u", verify_res);
+  //coap_status_code = coap_parse_message(message, payload, payload_length);
+  coap_status_code = in_status;
+  if(item->result != 0)
+  {
+	  LOG_DBG("The ECC verification failed with the following code: %u", item->result);
 	  coap_status_code = OSCORE_DECRYPTION_ERROR;
   }
-#endif /*CONTIKI_TARGET_ZOUL*/
-#endif /*OSCORE_WITH_HW_CRYPTO*/
   coap_set_src_endpoint(message, src);
 
   if(coap_status_code == NO_ERROR) {
@@ -441,20 +431,25 @@ coap_receive(const coap_endpoint_t *src,
         }
           if(coap_status_code == NO_ERROR) {
 #ifdef WITH_GROUPCOM
-		/*start the signing process and return.*/
-		size_t prepare_out = oscore_prepare_message(response, transaction->message);
-		if(prepare_out == PACKET_SERIALIZATION_ERROR) {
+		//start the signing process and return.
+		size_t prepare_out = oscore_prepare_message_no_serialize(response, transaction->message);
+		if (prepare_out == PACKET_SERIALIZATION_ERROR)
+		{
 			coap_status_code = PACKET_SERIALIZATION_ERROR;
-		} else if(prepare_out == NO_ERROR) {
+		}	
+		else if (prepare_out == 0)
+		{
 			LOG_DBG("Message prepared, signing in progress. Returning for now...\n");
 			return 0;
 		}
 #else
-            if((transaction->message_len = 
-		   coap_serialize_message(response, transaction->message)) == 0) {
+            if((transaction->message_len = coap_serialize_message(response,
+                                                                 transaction->
+                                                                 message)) ==
+               0) {
               coap_status_code = PACKET_SERIALIZATION_ERROR;
             }
-#endif /*WITH_GROUPCOM*/
+#endif
           }
       } else {
         coap_status_code = SERVICE_UNAVAILABLE_5_03;
@@ -597,30 +592,21 @@ coap_receive(const coap_endpoint_t *src,
   return coap_status_code;
 }
 /*---------------------------------------------------------------------------*/
-#ifdef WITH_GROUPCOM
 /*Now that the signature process has yielded, the message is ready; just send it*/
 void
 coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
 {
       size_t msg_len = 0;
-      uint8_t tmp_time = random_rand() % 5; /*TODO some better way*/
-      coap_transaction_t *transaction = NULL;
-      transaction = coap_get_transaction_by_mid(message->mid);
-      if(transaction != NULL) {
-              msg_len = coap_serialize_postcrypto(response, transaction->message);
-	      if(msg_len == 0) {
+      coap_transaction_t *transaction;
+      if((transaction = coap_get_transaction_by_mid(message->mid))) {
+	      LOG_DBG("POSTCRYPTO: transaction found!\n");
+              if((msg_len = coap_serialize_postcrypto(response, transaction->message)) == 0) {
 		      LOG_ERR("POSTCRYPTO serialization failed!\n");
-	      	      return;
 	      }
-	      transaction->message_len = msg_len;
-              LOG_DBG("Scheduling delayed response after %d seconds...\n", tmp_time);
-              dr_mid = message->mid;
-	      ctimer_set(&dr_timer, CLOCK_SECOND * tmp_time, send_delayed_response_callback, &dr_mid);
-      } else {
-	      LOG_WARN("SEND POSTCRYPTO: transaction not found!\n");
+	      LOG_DBG("SEND POSTCRYPTO: attempting to send the transaction.\n");
+	      send_delayed_response_callback(&(message->mid));
       }
 }
-#endif
 /*---------------------------------------------------------------------------*/
 void
 coap_engine_init(void)

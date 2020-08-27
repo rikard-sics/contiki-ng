@@ -135,6 +135,28 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
 void oscore_crypto_init(void);
 
 bool crypto_fill_random(uint8_t *buffer, size_t size_in_bytes);
+//queue items and functions are moved to coap.h
+
+//HW crypto
+typedef struct messages_to_verify_entry
+{
+	struct messages_to_verify_entry * next;
+
+	struct process *process;
+
+	const uint8_t *message;
+	uint16_t message_len;
+
+	uint8_t result;
+	//public key type changed (uint8_t in our case?)
+	const uint8_t *public_key; //FIXME	
+
+	void *data;
+
+} messages_to_verify_entry_t;
+
+bool queue_message_to_verify(struct process *process, void *data, uint8_t *message, uint16_t message_len, const uint8_t *public_key);
+void queue_message_to_verify_done(messages_to_verify_entry_t *item);
 
 typedef struct messages_to_sign_entry
 {
@@ -158,26 +180,7 @@ typedef struct messages_to_sign_entry
 
 bool queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *public_key, uint8_t *message, uint16_t message_buffer_len, uint16_t message_len);
 void queue_message_to_sign_done(messages_to_sign_entry_t *item);
-
-typedef struct messages_to_verify_entry
-{
-	struct messages_to_verify_entry * next;
-
-	struct process *process;
-
-	const uint8_t *message;
-	uint16_t message_len;
-
-	uint8_t result;
-	//public key type changed (uint8_t in our case?)
-	const uint8_t *public_key; //FIXME	
-
-	void *data;
-
-} messages_to_verify_entry_t;
-
-bool queue_message_to_verify(struct process *process, void *data, uint8_t *message, uint16_t message_len, const uint8_t *public_key);
-void queue_message_to_verify_done(messages_to_verify_entry_t *item);
+//messages_to_verify stuff moved to coap.h to fix circular includes
 
 extern process_event_t pe_message_signed;
 extern process_event_t pe_message_verified;

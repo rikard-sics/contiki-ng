@@ -90,6 +90,10 @@ PROCESS(coap_engine, "CoAP Engine");
 
 static struct uip_udp_conn *udp_conn = NULL;
 
+static coap_message_t message[1]; //FIXME enable multiple message processing
+static coap_message_t response[1];
+static coap_status_t parse_status; //FIXME enable multiple messages to be handled at a time
+static uint8_t is_mcast = 0;
 /*---------------------------------------------------------------------------*/
 void
 coap_endpoint_log(const coap_endpoint_t *ep)
@@ -368,13 +372,27 @@ process_data(void)
   //FIXME right now it works only for a hard-coded ff02::1 group!
   //uint8_t is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
 //  LOG_INFO("GROUPCOM, JUHU!\n");
-  uint8_t is_mcast = 1;
+  is_mcast = 1;
 #else
  // LOG_INFO("Not a groupcom:(\n");
-  uint8_t is_mcast = 0;
+  is_mcast = 0;
 #endif
   LOG_INFO("is_mcast: %d\n", is_mcast);
-  coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast);
+  parse_status = coap_receive(uip_appdata, uip_datalen(), message);
+}
+/*---------------------------------------------------------------------------*/
+static void
+process_data_cont(void *event_data)
+{
+	LOG_INFO("signature verification yielded. Calling the receive continuation");
+	coap_receive_cont(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast, event_data, parse_status, message, response);
+}
+/*---------------------------------------------------------------------------*/
+static void 
+schedule_send_response(void)
+{
+	LOG_INFO("signing completed. Continue the CoAP sending process.\n");
+	coap_send_postcrypto(message, response);
 }
 /*---------------------------------------------------------------------------*/
 #endif
@@ -463,17 +481,14 @@ PROCESS_THREAD(coap_engine, ev, data)
         process_data();
       }
     }
-#ifdef WITH_GROUPCOM
-    else if(ev == oscore_pe_message_verified) {
-	    verify_result = (uint8_t *) data;
-	    LOG_INFO("Received message verified event! Verify result: %d\n", *verify_result);
-	    process_data_cont(*verify_result);
-	    verify_result = NULL;
-    } else if(ev == oscore_pe_message_signed) {
+    else if (ev == pe_message_verified) {
+	    LOG_INFO("Received message verified event!\n");
+	    process_data_cont(data);
+    }
+    else if (ev == pe_message_signed) {
 	    LOG_INFO("Received message signed event!\n");
 	    schedule_send_response();
     }
-#endif /* WITH_GROUPCOM */
   } /* while (1) */
 
   PROCESS_END();

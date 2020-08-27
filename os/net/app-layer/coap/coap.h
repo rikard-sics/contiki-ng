@@ -211,9 +211,9 @@ uint16_t coap_get_mid(void);
 void coap_init_message(coap_message_t *message, coap_message_type_t type,
                        uint8_t code, uint16_t mid);
 size_t coap_serialize_message(coap_message_t *message, uint8_t *buffer);
-#ifdef WITH_GROUPCOM
+//HW crypto needs the following function
 size_t coap_serialize_postcrypto(coap_message_t *coap_pkt, uint8_t *buffer);
-#endif /*WITH_GROUPCOM*/
+
 coap_status_t coap_parse_message(coap_message_t *request, uint8_t *data,
                                  uint16_t data_len);
 
