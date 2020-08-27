@@ -549,7 +549,7 @@ PT_THREAD(ecc_verify(verify_state_t *state, const uint8_t *public_key, const uin
 	state->ecc_verify_state.process = state->process;
 	state->ecc_verify_state.curve_info = &nist_p_256;
 
-	printf("SHA256 successful. Ready to the verification in HW...\n");
+	printf("SHA256 successful. Ready for the verification in HW...\n");
 
 	pka_enable();
 	PT_SPAWN(&state->pt, &state->ecc_verify_state.pt, ecc_dsa_verify(&state->ecc_verify_state));
@@ -705,7 +705,8 @@ PROCESS_THREAD(verifier, ev, data)
 			item->result = state.ecc_verify_state.result;
 			printf("Verifier: the result of the verify is %d.\n", state.ecc_verify_state.result);
 
-			if (process_post(item->process, pe_message_verified, item) != PROCESS_ERR_OK)
+			//if (process_post(item->process, pe_message_verified, item) != PROCESS_ERR_OK)
+			if (process_post(PROCESS_BROADCAST, pe_message_verified, item) != PROCESS_ERR_OK)
 			{
 				printf("Failed to post pe_message_verified to %s\n", item->process->name);
 			}
