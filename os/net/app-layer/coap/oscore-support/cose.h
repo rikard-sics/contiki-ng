@@ -41,17 +41,20 @@
 #define _COSE_H
 #include <inttypes.h>
 
+/*
+ * See RFC8152 for the COSE algorithm definitions
+ * https://tools.ietf.org/html/rfc8152#page-49
+ */
 
 #define COSE_Algorithm_AES_CCM_16_64_128 10
-#define COSE_algorithm_AES_CCM_64_64_128_KEY_LEN 16
-#define COSE_algorithm_AES_CCM_64_64_128_IV_LEN  7
-#define COSE_algorithm_AES_CCM_64_64_128_TAG_LEN  8
-
-#define COSE_Algorithm_AES_CCM_64_64_128 12
 #define COSE_algorithm_AES_CCM_16_64_128_KEY_LEN 16
 #define COSE_algorithm_AES_CCM_16_64_128_IV_LEN  13
 #define COSE_algorithm_AES_CCM_16_64_128_TAG_LEN  8
 
+#define COSE_Algorithm_AES_CCM_64_64_128 12
+#define COSE_algorithm_AES_CCM_64_64_128_KEY_LEN 16
+#define COSE_algorithm_AES_CCM_64_64_128_IV_LEN  7
+#define COSE_algorithm_AES_CCM_64_64_128_TAG_LEN  8
 
 
 /* COSE Encrypt0 Struct */
