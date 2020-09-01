@@ -40,10 +40,15 @@
 #ifndef _COSE_H
 #define _COSE_H
 
-#define COSE_Algorithm_ES256	 -7
+/*
+ * See RFC8152 for the COSE algorithm definitions
+ * https://tools.ietf.org/html/rfc8152#page-49
+ */
+
+#define COSE_Algorithm_ES256   -7
 #define COSE_Elliptic_Curve_P256  1
 #define ES256_SIGNATURE_LEN      64
-#define ES256_PRIVATE_KEY_LEN  	 32
+#define ES256_PRIVATE_KEY_LEN    32
 #define ES256_PUBLIC_KEY_LEN     64
 
 #define COSE_Algorithm_AES_CCM_16_64_128 10
@@ -55,9 +60,6 @@
 #define COSE_algorithm_AES_CCM_64_64_128_KEY_LEN 16
 #define COSE_algorithm_AES_CCM_64_64_128_IV_LEN  7
 #define COSE_algorithm_AES_CCM_64_64_128_TAG_LEN  8
-
-
-#define COSE_LARGEST_IV_LENGTH COSE_algorithm_AES_CCM_16_64_128_IV_LEN
 
 
 /* COSE Encrypt0 Struct */
