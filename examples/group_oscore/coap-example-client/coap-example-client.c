@@ -44,14 +44,17 @@
 #include "coap-engine.h"
 #include "coap-callback-api.h"
 
+#include "ipv6/simple-udp.h"
+#include "net/ipv6/multicast/uip-mcast6.h"
+
+
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "App"
 #define LOG_LEVEL  LOG_LEVEL_APP
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
-//#define SERVER_EP "coap://[fe80::212:7402:0002:0202]"
-//#define SERVER_EP "coap:://[ff02::1]" //multicast all nodes address
+//#define SERVER_EP "coap://[ff1e::89:abcd]"
 
 #define TOGGLE_INTERVAL 10
 
@@ -59,41 +62,11 @@ PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
+static struct uip_udp_conn *conn;
 
-static uint8_t cur_token[] = {0,0,0,0,0,0,0,0};//for incremental updates
-const uint8_t *token_next(void) 
-{
-  uint8_t i;
-  for (i = 7; i >= 0; i++)
-  {
-    if (cur_token[i] < 255)
-    {//just increment the last digit
-      cur_token[i]++;
-      break;
-    }
-    else
-    {
-      if (i == 0)
-      {//total_overflow
-        memset(cur_token, 0, sizeof(cur_token));
-	break;
-      }
-      cur_token[i] = 0; //overflow this digit, increment the higher one
-      continue;
-    }
-  }
-  return (const uint8_t *)(cur_token);
-}
-
-/* Example URIs that can be queried. */
-//#define NUMBER_OF_URLS 2
-/* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
 char *service_urls[] =
 {"/test/hello", "/test/mcastq", "/test/hello", "/test/mcast"};
-//{ ".well-known/core", "/test/hello" };
-//destinations: all-nodes, node 2, node 4
-char *server_eps[] = 
-{"coap:://[ff02::1]", "coap:://[fe80::202:2:2:2]", "coap:://[fe80::204:4:4:4]"};
+
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
 void
 client_chunk_handler(coap_message_t *response)
@@ -114,20 +87,35 @@ void my_callback_f(coap_callback_request_state_t *callback_state)
 
 PROCESS_THREAD(er_example_client, ev, data)
 {
-  //static coap_endpoint_t server_ep;
-  static coap_endpoint_t servers[3];
+//  static coap_endpoint_t server_ep;
   PROCESS_BEGIN();
    
-  static uint8_t i = 0;
+//  static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
+//   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
 
-  static coap_callback_request_state_t my_callback_request_state;
-  static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
+  static uip_ipaddr_t udp_addr;
+//  char *ip_str = "[ff02::1]";
+  //char *ip_str = "[ff1e::89:abcd]";
+  //char *ip_str = "[fd00::212::4b00:14b5:d8fb]";
+  //uiplib_ipaddrconv(ip_str, &udp_addr); 
+  uip_ip6addr(&udp_addr, 0xFF1E,0,0,0,0,0,0x89,0xABCD);
+  printf("udp_addr\n");
+  uiplib_ipaddr_print(&udp_addr);
+  printf("\n");
 
-  //coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
-  coap_endpoint_parse(server_eps[0], strlen(server_eps[0]), &servers[0]);
-  coap_endpoint_parse(server_eps[1], strlen(server_eps[1]), &servers[1]);
-  coap_endpoint_parse(server_eps[2], strlen(server_eps[2]), &servers[2]);
+  printf("Multicast Engine: '%s'\n", UIP_MCAST6.name);
+//  NETSTACK_ROUTING.root_start();
 
+//  if(!simple_udp_register(&c, 7777, &udp_addr, 5684, NULL)){
+//	printf("error register\n");
+//  }
+  conn = udp_new(&udp_addr, UIP_HTONS(5684), NULL);
+
+
+  static uint8_t payload[64] = {0xFF}; 
+  
+  uip_udp_packet_send(conn, payload, 15);
+  printf("sent?\n");
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
 
   while(1) {
@@ -137,21 +125,17 @@ PROCESS_THREAD(er_example_client, ev, data)
       printf("--Toggle timer--\n");
 
       /* prepare a non-blocking, NON confirmable request */
-      coap_init_message(request, COAP_TYPE_NON, COAP_GET, 0);
-      coap_set_header_uri_path(request, service_urls[i]);
+      //coap_init_message(request, COAP_TYPE_NON, COAP_GET, 0);
+      //coap_set_header_uri_path(request, service_urls[0]);
 
-      LOG_INFO_COAP_EP(&servers[0]);
-      LOG_INFO_("\n");
-      //callback request
-      coap_set_token(request, token_next(), 8);
-      //coap_send_request(&my_callback_request_state, &server_ep, request, my_callback_f);
-      coap_send_request(&my_callback_request_state, &servers[0], request, my_callback_f);
+      //LOG_INFO_COAP_EP(&servers[0]);
+     // LOG_INFO_COAP_EP(&server_ep);
+      //LOG_INFO_("\n");
 
-      printf("\n--Done--\n");
-
-      i++;
-      if(i == 4) i = 0;
-
+ //     uip_udp_packet_sendto(conn, payload, 15, &udp_addr, UIP_HTONS(5684)); 
+      uip_udp_packet_send(conn, payload, 15);
+      printf("sent?\n");
+      
       etimer_reset(&et);
     }
   }
