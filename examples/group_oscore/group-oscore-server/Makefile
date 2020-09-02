@@ -10,6 +10,7 @@ MODULES += os/net/app-layer/coap
 # Include the Multicast implementation
 MODULES += os/net/ipv6/multicast
 
+#CFLAGS += -E
 
 MAKE_WITH_OSCORE = 1
 MAKE_WITH_GROUPCOM = 1
