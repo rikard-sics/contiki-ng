@@ -45,22 +45,24 @@
 #include "dtls-hmac.h"
 
 #include "sys/rtimer.h"
+#ifdef WITH_GROUPCOM
 #include "sys/pt.h"
-#include "sys/pt-sem.h"
 #include "os/lib/queue.h"
 #include "os/lib/memb.h"
 #include "random.h"
 /*the rest of the includes are moved to oscore-crypto.h file.*/
-
+#ifdef OSCORE_WITH_HW_CRYPTO
+#include "sys/pt-sem.h"
+process_event_t pe_crypto_lock_released;
 static struct pt_sem crypto_processor_mutex;
+#endif //OSCORE_WITH_HW_CRYPTO
 
 process_event_t pe_message_signed;
 process_event_t pe_message_verified;
-process_event_t pe_crypto_lock_released;
 
 PROCESS(signer, "signer");
 PROCESS(verifier, "verifier");
-
+#endif
 void
 kprintf_hex(unsigned char *data, unsigned int len)
 {
@@ -68,7 +70,7 @@ kprintf_hex(unsigned char *data, unsigned int len)
   LOG_DBG_BYTES(data, len);
   LOG_DBG_("\n");
 }
-
+#ifdef WITH_GROUPCOM
 /*---------------------------------------------------------------------------*/
 static inline
 uint32_t
@@ -80,6 +82,7 @@ uint8x4_to_uint32(const uint8_t *field)
          | ((uint32_t)field[3]);
 }
 /*---------------------------------------------------------------------------*/
+#ifdef OSCORE_WITH_HW_CRYPTO
 static void
 ec_uint8v_to_uint32v(uint32_t *result, const uint8_t *data, size_t size)
 {
@@ -89,6 +92,7 @@ ec_uint8v_to_uint32v(uint32_t *result, const uint8_t *data, size_t size)
     result++;
   }
 }
+#endif
 /*---------------------------------------------------------------------------*/
 static inline void
 uint32_to_uint8x4(uint8_t *field, uint32_t data)
@@ -99,6 +103,7 @@ uint32_to_uint8x4(uint8_t *field, uint32_t data)
 	field[3] = (uint8_t)((data & 0x000000FF)      );
 }
 /*---------------------------------------------------------------------------*/
+#ifdef OSCORE_WITH_HW_CRYPTO
 static void
 ec_uint32v_to_uint8v(uint8_t *result, const uint32_t *data, size_t size)
 {
@@ -108,12 +113,12 @@ ec_uint32v_to_uint8v(uint8_t *result, const uint32_t *data, size_t size)
 		result += sizeof(uint32_t);
 	}
 }
-
+#endif
 
 void
 oscore_crypto_init(void)
 {
-	
+#ifdef OSCORE_WITH_HW_CRYPTO	
 #ifdef CONTIKI_TARGET_ZOUL
 	//initialise the HW AES/SHA/PKA
 	crypto_init();
@@ -121,12 +126,11 @@ oscore_crypto_init(void)
 	pka_init();
 	pka_disable();
 #endif	
-
 	PT_SEM_INIT(&crypto_processor_mutex, 1);
-
+	pe_crypto_lock_released = process_alloc_event();
+#endif //OSCORE_WITH_HW_CRYPTO
 	pe_message_signed = process_alloc_event();
 	pe_message_verified = process_alloc_event();
-	pe_crypto_lock_released = process_alloc_event();
 
 	process_start(&signer, NULL);
 	process_start(&verifier, NULL);
@@ -136,25 +140,35 @@ oscore_crypto_init(void)
 typedef struct {
 	struct pt pt;
 	struct process *process;
-
+#ifdef OSCORE_WITH_HW_CRYPTO
+#ifdef CONTIKI_TARGET_ZOUL
 	ecc_dsa_sign_state_t ecc_sign_state;
-
+#endif
+#else //SW crypto
+	struct pt sign_deterministic_pt;
+#endif
 	uint16_t sig_len;
 
 } sign_state_t;
 
-PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size_t msg_len, uint8_t *private_key, uint8_t *public_key));
+PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature));
 
 typedef struct {
 	struct pt pt;
 	struct process *process;
-
+#ifdef OSCORE_WITH_HW_CRYPTO
+#ifdef CONTIKI_TARGET_ZOUL
 	ecc_dsa_verify_state_t ecc_verify_state;
+#endif
+#else //SW crypto
+	struct pt verify_sw_pt;
+#endif
 
 } verify_state_t;
 
-PT_THREAD(ecc_verify(verify_state_t *state, const uint8_t *public_key, const uint8_t *buffer, size_t buffer_len));
+PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature));
 
+#ifdef OSCORE_WITH_HW_CRYPTO
 
 bool
 crypto_fill_random(uint8_t *buffer, size_t size_in_bytes)
@@ -179,7 +193,7 @@ crypto_fill_random(uint8_t *buffer, size_t size_in_bytes)
 	return true;
 
 }
-
+#ifdef CONTIKI_TARGET_ZOUL
 static uint8_t
 sha256_hash(const uint8_t *buffer, size_t len, uint8_t *hash)
 {
@@ -222,7 +236,9 @@ end:
 
 	return ret;
 }
-
+#endif //CONTIKI_TARGET_ZOUL
+#endif //OSCORE_WITH_HW_CRYPTO
+#endif //WITH_GROUPCOM (line 77)
 /*---------------------------------------------------------------------------*/
 /* Returns 0 if failure to encrypt. Ciphertext length, otherwise.
    Tag-length and ciphertext length is derived from algorithm. No check is done to ensure
@@ -430,7 +446,7 @@ oscore_edDSA_keypair(int8_t alg, int8_t alg_param, uint8_t *private_key, uint8_t
   return 1;
 }
 
-/* For ECDSA-Deterministic */
+/* For ECDSA-Deterministic - SW crypto only*/
 #define SHA256_BLOCK_LENGTH  64
 #define SHA256_DIGEST_LENGTH 32
 #ifndef OSCORE_WITH_HW_CRYPTO
@@ -460,9 +476,28 @@ static void finish_SHA256(uECC_HashContext *base, uint8_t *hash_result) {
     dtls_sha256_final(hash_result, &context->ctx);
 }
 
-#endif
+PT_THREAD(ecc_sign_deterministic(sign_state_t *state, uint8_t *private_key, uint8_t *message_hash, uECC_HashContext *hash_context, uint8_t *signature))
+{
+	PT_BEGIN(&state->sign_deterministic_pt);
+	uint8_t res = -1;
+	printf("Inside the deterministic pt: let's go.\n");
+	res = uECC_sign_deterministic(private_key, message_hash, hash_context, signature);
+	printf("Deterministic sign yielded %d\n", res);
+	PT_END(&state->sign_deterministic_pt);
+}
 
-PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size_t msg_len, uint8_t *private_key, uint8_t *public_key))
+PT_THREAD(ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8_t *message_hash, uint8_t *signature))
+{
+	PT_BEGIN(&state->verify_sw_pt);
+	uint8_t res = -1;
+	printf("Inside the verify_sw pt: let's go.\n");
+        res = uECC_verify(public_key, message_hash, signature);
+	printf("uECC verify yielded %d\n", res);
+	PT_END(&state->verify_sw_pt);
+}
+#endif /*OSCORE_WITH_HW_CRYPTO*/
+
+PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature))
 {
 	PT_BEGIN(&state->pt);
 //FIXME buffer_len!!!
@@ -475,28 +510,35 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 		PT_EXIT(&state->pt);
 	}
 */
+#ifdef OSCORE_WITH_HW_CRYPTO
 	printf("Waiting for crypto processor to become available (sign) ...\n");
 	PT_SEM_WAIT(&state->pt, &crypto_processor_mutex);
 	printf("Crypto processor available (sign)!\n");
-
+#endif
 	state->sig_len = 0;
 
 	//hash the message with sha256
-	//TODO cleanup the preprocessor mess and organise the sanity checks for each platform
 	uint8_t message_hash[SHA256_DIGEST_LENGTH];//==SHA56_DIGEST_LEN_BYTES
-#ifdef CONTIKI_TARGET_NATIVE
+#ifndef OSCORE_WITH_HW_CRYPTO //SW crypto
+	printf("Using dtls_sha256\n");
 	dtls_sha256_ctx msg_hash_ctx;
 	dtls_sha256_init(&msg_hash_ctx);
-	dtls_sha256_update(&msg_hash_ctx, ciphertext, ciphertext_len);
+	dtls_sha256_update(&msg_hash_ctx, buffer, msg_len);
 	dtls_sha256_final(message_hash, &msg_hash_ctx);
 
-
-	//these lines remaining for NATIVE
-	/*uint8_t tmp[32 + 32 + 64];//32+32+64
+	uint8_t tmp[32 + 32 + 64];//32+32+64
 	SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
-	uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);*/
-#endif
+
+	printf("Scheduling deterministic sign in SW\n");
+	PT_SPAWN(&state->pt, &state->sign_deterministic_pt, ecc_sign_deterministic(state, private_key, message_hash, &ctx.uECC, signature));
+
+	printf("ecc_sign: After PT_SPAWN...\n");
+	state->sig_len = ES256_SIGNATURE_LEN;
+
+#else //with HW crypto
+
 #ifdef CONTIKI_TARGET_ZOUL
+	printf("TARGET=ZOUL, using sha256\n");
 	uint8_t sha256_ret = sha256_hash(buffer, msg_len, message_hash);
 	if (sha256_ret != CRYPTO_SUCCESS)
 	{
@@ -536,24 +578,28 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 	ec_uint32v_to_uint8v(buffer + msg_len + ES256_PRIVATE_KEY_LEN, state->ecc_sign_state.signature_s, ES256_PRIVATE_KEY_LEN);
 	state->sig_len = ES256_SIGNATURE_LEN;
 	
-
-	
 	//self-check
-	printf("Performing sign self-check...\n");
+	/*printf("Performing sign self-check...\n");
 	static verify_state_t test;
 	test.process = state->process;
 	PT_SPAWN(&state->pt, &test.pt, ecc_verify(&test, public_key, buffer, msg_len + state->sig_len));
-
+	*/
 #endif /*CONTIKI_TARGET_ZOUL*/
-
+#endif /*OSCORE_WITH_HW_CRYPTO*/
 	PT_END(&state->pt);
 
 }
 
-PT_THREAD(ecc_verify(verify_state_t *state, const uint8_t *public_key, const uint8_t *buffer, size_t buffer_len))
+PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature))
 {
 	PT_BEGIN(&state->pt);
-
+//FIXME debug printouts
+  printf("ecc_verify:Signature\n");
+  kprintf_hex(signature, ES256_SIGNATURE_LEN);
+  printf("Plaintext\n");
+  kprintf_hex(buffer, buffer_len);
+  printf("Public key\n");
+  kprintf_hex(public_key, ES256_PUBLIC_KEY_LEN);
 /*	
 	if (buffer_len < ES256_SIGNATURE_LEN)
 	{
@@ -564,21 +610,48 @@ PT_THREAD(ecc_verify(verify_state_t *state, const uint8_t *public_key, const uin
 		PT_EXIT(&state->pt);
 	}
 */
+#ifdef OSCORE_WITH_HW_CRYPTO
 	printf("Waiting for crypto processor to become available (verify) ...\n");
 	PT_SEM_WAIT(&state->pt, &crypto_processor_mutex);
 	printf("Crypto processor available (verify)!\n");
 
-	const size_t msg_len = buffer_len - ES256_SIGNATURE_LEN;
+	//const size_t msg_len = buffer_len - ES256_SIGNATURE_LEN;
 
-	const uint8_t *sig_r = buffer + msg_len;
-	const uint8_t *sig_s = buffer + msg_len + ES256_PRIVATE_KEY_LEN;
+	const uint8_t *sig_r = signature;//buffer + msg_len;
+	const uint8_t *sig_s = signature + ES256_PRIVATE_KEY_LEN;//buffer + msg_len + ES256_PRIVATE_KEY_LEN;
+	//FIXME
+	printf("Signature r\n");
+	kprintf_hex(sig_r, (uint8_t) (ES256_SIGNATURE_LEN * 0.5));
+	printf("Signature s\n");
+	kprintf_hex(sig_s, (uint8_t) (ES256_SIGNATURE_LEN * 0.5));
+
 	//extract signature from buffer
 	ec_uint8v_to_uint32v(state->ecc_verify_state.signature_r, sig_r, ES256_PRIVATE_KEY_LEN);
 	ec_uint8v_to_uint32v(state->ecc_verify_state.signature_s, sig_s, ES256_PRIVATE_KEY_LEN);
-
+#endif
 	uint8_t message_hash[SHA256_DIGEST_LENGTH];
+
+#ifndef OSCORE_WITH_HW_CRYPTO
+	printf("Using dtls_sha256\n");
+
+	dtls_sha256_ctx msg_hash_ctx;
+	dtls_sha256_init(&msg_hash_ctx);
+	dtls_sha256_update(&msg_hash_ctx, buffer, buffer_len);
+	dtls_sha256_final(message_hash, &msg_hash_ctx);
+	printf("Spawning a sw verify process\n");
+	PT_SPAWN(&state->pt, &state->verify_sw_pt, ecc_verify_sw(state, public_key, message_hash, signature));
+
+	printf("ecc_verify: After PT_SPAWN...\n");
+#else //HW crypto
+
 #ifdef CONTIKI_TARGET_ZOUL
-	uint8_t sha256_ret = sha256_hash(buffer, msg_len, message_hash);
+	printf("Using sha256\n");
+
+	/*dtls_sha256_ctx msg_hash_ctx;
+	dtls_sha256_init(&msg_hash_ctx);
+	dtls_sha256_update(&msg_hash_ctx, buffer, msg_len);
+	dtls_sha256_final(message_hash, &msg_hash_ctx);*/
+	uint8_t sha256_ret = sha256_hash(buffer, buffer_len, message_hash);
 	if (sha256_ret != CRYPTO_SUCCESS)
 	{
 		printf("sha256_hash failed with %u\n", sha256_ret);
@@ -603,15 +676,16 @@ PT_THREAD(ecc_verify(verify_state_t *state, const uint8_t *public_key, const uin
 	if (state->ecc_verify_state.result != PKA_STATUS_SUCCESS)
 	{
 		printf("Failed to verify message with %d\n", state->ecc_verify_state.result);
-		//PT_EXIT(&state->pt);
+		PT_EXIT(&state->pt);
 	}
 	else
 	{
 		printf("Message verify success!\n");
 	}
-
-	PT_END(&state->pt);
 #endif /*CONTIKI_TARGET_ZOUL*/
+#endif //OSCORE_WITH_HW_CRYPTO
+	PT_END(&state->pt);
+
 }	
 
 QUEUE(messages_to_sign);
@@ -621,7 +695,7 @@ QUEUE(messages_to_verify);
 MEMB(messages_to_verify_memb, messages_to_verify_entry_t, MSGS_TO_VERIFY_SIZE);
 
 bool
-queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *public_key, uint8_t *message, uint16_t message_buffer_len, uint16_t message_len)
+queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *public_key, uint8_t *message, uint16_t message_buffer_len, uint16_t message_len, uint8_t *signature)
 {
 	messages_to_sign_entry_t *item = memb_alloc(&messages_to_sign_memb);
 	if (!item)
@@ -636,6 +710,7 @@ queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *pu
 	item->message = message;
 	item->message_buffer_len = message_buffer_len;
 	item->message_len = message_len;
+	item->signature = signature;
 
 	queue_enqueue(messages_to_sign, item);
 
@@ -673,19 +748,27 @@ PROCESS_THREAD(signer, ev, data)
 
 			static sign_state_t state;
 			state.process = &signer;
-			PROCESS_PT_SPAWN(&state.pt, ecc_sign(&state, item->message, item->message_buffer_len, item->message_len, item->private_key, item->public_key));
-
+			PROCESS_PT_SPAWN(&state.pt, ecc_sign(&state, item->message, item->message_buffer_len, item->message_len, item->private_key, item->public_key, item->signature));
+#ifdef OSCORE_WITH_HW_CRYPTO
+#ifdef CONTIKI_TARGET_ZOUL
 			item->result = state.ecc_sign_state.result;
 
 			printf("Signer: the result of the sign is %d.\n", state.ecc_sign_state.result);
-
-			if (process_post(item->process, pe_message_signed, item) != PROCESS_ERR_OK)
+#endif
+#endif
+			if (process_post(PROCESS_BROADCAST, pe_message_signed, item) != PROCESS_ERR_OK)
 			{
 				printf("Failed to post pe_message_signed to %s\n", item->process->name);
 			}
+			else
+			{
+				printf("Successfully posted pe_message_signed!\n");
+			}
 		}
+#ifdef OSCORE_WITH_HW_CRYPTO
 		//notify release for other processes in the semaphore
 		process_post(PROCESS_BROADCAST, pe_crypto_lock_released, NULL);
+#endif
 	}
 
 	PROCESS_END();
@@ -693,7 +776,7 @@ PROCESS_THREAD(signer, ev, data)
 
 
 bool
-queue_message_to_verify(struct process *process, void *data, uint8_t *message, uint16_t message_len, const uint8_t *public_key)
+queue_message_to_verify(struct process *process, uint8_t *signature, uint8_t *message, uint16_t message_len, uint8_t *public_key)
 {
 	messages_to_verify_entry_t *item = memb_alloc(&messages_to_verify_memb);
 	if (!item)
@@ -701,9 +784,15 @@ queue_message_to_verify(struct process *process, void *data, uint8_t *message, u
 		printf("queue_message_to_verify: out of memory\n");
 		return false;
 	}
-
+//FIXME excessive printouts
+	  printf("queue_message_to_verify:Signature\n");
+	  kprintf_hex(signature, ES256_SIGNATURE_LEN);
+	  printf("Plaintext\n");
+	  kprintf_hex(message, message_len);
+	  printf("Public key\n");
+	  kprintf_hex(public_key, ES256_PUBLIC_KEY_LEN);
 	item->process = process;
-	item->data = data;
+	item->signature = signature;
 	item->message = message;
 	item->message_len = message_len;
 	item->public_key = public_key;
@@ -743,19 +832,22 @@ PROCESS_THREAD(verifier, ev, data)
 
 			static verify_state_t state;
 			state.process = &verifier;
-			PROCESS_PT_SPAWN(&state.pt, ecc_verify(&state, item->public_key, item->message, item->message_len));
-
+			PROCESS_PT_SPAWN(&state.pt, ecc_verify(&state, item->public_key, item->message, item->message_len, item->signature));
+#ifdef OSCORE_WITH_HW_CRYPTO
+#ifdef CONTIKI_TARGET_ZOUL
 			item->result = state.ecc_verify_state.result;
 			printf("Verifier: the result of the verify is %d.\n", state.ecc_verify_state.result);
-
-			//if (process_post(item->process, pe_message_verified, item) != PROCESS_ERR_OK)
+#endif
+#endif			//if (process_post(item->process, pe_message_verified, item) != PROCESS_ERR_OK)
 			if (process_post(PROCESS_BROADCAST, pe_message_verified, item) != PROCESS_ERR_OK)
 			{
 				printf("Failed to post pe_message_verified to %s\n", item->process->name);
 			}
 		}
+#ifdef OSCORE_WITH_HW_CRYPTO
 		//notify release for other processes in the semaphore
 		process_post(PROCESS_BROADCAST, pe_crypto_lock_released, NULL);
+#endif
 	}
 
 	PROCESS_END();
@@ -767,7 +859,7 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
     return 0;
   }
   printf("\noscore_ecDSA_sign: queueing the message...\n");
-  if (!queue_message_to_sign(PROCESS_CURRENT(), private_key, public_key, ciphertext, 0, ciphertext_len)) //FIXME buffer length cannot be 0!
+  if (!queue_message_to_sign(PROCESS_CURRENT(), private_key, public_key, ciphertext, 0, ciphertext_len, signature)) //FIXME buffer length cannot be 0!
   {
 	  printf("Could not queue the message to sign!\n");
 	  return 0;
@@ -782,127 +874,6 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
   printf("ciphertext:\n");
   kprintf_hex(ciphertext, ciphertext_len);
   */
-  //Operations common across architectures: message hashing,
-/*  uint8_t message_hash[SHA256_DIGEST_LENGTH];
-  dtls_sha256_ctx msg_hash_ctx;
-  dtls_sha256_init(&msg_hash_ctx);
-  dtls_sha256_update(&msg_hash_ctx, ciphertext, ciphertext_len);
-  dtls_sha256_final(message_hash, &msg_hash_ctx);*/
-//#ifndef CONTIKI_TARGET_NATIVE
-#ifdef CONTIKI_TARGET_SIMPLELINK
-#ifdef OSCORE_WITH_HW_CRYPTO
-  //simplelink code goes here
-  //- initialise memory for workzone (275 words for window size 3)
-  //Code based on romdriver
-  /*printf("\nCC1352 crypto: initialisation...");
-  uint32_t workzone_buf[275];
-  memset(workzone_buf, 0, 275 * sizeof(uint32_t)); 
-  //- initialise ecc
-  ECC_initialize(workzone_buf);
-  //- sign
-  uint32_t *rand = { 0x94A949FA, 0x401455A1, 0xAD7294CA, 0x896A33BB,
-                 0x7A80E714, 0x4321435B, 0x51247A14, 0x41C1CB6B };
-
-  uint32_t *sign1, *sign2; //outputs, signature parts
-  printf(" Done.About to run the signing function...\n");
-  uint8_t status = ECC_ECDSA_sign((uint32_t *) private_key, (uint32_t *) message_hash, rand, sign1, sign2);
-  //filling the return pointer with the calculated signature
-  printf("Signed! Filling the signature pointer...\n");
-  uint8_t i;
-  for (i = 0; i < 32; i++)
-	  *(signature + i) = *sign1++;
-  for (i = 0; i< 32; i++)
-	  *(signature + i + 32) = *sign2++;
-  */
- /*uint8_t pmsn[32]                     = {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
-                                         0x9F, 0xE1, 0xFB, 0x04, 0xF2, 0x4B, 0x50, 0x58,
-                                         0x91, 0xE3, 0xAC, 0x4D, 0x2A, 0x5D, 0x43, 0xAA,
-                                         0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};
- uint8_t r[32] = {0};
- uint8_t s[32] = {0};
- ECDSA_init();
- //ECDSA_Params_init();
- ECDSA_OperationSign operationSign;
- //ECDSA_OperationSign_init(operationSign);
- CryptoKey pmsnKey, myPrivateKey;
- ECDSA_Handle ecdsaHandle;
- int_fast16_t operationResult;
- 
- ecdsaHandle = ECDSA_open(0, NULL);
-
- if(!ecdsaHandle)
-	 printf("\nERROR: failed to create ecdsa handle!!!\n");
-
- CryptoKeyPlaintext_initKey(&myPrivateKey, private_key, sizeof(private_key));
- CryptoKeyPlaintext_initKey(&pmsnKey, pmsn, sizeof(pmsn));
-
- ECDSA_OperationSign_init(&operationSign);
-
- operationSign.curve = &ECCParams_NISTP256;
- operationSign.myPrivateKey = &myPrivateKey;
- operationSign.pmsn = &pmsnKey;
- operationSign.hash = message_hash;
- operationSign.r = r;
- operationSign.s = s;
- printf("\nSIMPLELINK crypto: everything initialised, about to sign...\n");
- watchdog_periodic();
- operationResult = ECDSA_sign(ecdsaHandle, &operationSign);
- watchdog_periodic();
- if(operationResult != ECDSA_STATUS_SUCCESS)
- 	printf("\nERROR: sign operation failed! %d\n", operationResult);
- ECDSA_close(ecdsaHandle);*/
-#else /*no crypto*/
-/*  rtimer_clock_t start = RTIMER_NOW();
-  uint8_t tmp[32 + 32 + 64];//32+32+64
-  SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
-  uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);
-  
- // watchdog_periodic();
-  rtimer_clock_t stop = RTIMER_NOW();
-  printf("\nsigning took %lu ticks, %lu s\n", (stop - start), (stop - start)/RTIMER_SECOND );*/
-#endif /*OSCORE_WITH_HW_CRYPTO*/
-#endif /*CONTIKI_TARGET_SIMPLELINK*/
-#ifdef CONTIKI_TARGET_ZOUL
-#ifdef OSCORE_WITH_HW_CRYPTO
-  //uint8_t tmp[32 + 32 + 64];//32+32+64
- /* 
-  pka_init();
-  printf("\nPKA initialised.");
-  //convert the private key to uint_32
-  uint32_t private_key32[8];
-  printf("\nNow, converting the priv key to uint32...");
-  ec_uint8v_to_uint32v(private_key32, private_key, 32);
-  uint32_t *pkey32 = private_key32;
-  static ecc_dsa_sign_state_t state = {
-//    .process = PROCESS_CURRENT(),//&er_example_server,
-    .curve_info = &nist_p_256,
-    .k_e     = { 0x1D1E1F20, 0x191A1B1C, 0x15161718, 0x11121314,
-                 0x0D0E0F10, 0x090A0B0C, 0x05060708, 0x01020304 },
-  };
-  state.process = PROCESS_CURRENT();
-  printf("\necc structs initialised. Will memcpy msg hash now...");
-  memcpy(state.hash, message_hash, 32);
-  memcpy(state.secret, pkey32, 32);
-  PT_SPAWN((state.process->pt), &(state.pt), ecc_dsa_sign(&state));
-#else
- // watchdog_periodic();
-  rtimer_clock_t start = RTIMER_NOW();
-  uint8_t tmp[32 + 32 + 64];//32+32+64
-  SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
-  uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);
-  
- // watchdog_periodic();
-  rtimer_clock_t stop = RTIMER_NOW();
-  printf("signing took %lu ticks, %lu s\n", (stop - start), (stop - start)/RTIMER_SECOND );*/
-#endif /*OSCORE_WITH_HW_CRYPTO */
-#endif /*CONTIKI_TARGET_ZOUL*/
-#ifdef CONTIKI_TARGET_NATIVE
-/*  uint8_t tmp[32 + 32 + 64];//32+32+64
-  SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
-  uECC_sign_deterministic(private_key, message_hash, &ctx.uECC, signature);
-*/
-#endif /* CONTIKI_TARGET_NATIVE */
-
 /*
   if (coap_get_log_level() >= LOG_INFO){
 
@@ -937,8 +908,15 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
   }
 
   printf("-------------------\nEntered oscore_edDSA_verify\n");
+  //FIXME remove excessive debug printouts!
+  printf("oscore_edDSA_verify:Signature\n");
+  kprintf_hex(signature, ES256_SIGNATURE_LEN);
+  printf("Plaintext\n");
+  kprintf_hex(plaintext, plaintext_len);
+  printf("Public key\n");
+  kprintf_hex(public_key, ES256_PUBLIC_KEY_LEN);
 
-  if(!queue_message_to_verify(PROCESS_CURRENT(), NULL, plaintext, plaintext_len, public_key))
+  if(!queue_message_to_verify(PROCESS_CURRENT(), signature, plaintext, plaintext_len, public_key))
   {
 	  printf("Could not queue message to verify\n");
 	  return 0;
@@ -961,138 +939,6 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
                 fprintf(stderr," %02x",signature[u]);
      fprintf(stderr,"\n");
   }
-*/
-  //printf("public key\n");
-  //kprintf_hex(public_key, 64); 
-  //printf("bytes to verify\n");
-  //kprintf_hex(plaintext, plaintext_len);
-  //printf("signature bytes\n");
-  //kprintf_hex(signature, 64);
-/*  uint8_t message_hash[SHA256_DIGEST_LENGTH];
-  dtls_sha256_ctx msg_hash_ctx;
-  dtls_sha256_init(&msg_hash_ctx);
-  dtls_sha256_update(&msg_hash_ctx, plaintext, plaintext_len);
-  dtls_sha256_final(message_hash, &msg_hash_ctx);
-  int res; //return variable*/
-#ifdef CONTIKI_TARGET_SIMPLELINK
-#ifdef OSCORE_WITH_HW_CRYPTO
-/*  printf("\nSimplelink crypto verify: init\n");
-  ECDSA_init();
-  printf("ECDSA_init ");
-  //ECDSA_Params *params;
- // ECDSA_Params_init(* params);
-  printf("ECDSA_Params_init ");
-  ECDSA_OperationVerify operationVerify;
-  //ECDSA_OperationVerify_init(operationVerify);
-  printf("ECDSA_OperationVerify_init ");
-  ECDSA_Handle ecdsaHandle;
-//  int_fast16_t operationResult;
-  CryptoKey theirPublicKey;
-
-  ecdsaHandle = ECDSA_open(0, NULL);
-
-  if(!ecdsaHandle)
-	  printf("ERROR: Failed to create ECDSA handle!!!\n");
-  printf("ECDSA_open ");
-  CryptoKeyPlaintext_initKey(&theirPublicKey, public_key, sizeof(public_key));
-  printf("CryptoKeyPlaintext_initKey ");
-  ECDSA_OperationVerify_init(&operationVerify);
-  printf("ECDSA_OperationVerify_init ");
-  printf("\nSIMPLELINK crypto: after init, copying signature to r and s...\n");
-  uint8_t r[32], s[32];
-  int i = 0;
-  while(i < 32)
-  {r[i] = *(signature + i); i++;}
-  while(i < 64)
-  {s[i - 32] = *(signature + i); i++;}
-  operationVerify.curve = &ECCParams_NISTP256;
-  operationVerify.theirPublicKey = &theirPublicKey;
-  operationVerify.hash = message_hash;
-  operationVerify.r = (uint32_t *) r;
-  operationVerify.s = (uint32_t *) s;
-  printf("\nSIMPLELINK crypto: ready to verify...\n");
-  i = 0;
-  while (i < 32)
-	  printf("%x ", operationVerify.r[i++]);
-  i = 0;
-  while (i < 32)
-	  printf("%x ", operationVerify.s[i++]);
-  watchdog_periodic();
-  res = (int) ECDSA_verify(ecdsaHandle, &operationVerify);
-  watchdog_periodic();
-  if(res != ECDSA_STATUS_SUCCESS)
-	  printf("\nERROR!!! Signature verification failed! %d\n", res);
-  ECDSA_close(ecdsaHandle);*/
-#endif /*OSCORE_WITH_HW_CRYPTO (SIMPLELINK)*/
-#endif /*CONTIKI_TARGET_SIMPLELINK*/
-#ifdef CONTIKI_TARGET_ZOUL
-#ifdef OSCORE_WITH_HW_CRYPTO
-/*//Zoul HW goes here
-pka_init();
-printf("\n pka initialised!");
-  //converting the variables to uint32_t
-  uint32_t signature32[16], signature_r[8], signature_s[8], public_key32[16];
-  uint8_t tmp;
-  static uint32_t public_x[8], public_y[8];
-  printf("\n Converting the variables to uint32_t...");
-  ec_uint8v_to_uint32v(signature32, signature, 64);
-  ec_uint8v_to_uint32v(public_key32, public_key, 64);
-  for(tmp = 0; tmp < 16; tmp++)
-  {
-	  if (tmp >= 8)
-	  {
-		  public_y[tmp-8] = public_key32[tmp];
-		  signature_s[tmp-8] = signature32[tmp];
-	  }
-	  else
-	  {
-		  public_x[tmp] = public_key32[tmp];
-		  signature_r[tmp] = signature32[tmp];
-	  }
-  }
-  printf(" done. Setting up the structures");*/
-  /*
-   * Setup Variables
-   */
-/*  static ecc_dsa_verify_state_t state = {
-    //.process = PROCESS_CURRENT(),//&er_example_server,
-    .curve_info = &nist_p_256,
-    //.signature_r = &signature_r,
-    //.signature_s = &signature_s,
-    .hash = { 0x65637572, 0x20612073, 0x68206F66, 0x20686173,
-              0x69732061, 0x68697320, 0x6F2C2054, 0x48616C6C },
-  };
-  printf("\nAbout to memcpy...");
-  state.process= PROCESS_CURRENT();
-  memcpy(state.signature_r, signature_r, 32);
-  memcpy(state.signature_s, signature_s, 32);
-  memcpy(state.public.x, public_x, sizeof(public_x));
-  memcpy(state.public.y, public_y, sizeof(public_y));
-*/
-  /*
-   * Verify
-   */
-/*  printf("\nRunning the timer and spawning the process...");
-  rtimer_clock_t time = RTIMER_NOW();
-  //TODO how to get the status code from the spawned proces??
-  PT_SPAWN(&(PROCESS_CURRENT()->pt), &(state.pt), ecc_dsa_verify(&state));
-  time = RTIMER_NOW() - time;
-  printf("ecc_dsa_verify(), %lu ms\n",
-         (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND));
-*/
-#else
- // watchdog_periodic();
-/*  rtimer_clock_t start = RTIMER_NOW();
-  res = uECC_verify(public_key, message_hash, signature);
- // watchdog_periodic();
-  rtimer_clock_t stop = RTIMER_NOW();
-  printf("verify took %lu ticks %lu s\n", (stop - start), (stop - start)/RTIMER_SECOND);*/
-#endif /*OSCORE_WITH_HW_CRYPTO */
-#endif /*CONTIKI_TARGET_ZOUL*/ 
-#ifdef CONTIKI_TARGET_NATIVE
- // res = uECC_verify(public_key, message_hash, signature);
-#endif /* CONTIKI_TARGET_NATIVE */
- // return res;  
+}*/
 }
-
 #endif /*WITH_GROUPCOM*/

@@ -64,25 +64,32 @@
 #define OSCORE_CRYPTO_INVALID_KEY_LEN       -6
 #define OSCORE_CRYPTO_INVALID_NONCE_LEN     -7
 
-#ifdef CONTIKI_TARGET_NATIVE
-#include "uECC.h"
-#else /*NON-NATIVE need watchdog*/
-#include "dev/watchdog.h"
-#endif /*CONTIKI_TARGET_NATIVE */
+#ifdef WITH_GROUPCOM
+#include "sys/pt.h"
+/*SW/HW crypto libraries*/
+#ifdef OSCORE_WITH_HW_CRYPTO
 
 #ifdef CONTIKI_TARGET_ZOUL
 #include "dev/ecc-algorithm.h"
 #include "dev/ecc-curve.h"
 #include "dev/sha256.h"
-#include "sys/pt.h"
-#else
+#endif
+
 #ifdef CONTIKI_TARGET_SIMPLELINK
-//#include "driverlib/rom_crypto.h"
 #include "ti/drivers/ECDSA.h"
 #include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
-#include "dev/watchdog.h"
+//#include "driverlib/rom_crypto.h"
 #endif
-#endif /* CONTIKI_TARGET_ZOUL */
+
+#ifdef CONTIKI_TARGET_NATIVE
+#error "Cannot run HW crypto on native!"
+#endif
+
+#else /*SW crypto*/
+
+#include "uECC.h"
+
+#endif /*OSCORE_WITH_HW_CRYPTO*/
 
 #ifndef SHA256_DIGEST_LEN_BYTES
 #define SHA256_DIGEST_LEN_BYTES (256/8)
@@ -94,7 +101,8 @@
 
 #ifndef MSGS_TO_VERIFY_SIZE
 #define MSGS_TO_VERIFY_SIZE 5
-#endif
+#endif //OSCORE_WITH_HW_CRYPTO
+#endif //WITH_GROUPCOM
 
 /* Returns 0 if failure to encrypt. Ciphertext length, otherwise. Tag-length and ciphertext length is derived from algorithm. No check is done to ensure that ciphertext buffer is of the correct length. */
 int encrypt(
@@ -130,7 +138,7 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
 
 int
 oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *plaintext, uint16_t plaintext_len, uint8_t *public_key);
-
+#ifdef WITH_GROUPCOM
 /*Code inspired by Matthew*/
 void oscore_crypto_init(void);
 
@@ -149,13 +157,16 @@ typedef struct messages_to_verify_entry
 
 	uint8_t result;
 	//public key type changed (uint8_t in our case?)
-	const uint8_t *public_key; //FIXME	
+#ifdef OSCORE_WITH_HW_CRYPTO
+	const
+#endif
+       	uint8_t *public_key; 
 
-	void *data;
+	uint8_t *signature;
 
 } messages_to_verify_entry_t;
 
-bool queue_message_to_verify(struct process *process, void *data, uint8_t *message, uint16_t message_len, const uint8_t *public_key);
+bool queue_message_to_verify(struct process *process, uint8_t *signature, uint8_t *message, uint16_t message_len, uint8_t *public_key);
 void queue_message_to_verify_done(messages_to_verify_entry_t *item);
 
 typedef struct messages_to_sign_entry
@@ -175,15 +186,16 @@ typedef struct messages_to_sign_entry
 
 	//signing result
 	uint8_t result;
+	uint8_t *signature;
 
 } messages_to_sign_entry_t;
 
-bool queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *public_key, uint8_t *message, uint16_t message_buffer_len, uint16_t message_len);
+bool queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *public_key, uint8_t *message, uint16_t message_buffer_len, uint16_t message_len, uint8_t *signature);
 void queue_message_to_sign_done(messages_to_sign_entry_t *item);
 //messages_to_verify stuff moved to coap.h to fix circular includes
 
 extern process_event_t pe_message_signed;
 extern process_event_t pe_message_verified;
-
+#endif //WITH_GROUPCOM
 
 #endif /* _CRYPTO_H */

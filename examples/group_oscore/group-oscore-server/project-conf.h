@@ -41,6 +41,8 @@
 
 #include "net/ipv6/multicast/uip-mcast6-engines.h"
 
+#define RF_CONF_MODE RF_MODE_2_4_GHZ
+
 /* Change this to switch engines. Engine codes in uip-mcast6-engines.h */
 #ifndef UIP_MCAST6_CONF_ENGINE
 #define UIP_MCAST6_CONF_ENGINE UIP_MCAST6_ENGINE_SMRF
@@ -64,5 +66,12 @@
 
 #define LOG_LEVEL_APP LOG_LEVEL_DBG
 #define LOG_CONF_LEVEL_COAP LOG_LEVEL_DBG
+
+/*Below defines for code-size limitation*/
+#define LOG_CONF_LEVEL_MAIN LOG_LEVEL_INFO
+#define UIP_CONF_UDP_CONNS 4
+#define UIP_CONF_BUFFER_SIZE 400
+//with the above 3 it was still 256 bytes too much
+#define QUEUEBUF_CONF_NUM 4 //decreased from 8
 
 #endif /* PROJECT_CONF_H_ */
