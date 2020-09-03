@@ -89,10 +89,11 @@ static struct uip_udp_conn *dtls_conn = NULL;
 PROCESS(coap_engine, "CoAP Engine");
 
 static struct uip_udp_conn *udp_conn = NULL;
-
+#ifdef WITH_GROUPCOM
 static coap_message_t message[1]; //FIXME enable multiple message processing
 static coap_message_t response[1];
 static coap_status_t parse_status; //FIXME enable multiple messages to be handled at a time
+#endif
 static uint8_t is_mcast = 0;
 /*---------------------------------------------------------------------------*/
 void
@@ -368,23 +369,22 @@ process_data(void)
   LOG_INFO_6ADDR(&UIP_IP_BUF->srcipaddr);
   LOG_INFO_("]:%u\n", uip_ntohs(UIP_UDP_BUF->srcport));
   LOG_INFO("  Length: %u\n", uip_datalen());
-#ifdef WITH_GROUPCOM
-  //FIXME right now it works only for a hard-coded ff02::1 group!
-  //uint8_t is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
-//  LOG_INFO("GROUPCOM, JUHU!\n");
-  is_mcast = 1;
-#else
- // LOG_INFO("Not a groupcom:(\n");
-  is_mcast = 0;
-#endif
   LOG_INFO("is_mcast: %d\n", is_mcast);
+#ifdef WITH_GROUPCOM
+  //uint8_t is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
+  is_mcast = 1;
   parse_status = coap_receive(uip_appdata, uip_datalen(), message);
+#else
+  is_mcast = 0;
+  coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast);
+#endif
 }
+#ifdef WITH_GROUPCOM
 /*---------------------------------------------------------------------------*/
 static void
 process_data_cont(void *event_data)
 {
-	LOG_INFO("signature verification yielded. Calling the receive continuation");
+	LOG_INFO("signature verification yielded. Calling the receive continuation\n");
 	coap_receive_cont(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast, event_data, parse_status, message, response);
 }
 /*---------------------------------------------------------------------------*/
@@ -395,6 +395,7 @@ schedule_send_response(void)
 	coap_send_postcrypto(message, response);
 }
 /*---------------------------------------------------------------------------*/
+#endif
 int
 coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t length)
 {
@@ -484,6 +485,7 @@ PROCESS_THREAD(coap_engine, ev, data)
         process_data();
       }
     }
+#ifdef WITH_GROUPCOM
     else if (ev == pe_message_verified) {
 	    LOG_INFO("Received message verified event!\n");
 	    process_data_cont(data);
@@ -492,6 +494,7 @@ PROCESS_THREAD(coap_engine, ev, data)
 	    LOG_INFO("Received message signed event!\n");
 	    schedule_send_response();
     }
+#endif
   } /* while (1) */
 
   PROCESS_END();

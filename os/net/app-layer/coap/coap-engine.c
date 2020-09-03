@@ -183,6 +183,7 @@ extern coap_resource_t res_well_known_core;
 /*---------------------------------------------------------------------------*/
 /*- Internal API ------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
+#ifdef WITH_GROUPCOM
 /*Only capture the data and start the signature verification*/
 coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_message_t *message)
 {//we neglect the output because the oscore code only schedules the verification process
@@ -193,14 +194,19 @@ coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_messa
 int
 coap_receive_cont(const coap_endpoint_t *src,
              uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, void *queue_entry, coap_status_t in_status, coap_message_t *msg, coap_message_t *resp)
+#else
+int
+coap_receive(const coap_endpoint_t *src,
+		uint8_t *payload, uint16_t payload_length, uint8_t is_mcast)
+#endif
 {
   /* static declaration reduces stack peaks and program code size */
-  //static coap_message_t message[1]; /* this way the message can be treated as pointer as usual */
-  messages_to_verify_entry_t *item = (messages_to_verify_entry_t *) queue_entry;
-  static coap_message_t message[1];// = item->message;
-  message[0] = *msg;
+  static coap_message_t message[1]; /* this way the message can be treated as pointer as usual */
   static coap_message_t response[1];
+#ifdef WITH_GROUPCOM
+  message[0] = *msg;
   response[0] = *response;
+#endif
   coap_transaction_t *transaction = NULL;
   coap_handler_status_t status;
 //#ifdef WITH_GROUPCOM
@@ -208,13 +214,21 @@ coap_receive_cont(const coap_endpoint_t *src,
   uint8_t is_testmcastq = 0;
   const char *res1 = "test/mcast", *res2 = "test/mcastq";
 //#endif
-  //coap_status_code = coap_parse_message(message, payload, payload_length);
+#ifdef WITH_GROUPCOM
   coap_status_code = in_status;
+#else
+  coap_status_code = coap_parse_message(message, payload, payload_length);
+#endif
+#ifdef OSCORE_WITH_HW_CRYPTO
+#ifdef CONTIKI_TARGET_ZOUL
+  messages_to_verify_entry_t *item = (messages_to_verify_entry_t *) queue_entry;
   if(item->result != 0)
   {
 	  LOG_DBG("The ECC verification failed with the following code: %u", item->result);
 	  coap_status_code = OSCORE_DECRYPTION_ERROR;
   }
+#endif
+#endif
   coap_set_src_endpoint(message, src);
 
   if(coap_status_code == NO_ERROR) {
@@ -229,11 +243,6 @@ coap_receive_cont(const coap_endpoint_t *src,
     LOG_DBG("  Payload: ");
     LOG_DBG_COAP_STRING((const char *)message->payload, message->payload_len);
     LOG_DBG_("\n");
-  /*if(node_id == 3)
-  {
-	  LOG_DBG("\n\nI AM CLIENT AND STOP COAP_RECEIVE NOW!!!\n\n");
-	  return 0;
-  }*/
 
 //#ifdef WITH_GROUPCOM
   if(message->uri_path)/*Server responses have NULL STR, so for client mcast check is not needed*/
@@ -405,7 +414,7 @@ coap_receive_cont(const coap_endpoint_t *src,
           if(coap_status_code == NO_ERROR) {
 #ifdef WITH_GROUPCOM
 		//start the signing process and return.
-		size_t prepare_out = oscore_prepare_message_no_serialize(response, transaction->message);
+		size_t prepare_out = oscore_prepare_message(response, transaction->message);
 		if (prepare_out == PACKET_SERIALIZATION_ERROR)
 		{
 			coap_status_code = PACKET_SERIALIZATION_ERROR;
@@ -557,6 +566,7 @@ coap_receive_cont(const coap_endpoint_t *src,
   return coap_status_code;
 }
 /*---------------------------------------------------------------------------*/
+#ifdef WITH_GROUPCOM
 /*Now that the signature process has yielded, the message is ready; just send it*/
 void
 coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
@@ -571,7 +581,11 @@ coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
 	      LOG_DBG("SEND POSTCRYPTO: attempting to send the transaction.\n");
 	      send_delayed_response_callback(&(message->mid));
       }
+      else {
+	      LOG_WARN("SEND POSTCRYPTO: transaction not found!\n");
+      }
 }
+#endif
 /*---------------------------------------------------------------------------*/
 void
 coap_engine_init(void)
