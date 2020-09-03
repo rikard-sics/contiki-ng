@@ -440,7 +440,7 @@ coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
   return coap_serialize_message_coap(coap_pkt, buffer);
 #endif /* WITH_OSCORE */
 }
-
+#ifdef WITH_GROUPCOM
 size_t
 coap_serialize_postcrypto(coap_message_t *coap_pkt, uint8_t *buffer)
 {
@@ -448,6 +448,7 @@ coap_serialize_postcrypto(coap_message_t *coap_pkt, uint8_t *buffer)
 	size_t s = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
 	return s;
 }
+#endif
 /*---------------------------------------------------------------------------*/
 coap_status_t
 coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
