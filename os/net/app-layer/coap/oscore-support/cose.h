@@ -39,7 +39,8 @@
 
 #ifndef _COSE_H
 #define _COSE_H
-#include <inttypes.h>
+
+#include <stdint.h>
 
 /*
  * See RFC8152 for the COSE algorithm definitions
