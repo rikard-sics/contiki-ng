@@ -40,6 +40,8 @@
 #ifndef _COSE_H
 #define _COSE_H
 
+#include <stdint.h>
+
 /*
  * See RFC8152 for the COSE algorithm definitions
  * https://tools.ietf.org/html/rfc8152#page-49
