@@ -49,9 +49,11 @@ typedef struct coap_periodic_resource_s coap_periodic_resource_t;
 
 #include "coap.h"
 #include "coap-timer.h"
-#ifdef WITH_GROUPCOM
+
+#ifdef WITH_OSCORE
 #include "oscore-crypto.h"
-#endif
+#endif /* WITH_OSCORE */
+
 typedef enum {
   COAP_HANDLER_STATUS_CONTINUE,
   COAP_HANDLER_STATUS_PROCESSED

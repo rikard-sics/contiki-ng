@@ -62,7 +62,7 @@ PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
-static struct uip_udp_conn *conn;
+static struct uip_udp_conn *conn = NULL;
 
 char *service_urls[] =
 {"/test/hello", "/test/mcastq", "/test/hello", "/test/mcast"};
@@ -109,8 +109,11 @@ PROCESS_THREAD(er_example_client, ev, data)
 //  if(!simple_udp_register(&c, 7777, &udp_addr, 5684, NULL)){
 //	printf("error register\n");
 //  }
-  conn = udp_new(&udp_addr, UIP_HTONS(5684), NULL);
-
+//  conn = udp_new(&udp_addr, UIP_HTONS(5684), NULL);
+  conn = udp_new(NULL, 0, NULL);
+  if(conn == NULL){
+	printf("Could not allocate conn\n");
+  }
 
   static uint8_t payload[64] = {0xFF}; 
   
