@@ -50,7 +50,30 @@
 #include "os/lib/queue.h"
 #include "os/lib/memb.h"
 #include "random.h"
-/*the rest of the includes are moved to oscore-crypto.h file.*/
+/*SW/HW crypto libraries*/
+#ifdef OSCORE_WITH_HW_CRYPTO
+
+#ifdef CONTIKI_TARGET_ZOUL
+#include "dev/ecc-algorithm.h"
+#include "dev/ecc-curve.h"
+#include "dev/sha256.h"
+#endif
+
+#ifdef CONTIKI_TARGET_SIMPLELINK
+#include "ti/drivers/ECDSA.h"
+#include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
+#endif
+
+#ifdef CONTIKI_TARGET_NATIVE
+#error "Cannot run HW crypto on native!"
+#endif
+
+#else /*SW crypto*/
+
+#include "uECC.h"
+
+#endif /*OSCORE_WITH_HW_CRYPTO*/
+
 #ifdef OSCORE_WITH_HW_CRYPTO
 #include "sys/pt-sem.h"
 process_event_t pe_crypto_lock_released;
@@ -125,6 +148,11 @@ oscore_crypto_init(void)
 	crypto_disable();
 	pka_init();
 	pka_disable();
+#elif CONTIKI_TARGET_SIMPLELINK
+	//FIXME
+	ECDSA_init();
+	//ECDSA_Params_init(ECDSA_defaultParams);
+	ECDSA_Params_init();
 #endif	
 	PT_SEM_INIT(&crypto_processor_mutex, 1);
 	pe_crypto_lock_released = process_alloc_event();
@@ -170,6 +198,7 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 
 #ifdef OSCORE_WITH_HW_CRYPTO
 
+#ifdef CONTIKI_TARGET_ZOUL
 bool
 crypto_fill_random(uint8_t *buffer, size_t size_in_bytes)
 {
@@ -193,7 +222,7 @@ crypto_fill_random(uint8_t *buffer, size_t size_in_bytes)
 	return true;
 
 }
-#ifdef CONTIKI_TARGET_ZOUL
+
 static uint8_t
 sha256_hash(const uint8_t *buffer, size_t len, uint8_t *hash)
 {
@@ -536,7 +565,57 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 	state->sig_len = ES256_SIGNATURE_LEN;
 
 #else //with HW crypto
+#ifdef CONTIKI_TARGET_SIMPLELINK
+	uint8_t pmsn[32]                     = {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
+						0x9F, 0xE1, 0xFB, 0x04, 0xF2, 0x4B, 0x50, 0x58,
+						0x91, 0xE3, 0xAC, 0x4D, 0x2A, 0x5D, 0x43, 0xAA,
+						0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};
+	CryptoKey myPrivateKey;
+	CryptoKey pmsnKey;
+	ECDSA_Handle ecdsaHandle;
+	ECDSA_OperationSign operationSign;
+	int_fast16_t operationResult;
+	//uint8_t r[32] = {0};
+	//uint8_t s[32] = {0};
+	//open the handle with default parameters
+	ecdsaHandle = ECDSA_open(0, NULL);
+	if (!ecdsaHandle)
+	{
+		//TODO handle error
+		PT_EXIT(&state->pt);
+	}
 
+	CryptoKeyPlaintext_initKey(&myPrivateKey, private_key, ES256_PRIVATE_KEY_LEN);
+	CryptoKeyPlaintext_initKey(&pmsnKey, pmsn, sizeof(pmsn));
+
+	//TODO sha part
+	ECDSA_OperationSign_init(&operationSign);
+	operationSign.curve = &ECCParams_NISTP256;
+	operationSign.myPrivateKey = &myPrivateKey;
+	operationSign.pmsn = &pmsnKey;
+	operationSign.hash = message_hash;
+	operationSign.r = signature;
+	operationSign.s = signature + 32;
+
+	operationResult = ECDSA_sign(ecdsaHandle, &operationSign);
+
+	if (operationResult != ECDSA_STATUS_SUCCESS)
+	{
+		//TODO handle error
+		printf("Sign failed with the following code: %d", operationResult);
+		PT_EXIT(&state->pt);
+	}
+
+	printf("Sign diag: printing r:\n");
+	kprintf_hex(signature, 32);
+	printf("Sign diag: printing s:\n");
+	kprintf_hex((signature + 32), 32);
+
+	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
+
+	state->sig_len = ES256_SIGNATURE_LEN;
+
+#endif //CONTIKI_TARGET_SIMPLELINK
 #ifdef CONTIKI_TARGET_ZOUL
 	printf("TARGET=ZOUL, using sha256\n");
 	uint8_t sha256_ret = sha256_hash(buffer, msg_len, message_hash);
@@ -643,6 +722,44 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 
 	printf("ecc_verify: After PT_SPAWN...\n");
 #else //HW crypto
+
+#ifdef CONTIKI_TARGET_SIMPLELINK
+	//TODO sha part
+	CryptoKey theirPublicKey;
+	ECDSA_handle ecdsaHandle;
+	int_fast16_t operationResult;
+	ECDSA_OperationVerify operationVerify;
+
+	ecdsaHandle = ECDSA_open(0, NULL);
+
+	if(!ecdsaHandle)
+	{
+		//TODO handle error
+		PT_EXIT(&state->pt);
+	}
+
+	CryptoKeyPlaintext_initKey(&theirPublicKey, public_key, EC256_PUBLIC_KEY_LEN);
+
+	ECDSA_OperationVerify_init(&operationVerify);
+
+	operationVerify.curve = &ECCParams_NISTP256;
+	operationVerify.theirPublicKey = &theirPublicKey;
+	operationVerify.hash = messageHash;
+	operationVerify.r = signature;
+	operationVerify.s = siganture + EC256_PRIVATE_KEY_LEN;
+
+	operationResult = ECDSA_verify(ecdsaHandle, &operationVerify);
+
+	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
+
+	if (operationResult != ECDSA_STATUS_SUCCESS)
+	{
+		//TODO handle error
+		printf("Verify failed with the following code: %d", operationResult);
+		PT_EXIT(&state->pt);
+	}
+
+#endif //CONTIKI_TARGET_SIMPLELINK
 
 #ifdef CONTIKI_TARGET_ZOUL
 	printf("Using sha256\n");

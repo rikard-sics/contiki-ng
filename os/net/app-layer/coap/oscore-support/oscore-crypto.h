@@ -66,30 +66,6 @@
 
 #ifdef WITH_GROUPCOM
 #include "sys/pt.h"
-/*SW/HW crypto libraries*/
-#ifdef OSCORE_WITH_HW_CRYPTO
-
-#ifdef CONTIKI_TARGET_ZOUL
-#include "dev/ecc-algorithm.h"
-#include "dev/ecc-curve.h"
-#include "dev/sha256.h"
-#endif
-
-#ifdef CONTIKI_TARGET_SIMPLELINK
-#include "ti/drivers/ECDSA.h"
-#include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
-//#include "driverlib/rom_crypto.h"
-#endif
-
-#ifdef CONTIKI_TARGET_NATIVE
-#error "Cannot run HW crypto on native!"
-#endif
-
-#else /*SW crypto*/
-
-#include "uECC.h"
-
-#endif /*OSCORE_WITH_HW_CRYPTO*/
 
 #ifndef SHA256_DIGEST_LEN_BYTES
 #define SHA256_DIGEST_LEN_BYTES (256/8)
