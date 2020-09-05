@@ -116,7 +116,7 @@ cose_encrypt0_set_aad(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
 bool
 cose_encrypt0_set_key(cose_encrypt0_t *ptr, const uint8_t *key, uint8_t key_size)
 {
-  if(key_size != 16) {
+  if(key_size != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN) {
     return false;
   }
 
