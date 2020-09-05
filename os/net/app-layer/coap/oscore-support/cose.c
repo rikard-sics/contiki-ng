@@ -62,7 +62,7 @@ cose_encrypt0_set_content(cose_encrypt0_t *ptr, uint8_t *buffer, uint16_t size)
 void
 cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
 {
-  if(size > 8){
+  if(size > COSE_algorithm_AES_CCM_16_64_128_TAG_LEN){
 	  return;
   }
   memcpy(ptr->partial_iv, buffer, size);
@@ -110,7 +110,7 @@ cose_encrypt0_set_aad(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
 bool
 cose_encrypt0_set_key(cose_encrypt0_t *ptr, const uint8_t *key, uint8_t key_size)
 {
-  if(key_size != 16) {
+  if(key_size != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN) {
     return false;
   }
 
@@ -128,10 +128,10 @@ cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t siz
 int
 cose_encrypt0_encrypt(cose_encrypt0_t *ptr)
 {
-  if(ptr->key == NULL || ptr->key_len != 16) {
+  if(ptr->key == NULL || ptr->key_len != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN) {
     return -1;
   }
-  if(ptr->nonce == NULL || ptr->nonce_len != 13) {
+  if(ptr->nonce == NULL || ptr->nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
     return -2;
   }
   if(ptr->aad == NULL || ptr->aad_len == 0) {
@@ -150,10 +150,10 @@ cose_encrypt0_encrypt(cose_encrypt0_t *ptr)
 int
 cose_encrypt0_decrypt(cose_encrypt0_t *ptr)
 {
-  if(ptr->key == NULL || ptr->key_len != 16) {
+  if(ptr->key == NULL || ptr->key_len != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN) {
     return -1;
   }
-  if(ptr->nonce == NULL || ptr->nonce_len != 13) {
+  if(ptr->nonce == NULL || ptr->nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
     return -2;
   }
   if(ptr->aad == NULL || ptr->aad_len == 0) {
