@@ -63,11 +63,11 @@
 
 /* Sets Alg, Partial IV Key ID and Key in COSE. */
 static void
-oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending);
+oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const oscore_ctx_t *ctx, bool sending);
 
 /* Creates and sets External AAD */
 static int
-oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, nanocbor_encoder_t* enc, bool sending);
+oscore_prepare_aad(const coap_message_t *coap_pkt, const cose_encrypt0_t *cose, nanocbor_encoder_t* enc, bool sending);
 
 #ifdef WITH_GROUPCOM
 static void
@@ -86,7 +86,7 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
 
 /*Return 1 if OK, Error code otherwise */
 static bool
-oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose);
+oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, const cose_encrypt0_t *cose);
 
 static void
 printf_hex_detailed(const char* name, const uint8_t *data, size_t len)
@@ -140,7 +140,7 @@ u64tob(uint64_t value, uint8_t *buffer)
 }
 
 static uint64_t
-btou64(uint8_t *bytes, size_t len)
+btou64(const uint8_t *bytes, size_t len)
 {
   uint8_t buffer[8];
   memset(buffer, 0, sizeof(buffer)); /* function variables are not initializated to anything */
@@ -163,7 +163,7 @@ btou64(uint8_t *bytes, size_t len)
 }
 
 static int
-oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose, bool include_partial_iv)
+oscore_encode_option_value(uint8_t *option_buffer, const cose_encrypt0_t *cose, bool include_partial_iv)
 {
   uint8_t offset = 1;
   if(cose->partial_iv_len > 5){
@@ -262,10 +262,10 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
   /* IF k-flag is set Key ID field is present. */
   if((option_value[0] & 0x08) != 0) {
     int kid_len = option_len - offset;
-    if (kid_len <= 0) {
+    if (kid_len <= 0 || kid_len > UINT8_MAX) {
       return BAD_OPTION_4_02;
     }
-    cose_encrypt0_set_key_id(cose, &(option_value[offset]), kid_len);
+    cose_encrypt0_set_key_id(cose, &(option_value[offset]), (uint8_t)kid_len);
   }
 
   return NO_ERROR;
@@ -299,10 +299,10 @@ oscore_decode_message(coap_message_t *coap_pkt)
 
   if(coap_is_request(coap_pkt)) {
 #ifdef WITH_GROUPCOM
-    uint8_t *group_id; /*used to extract gid from OSCORE option*/
+    const uint8_t *group_id; /*used to extract gid from OSCORE option*/
 #endif
     const uint8_t *key_id;
-    uint8_t key_id_len = cose_encrypt0_get_key_id(cose, &key_id);
+    const uint8_t key_id_len = cose_encrypt0_get_key_id(cose, &key_id);
 
     ctx = oscore_find_ctx_by_rid(key_id, key_id_len);
     if(ctx == NULL) {
@@ -438,7 +438,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
 }
 
 static void
-oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *ctx, bool sending)
+oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const oscore_ctx_t *ctx, bool sending)
 {
   cose_encrypt0_set_alg(cose, ctx->alg);
 
@@ -623,7 +623,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
 /* Creates and sets External AAD */
 static int
-oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, nanocbor_encoder_t* enc, bool sending)
+oscore_prepare_aad(const coap_message_t *coap_pkt, const cose_encrypt0_t *cose, nanocbor_encoder_t* enc, bool sending)
 {
   uint8_t external_aad_buffer[25];
 
@@ -682,7 +682,7 @@ oscore_prepare_aad(coap_message_t *coap_pkt, cose_encrypt0_t *cose, nanocbor_enc
 
 /* Creates Nonce */
 void
-oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size)
+oscore_generate_nonce(const cose_encrypt0_t *ptr, const coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size)
 {
   printf_hex_detailed("key_id", ptr->key_id, ptr->key_id_len);
   printf_hex_detailed("partial_iv", ptr->partial_iv, ptr->partial_iv_len);
@@ -732,7 +732,7 @@ oscore_clear_options(coap_message_t *coap_pkt)
 
 /*Return 1 if OK, Error code otherwise */
 bool
-oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose)
+oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, const cose_encrypt0_t *cose)
 {
   const uint64_t incoming_seq = btou64(cose->partial_iv, cose->partial_iv_len);
 

@@ -100,10 +100,9 @@ typedef struct oscore_ctx {
   struct oscore_ctx *next;
   const uint8_t *master_secret;
   uint8_t common_iv[CONTEXT_INIT_VECT_LEN];
-  oscore_sender_ctx_t sender_context;
-  oscore_recipient_ctx_t recipient_context;
   uint8_t master_secret_len;
   uint8_t alg;
+
 #ifdef WITH_GROUPCOM
   const uint8_t *gid;
   oscore_recipient_ctx_t *recipient_chain;
@@ -111,6 +110,9 @@ typedef struct oscore_ctx {
   int8_t counter_signature_parameters;
   uint8_t mode;   /* OSCORE_SINGLE or OSCORE_GROUP  */
 #endif /* WITH_GROUPCOM */
+
+  oscore_sender_ctx_t sender_context;
+  oscore_recipient_ctx_t recipient_context;
 } oscore_ctx_t;
 
 typedef struct oscore_exchange {
