@@ -62,7 +62,7 @@ coap_status_t oscore_decode_option_value(uint8_t *option_value, int option_len, 
 size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer);
 
 /* Creates Nonce */
-void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size);
+void oscore_generate_nonce(const cose_encrypt0_t *ptr, const coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size);
 
 /*Remove all protected options */
 void oscore_clear_options(coap_message_t *ptr);
