@@ -60,7 +60,7 @@ cose_encrypt0_set_content(cose_encrypt0_t *ptr, uint8_t *buffer, uint16_t size)
 }
 
 void
-cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
+cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
 {
   if(size > 8){
 	  return;
@@ -69,8 +69,8 @@ cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
   ptr->partial_iv_len = size;
 }
 /* Return length */
-int
-cose_encrypt0_get_partial_iv(cose_encrypt0_t *ptr, uint8_t **buffer)
+uint8_t
+cose_encrypt0_get_partial_iv(cose_encrypt0_t *ptr, const uint8_t **buffer)
 {
   *buffer = ptr->partial_iv;
   return ptr->partial_iv_len;
@@ -89,38 +89,38 @@ cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, const uint8_t **buffer)
   return ptr->key_id_len;
 }
 
-int cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, uint8_t **buffer){
+uint8_t cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, const uint8_t **buffer){
   *buffer = ptr->kid_context;
   return ptr->kid_context_len;
 }
 
-void cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, uint8_t *buffer, int size){
+void cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size){
   ptr->kid_context = buffer;
   ptr->kid_context_len = size;
 } 
 
 
 void
-cose_encrypt0_set_aad(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
+cose_encrypt0_set_aad(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
 {
   ptr->aad = buffer;
   ptr->aad_len = size;
 }
 /* Returns 1 if successfull, 0 if key is of incorrect length. */
-int
-cose_encrypt0_set_key(cose_encrypt0_t *ptr, uint8_t *key, int key_size)
+bool
+cose_encrypt0_set_key(cose_encrypt0_t *ptr, const uint8_t *key, uint8_t key_size)
 {
   if(key_size != 16) {
-    return 0;
+    return false;
   }
 
   ptr->key = key;
   ptr->key_len = key_size;
 
-  return 1;
+  return true;
 }
 void
-cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, uint8_t *buffer, int size)
+cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
 {
   ptr->nonce = buffer;
   ptr->nonce_len = size;
