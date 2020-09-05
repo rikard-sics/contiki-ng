@@ -41,6 +41,7 @@
 #define _COSE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /*
  * See RFC8152 for the COSE algorithm definitions
@@ -79,20 +80,10 @@ typedef struct cose_encrypt0_t {
 
   const uint8_t *key;
   uint8_t partial_iv[8];
-  int partial_iv_len;
-
   const uint8_t *key_id;
-  uint8_t key_id_len;
-
-  uint8_t *kid_context;
-  int kid_context_len;
-
-  uint8_t *nonce;
-  int nonce_len;
-
-  uint8_t *aad;
-  int aad_len;
-
+  const uint8_t *kid_context;
+  const uint8_t *nonce;
+  const uint8_t *aad;
   uint8_t *content;
 
 } cose_encrypt0_t;

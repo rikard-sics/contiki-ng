@@ -94,14 +94,12 @@ cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, const uint8_t **buffer)
   return ptr->key_id_len;
 }
 
-uint8_t
-cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, const uint8_t **buffer){
+uint8_t cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, const uint8_t **buffer){
   *buffer = ptr->kid_context;
   return ptr->kid_context_len;
 }
 
-void
-cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size){
+void cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size){
   ptr->kid_context = buffer;
   ptr->kid_context_len = size;
 } 
@@ -118,7 +116,7 @@ cose_encrypt0_set_aad(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
 bool
 cose_encrypt0_set_key(cose_encrypt0_t *ptr, const uint8_t *key, uint8_t key_size)
 {
-  if(key_size != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN) {
+  if(key_size != 16) {
     return false;
   }
 
