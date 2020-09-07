@@ -12,6 +12,8 @@ dev/gpio-hal/zoul:BOARD=orion \
 dev/leds/simplelink:BOARD=srf06/cc26x0 \
 dev/rgb-led/zoul:BOARD=remote-reva \
 hello-world/nrf52dk \
+hello-world/nrf52840:BOARD=dk \
+hello-world/nrf52840:BOARD=dongle \
 hello-world/openmote:BOARD=openmote-b \
 hello-world/openmote:BOARD=openmote-cc2538 \
 hello-world/zoul:BOARD=firefly-reva:DEFINES=ZOUL_CONF_USE_CC1200_RADIO=1 \
@@ -46,7 +48,7 @@ libs/trickle-library/zoul \
 lwm2m-ipso-objects/zoul:DEFINES=LWM2M_Q_MODE_CONF_ENABLED=1,LWM2M_Q_MODE_CONF_INCLUDE_DYNAMIC_ADAPTATION=1\
 lwm2m-ipso-objects/zoul:MAKE_WITH_DTLS=1 \
 mqtt-client/simplelink:BOARD=sensortag/cc2650:DEFINES=BOARD_CONF_SENSORS_DISABLE=1,TI_SPI_CONF_ENABLE=0 \
-mqtt-client/zoul:BOARD=firefly \
+mqtt-client/zoul:BOARD=firefly:DEFINES=MQTT_CONF_VERSION=5 \
 multicast/zoul \
 nullnet/zoul \
 platform-specific/cc2538-common/cc2538dk \
