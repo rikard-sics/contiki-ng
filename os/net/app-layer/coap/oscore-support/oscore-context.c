@@ -60,6 +60,10 @@
 #define LOG_LEVEL LOG_LEVEL_WARN
 #endif
 
+#ifndef OSCORE_MAX_ID_CONTEXT_LEN
+#define OSCORE_MAX_ID_CONTEXT_LEN 1
+#endif
+
 MEMB(exchange_memb, oscore_exchange_t, TOKEN_SEQ_NUM);
 
 LIST(common_context_list);
@@ -135,8 +139,13 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *id_context, uint8_t id_context_len)
 #endif
 {
-  uint8_t info_buffer[15];
+  uint8_t info_buffer[15 + OSCORE_MAX_ID_CONTEXT_LEN];
   int info_len;
+
+  if (id_context_len > OSCORE_MAX_ID_CONTEXT_LEN)
+  {
+    LOG_WARN("Please increase OSCORE_MAX_ID_CONTEXT_LEN to be at least %u\n", id_context_len);
+  }
 
   /* sender_key */
   info_len = compose_info(info_buffer, sizeof(info_buffer), alg, sid, sid_len, id_context, id_context_len, "Key", CONTEXT_KEY_LEN);
@@ -155,9 +164,8 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
 
   common_ctx->master_secret = master_secret;
   common_ctx->master_secret_len = master_secret_len;
-  //common_ctx->master_salt = master_salt;
-  //common_ctx->master_salt_len = master_salt_len;
   common_ctx->alg = alg;
+
 #ifdef WITH_GROUPCOM 
   common_ctx->gid = gid;
 #endif
@@ -201,7 +209,7 @@ oscore_exchange_store_init(void)
   list_init(exchange_list);
 }
 
-static oscore_exchange_t*
+oscore_exchange_t*
 oscore_get_exchange(const uint8_t *token, uint8_t token_len)
 {
   for(oscore_exchange_t *ptr = list_head(exchange_list); ptr != NULL; ptr = list_item_next(ptr)) {
@@ -214,7 +222,7 @@ oscore_get_exchange(const uint8_t *token, uint8_t token_len)
 
 
 oscore_ctx_t*
-oscore_get_contex_from_exchange(const uint8_t *token, uint8_t token_len, uint64_t *seq)
+oscore_get_context_from_exchange(const uint8_t *token, uint8_t token_len, uint64_t *seq)
 {
   oscore_exchange_t *ptr = oscore_get_exchange(token, token_len);
   if (ptr) {
@@ -232,7 +240,7 @@ oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscor
   oscore_exchange_t *new_exchange = memb_alloc(&exchange_memb);
   if(new_exchange == NULL){
     /* If we are at capacity for Endpoint <-> Context associations: */
-    LOG_WARN("oscore_set_exchange: out of memory\n");
+    LOG_WARN("oscore_set_exchange: out of memory, will try to make room\n");
 
     /* Remove first element in list, to make space for a new one. */
     /* The head of the list contains the oldest inserted item,
@@ -250,6 +258,7 @@ oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscor
   new_exchange->seq = seq;
   new_exchange->context = context;
 
+  /* Add to end of the exchange list */
   list_add(exchange_list, new_exchange);
 
   return true;
@@ -315,9 +324,11 @@ oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t
   if(new_ep_ctx == NULL) {
     return false;
   }
+
   new_ep_ctx->ep = ep;
   new_ep_ctx->uri = uri;
   new_ep_ctx->ctx = ctx;
+
   list_add(ep_ctx_list, new_ep_ctx);
  
   return true;
