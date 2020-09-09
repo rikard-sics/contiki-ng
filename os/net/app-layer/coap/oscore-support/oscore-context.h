@@ -53,7 +53,7 @@
 #define CONTEXT_SEQ_LEN sizeof(uint64_t)
 
 #ifndef TOKEN_SEQ_NUM
-#define TOKEN_SEQ_NUM 20
+#define TOKEN_SEQ_NUM 30
 #endif
 
 #ifdef OSCORE_EP_CTX_ASSOCIATION
@@ -64,11 +64,11 @@
 
 typedef struct oscore_sender_ctx {
   uint8_t sender_key[CONTEXT_KEY_LEN];
-  uint8_t token[COAP_TOKEN_LEN];
+  //uint8_t token[COAP_TOKEN_LEN];
   uint64_t seq;
   const uint8_t *sender_id;
   uint8_t sender_id_len;
-  uint8_t token_len;
+  //uint8_t token_len;
 } oscore_sender_ctx_t;
 
 typedef struct oscore_recipient_ctx {
@@ -94,7 +94,7 @@ typedef struct oscore_exchange {
   struct oscore_exchange *next;
   oscore_ctx_t *context;
   uint64_t seq;
-  uint8_t token[8];
+  uint8_t token[COAP_TOKEN_LEN];
   uint8_t token_len;
 } oscore_exchange_t;
 
@@ -122,7 +122,7 @@ oscore_ctx_t *oscore_find_ctx_by_rid(const uint8_t *rid, uint8_t rid_len);
 /* Token <=> SEQ association */
 void oscore_exchange_store_init(void);
 bool oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context);
-oscore_ctx_t* oscore_get_contex_from_exchange(const uint8_t *token, uint8_t token_len, uint64_t *seq);
+oscore_exchange_t* oscore_get_exchange(const uint8_t *token, uint8_t token_len);
 void oscore_remove_exchange(const uint8_t *token, uint8_t token_len);
 
 #ifdef OSCORE_EP_CTX_ASSOCIATION
