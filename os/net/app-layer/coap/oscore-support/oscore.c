@@ -40,7 +40,6 @@
 
 
 #include "oscore.h"
-//#include "cbor.h"
 #include "coap.h"
 #include "coap-log.h"
 #include "stdio.h"
@@ -280,7 +279,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
   oscore_ctx_t *ctx = NULL;
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
-  uint8_t seq_buffer[8];
+  uint8_t seq_buffer[sizeof(uint64_t)];
   cose_encrypt0_init(cose);
 #ifdef WITH_GROUPCOM
   cose_sign1_t sign[1];
@@ -307,9 +306,11 @@ oscore_decode_message(coap_message_t *coap_pkt)
 
     ctx = oscore_find_ctx_by_rid(key_id, key_id_len);
     if(ctx == NULL) {
-      LOG_ERR("OSCORE Security Context not found (rid = '");
+      LOG_ERR("OSCORE Security Context not found (rid='");
       LOG_ERR_BYTES(key_id, key_id_len);
-      LOG_ERR_("' len=%u).\n", key_id_len);
+      LOG_ERR_("' src='");
+      LOG_ERR_COAP_EP(coap_pkt->src_ep);
+      LOG_ERR_("').\n");
       coap_error_message = "Security context not found";
       return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
     }
@@ -340,29 +341,42 @@ oscore_decode_message(coap_message_t *coap_pkt)
 
     cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   } else { /* Message is a response */
-    oscore_exchange_t* exchange = oscore_get_exchange(coap_pkt->token, coap_pkt->token_len);
 
-    if(exchange == NULL) {
-      LOG_ERR("OSCORE exchange not found (token = '");
+    /* try and find this exchange */
+    oscore_exchange_t* exchange = oscore_get_exchange(coap_pkt->token, coap_pkt->token_len);
+    if (exchange == NULL) {
+      LOG_ERR("OSCORE exchange not found (token='");
       LOG_ERR_BYTES(coap_pkt->token, coap_pkt->token_len);
-      LOG_ERR_("' len=%u).\n", coap_pkt->token_len);
+      LOG_ERR_("' src='");
+      LOG_ERR_COAP_EP(coap_pkt->src_ep);
+      LOG_ERR_("').\n");
       coap_error_message = "Security context not found";
-      return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
+      return UNAUTHORIZED_4_01;
     }
 
-    ctx = exchange->context;
     const uint64_t seq = exchange->seq;
+    ctx = exchange->context;
 
+    /* Remove it, as we are done with this round of communication */
     oscore_remove_exchange(coap_pkt->token, coap_pkt->token_len);
-    exchange = NULL;
+
+    /* Check that the context is valid */
+    if (ctx == NULL) {
+      LOG_ERR("OSCORE exchange has no valid context (token='");
+      LOG_ERR_BYTES(coap_pkt->token, coap_pkt->token_len);
+      LOG_ERR_("' src='");
+      LOG_ERR_COAP_EP(coap_pkt->src_ep);
+      LOG_ERR_("').\n");
+      coap_error_message = "Security context not found";
+      return UNAUTHORIZED_4_01;
+    }
+
+    LOG_DBG("cose->partial_iv_len == %"PRIu16" (%"PRIu64")\n", cose->partial_iv_len, seq);
 
     /* If message contains a partial IV, the received is used. */
     if(cose->partial_iv_len == 0){
-      LOG_DBG("cose->partial_iv_len == 0 (%"PRIu64")\n", seq);
       uint8_t seq_len = u64tob(seq, seq_buffer);
       cose_encrypt0_set_partial_iv(cose, seq_buffer, seq_len);
-    } else {
-      LOG_DBG("cose->partial_iv_len == %"PRIu16" (%"PRIu64")\n", cose->partial_iv_len, seq);
     }
   }
 
