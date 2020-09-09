@@ -340,18 +340,21 @@ oscore_decode_message(coap_message_t *coap_pkt)
 
     cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   } else { /* Message is a response */
-    uint64_t seq;
-    ctx = oscore_get_contex_from_exchange(coap_pkt->token, coap_pkt->token_len, &seq);
+    oscore_exchange_t* exchange = oscore_get_exchange(coap_pkt->token, coap_pkt->token_len);
 
-    oscore_remove_exchange(coap_pkt->token, coap_pkt->token_len);
-
-    if(ctx == NULL) {
-      LOG_ERR("OSCORE Security Context not found (token = '");
+    if(exchange == NULL) {
+      LOG_ERR("OSCORE exchange not found (token = '");
       LOG_ERR_BYTES(coap_pkt->token, coap_pkt->token_len);
       LOG_ERR_("' len=%u).\n", coap_pkt->token_len);
       coap_error_message = "Security context not found";
       return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
     }
+
+    ctx = exchange->context;
+    const uint64_t seq = exchange->seq;
+
+    oscore_remove_exchange(coap_pkt->token, coap_pkt->token_len);
+    exchange = NULL;
 
     /* If message contains a partial IV, the received is used. */
     if(cose->partial_iv_len == 0){
