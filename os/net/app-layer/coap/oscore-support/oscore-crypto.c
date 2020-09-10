@@ -551,7 +551,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 	dtls_sha256_update(&msg_hash_ctx, buffer, msg_len);
 	dtls_sha256_final(message_hash, &msg_hash_ctx);
 
-	uint8_t tmp[32 + 32 + 64];//32+32+64
+	uint8_t tmp[ES256_PRIVATE_KEY_LEN + ES256_PRIVATE_KEY_LEN + ES256_SIGNATURE_LEN];//32+32+64
 	SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
 
 	printf("Scheduling deterministic sign in SW\n");
@@ -647,7 +647,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 	state->ecc_sign_state.process = state->process;
 	state->ecc_sign_state.curve_info = &nist_p_256;
 
-	ec_uint8v_to_uint32v(state->ecc_sign_state.secret, private_key, sizeof(private_key));
+	ec_uint8v_to_uint32v(state->ecc_sign_state.secret, private_key, ES256_PRIVATE_KEY_LEN);
 
 	crypto_fill_random((uint8_t *) state->ecc_sign_state.k_e, ES256_PRIVATE_KEY_LEN);
 
@@ -668,8 +668,8 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 		printf("Message sign success!\n");
 	}
 	//Add signature to the message
-	ec_uint32v_to_uint8v(buffer + msg_len, state->ecc_sign_state.point_r.x, ES256_PRIVATE_KEY_LEN);
-	ec_uint32v_to_uint8v(buffer + msg_len + ES256_PRIVATE_KEY_LEN, state->ecc_sign_state.signature_s, ES256_PRIVATE_KEY_LEN);
+	ec_uint32v_to_uint8v(signature, state->ecc_sign_state.point_r.x, ES256_PRIVATE_KEY_LEN);
+	ec_uint32v_to_uint8v(signature + ES256_PRIVATE_KEY_LEN, state->ecc_sign_state.signature_s, ES256_PRIVATE_KEY_LEN);
 	state->sig_len = ES256_SIGNATURE_LEN;
 	
 	//self-check
@@ -715,9 +715,9 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	const uint8_t *sig_s = signature + ES256_PRIVATE_KEY_LEN;//buffer + msg_len + ES256_PRIVATE_KEY_LEN;
 	//FIXME
 	printf("Signature r\n");
-	kprintf_hex(sig_r, (uint8_t) (ES256_SIGNATURE_LEN * 0.5));
+	kprintf_hex(sig_r, (uint8_t) (ES256_SIGNATURE_LEN / 2));
 	printf("Signature s\n");
-	kprintf_hex(sig_s, (uint8_t) (ES256_SIGNATURE_LEN * 0.5));
+	kprintf_hex(sig_s, (uint8_t) (ES256_SIGNATURE_LEN / 2));
 
 #endif
 	uint8_t message_hash[SHA256_DIGEST_LENGTH];
