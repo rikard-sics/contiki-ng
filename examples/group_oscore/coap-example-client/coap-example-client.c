@@ -96,28 +96,24 @@ PROCESS_THREAD(er_example_client, ev, data)
   static uip_ipaddr_t udp_addr;
 //  char *ip_str = "[ff02::1]";
   //char *ip_str = "[ff1e::89:abcd]";
-  //char *ip_str = "[fd00::212::4b00:14b5:d8fb]";
+  //char *ip_str = "[fd00::212:4b00:14b5:d8fb]";
   //uiplib_ipaddrconv(ip_str, &udp_addr); 
+  //uip_ip6addr(&udp_addr, 0xFD00,0,0,0,0x212,0x4b00,0x14b5,0xd8fb);
   uip_ip6addr(&udp_addr, 0xFF1E,0,0,0,0,0,0x89,0xABCD);
   printf("udp_addr\n");
   uiplib_ipaddr_print(&udp_addr);
   printf("\n");
 
   printf("Multicast Engine: '%s'\n", UIP_MCAST6.name);
-//  NETSTACK_ROUTING.root_start();
 
-//  if(!simple_udp_register(&c, 7777, &udp_addr, 5684, NULL)){
-//	printf("error register\n");
-//  }
-//  conn = udp_new(&udp_addr, UIP_HTONS(5684), NULL);
   conn = udp_new(NULL, 0, NULL);
   if(conn == NULL){
 	printf("Could not allocate conn\n");
   }
 
-  static uint8_t payload[64] = {0xFF}; 
+  static uint8_t payload[24] = {0xFF}; 
   
-  uip_udp_packet_send(conn, payload, 15);
+  uip_udp_packet_sendto(conn, payload, 15, &udp_addr, UIP_HTONS(5684)); 
   printf("sent?\n");
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
 
@@ -131,12 +127,7 @@ PROCESS_THREAD(er_example_client, ev, data)
       //coap_init_message(request, COAP_TYPE_NON, COAP_GET, 0);
       //coap_set_header_uri_path(request, service_urls[0]);
 
-      //LOG_INFO_COAP_EP(&servers[0]);
-     // LOG_INFO_COAP_EP(&server_ep);
-      //LOG_INFO_("\n");
-
- //     uip_udp_packet_sendto(conn, payload, 15, &udp_addr, UIP_HTONS(5684)); 
-      uip_udp_packet_send(conn, payload, 15);
+      uip_udp_packet_sendto(conn, payload, 15, &udp_addr, UIP_HTONS(5684)); 
       printf("sent?\n");
       
       etimer_reset(&et);
