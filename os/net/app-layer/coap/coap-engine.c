@@ -191,7 +191,7 @@ coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_messa
 /*This function can only be called after the signature verification has finished*/
 int
 coap_receive_cont(const coap_endpoint_t *src,
-             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, void *queue_entry, coap_status_t in_status, coap_message_t *msg, coap_message_t *resp)
+             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, void *queue_entry, coap_status_t in_status, coap_message_t *msg, coap_message_t *response)
 #else
 int
 coap_receive(const coap_endpoint_t *src,
@@ -200,10 +200,10 @@ coap_receive(const coap_endpoint_t *src,
 {
   /* static declaration reduces stack peaks and program code size */
   static coap_message_t message[1]; /* this way the message can be treated as pointer as usual */
-  static coap_message_t response[1];
+  //static coap_message_t response[1];
 #ifdef WITH_GROUPCOM
   message[0] = *msg;
-  response[0] = *response;
+  //response[0] = *response;
 #endif
   coap_transaction_t *transaction = NULL;
   coap_handler_status_t status;

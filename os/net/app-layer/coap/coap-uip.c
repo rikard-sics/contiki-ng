@@ -95,6 +95,44 @@ static coap_message_t response[1];
 static coap_status_t parse_status; //FIXME enable multiple messages to be handled at a time
 #endif
 static uint8_t is_mcast = 0;
+/*--------------------------------------------------------------------------*/
+void
+kprintf_hex2(signed char *data, unsigned int len)
+{
+  unsigned int i = 0;
+  for(i = 0; i < len; i++) {
+    printf("%02x ", data[i]);
+  }
+  printf("\n");
+}
+/*---------------------------------------------------------------------------*/
+void
+coap_log_msg(coap_message_t *msg)
+{
+	LOG_INFO("Logging coap message\n");
+	LOG_INFO("MID:%u\n", msg->mid);
+	LOG_INFO("Payload len:%u\n", msg->payload_len);
+	uint8_t *tmp_payload;
+	if (msg->payload_len > 0)
+	{
+	LOG_INFO("Trying to get payload\n");
+	coap_get_payload(msg, &tmp_payload);
+	kprintf_hex2(tmp_payload, msg->payload_len);
+	}
+	else 
+	{
+		LOG_INFO("No payload\n");
+	}
+	LOG_INFO("Printing token\n");
+	kprintf_hex2(msg->token, COAP_TOKEN_LEN);
+	char *host;
+	coap_get_header_uri_host(msg, &host);
+	if (host != NULL)
+	{
+		LOG_INFO("Uri host:\n");
+		kprintf_hex2(host, 4);
+	}
+}
 /*---------------------------------------------------------------------------*/
 void
 coap_endpoint_log(const coap_endpoint_t *ep)
@@ -487,6 +525,7 @@ PROCESS_THREAD(coap_engine, ev, data)
     }
     else if (ev == pe_message_signed) {
 	    LOG_INFO("Received message signed event!\n");
+	    coap_log_msg(response);
 	    schedule_send_response();
     }
 #endif
