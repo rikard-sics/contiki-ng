@@ -185,8 +185,7 @@ PROCESS_THREAD(er_example_server, ev, data)
     PROCESS_EXIT();
   }
 #endif
-  //sink_conn = udp_new(NULL, UIP_HTONS(1026), NULL);
-  sink_conn = udp_new(NULL, 0, NULL);
+  sink_conn = udp_new(NULL, UIP_HTONS(0), NULL);
   udp_bind(sink_conn, UIP_HTONS(MCAST_SINK_UDP_PORT));
 
   LOG_INFO("Listening: ");
