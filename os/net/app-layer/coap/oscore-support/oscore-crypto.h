@@ -95,11 +95,10 @@ int decrypt(
 	const uint8_t *aad, uint8_t aad_len,
 	uint8_t *buffer, uint16_t ciphertext_len);
 
-/* int hkdf(uint8_t whichSha, const uint8_t *salt, uint8_t salt_len, const uint8_t *ikm,  uint8_t ikm_len, const uint8_t *info, uint8_t info_len, uint8_t *okm, uint8_t   okm_len); */
 int hkdf(
 	const uint8_t *salt, uint8_t salt_len,
 	const uint8_t *ikm, uint8_t ikm_len,
-	uint8_t *info, uint8_t info_len,
+	const uint8_t *info, uint8_t info_len,
 	uint8_t *okm, uint8_t okm_len);
 
 int
