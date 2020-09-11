@@ -36,8 +36,6 @@
  *
  */
 
-
-
 #ifndef _OSCORE_CONTEXT_H
 #define _OSCORE_CONTEXT_H
 
@@ -64,11 +62,9 @@
 
 typedef struct oscore_sender_ctx {
   uint8_t sender_key[CONTEXT_KEY_LEN];
-  //uint8_t token[COAP_TOKEN_LEN];
   uint64_t seq;
   const uint8_t *sender_id;
   uint8_t sender_id_len;
-  //uint8_t token_len;
 } oscore_sender_ctx_t;
 
 typedef struct oscore_recipient_ctx {
@@ -98,14 +94,7 @@ typedef struct oscore_exchange {
   uint8_t token_len;
 } oscore_exchange_t;
 
-typedef struct ep_ctx {
-  struct ep_ctx *next;
-  coap_endpoint_t *ep;
-  const char *uri;
-  oscore_ctx_t *ctx;
-} ep_ctx_t;
-
-void oscore_ctx_store_init();
+void oscore_ctx_store_init(void);
 
 void oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *master_secret, uint8_t master_secret_len,
@@ -124,13 +113,5 @@ void oscore_exchange_store_init(void);
 bool oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context);
 oscore_exchange_t* oscore_get_exchange(const uint8_t *token, uint8_t token_len);
 void oscore_remove_exchange(const uint8_t *token, uint8_t token_len);
-
-#ifdef OSCORE_EP_CTX_ASSOCIATION
-/* URI <=> CTX association */
-void oscore_ep_ctx_store_init(void);
-bool oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx);
-oscore_ctx_t *oscore_get_context_from_ep(coap_endpoint_t *ep, const char *uri);
-void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri);
-#endif
 
 #endif /* _OSCORE_CONTEXT_H */

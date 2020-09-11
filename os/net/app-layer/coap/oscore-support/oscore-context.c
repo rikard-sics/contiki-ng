@@ -69,11 +69,26 @@ MEMB(exchange_memb, oscore_exchange_t, TOKEN_SEQ_NUM);
 LIST(common_context_list);
 LIST(exchange_list);
 
-
 #ifdef OSCORE_EP_CTX_ASSOCIATION
+typedef struct ep_ctx {
+  struct ep_ctx *next;
+  coap_endpoint_t *ep;
+  const char *uri;
+  oscore_ctx_t *ctx;
+} ep_ctx_t;
+
 MEMB(ep_ctx_memb, ep_ctx_t, EP_CTX_NUM);
 LIST(ep_ctx_list);
 #endif
+
+#define INFO_BUFFER_LENGTH ( \
+  1 + /* array */ \
+  1 + 6 + /* bstr, identity maximum length */ \
+  1 + OSCORE_MAX_ID_CONTEXT_LEN + /* bstr, id context maximum length */ \
+  1 + /* algorithm */ \
+  1 + 3 + /* tstr, "Key" or "IV" */ \
+  1 /* int, output length */ \
+)
 
 void
 oscore_ctx_store_init(void)
@@ -81,7 +96,7 @@ oscore_ctx_store_init(void)
   list_init(common_context_list);
 }
 
-static int
+static uint8_t
 compose_info(
   uint8_t *buffer, uint8_t buffer_len,
   uint8_t alg,
@@ -128,8 +143,8 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *rid, uint8_t rid_len,
   const uint8_t *id_context, uint8_t id_context_len)
 {
-  uint8_t info_buffer[15 + OSCORE_MAX_ID_CONTEXT_LEN];
-  int info_len;
+  uint8_t info_buffer[INFO_BUFFER_LENGTH];
+  uint8_t info_len;
 
   if (id_context_len > OSCORE_MAX_ID_CONTEXT_LEN)
   {
@@ -139,17 +154,26 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   /* sender_key */
   info_len = compose_info(info_buffer, sizeof(info_buffer), alg, sid, sid_len, id_context, id_context_len, "Key", CONTEXT_KEY_LEN);
   assert(info_len > 0);
-  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->sender_context.sender_key, CONTEXT_KEY_LEN);
+  hkdf(master_salt, master_salt_len,
+       master_secret, master_secret_len,
+       info_buffer, info_len,
+       common_ctx->sender_context.sender_key, CONTEXT_KEY_LEN);
 
   /* Receiver key */
   info_len = compose_info(info_buffer, sizeof(info_buffer), alg, rid, rid_len, id_context, id_context_len, "Key", CONTEXT_KEY_LEN);
   assert(info_len > 0);
-  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->recipient_context.recipient_key, CONTEXT_KEY_LEN);
+  hkdf(master_salt, master_salt_len,
+       master_secret, master_secret_len,
+       info_buffer, info_len,
+       common_ctx->recipient_context.recipient_key, CONTEXT_KEY_LEN);
 
   /* common IV */
   info_len = compose_info(info_buffer, sizeof(info_buffer), alg, NULL, 0, id_context, id_context_len, "IV", CONTEXT_INIT_VECT_LEN);
   assert(info_len > 0);
-  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
+  hkdf(master_salt, master_salt_len,
+       master_secret, master_secret_len,
+       info_buffer, info_len,
+       common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
 
   common_ctx->master_secret = master_secret;
   common_ctx->master_secret_len = master_secret_len;
@@ -157,7 +181,7 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
 
   common_ctx->sender_context.sender_id = sid;
   common_ctx->sender_context.sender_id_len = sid_len;
-  common_ctx->sender_context.seq = 0; // rfc8613 Section 3.2.2
+  common_ctx->sender_context.seq = 0; /* rfc8613 Section 3.2.2 */
 
   common_ctx->recipient_context.recipient_id = rid;
   common_ctx->recipient_context.recipient_id_len = rid_len;
@@ -179,7 +203,7 @@ oscore_find_ctx_by_rid(const uint8_t *rid, uint8_t rid_len)
 {
   oscore_ctx_t *ptr = NULL;
   for(ptr = list_head(common_context_list); ptr != NULL; ptr = list_item_next(ptr)){
-    if(bytes_equal(ptr->recipient_context.recipient_id, ptr->recipient_context.recipient_id_len, rid, rid_len) ){
+    if(bytes_equal(ptr->recipient_context.recipient_id, ptr->recipient_context.recipient_id_len, rid, rid_len)) {
       return ptr;
     }
   }
@@ -203,20 +227,6 @@ oscore_get_exchange(const uint8_t *token, uint8_t token_len)
     }
   }
   return NULL;
-}
-
-
-oscore_ctx_t*
-oscore_get_context_from_exchange(const uint8_t *token, uint8_t token_len, uint64_t *seq)
-{
-  oscore_exchange_t *ptr = oscore_get_exchange(token, token_len);
-  if (ptr) {
-    *seq = ptr->seq;
-    return ptr->context;
-  } else {
-    *seq = 0;
-    return NULL;
-  }
 }
 
 bool
@@ -258,85 +268,3 @@ oscore_remove_exchange(const uint8_t *token, uint8_t token_len)
     memb_free(&exchange_memb, ptr);
   }
 }
-
-#ifdef OSCORE_EP_CTX_ASSOCIATION
-
-/* URI <=> RID association */
-void
-oscore_ep_ctx_store_init(void)
-{
-  memb_init(&ep_ctx_memb);
-  list_init(ep_ctx_list);
-}
-
-static int
-_strcmp(const char *a, const char *b){
-  if(a == NULL && b != NULL){
-    return -1;
-  } else if (a != NULL && b == NULL) {
-    return 1;
-  } else if (a == NULL && b == NULL) {
-    return 0;
-  }
-  return strcmp(a,b);
-}
-
-static ep_ctx_t *
-oscore_ep_ctx_find(coap_endpoint_t *ep, const char *uri)
-{
-  for(ep_ctx_t *ptr = list_head(ep_ctx_list); ptr != NULL; ptr = list_item_next(ptr)) {
-    if((coap_endpoint_cmp(ep, ptr->ep) && (_strcmp(uri, ptr->uri) == 0))) {
-      return ptr;
-    }
-  }
-  return NULL;
-}
-
-bool
-oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx)
-{
-  ep_ctx_t *new_ep_ctx;
-
-  new_ep_ctx = oscore_ep_ctx_find(ep, uri);
-  if (new_ep_ctx) {
-    LOG_INFO("oscore_ep_ctx_set_association: updating existing context 0x%" PRIXPTR " -> 0x%" PRIXPTR "\n",
-      (uintptr_t)new_ep_ctx->ctx, (uintptr_t)ctx);
-    new_ep_ctx->ctx = ctx;
-    return true;
-  }
-
-  new_ep_ctx = memb_alloc(&ep_ctx_memb);
-  if(new_ep_ctx == NULL) {
-    LOG_ERR("oscore_ep_ctx_set_association: out of memory\n");
-    return false;
-  }
-
-  new_ep_ctx->ep = ep;
-  new_ep_ctx->uri = uri;
-  new_ep_ctx->ctx = ctx;
-
-  list_add(ep_ctx_list, new_ep_ctx);
- 
-  return true;
-}
-
-oscore_ctx_t *
-oscore_get_context_from_ep(coap_endpoint_t *ep, const char *uri)
-{
-  ep_ctx_t *ptr = oscore_ep_ctx_find(ep, uri);
-  if (ptr) {
-    return ptr->ctx;
-  }
-  return NULL;
-}
-
-void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri)
-{
-  ep_ctx_t *ptr = oscore_ep_ctx_find(ep, uri);
-  if (ptr) {
-    list_remove(ep_ctx_list, ptr);
-    memb_free(&ep_ctx_memb, ptr);
-  }
-}
-
-#endif
