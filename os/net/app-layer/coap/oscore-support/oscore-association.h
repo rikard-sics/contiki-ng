@@ -44,16 +44,12 @@
 
 #include <stdbool.h>
 
-int cbor_put_text(uint8_t **buffer, const char *text, uint8_t text_len);
+#ifdef OSCORE_EP_CTX_ASSOCIATION
+/* URI <=> CTX association */
+void oscore_ep_ctx_store_init(void);
+bool oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx);
+oscore_ctx_t *oscore_get_context_from_ep(coap_endpoint_t *ep, const char *uri);
+void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri);
+#endif
 
-int cbor_put_array(uint8_t **buffer, uint8_t elements);
-
-int cbor_put_bytes(uint8_t **buffer, const uint8_t *bytes, uint8_t bytes_len);
-
-int cbor_put_map(uint8_t **buffer, uint8_t elements);
-
-int cbor_put_unsigned(uint8_t **buffer, uint8_t value);
-
-int cbor_put_negative(uint8_t **buffer, int64_t value);
-
-#endif /* _cbor_H */
+#endif

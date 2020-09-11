@@ -40,6 +40,7 @@
 
 
 #include "oscore.h"
+#include "oscore-association.h"
 #include "coap.h"
 #include "coap-log.h"
 #include "stdio.h"
@@ -279,7 +280,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
   oscore_ctx_t *ctx = NULL;
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
-  uint8_t seq_buffer[sizeof(uint64_t)];
+  uint8_t seq_buffer[CONTEXT_SEQ_LEN];
   cose_encrypt0_init(cose);
 #ifdef WITH_GROUPCOM
   cose_sign1_t sign[1];
@@ -512,6 +513,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
   cose_encrypt0_t cose[1];
   cose_encrypt0_init(cose);
+
 #ifdef WITH_GROUPCOM
   cose_sign1_t sign[1];
   cose_sign1_init(sign);
@@ -519,6 +521,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
 #ifndef WITH_GROUPCOM
   uint8_t option_value_buffer[15]; /* When using Group-OSCORE this has to be global. */
+
   uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
 #endif /* not WITH_GROUPCOM */
   uint8_t aad_buffer[35];
