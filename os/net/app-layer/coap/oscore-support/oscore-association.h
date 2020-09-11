@@ -39,17 +39,12 @@
 #ifndef _OSCORE_ASSOCIATION_H
 #define _OSCORE_ASSOCIATION_H
 
-#ifdef OSCORE_EP_CTX_ASSOCIATION
-
 #include "oscore-context.h"
 #include "coap-endpoint.h"
 
 #include <stdbool.h>
 
-#ifndef EP_CTX_NUM
-#define EP_CTX_NUM 10
-#endif
-
+#ifdef OSCORE_EP_CTX_ASSOCIATION
 /* URI <=> CTX association */
 void oscore_ep_ctx_store_init(void);
 bool oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx);
