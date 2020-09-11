@@ -54,9 +54,9 @@
 #define LOG_MODULE "coap"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
-#if WITH_OSCORE
+#if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
 /* For OSCORE */
-#include "oscore-context.h"
+#include "oscore-association.h"
 #include "coap-endpoint.h"
 #endif /* WITH_OSCORE */
 
