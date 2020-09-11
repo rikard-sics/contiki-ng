@@ -467,7 +467,7 @@ int
 hkdf(
   const uint8_t *salt, uint8_t salt_len,
   const uint8_t *ikm, uint8_t ikm_len,
-  uint8_t *info, uint8_t info_len,
+  const uint8_t *info, uint8_t info_len,
   uint8_t *okm, uint8_t okm_len)
 {
   uint8_t prk_buffer[DTLS_SHA256_DIGEST_LENGTH];
