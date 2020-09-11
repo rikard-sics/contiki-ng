@@ -720,6 +720,10 @@ transmit(unsigned short transmit_len)
   LOG_INFO("Transmit\n");
 
   if(transmit_len > MAX_PAYLOAD_LEN) {
+#ifdef MAKE_WITH_PCAP
+  pcap_log_output_result(transmit_len, RADIO_TX_ERR);
+#endif
+
     return RADIO_TX_ERR;
   }
 
@@ -732,6 +736,10 @@ transmit(unsigned short transmit_len)
 
   if(send_on_cca) {
     if(channel_clear() == CC2538_RF_CCA_BUSY) {
+#ifdef MAKE_WITH_PCAP
+  pcap_log_output_result(transmit_len, RADIO_TX_COLLISION);
+#endif
+
       return RADIO_TX_COLLISION;
     }
   }
@@ -741,6 +749,10 @@ transmit(unsigned short transmit_len)
    * receiving. Abort transmission and bail out with RADIO_TX_COLLISION
    */
   if(REG(RFCORE_XREG_FSMSTAT1) & RFCORE_XREG_FSMSTAT1_SFD) {
+#ifdef MAKE_WITH_PCAP
+  pcap_log_output_result(transmit_len, RADIO_TX_COLLISION);
+#endif
+
     return RADIO_TX_COLLISION;
   }
 
