@@ -50,6 +50,12 @@
 #include <string.h>
 #include <inttypes.h>
 
+#if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
+/* For OSCORE */
+#include "oscore-association.h"
+#include "coap-endpoint.h"
+#endif /* WITH_OSCORE */
+
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "coap"
