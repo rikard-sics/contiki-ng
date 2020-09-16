@@ -50,15 +50,15 @@
 /* For Imin: Use 16 over CSMA, 64 over Contiki MAC */
 #define ROLL_TM_CONF_IMIN_1         64
 
-#define UIP_MCAST6_ROUTE_CONF_ROUTES 1
+#define UIP_MCAST6_ROUTE_CONF_ROUTES 5
 
 /* Code/RAM footprint savings so that things will fit on our device */
 #ifndef NETSTACK_MAX_ROUTE_ENTRIES
-#define NETSTACK_MAX_ROUTE_ENTRIES  3 
+#define NETSTACK_MAX_ROUTE_ENTRIES  5 
 #endif
 
 #ifndef NBR_TABLE_CONF_MAX_NEIGHBORS
-#define NBR_TABLE_CONF_MAX_NEIGHBORS 3 
+#define NBR_TABLE_CONF_MAX_NEIGHBORS 5 
 #endif
 
 //force specific radio mode
