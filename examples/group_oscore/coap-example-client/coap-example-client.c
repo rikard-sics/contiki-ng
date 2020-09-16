@@ -106,6 +106,8 @@ PROCESS_THREAD(er_example_client, ev, data)
 
   printf("Multicast Engine: '%s'\n", UIP_MCAST6.name);
 
+
+
   conn = udp_new(NULL, 0, NULL);
   if(conn == NULL){
 	printf("Could not allocate conn\n");
