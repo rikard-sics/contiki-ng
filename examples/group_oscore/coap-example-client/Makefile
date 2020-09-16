@@ -10,6 +10,7 @@ MODULES += os/net/app-layer/coap
 
 MODULES += os/net/ipv6/multicast
 
+WERROR=0
 
 CFLAGS += -DMAKE_WITH_GROUPCOM=1
 
