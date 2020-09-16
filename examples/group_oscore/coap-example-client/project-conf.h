@@ -61,6 +61,8 @@
 #define NBR_TABLE_CONF_MAX_NEIGHBORS 3 
 #endif
 
+//force specific radio mode
+#define RF_CONF_MODE RF_MODE_SUB_1_GHZ//RF_MODE_2_4_GHZ
 
 /* Enable client-side support for COAP observe */
 #define COAP_OBSERVE_CLIENT            1

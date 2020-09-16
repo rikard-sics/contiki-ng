@@ -200,10 +200,11 @@ coap_receive(const coap_endpoint_t *src,
 {
   /* static declaration reduces stack peaks and program code size */
   static coap_message_t message[1]; /* this way the message can be treated as pointer as usual */
-  //static coap_message_t response[1];
 #ifdef WITH_GROUPCOM
   message[0] = *msg;
-  //response[0] = *response;
+#else
+  static coap_message_t response[1];
+  response[0] = *response;
 #endif
   coap_transaction_t *transaction = NULL;
   coap_handler_status_t status;
