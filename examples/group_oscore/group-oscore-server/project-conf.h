@@ -48,25 +48,27 @@
 #define UIP_MCAST6_CONF_ENGINE UIP_MCAST6_ENGINE_SMRF
 #endif
 
+#define STACK_CHECK_CONF_ENABLED 1 
+
 /* For Imin: Use 16 over CSMA, 64 over Contiki MAC */
 #define ROLL_TM_CONF_IMIN_1         64
 
-#define UIP_MCAST6_ROUTE_CONF_ROUTES 1
+#define UIP_MCAST6_ROUTE_CONF_ROUTES 3
 
 /* Code/RAM footprint savings so that things will fit on our device */
 #ifndef NETSTACK_MAX_ROUTE_ENTRIES
-#define NETSTACK_MAX_ROUTE_ENTRIES  1 
+#define NETSTACK_MAX_ROUTE_ENTRIES  3 
 #endif
 
 #ifndef NBR_TABLE_CONF_MAX_NEIGHBORS
-#define NBR_TABLE_CONF_MAX_NEIGHBORS 1 
+#define NBR_TABLE_CONF_MAX_NEIGHBORS 3 
 #endif
 
 #define REST_MAX_CHUNK_SIZE 200
 
 #define LOG_LEVEL_APP LOG_LEVEL_DBG
 #define LOG_CONF_LEVEL_COAP LOG_LEVEL_DBG
-
+//#define LOG_CONF_LEVEL_TCPIP LOG_LEVEL_DBG
 /*Below defines for code-size limitation*/
 #define LOG_CONF_LEVEL_MAIN LOG_LEVEL_INFO
 #define UIP_CONF_UDP_CONNS 4
