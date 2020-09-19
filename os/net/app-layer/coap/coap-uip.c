@@ -97,7 +97,7 @@ static coap_status_t parse_status; //FIXME enable multiple messages to be handle
 static uint8_t is_mcast = 0;
 /*--------------------------------------------------------------------------*/
 void
-kprintf_hex2(signed char *data, unsigned int len)
+kprintf_hex2(const uint8_t *data, unsigned int len)
 {
   unsigned int i = 0;
   for(i = 0; i < len; i++) {
@@ -112,7 +112,7 @@ coap_log_msg(coap_message_t *msg)
 	LOG_INFO("Logging coap message\n");
 	LOG_INFO("MID:%u\n", msg->mid);
 	LOG_INFO("Payload len:%u\n", msg->payload_len);
-	uint8_t *tmp_payload;
+	const uint8_t *tmp_payload;
 	if (msg->payload_len > 0)
 	{
 	LOG_INFO("Trying to get payload\n");
@@ -125,12 +125,12 @@ coap_log_msg(coap_message_t *msg)
 	}
 	LOG_INFO("Printing token\n");
 	kprintf_hex2(msg->token, COAP_TOKEN_LEN);
-	char *host;
+	const char *host;
 	coap_get_header_uri_host(msg, &host);
 	if (host != NULL)
 	{
 		LOG_INFO("Uri host:\n");
-		kprintf_hex2(host, 4);
+		printf("%.*s \n", 4, host);
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -474,9 +474,6 @@ coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t length)
   LOG_INFO_COAP_EP(ep);
   LOG_INFO_("DEBUG  %u bytes\n", length);
   uip_udp_packet_sendto(udp_conn, data, length, &ep->ipaddr, ep->port);
-  LOG_INFO("sent to ");
-  LOG_INFO_COAP_EP(ep);
-  LOG_INFO_(" %u bytes\n", length);
   return length;
 }
 /*---------------------------------------------------------------------------*/
@@ -506,7 +503,6 @@ PROCESS_THREAD(coap_engine, ev, data)
 
   while(1) {
     PROCESS_YIELD();
-
     if(ev == tcpip_event) {
       if(uip_newdata()) {
 #ifdef WITH_DTLS
@@ -528,7 +524,7 @@ PROCESS_THREAD(coap_engine, ev, data)
 	    coap_log_msg(response);
 	    schedule_send_response();
     }
-#endif
+#endif /* WITH_GROUPCOM */
   } /* while (1) */
 
   PROCESS_END();
