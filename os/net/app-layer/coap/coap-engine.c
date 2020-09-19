@@ -66,17 +66,8 @@
 //#include "sys/random.h"
 //#include "coap-timer.h"
 #include "sys/ctimer.h"
-/*The delayed server response to mcast request*/
-//static struct ctimer dr_timer;
 static uint16_t dr_mid;
-/*void printf_hex(unsigned char *data, unsigned int len)
-{
-  unsigned int i = 0;
-  for(i = 0; i < len; i++) {
-    LOG_DBG_("%02x ", data[i]);
-  }
-  LOG_DBG_("\n");
-}*/
+
 /*Callback function to actually send the delayed response*/
 void send_delayed_response_callback(void *data)
 {
@@ -86,7 +77,6 @@ LOG_DBG("Send_delayed_response_callback:\n");
  coap_transaction_t *trans;
  if((trans = coap_get_transaction_by_mid(*mid_))) {
    LOG_DBG("Transaction found!!! Sending...\n");
-   //printf_hex(trans->message, trans->message_len);
    coap_send_transaction(trans);
  }
  else {
@@ -206,7 +196,7 @@ extern void oscore_missing_security_context(const coap_endpoint_t *src)
 /*Only capture the data and start the signature verification*/
 coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_message_t *message)
 {//we neglect the output because the oscore code only schedules the verification process
-	printf("Coap_receive: calling coap_parse for initial processing...\n");
+	LOG_DBG("Coap_receive: calling coap_parse for initial processing...\n");
 	return coap_parse_message(message, payload, payload_length);
 }
 /*This function can only be called after the signature verification has finished*/
@@ -327,7 +317,7 @@ coap_receive(const coap_endpoint_t *src,
 	if(coap_is_option(message, COAP_OPTION_OSCORE)){
 	  coap_set_oscore(response);
 	  if(message->security_context == NULL){
-		  printf("context is NULL\n");
+		  LOG_DBG("context is NULL\n");
 	  }
 #endif /*WITH_GROUPCOM*/
           /* unreliable NON requests are answered with a NON as well */
@@ -443,20 +433,15 @@ coap_receive(const coap_endpoint_t *src,
 #ifdef WITH_GROUPCOM
 		//start the signing process and return.
 		size_t prepare_out = oscore_prepare_message(response, transaction->message);
-		if (prepare_out == PACKET_SERIALIZATION_ERROR)
-		{
+		if (prepare_out == PACKET_SERIALIZATION_ERROR) {
 			coap_status_code = PACKET_SERIALIZATION_ERROR;
-		}	
-		else if (prepare_out == 0)
-		{
+		} else if (prepare_out == NO_ERROR) {
 			LOG_DBG("Message prepared, signing in progress. Returning for now...\n");
 			return 0;
 		}
 #else
-            if((transaction->message_len = coap_serialize_message(response,
-                                                                 transaction->
-                                                                 message)) ==
-               0) {
+            if((transaction->message_len = 
+		   coap_serialize_message(response, transaction->message)) == 0) {
               coap_status_code = PACKET_SERIALIZATION_ERROR;
             }
 #endif
@@ -536,18 +521,18 @@ coap_receive(const coap_endpoint_t *src,
     coap_clear_transaction(transaction);
   } else if(coap_status_code == OSCORE_DECRYPTION_ERROR) {
     LOG_WARN("OSCORE response decryption failed!\n");
-    if ((transaction = coap_get_transaction_by_mid(message->mid))) {
-      /* free transaction memory before callback, as it may create a new transaction */
-      coap_resource_response_handler_t callback = transaction->callback;
-      void *callback_data = transaction->callback_data;
-      
-      message->code = OSCORE_DECRYPTION_ERROR;
-      coap_clear_transaction(transaction);
-      printf("TODO send empty ACK!\n");
-      /* check if someone registered for the response */
-      if(callback) {
-        callback(callback_data, message);
-      }
+    coap_transaction_t *t = coap_get_transaction_by_mid(message->mid);
+    
+    /* free transaction memory before callback, as it may create a new transaction */
+    coap_resource_response_handler_t callback = t->callback;
+    void *callback_data = t->callback_data;
+    
+    message->code = OSCORE_DECRYPTION_ERROR;
+    coap_clear_transaction(t);
+    LOG_DBG("TODO send empty ACK!\n");
+    /* check if someone registered for the response */
+    if(callback) {
+      callback(callback_data, message);
     }
   } else {
 #ifdef WITH_OSCORE
@@ -608,16 +593,18 @@ void
 coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
 {
       size_t msg_len = 0;
-      coap_transaction_t *transaction;
-      if((transaction = coap_get_transaction_by_mid(message->mid))) {
-	      LOG_DBG("POSTCRYPTO: transaction found!\n");
-              if((msg_len = coap_serialize_postcrypto(response, transaction->message)) == 0) {
+      coap_transaction_t *transaction = NULL;
+      transaction = coap_get_transaction_by_mid(message->mid);
+      if(transaction != NULL) {
+              msg_len = coap_serialize_postcrypto(response, transaction->message);
+	      if(msg_len == 0) {
 		      LOG_ERR("POSTCRYPTO serialization failed!\n");
+	      	      return;
 	      }
+	      transaction->message_len = msg_len;
 	      LOG_DBG("SEND POSTCRYPTO: attempting to send the transaction.\n");
 	      send_delayed_response_callback(&(message->mid));
-      }
-      else {
+      } else {
 	      LOG_WARN("SEND POSTCRYPTO: transaction not found!\n");
       }
 }
