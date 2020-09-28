@@ -152,7 +152,8 @@ typedef struct messages_to_sign_entry
 	//the process to notify the end of sign
 	struct process *process;
 
-	uint8_t *message;
+//	uint8_t *message;
+	uint8_t  message[250];
 	uint16_t message_buffer_len;
 	uint16_t message_len;
 
