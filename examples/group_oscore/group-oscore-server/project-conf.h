@@ -64,15 +64,15 @@
 #define NBR_TABLE_CONF_MAX_NEIGHBORS 3 
 #endif
 
-#define REST_MAX_CHUNK_SIZE 200
+#define REST_MAX_CHUNK_SIZE 150
 
 #define LOG_LEVEL_APP LOG_LEVEL_DBG
 #define LOG_CONF_LEVEL_COAP LOG_LEVEL_DBG
-//#define LOG_CONF_LEVEL_TCPIP LOG_LEVEL_DBG
+//#define LOG_CONF_LEVEL_TCPIP LOG_LEVEL_NONE
 /*Below defines for code-size limitation*/
 #define LOG_CONF_LEVEL_MAIN LOG_LEVEL_INFO
-#define UIP_CONF_UDP_CONNS 4
-#define UIP_CONF_BUFFER_SIZE 400
+#define UIP_CONF_UDP_CONNS 2
+#define UIP_CONF_BUFFER_SIZE 300
 //with the above 3 it was still 256 bytes too much
 #define QUEUEBUF_CONF_NUM 4 //decreased from 8
 

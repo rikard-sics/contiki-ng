@@ -90,7 +90,7 @@ PROCESS(coap_engine, "CoAP Engine");
 
 static struct uip_udp_conn *udp_conn = NULL;
 #ifdef WITH_GROUPCOM
-static coap_message_t message[1]; //FIXME enable multiple message processing
+static coap_message_t request[1]; //FIXME enable multiple message processing
 static coap_message_t response[1];
 static coap_status_t parse_status; //FIXME enable multiple messages to be handled at a time
 #endif
@@ -411,7 +411,7 @@ process_data(void)
 #ifdef WITH_GROUPCOM
   //uint8_t is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
   is_mcast = 1;
-  parse_status = coap_receive(uip_appdata, uip_datalen(), message);
+  parse_status = coap_receive(uip_appdata, uip_datalen(), request);
 #else
   is_mcast = 0;
   coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast);
@@ -423,14 +423,17 @@ static void
 process_data_cont(void *event_data)
 {
 	LOG_INFO("signature verification yielded. Calling the receive continuation\n");
-	coap_receive_cont(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast, event_data, parse_status, message, response);
+	coap_receive_cont(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast, event_data, parse_status, request, response);
 }
 /*---------------------------------------------------------------------------*/
 static void 
 schedule_send_response(void)
 {
 	LOG_INFO("signing completed. Continue the CoAP sending process.\n");
-	coap_send_postcrypto(message, response);
+	printf("response payload\n");
+	printf_hex(response->payload, response->payload_len);
+	printf("COAP_MAX_PACKET_SIZE COAP_MAX_PACKET_SIZE %d\n", COAP_MAX_PACKET_SIZE);
+	coap_send_postcrypto(request, response);
 }
 /*---------------------------------------------------------------------------*/
 #endif
@@ -473,6 +476,7 @@ coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t length)
   LOG_INFO("DEBUG seding to ");
   LOG_INFO_COAP_EP(ep);
   LOG_INFO_("DEBUG  %u bytes\n", length);
+  printf_hex(data, length);
   uip_udp_packet_sendto(udp_conn, data, length, &ep->ipaddr, ep->port);
   return length;
 }

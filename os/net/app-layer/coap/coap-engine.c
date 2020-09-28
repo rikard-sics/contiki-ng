@@ -554,6 +554,8 @@ coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
 		      LOG_ERR("POSTCRYPTO serialization failed!\n");
 	      	      return;
 	      }
+	      printf("postcrypto msg\n");
+		printf_hex(transaction->message, msg_len);
 	      transaction->message_len = msg_len;
 	      LOG_DBG("SEND POSTCRYPTO: attempting to send the transaction.\n");
 	      send_delayed_response_callback(&(message->mid));
