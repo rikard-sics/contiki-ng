@@ -399,6 +399,12 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
   return 0;
 }
 
+/* Global buffers since oscore_prepare_message() return before message is sent. */
+#ifdef WITH_GROUPCOM
+uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN + ES256_SIGNATURE_LEN];
+uint8_t sign_encoded_buffer[100]; //TODO come up with a better way to size buffer
+#endif /* WITH_GROUPCOM */
+
 /* Prepares a new OSCORE message, returns the size of the message. */
 size_t
 oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
@@ -410,11 +416,9 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   cose_sign1_init(sign);
 #endif /*WITH_GROUPCOM*/
 
-#ifdef WITH_GROUPCOM
-  uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN + ES256_SIGNATURE_LEN];
-#else
+#ifndef WITH_GROUPCOM
   uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
-#endif /* WITH_GROUPCOM */
+#endif /* not WITH_GROUPCOM */
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
   uint8_t option_value_buffer[15];
@@ -476,7 +480,6 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   //set the keys and algorithms
   oscore_populate_sign(coap_is_request(coap_pkt), sign, ctx);
-  uint8_t sign_encoded_buffer[aad_len + ciphertext_len + 24]; //TODO remove magic number
 
   //When we are sending responses the Key-ID in the Signature AAD shall be the REQUEST Key ID.
   if(!coap_is_request(coap_pkt)){ 
@@ -488,15 +491,13 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
    
   size_t sign_encoded_len = oscore_prepare_sig_structure(sign_encoded_buffer, 
                aad_buffer, aad_len, cose->content, ciphertext_len); 
-  
+  memset(&(content_buffer[ciphertext_len]), 0xAA, 64);
+printf("SIGNATURE SHOULD GO HERE %p \n", &(content_buffer[ciphertext_len]));
   cose_sign1_set_signature(sign, &(content_buffer[ciphertext_len]));
   cose_sign1_set_ciphertext(sign, sign_encoded_buffer, sign_encoded_len);
+  /* Queue message to sign */
   cose_sign1_sign(sign); //don't care about the result, it will be in progress
-/*  int sign_res = cose_sign1_sign(sign); 
-  if (sign_res == 0){
-    LOG_WARN_("OSCORE signature calculation Failure, result code\n");
-    return OSCORE_DECRYPTION_ERROR;
-  }*/
+  
   coap_set_payload(coap_pkt, content_buffer, total_len);
 #else
   coap_set_payload(coap_pkt, content_buffer, ciphertext_len);

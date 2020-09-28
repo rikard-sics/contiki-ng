@@ -43,7 +43,6 @@
 #include "coap-engine.h"
 #include "oscore.h"
 
-
 /* Log configuration */
 #include "sys/log.h"
 #define LOG_MODULE "App"
