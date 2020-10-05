@@ -913,6 +913,8 @@ PROCESS_THREAD(signer, ev, data)
 				printf("Failed to post pe_message_signed to %s\n", item->process->name);
 			} else {
 				printf("Successfully posted pe_message_signed!\n");
+				queue_message_to_sign_done(item);
+				printf("Freed the queue_message_to_sign item.\n");
 			}
 		}
 #ifdef OSCORE_WITH_HW_CRYPTO
@@ -981,10 +983,19 @@ PROCESS_THREAD(verifier, ev, data)
 			printf("Verifier: the result of the verify is %d.\n", state.ecc_verify_state.result);
 #endif
 #endif			//if (process_post(item->process, pe_message_verified, item) != PROCESS_ERR_OK)
-			if (process_post(PROCESS_BROADCAST, pe_message_verified, item) != PROCESS_ERR_OK)
+			static uint8_t verify_result;
+		        verify_result = item->result;
+			if (process_post(PROCESS_BROADCAST, pe_message_verified, &verify_result) != PROCESS_ERR_OK)
 			{
 				printf("Failed to post pe_message_verified to %s\n", item->process->name);
 			}
+			else 
+			{
+				printf("Successfully posted pe_message_verified!\n");
+				queue_message_to_verify_done(item);
+				printf("Freed the message_to_verify item.\n");
+			}
+
 		}
 #ifdef OSCORE_WITH_HW_CRYPTO
 		//notify release for other processes in the semaphore

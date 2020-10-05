@@ -87,7 +87,7 @@ void coap_engine_init(void);
 
 coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_message_t *message);
 int coap_receive_cont(const coap_endpoint_t *src,
-             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, void *queue_entry, coap_status_t in_status, coap_message_t *msg, coap_message_t *resp);
+             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, uint8_t verify_res, coap_status_t in_status, coap_message_t *msg, coap_message_t *resp);
 void coap_send_postcrypto(coap_message_t *message, coap_message_t *response);
 
 /*End of HW crypto code*/

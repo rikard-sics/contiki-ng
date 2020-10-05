@@ -183,7 +183,7 @@ coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_messa
 /*This function can only be called after the signature verification has finished*/
 int
 coap_receive_cont(const coap_endpoint_t *src,
-             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, void *queue_entry, coap_status_t in_status, coap_message_t *msg, coap_message_t *response)
+             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, uint8_t verify_res, coap_status_t in_status, coap_message_t *msg, coap_message_t *response)
 #else
 int
 coap_receive(const coap_endpoint_t *src,
@@ -212,10 +212,9 @@ coap_receive(const coap_endpoint_t *src,
 #endif
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
-  messages_to_verify_entry_t *item = (messages_to_verify_entry_t *) queue_entry;
-  if(item->result != 0)
+  if(verify_res != 0)
   {
-	  LOG_DBG("The ECC verification failed with the following code: %u", item->result);
+	  LOG_DBG("The ECC verification failed with the following code: %u", verify_res);
 	  coap_status_code = OSCORE_DECRYPTION_ERROR;
   }
 #endif
