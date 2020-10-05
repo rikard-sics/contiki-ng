@@ -403,6 +403,7 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
 #ifdef WITH_GROUPCOM
 uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN + ES256_SIGNATURE_LEN];
 uint8_t sign_encoded_buffer[100]; //TODO come up with a better way to size buffer
+uint8_t option_value_buffer[15];
 #endif /* WITH_GROUPCOM */
 
 /* Prepares a new OSCORE message, returns the size of the message. */
@@ -421,7 +422,6 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 #endif /* not WITH_GROUPCOM */
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
-  uint8_t option_value_buffer[15];
 /*  1 Retrieve the Sender Context associated with the target resource. */
   oscore_ctx_t *ctx = coap_pkt->security_context;
   if(ctx == NULL) {
