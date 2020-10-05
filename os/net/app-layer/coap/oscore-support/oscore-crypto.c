@@ -65,7 +65,7 @@
 #endif
 
 #ifdef CONTIKI_TARGET_SIMPLELINK
-#include <ti/drivers/SHA2.h>
+#include "ti/drivers/SHA2.h"
 #include "ti/drivers/ECDSA.h"
 #include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
 #endif
@@ -155,6 +155,13 @@ oscore_crypto_init(void)
 	pka_init();
 	pka_disable();
 #elif CONTIKI_TARGET_SIMPLELINK
+	SHA2_init();
+	SHA2_Params sha_params;
+	SHA2_Params_init(&sha_params);
+	sha_params.returnBehavior = SHA2_RETURN_BEHAVIOR_BLOCKING;
+	ECDSA_init();
+	ECDSA_Params ecdsa_params;
+	ECDSA_Params_init(&ecdsa_params);
 #endif	
 	PT_SEM_INIT(&crypto_processor_mutex, 1);
 	pe_crypto_lock_released = process_alloc_event();
@@ -204,7 +211,7 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 static uint8_t
 sha2_hash(uint8_t *message, size_t len, uint8_t *hash)
 {
-	SHA2_Handle handle;
+/*	SHA2_Handle handle;
 	int_fast16_t result;
 	SHA2_Params params;
 
@@ -236,6 +243,23 @@ sha2_hash(uint8_t *message, size_t len, uint8_t *hash)
 		goto final;
 	}
 final:
+	SHA2_close(handle);
+	return (uint8_t) result;
+*/
+/*One-step hash trial*/
+	SHA2_Handle handle;
+	handle = SHA2_open(0, NULL);
+	if(!handle)
+	{
+		printf("SHA2: could not open handle!\n");
+		return -5;
+	}
+
+	int_fast16_t result = SHA2_hashData(handle, message, len, hash);
+	if (result != SHA2_STATUS_SUCCESS)
+	{
+		printf("SHA2 failed, result: %d", result);
+	}
 	SHA2_close(handle);
 	return (uint8_t) result;
 
@@ -613,13 +637,13 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 
 #else /* SW crypto is not used */
 #ifdef CONTIKI_TARGET_SIMPLELINK
-	printf("Using dtls_sha256\n");
+/*	printf("Using dtls_sha256\n");
 
 	dtls_sha256_ctx msg_hash_ctx;
 	dtls_sha256_init(&msg_hash_ctx);
 	dtls_sha256_update(&msg_hash_ctx, buffer, buffer_len);
-	dtls_sha256_final(message_hash, &msg_hash_ctx);
-	/*printf("Target=SIMPLELINK: using SHA2\n");
+	dtls_sha256_final(message_hash, &msg_hash_ctx);*/
+	printf("Target=SIMPLELINK: using SHA2\n");
 
 	uint8_t sha_result = sha2_hash(buffer, msg_len, message_hash);
 	if (sha_result != SHA2_STATUS_SUCCESS)
@@ -627,7 +651,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 		printf("SHA2 failed! Code: %u", sha_result);
 		PT_EXIT(&state->pt);
 	}
-*/
+
 	printf("Initialising ECDSA\n");
 	ECDSA_init();
 	ECDSA_Params params;
@@ -661,7 +685,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 	operationSign.pmsn = &pmsnKey;
 	operationSign.hash = message_hash;
 	operationSign.r = signature;
-	operationSign.s = signature + 32;
+	operationSign.s = signature + ES256_PRIVATE_KEY_LEN;
 	printf("Ready to run ECDSA_sign...\n");
 	operationResult = ECDSA_sign(ecdsaHandle, &operationSign);
 
@@ -764,8 +788,8 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 
 	//const size_t msg_len = buffer_len - ES256_SIGNATURE_LEN;
 
-	const uint8_t *sig_r = signature;//buffer + msg_len;
-	const uint8_t *sig_s = signature + ES256_PRIVATE_KEY_LEN;//buffer + msg_len + ES256_PRIVATE_KEY_LEN;
+	//const uint8_t *sig_r = signature;//buffer + msg_len;
+	//const uint8_t *sig_s = signature + ES256_PRIVATE_KEY_LEN;//buffer + msg_len + ES256_PRIVATE_KEY_LEN;
 	//FIXME
 /*	printf("Signature r\n");
 	kprintf_hex(sig_r, (uint8_t) (ES256_SIGNATURE_LEN / 2));
@@ -788,23 +812,20 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 #else //HW crypto
 
 #ifdef CONTIKI_TARGET_SIMPLELINK
-	printf("Using dtls_sha256\n");
+	/*printf("Using dtls_sha256\n");
 
 	dtls_sha256_ctx msg_hash_ctx;
 	dtls_sha256_init(&msg_hash_ctx);
 	dtls_sha256_update(&msg_hash_ctx, buffer, buffer_len);
-	dtls_sha256_final(message_hash, &msg_hash_ctx);
-	/*printf("Simplelink: using SHA2\n");
+	dtls_sha256_final(message_hash, &msg_hash_ctx);*/
+	printf("Simplelink: using SHA2\n");
 	uint8_t sha_result = sha2_hash(buffer, buffer_len, message_hash);
 	if (sha_result != SHA2_STATUS_SUCCESS)
 	{
 		printf("Sha2 failed with the code: %u!\n", sha_result);
 		PT_EXIT(&state->pt);
-	}*/
+	}
 	printf("SHA2 completed. Initialising ECDSA\n");
-	ECDSA_init();
-	ECDSA_Params params;
-	ECDSA_Params_init(&params);
 	CryptoKey theirPublicKey;
 	ECDSA_Handle ecdsaHandle;
 	int_fast16_t operationResult;
@@ -835,7 +856,7 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	if (operationResult != ECDSA_STATUS_SUCCESS)
 	{
 		//TODO handle error
-		printf("Verify failed with the following code: %d", operationResult);
+		printf("Verify failed with the following code: %d\n", operationResult);
 		PT_EXIT(&state->pt);
 	}
 
