@@ -838,16 +838,48 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 		printf("Could not open ECDSA handle!\n");
 		PT_EXIT(&state->pt);
 	}
+	printf("Plaintext\n");
+	kprintf_hex(buffer, buffer_len);
+	printf("PUBLIC KEY:\n");
+	kprintf_hex(public_key,ES256_PUBLIC_KEY_LEN);
+	printf("EXPERIMENT: let's reverse pubkey endianness...\n");
+	uint8_t pubkey_reversed[ES256_PUBLIC_KEY_LEN], r_rev[32], s_rev[32], hash_rev[SHA256_DIGEST_LENGTH];
+	uint8_t i;
+	for (i = 0; i < ES256_PUBLIC_KEY_LEN; i++)
+		pubkey_reversed[ES256_PUBLIC_KEY_LEN - 1 - i] = *(public_key + i);
+	printf("PUBLIC KEY REVERSED:\n");
+	kprintf_hex(pubkey_reversed, ES256_PUBLIC_KEY_LEN);
+	for (i = 0; i < 32 ; i++)
+		r_rev[32 - 1 - i] = *(signature + i);
+	for (i = 0; i < 32; i++)
+		s_rev[32 - 1 - i] = *(signature + 32 + i);
+	printf("SIGNATURE:\n");
+	kprintf_hex(signature, ES256_PUBLIC_KEY_LEN);
+	printf("R :\n");
+	kprintf_hex(signature, 32);
+	printf("R REVERSED:\n");
+	kprintf_hex(r_rev, 32);
+	printf("S :\n");
+	kprintf_hex(signature + 32, 32);
+	printf("S REVERSED:\n");
+	kprintf_hex(s_rev, 32);
+	for (i = 0; i< SHA256_DIGEST_LENGTH; i++)
+		hash_rev[SHA256_DIGEST_LENGTH - 1 - i] = message_hash[i];
+	//CryptoKeyPlaintext_initKey(&theirPublicKey, public_key, ES256_PUBLIC_KEY_LEN);
+	printf("HASH:\n");
+	kprintf_hex(message_hash, SHA256_DIGEST_LENGTH);
+	printf("HASH REVERSED:\n");
+	kprintf_hex(hash_rev, SHA256_DIGEST_LENGTH);
 
-	CryptoKeyPlaintext_initKey(&theirPublicKey, public_key, ES256_PUBLIC_KEY_LEN);
+	CryptoKeyPlaintext_initKey(&theirPublicKey, pubkey_reversed, ES256_PUBLIC_KEY_LEN);
 
 	ECDSA_OperationVerify_init(&operationVerify);
 
 	operationVerify.curve = &ECCParams_NISTP256;
 	operationVerify.theirPublicKey = &theirPublicKey;
-	operationVerify.hash = message_hash;
-	operationVerify.r = signature;
-	operationVerify.s = signature + ES256_PRIVATE_KEY_LEN;
+	operationVerify.hash = hash_rev;//message_hash;
+	operationVerify.r = r_rev;//signature;
+	operationVerify.s = s_rev;//signature + ES256_PRIVATE_KEY_LEN;
 	printf("Ready to run ECDSA_verify...\n");
 	operationResult = ECDSA_verify(ecdsaHandle, &operationVerify);
 
