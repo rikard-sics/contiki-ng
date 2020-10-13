@@ -93,7 +93,7 @@ process_event_t pe_message_verified;
 
 PROCESS(signer, "signer");
 PROCESS(verifier, "verifier");
-#endif /*WITH_GROUPCOM*/
+#endif
 void
 kprintf_hex(unsigned char *data, unsigned int len)
 {
@@ -129,21 +129,11 @@ ec_uint8v_to_uint32v(uint32_t *result, const uint8_t *data, size_t size)
 /*---------------------------------------------------------------------------*/
 static inline void
 uint32_to_uint8x4(uint8_t *field, uint32_t data)
-{
-#ifdef CONTIKI_TARGET_SIMPLELINK
-	//right
-	field[3] = (uint8_t)((data & 0xFF000000) >> 24);
-	field[2] = (uint8_t)((data & 0x00FF0000) >> 16);
-	field[1] = (uint8_t)((data & 0x0000FF00) >>  8);
-	field[0] = (uint8_t)((data & 0x000000FF)      );
-#elif CONTIKI_TARGET_ZOUL
-	//left
+{//left
 	field[0] = (uint8_t)((data & 0xFF000000) >> 24);
 	field[1] = (uint8_t)((data & 0x00FF0000) >> 16);
 	field[2] = (uint8_t)((data & 0x0000FF00) >>  8);
 	field[3] = (uint8_t)((data & 0x000000FF)      );
-#endif
-
 }
 /*---------------------------------------------------------------------------*/
 #ifdef OSCORE_WITH_HW_CRYPTO
@@ -225,7 +215,42 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 static uint8_t
 sha2_hash(uint8_t *message, size_t len, uint8_t *hash)
 {
-	/*One-step hash */
+/*	SHA2_Handle handle;
+	int_fast16_t result;
+	SHA2_Params params;
+
+	SHA2_init();
+	SHA2_Params_init(&params);
+	params.returnBehavior = SHA2_RETURN_BEHAVIOR_BLOCKING;
+	handle = SHA2_open(0, NULL);
+	if(!handle)
+	{
+		printf("SHA2: could not open handle!\n");
+		return -5;
+	}
+	result = SHA2_setHashType(handle, SHA2_HASH_TYPE_256);
+	if(result != SHA2_STATUS_SUCCESS)
+	{
+		printf("SHA2: could not set hash type! %u\n", result);
+		goto final;
+	}
+	result = SHA2_addData(handle, message, len);
+	if(result != SHA2_STATUS_SUCCESS)
+	{
+		printf("SHA2: could not add data! %u\n", result);
+		goto final;
+	}
+	result = SHA2_finalize(handle, hash);
+	if(result != SHA2_STATUS_SUCCESS)
+	{
+		printf("SHA2: failed with the code %u!\n", result);
+		goto final;
+	}
+final:
+	SHA2_close(handle);
+	return (uint8_t) result;
+*/
+/*One-step hash trial*/
 	SHA2_Handle handle;
 	handle = SHA2_open(0, NULL);
 	if(!handle)
@@ -456,6 +481,22 @@ oscore_edDSA_keypair(int8_t alg, int8_t alg_param, uint8_t *private_key, uint8_t
        return 0;
     }
  //   es256_create_keypair(public_key, private_key, es256_seed);
+/*
+  if (coap_get_log_level() >= LOG_INFO){
+
+    fprintf(stderr,"\nKeyPair:\n");
+    fprintf(stderr,"Public Key:\n");
+    for (uint u = 0 ; u < Ed25519_PUBLIC_KEY_LEN; u++)
+                fprintf(stderr," %02x",public_key[u]);
+    fprintf(stderr,"\nPrivate Key:\n");
+    for (uint u = 0 ; u < Ed25519_PRIVATE_KEY_LEN; u++)
+                fprintf(stderr," %02x",private_key[u]);
+    fprintf(stderr,"\nseed \n");
+    for (uint u = 0 ; u < Ed25519_SEED_LEN; u++)
+                fprintf(stderr," %02x",ed25519_seed[u]);
+    fprintf(stderr, "\n");
+  }*/
+
   return 1;
 }
 
@@ -471,6 +512,7 @@ typedef struct SHA256_HashContext {
 
 static void init_SHA256(uECC_HashContext *base) {
     SHA256_HashContext *context = (SHA256_HashContext *)base;
+    //SHA256_Init(&context->ctx);
     dtls_sha256_init(&context->ctx);
 }
 
@@ -478,11 +520,13 @@ static void update_SHA256(uECC_HashContext *base,
                           const uint8_t *message,
                           unsigned message_size) {
     SHA256_HashContext *context = (SHA256_HashContext *)base;
+    //SHA256_Update(&context->ctx, message, message_size);
     dtls_sha256_update(&context->ctx, message, message_size);
 }
 
 static void finish_SHA256(uECC_HashContext *base, uint8_t *hash_result) {
     SHA256_HashContext *context = (SHA256_HashContext *)base;
+    //SHA256_Final(hash_result, &context->ctx);
     dtls_sha256_final(hash_result, &context->ctx);
 }
 
@@ -490,10 +534,10 @@ PT_THREAD(ecc_sign_deterministic(sign_state_t *state, uint8_t *private_key, uint
 {
 	PT_BEGIN(&state->sign_deterministic_pt);
 	uint8_t res = -1;
-	printf("Inside the deterministic pt: \n");
+	printf("Inside the deterministic pt: let's go.\n");
 	res = uECC_sign_deterministic(private_key, message_hash, hash_context, signature);
 	printf("Deterministic sign yielded %d\n", res);
-	//printf("signature is here %p\n", signature);
+	printf("signature is here %p\n", signature);
 	printf_hex(signature, 64);
 	PT_END(&state->sign_deterministic_pt);
 }
@@ -502,7 +546,7 @@ PT_THREAD(ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8_t *mes
 {
 	PT_BEGIN(&state->verify_sw_pt);
 	uint8_t res = -1;
-	printf("Inside the verify_sw pt: \n");
+	printf("Inside the verify_sw pt: let's go.\n");
         res = uECC_verify(public_key, message_hash, signature);
 	printf("uECC verify yielded %d\n", res);
 	PT_END(&state->verify_sw_pt);
@@ -512,6 +556,16 @@ PT_THREAD(ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8_t *mes
 PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature))
 {
 	PT_BEGIN(&state->pt);
+//FIXME buffer_len!!!
+/*	if (buffer_len - msg_len < ES256_PUBLIC_KEY_LEN * 2)
+	{
+		LOG_ERR("Insufficient buffer space\n");
+#ifdef CONTIKI_TARGET_ZOUL
+		state->ecc_sign_state.result = PKA_STATUS_INVALID_PARAM;
+#endif
+		PT_EXIT(&state->pt);
+	}
+*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 	printf("Waiting for crypto processor to become available (sign) ...\n");
 	PT_SEM_WAIT(&state->pt, &crypto_processor_mutex);
@@ -519,6 +573,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 #endif /* OSCORE_WITH_HW_CRYPTO */
 	state->sig_len = 0;
 
+	//hash the message with sha256
 	uint8_t message_hash[SHA256_DIGEST_LENGTH];//==SHA56_DIGEST_LEN_BYTES
 #ifndef OSCORE_WITH_HW_CRYPTO /*SW crypto is used */
 	printf("Using dtls_sha256\n");
@@ -531,102 +586,81 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 	SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
 
 	printf("Scheduling deterministic sign in SW\n");
-	//printf("msg to sign len %d, buffer len %d\n", msg_len, buffer_len);
+	printf("msg to sign len %d, buffer len %d\n", msg_len, buffer_len);
 	printf_hex(buffer, msg_len);
-	PT_SPAWN(&state->pt, &state->sign_deterministic_pt, ecc_sign_deterministic(state, private_key, message_hash, &ctx.uECC, signature));
+	printf("Sign SW\n");
+ 	PT_SPAWN(&state->pt, &state->sign_deterministic_pt, ecc_sign_deterministic(state, private_key, message_hash, &ctx.uECC, signature));
 
 	state->sig_len = ES256_SIGNATURE_LEN;
 
 #else /* SW crypto is not used */
 #ifdef CONTIKI_TARGET_SIMPLELINK
+/*	printf("Using dtls_sha256\n");
+
+	dtls_sha256_ctx msg_hash_ctx;
+	dtls_sha256_init(&msg_hash_ctx);
+	dtls_sha256_update(&msg_hash_ctx, buffer, buffer_len);
+	dtls_sha256_final(message_hash, &msg_hash_ctx);*/
 	printf("Target=SIMPLELINK: using SHA2\n");
+
 	uint8_t sha_result = sha2_hash(buffer, msg_len, message_hash);
 	if (sha_result != SHA2_STATUS_SUCCESS)
 	{
 		printf("SHA2 failed! Code: %u", sha_result);
 		PT_EXIT(&state->pt);
 	}
-	
+
 	printf("Initialising ECDSA\n");
-/*	printf("Sign diag: printing d:\n");
-	kprintf_hex(private_key, 32);
-	printf("Sign diag: printing e:\n");
-	kprintf_hex(message_hash, 32);*/
-	//1. convert to uint32 words, 2. reverse, 3. convert back to uint8_t
-	uint8_t k[32] =  		       {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
+	ECDSA_init();
+	ECDSA_Params params;
+	ECDSA_Params_init(&params);
+/*	uint8_t pmsn[32]                     = {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
 						0x9F, 0xE1, 0xFB, 0x04, 0xF2, 0x4B, 0x50, 0x58,
 						0x91, 0xE3, 0xAC, 0x4D, 0x2A, 0x5D, 0x43, 0xAA,
 						0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};
-	uint8_t i;
-	uint32_t d__[8], d__rev[8], e__[8], e__rev[8];
-	ec_uint8v_to_uint32v(d__, private_key, 32);
-	ec_uint8v_to_uint32v(e__, message_hash, 32);
-	for (i = 0; i < 8; i++)
-	{
-		d__rev[8 - 1 - i] = d__[i];
-		e__rev[8 - 1 - i] = e__[i];
-	}	
-	ec_uint32v_to_uint8v(private_key, d__rev, 32);
-	ec_uint32v_to_uint8v(message_hash, e__rev, 32);
-
-/*	printf("Sign diag: printing d for Java client:\n");
-	kprintf_hex(private_key, 32);
-	printf("Sign diag: printing e for Java client:\n");
-	kprintf_hex(message_hash, 32);
-*/
+	*/
 	CryptoKey myPrivateKey;
 	CryptoKey pmsnKey;
 	ECDSA_Handle ecdsaHandle;
 	ECDSA_OperationSign operationSign;
 	int_fast16_t operationResult;
-	uint8_t r[32] = {0};
-	uint8_t s[32] = {0};
-
+	//open the handle with default parameters
 	ecdsaHandle = ECDSA_open(0, NULL);
-	if (!ecdsaHandle)
-	{
-		printf("\nFailed to open ecdsaHandle!!!!\n");
+	if (!ecdsaHandle){
+		//TODO handle error
 		PT_EXIT(&state->pt);
 	}
 
 	CryptoKeyPlaintext_initKey(&myPrivateKey, private_key, ES256_PRIVATE_KEY_LEN);
-	CryptoKeyPlaintext_initKey(&pmsnKey, k, sizeof(k));
+	CryptoKeyPlaintext_initKey(&pmsnKey, pmsn, sizeof(pmsn));
 
+	//TODO sha part
 	ECDSA_OperationSign_init(&operationSign);
 	operationSign.curve = &ECCParams_NISTP256;
 	operationSign.myPrivateKey = &myPrivateKey;
 	operationSign.pmsn = &pmsnKey;
 	operationSign.hash = message_hash;
-	operationSign.r = r;//signature;
-	operationSign.s = s;//signature + ES256_PRIVATE_KEY_LEN;
-	//printf("Ready to run ECDSA_sign...\n");
+	operationSign.r = signature;
+	operationSign.s = signature + ES256_PRIVATE_KEY_LEN;
+	printf("Ready to run ECDSA_sign...\n");
 	operationResult = ECDSA_sign(ecdsaHandle, &operationSign);
 
 	if (operationResult != ECDSA_STATUS_SUCCESS)
 	{
+		//TODO handle error
 		printf("Sign failed with the following code: %d", operationResult);
 		PT_EXIT(&state->pt);
 	}
-	else
-		printf("Sign in Simplelink HW successful!\n");
-	//just reverse all bytes of r and s
-	uint8_t r_inv[32], s_inv[32];
-	for (i = 0; i < 32; i++)
-	{
-		r_inv[32 - 1 - i] = r[i];
-		s_inv[32 - 1 - i] = s[i];
-	}
-	memcpy(signature, r_inv, 32);
-	memcpy(signature + 32, s_inv, 32);
 
-	/*printf("Sign diag: printing r for Java client:\n");
+	printf("Sign diag: printing r:\n");
 	kprintf_hex(signature, 32);
-	printf("Sign diag: printing s for Java client:\n");
-	kprintf_hex(signature + 32, 32);*/
+	printf("Sign diag: printing s:\n");
+	kprintf_hex((signature + 32), 32);
+
+	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
 
 	state->sig_len = ES256_SIGNATURE_LEN;
-	ECDSA_close(ecdsaHandle);
-	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
+
 #endif /*CONTIKI_TARGET_SIMPLELINK */
 #ifdef CONTIKI_TARGET_ZOUL
 	printf("TARGET=ZOUL, using sha256\n");
@@ -643,25 +677,22 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 
 	state->ecc_sign_state.process = state->process;
 	state->ecc_sign_state.curve_info = &nist_p_256;
-
 	ec_uint8v_to_uint32v(state->ecc_sign_state.secret, private_key, ES256_PRIVATE_KEY_LEN);
 
 	crypto_fill_random((uint8_t *) state->ecc_sign_state.k_e, ES256_PRIVATE_KEY_LEN);
 
 	printf("SHA256 and random number generation successful. About to run HW signing...\n");
 	pka_enable();
+	printf("Sign HW\n");
 	PT_SPAWN(&state->pt, &state->ecc_sign_state.pt, ecc_dsa_sign(&state->ecc_sign_state));
 	pka_disable();
 
 	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
 
-	if (state->ecc_sign_state.result != PKA_STATUS_SUCCESS)
-	{
+	if (state->ecc_sign_state.result != PKA_STATUS_SUCCESS)	{
 		printf("Failed to sign message with %d\n", state->ecc_sign_state.result);
 		PT_EXIT(&state->pt);
-	}
-	else
-	{
+	} else {
 		printf("Message sign success!\n");
 	}
 	//Add signature to the message
@@ -669,12 +700,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 	ec_uint32v_to_uint8v(signature + ES256_PRIVATE_KEY_LEN, state->ecc_sign_state.signature_s, ES256_PRIVATE_KEY_LEN);
 	state->sig_len = ES256_SIGNATURE_LEN;
 	
-	//self-check
-	/*printf("Performing sign self-check...\n");
-	static verify_state_t test;
-	test.process = state->process;
-	PT_SPAWN(&state->pt, &test.pt, ecc_verify(&test, public_key, buffer, msg_len + state->sig_len));
-	*/
+	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
 #endif /*CONTIKI_TARGET_ZOUL*/
 #endif /*OSCORE_WITH_HW_CRYPTO*/
 	PT_END(&state->pt);
@@ -684,10 +710,39 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature))
 {
 	PT_BEGIN(&state->pt);
+//FIXME debug printouts
+/*
+  printf("ecc_verify:Signature\n");
+  kprintf_hex(signature, ES256_SIGNATURE_LEN);
+  printf("Plaintext\n");
+  kprintf_hex(buffer, buffer_len);
+  printf("Public key\n");
+  kprintf_hex(public_key, ES256_PUBLIC_KEY_LEN);
+*/
+/*	
+	if (buffer_len < ES256_SIGNATURE_LEN)
+	{
+		LOG_ERR("No signature\n");
+#ifdef CONTIKI_TARGET_ZOUL
+		state->ecc_verify_state.result = PKA_STATUS_INVALID_PARAM;
+#endif
+		PT_EXIT(&state->pt);
+	}
+*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 	printf("Waiting for crypto processor to become available (verify) ...\n");
 	PT_SEM_WAIT(&state->pt, &crypto_processor_mutex);
 	printf("Crypto processor available (verify)!\n");
+
+	//const size_t msg_len = buffer_len - ES256_SIGNATURE_LEN;
+
+	const uint8_t *sig_r = signature;//buffer + msg_len;
+	const uint8_t *sig_s = signature + ES256_PRIVATE_KEY_LEN;//buffer + msg_len + ES256_PRIVATE_KEY_LEN;
+	//FIXME
+	printf("Signature r\n");
+	kprintf_hex(sig_r, (uint8_t) (ES256_SIGNATURE_LEN / 2));
+	printf("Signature s\n");
+	kprintf_hex(sig_s, (uint8_t) (ES256_SIGNATURE_LEN / 2));
 
 #endif
 	uint8_t message_hash[SHA256_DIGEST_LENGTH];
@@ -700,11 +755,18 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	dtls_sha256_update(&msg_hash_ctx, buffer, buffer_len);
 	dtls_sha256_final(message_hash, &msg_hash_ctx);
 	printf("Spawning a sw verify process\n");
+	printf("Verify SW\n");
 	PT_SPAWN(&state->pt, &state->verify_sw_pt, ecc_verify_sw(state, public_key, message_hash, signature));
 
 #else //HW crypto
 
 #ifdef CONTIKI_TARGET_SIMPLELINK
+	/*printf("Using dtls_sha256\n");
+
+	dtls_sha256_ctx msg_hash_ctx;
+	dtls_sha256_init(&msg_hash_ctx);
+	dtls_sha256_update(&msg_hash_ctx, buffer, buffer_len);
+	dtls_sha256_final(message_hash, &msg_hash_ctx);*/
 	printf("Simplelink: using SHA2\n");
 	uint8_t sha_result = sha2_hash(buffer, buffer_len, message_hash);
 	if (sha_result != SHA2_STATUS_SUCCESS)
@@ -725,53 +787,48 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 		printf("Could not open ECDSA handle!\n");
 		PT_EXIT(&state->pt);
 	}
-	uint8_t qx[32], qy[32];
-	uint32_t qx_rev[8], qy_rev[8], r_rev[8], s_rev[8], hash_rev[SHA256_DIGEST_LENGTH / 4];
-	uint32_t qx_[8], qy_[8], r_[8], s_[8], hash_[SHA256_DIGEST_LENGTH / 4];
-	uint8_t pubkey_final[64], r_final[32], s_final[32], hash_final[SHA256_DIGEST_LENGTH];
+	printf("Plaintext\n");
+	kprintf_hex(buffer, buffer_len);
+	printf("PUBLIC KEY:\n");
+	kprintf_hex(public_key,ES256_PUBLIC_KEY_LEN);
+	printf("EXPERIMENT: let's reverse pubkey endianness...\n");
+	uint8_t pubkey_reversed[ES256_PUBLIC_KEY_LEN], r_rev[32], s_rev[32], hash_rev[SHA256_DIGEST_LENGTH];
 	uint8_t i;
+	for (i = 0; i < ES256_PUBLIC_KEY_LEN; i++)
+		pubkey_reversed[ES256_PUBLIC_KEY_LEN - 1 - i] = *(public_key + i);
+	printf("PUBLIC KEY REVERSED:\n");
+	kprintf_hex(pubkey_reversed, ES256_PUBLIC_KEY_LEN);
+	for (i = 0; i < 32 ; i++)
+		r_rev[32 - 1 - i] = *(signature + i);
 	for (i = 0; i < 32; i++)
-	{
-		qx[i] = *(public_key + i);
-	}
-	for (i = 0; i < 32; i++)
-	{
-		qy[i] = *(public_key + 32 + i);
-	}
-	//1. convert to uint32 words, 2. reverse, 3. convert back to uint8_t
-	ec_uint8v_to_uint32v(qx_, qx, 32);
-	ec_uint8v_to_uint32v(qy_, qy, 32);
-	ec_uint8v_to_uint32v(r_, signature, ES256_PRIVATE_KEY_LEN);
-	ec_uint8v_to_uint32v(s_, signature + 32, ES256_PRIVATE_KEY_LEN);
-	ec_uint8v_to_uint32v(hash_, message_hash, SHA256_DIGEST_LENGTH);
-	//2. cannot reverse the whole 64 bytes of pubkey at once, since it also flips the order of x,y. Need to reverse first 32 bytes, and then the other 32 bytes.
-	for (i = 0; i < 8; i++)
-	{
-		qx_rev[8 - 1 - i] = qx_[i];
-		qy_rev[8 - 1 - i] = qy_[i];
-	}
-	for (i = 0; i < 32 / 4; i++)
-		r_rev[32 / 4 - 1 - i] = r_[i];
-	for (i = 0; i < 32 / 4; i++)
-		s_rev[32 / 4 - 1 - i] = s_[i];
-	for (i = 0; i< SHA256_DIGEST_LENGTH / 4; i++)
-		hash_rev[SHA256_DIGEST_LENGTH / 4 - 1 - i] = hash_[i];
-	//3.	
-	ec_uint32v_to_uint8v(hash_final, hash_rev, SHA256_DIGEST_LENGTH);
-	ec_uint32v_to_uint8v(r_final, r_rev, 32);
-	ec_uint32v_to_uint8v(s_final, s_rev, 32);
-	ec_uint32v_to_uint8v(pubkey_final, qx_rev, 32);
-	ec_uint32v_to_uint8v(&pubkey_final[32], qy_rev, 32);
+		s_rev[32 - 1 - i] = *(signature + 32 + i);
+	printf("SIGNATURE:\n");
+	kprintf_hex(signature, ES256_PUBLIC_KEY_LEN);
+	printf("R :\n");
+	kprintf_hex(signature, 32);
+	printf("R REVERSED:\n");
+	kprintf_hex(r_rev, 32);
+	printf("S :\n");
+	kprintf_hex(signature + 32, 32);
+	printf("S REVERSED:\n");
+	kprintf_hex(s_rev, 32);
+	for (i = 0; i< SHA256_DIGEST_LENGTH; i++)
+		hash_rev[SHA256_DIGEST_LENGTH - 1 - i] = message_hash[i];
+	//CryptoKeyPlaintext_initKey(&theirPublicKey, public_key, ES256_PUBLIC_KEY_LEN);
+	printf("HASH:\n");
+	kprintf_hex(message_hash, SHA256_DIGEST_LENGTH);
+	printf("HASH REVERSED:\n");
+	kprintf_hex(hash_rev, SHA256_DIGEST_LENGTH);
 
-	CryptoKeyPlaintext_initKey(&theirPublicKey, pubkey_final, ES256_PUBLIC_KEY_LEN);
+	CryptoKeyPlaintext_initKey(&theirPublicKey, pubkey_reversed, ES256_PUBLIC_KEY_LEN);
 
 	ECDSA_OperationVerify_init(&operationVerify);
 
 	operationVerify.curve = &ECCParams_NISTP256;
 	operationVerify.theirPublicKey = &theirPublicKey;
-	operationVerify.hash = hash_final;//message_hash;
-	operationVerify.r = r_final;//signature;
-	operationVerify.s = s_final;//signature + ES256_PRIVATE_KEY_LEN;
+	operationVerify.hash = hash_rev;//message_hash;
+	operationVerify.r = r_rev;//signature;
+	operationVerify.s = s_rev;//signature + ES256_PRIVATE_KEY_LEN;
 	printf("Ready to run ECDSA_verify...\n");
 	operationResult = ECDSA_verify(ecdsaHandle, &operationVerify);
 
@@ -779,15 +836,10 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 
 	if (operationResult != ECDSA_STATUS_SUCCESS)
 	{
+		//TODO handle error
 		printf("Verify failed with the following code: %d\n", operationResult);
 		PT_EXIT(&state->pt);
 	}
-	else
-	{
-		printf("Verify in Simplelink HW succeded!\n");
-	}
-
-	ECDSA_close(ecdsaHandle);
 
 #endif //CONTIKI_TARGET_SIMPLELINK
 
@@ -797,6 +849,10 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	ec_uint8v_to_uint32v(state->ecc_verify_state.signature_s, sig_s, ES256_PRIVATE_KEY_LEN);
 	printf("Using sha256\n");
 
+	/*dtls_sha256_ctx msg_hash_ctx;
+	dtls_sha256_init(&msg_hash_ctx);
+	dtls_sha256_update(&msg_hash_ctx, buffer, msg_len);
+	dtls_sha256_final(message_hash, &msg_hash_ctx);*/
 	uint8_t sha256_ret = sha256_hash(buffer, buffer_len, message_hash);
 	if (sha256_ret != CRYPTO_SUCCESS)
 	{
@@ -810,10 +866,13 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 
 	state->ecc_verify_state.process = state->process;
 	state->ecc_verify_state.curve_info = &nist_p_256;
+	ec_uint8v_to_uint32v(state->ecc_verify_state.public.x, public_key, 32);
+	ec_uint8v_to_uint32v(state->ecc_verify_state.public.y, &public_key[32], 32);
 
 	printf("SHA256 successful. Ready for the verification in HW...\n");
 
 	pka_enable();
+	printf("Verify HW\n");
 	PT_SPAWN(&state->pt, &state->ecc_verify_state.pt, ecc_dsa_verify(&state->ecc_verify_state));
 	pka_disable();
 
@@ -854,12 +913,14 @@ queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *pu
 	item->private_key = private_key;
 	item->public_key = public_key;
 	memcpy(item->message, message, message_len);
+	item->message_buffer_len = 250;
 	item->message_len = message_len;
 	item->signature = signature;
 	
 	queue_enqueue(messages_to_sign, item);
 
 	printf("Queue_message_to_sign: enqueued, about to poll the signer...\n");
+	//process_poll(&signer);
 
 	process_post_synch(&signer, PROCESS_EVENT_CONTINUE, NULL);
 
@@ -1004,6 +1065,37 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
   }
   printf("\noscore_ecDSA_sign: returning...\n");
   return 1;
+  /*
+  printf("Printing private_key;...\n");
+  kprintf_hex(private_key, 32);
+  printf("Printing public_key;...\n");
+  kprintf_hex(public_key, 64);
+  printf("ciphertext:\n");
+  kprintf_hex(ciphertext, ciphertext_len);
+  */
+/*
+  if (coap_get_log_level() >= LOG_INFO){
+
+    fprintf(stderr,"Sign:\n");
+    fprintf(stderr,"Public Key:\n");
+    for (uint u = 0 ; u < Ed25519_PUBLIC_KEY_LEN; u++)
+                fprintf(stderr," %02x",public_key[u]);
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Private Key:\n");
+    for (uint u = 0 ; u < Ed25519_PRIVATE_KEY_LEN; u++)
+                fprintf(stderr," %02x",private_key[u]);
+    fprintf(stderr,"\n");
+    fprintf(stderr,"incoming ciphertext \n");
+    for (uint u = 0 ; u < ciphertext_len; u++)
+                fprintf(stderr," %02x",ciphertext[u]);
+    fprintf(stderr,"\n");
+    fprintf(stderr,"Signature:\n");
+    for (uint u = 0 ; u < Ed25519_SIGNATURE_LEN; u++)
+                fprintf(stderr," %02x",signature[u]);
+    fprintf(stderr,"\n");
+  } 
+  */  
+   // return 1;
 }
 
 /* Return 0 if signing failure. Signatue length otherwise, signature length and key length are derived fron ed25519 values. No check is done to ensure that buffers are of the correct length. */
@@ -1023,40 +1115,22 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
   }
   printf("oscore_edDSA_verify: returning...\n");
   return 1;
+/*
+  if (coap_get_log_level() >= LOG_INFO){
+     fprintf(stderr,"Verify:\n");
+     fprintf(stderr,"Public Key:\n");
+     for (uint u = 0 ; u < Ed25519_PUBLIC_KEY_LEN; u++)
+                fprintf(stderr," %02x",public_key[u]);
+     fprintf(stderr,"\n");
+     fprintf(stderr,"incoming ciphertext \n");
+     for (uint u = 0 ; u < plaintext_len; u++)
+                fprintf(stderr," %02x",plaintext[u]);
+     fprintf(stderr,"\n");
+     fprintf(stderr,"Signature:\n");
+     for (uint u = 0 ; u < Ed25519_SIGNATURE_LEN; u++)
+                fprintf(stderr," %02x",signature[u]);
+     fprintf(stderr,"\n");
+  }
+}*/
 }
 #endif /*WITH_GROUPCOM*/
-	/*NIST Toolkit ECDSA_prime.pdf page 8 (P256 verify example)*/
-	/*uint8_t q[64] = {0xB7, 0xE0, 0x8A, 0xFD, 0xFE, 0x94, 0xBA, 0xD3,
-			 0xF1, 0xDC, 0x8C, 0x73, 0x47, 0x98, 0xBA, 0x1C,
-			 0x62, 0xB3, 0xA0, 0xAD, 0x1E, 0x9E, 0xA2, 0xA3,
-			 0x82, 0x01, 0xCD, 0x08, 0x89, 0xBC, 0x7A, 0x19,//Q_x
-			 0x36, 0x03, 0xF7, 0x47, 0x95, 0x9D, 0xBF, 0x7A,
-			 0x4B, 0xB2, 0x26, 0xE4, 0x19, 0x28, 0x72, 0x90,
-			 0x63, 0xAD, 0xC7, 0xAE, 0x43, 0x52, 0x9E, 0x61,//Q_y
-			 0xB5, 0x63, 0xBB, 0xC6, 0x06, 0xCC, 0x5E, 0x09};
-	uint8_t r[32] = {0x2B, 0x42, 0xF5, 0x76, 0xD0, 0x7F, 0x41, 0x65,
-	       		 0xFF, 0x65, 0xD1, 0xF3, 0xB1, 0x50, 0x0F, 0x81,
-			 0xE4, 0x4C, 0x31, 0x6F, 0x1F, 0x0B, 0x3E, 0xF5,
-			 0x73, 0x25, 0xB6, 0x9A, 0xCA, 0x46, 0x10, 0x4F};
-	uint8_t s[32] = {0xDC, 0x42, 0xC2, 0x12, 0x2D, 0x63, 0x92, 0xCD,
-	       		 0x3E, 0x3A, 0x99, 0x3A, 0x89, 0x50, 0x2A, 0x81,
-			 0x98, 0xC1, 0x88, 0x6F, 0xE6, 0x9D, 0x26, 0x2C,
-			 0x4B, 0x32, 0x9B, 0xDB, 0x6B, 0x63, 0xFA, 0xF1};
-	uint8_t h[32] = {0xA4, 0x1A, 0x41, 0xA1, 0x2A, 0x79, 0x95, 0x48,
-	       		 0x21, 0x1C, 0x41, 0x0C, 0x65, 0xD8, 0x13, 0x3A,
-			 0xFD, 0xE3, 0x4D, 0x28, 0xBD, 0xD5, 0x42, 0xE4,
-			 0xB6, 0x80, 0xCF, 0x28, 0x99, 0xC8, 0xA8, 0xC4};*/
-	//k parametre from NIST example (signing)
-/*	uint8_t d[32] = 		       {0x96, 0xBF, 0x85, 0x49, 0xC3, 0x79, 0xE4, 0x04,
-        	                                0xED, 0xA1, 0x08, 0xA5, 0x51, 0xF8, 0x36, 0x23,
-		                                0x12, 0xD8, 0xD1, 0xB2, 0xA5, 0xFA, 0x57, 0x06,
-		                                0xE2, 0xCC, 0x22, 0x5C, 0xF6, 0xF9, 0x77, 0xC4};
-	uint8_t e[32] = 		       {0xC4, 0xA8, 0xC8, 0x99, 0x28, 0xCF, 0x80, 0xB6,
-	                                        0xE4, 0x42, 0xD5, 0xBD, 0x28, 0x4D, 0xE3, 0xFD,
-		                                0x3A, 0x13, 0xD8, 0x65, 0x0C, 0x41, 0x1C, 0x21,
-		                                0x48, 0x95, 0x79, 0x2A, 0xA1, 0x41, 0x1A, 0xA4};
-	uint8_t k[32] =  		       {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
-						0x9F, 0xE1, 0xFB, 0x04, 0xF2, 0x4B, 0x50, 0x58,
-						0x91, 0xE3, 0xAC, 0x4D, 0x2A, 0x5D, 0x43, 0xAA,
-						0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};
-*/
