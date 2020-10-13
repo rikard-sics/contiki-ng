@@ -576,7 +576,8 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 	printf("Scheduling deterministic sign in SW\n");
 	//printf("msg to sign len %d, buffer len %d\n", msg_len, buffer_len);
 	printf_hex(buffer, msg_len);
-	PT_SPAWN(&state->pt, &state->sign_deterministic_pt, ecc_sign_deterministic(state, private_key, message_hash, &ctx.uECC, signature));
+	printf("Sign SW\n");
+ 	PT_SPAWN(&state->pt, &state->sign_deterministic_pt, ecc_sign_deterministic(state, private_key, message_hash, &ctx.uECC, signature));
 
 	state->sig_len = ES256_SIGNATURE_LEN;
 
@@ -591,44 +592,23 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 	}
 	
 	printf("Initialising ECDSA\n");
-/*	printf("Sign diag: printing d:\n");
-	kprintf_hex(private_key, 32);
-	printf("Sign diag: printing e:\n");
-	kprintf_hex(message_hash, 32);*/
-	//1. convert to uint32 words, 2. reverse, 3. convert back to uint8_t
-	uint8_t k[32] =  		       {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
+	ECDSA_init();
+	ECDSA_Params params;
+	ECDSA_Params_init(&params);
+/*	uint8_t pmsn[32]                     = {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
 						0x9F, 0xE1, 0xFB, 0x04, 0xF2, 0x4B, 0x50, 0x58,
 						0x91, 0xE3, 0xAC, 0x4D, 0x2A, 0x5D, 0x43, 0xAA,
 						0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};
-	uint8_t i;
-	uint32_t d__[8], d__rev[8], e__[8], e__rev[8];
-	ec_uint8v_to_uint32v(d__, private_key, 32);
-	ec_uint8v_to_uint32v(e__, message_hash, 32);
-	for (i = 0; i < 8; i++)
-	{
-		d__rev[8 - 1 - i] = d__[i];
-		e__rev[8 - 1 - i] = e__[i];
-	}	
-	ec_uint32v_to_uint8v(private_key, d__rev, 32);
-	ec_uint32v_to_uint8v(message_hash, e__rev, 32);
-
-/*	printf("Sign diag: printing d for Java client:\n");
-	kprintf_hex(private_key, 32);
-	printf("Sign diag: printing e for Java client:\n");
-	kprintf_hex(message_hash, 32);
-*/
+	*/
 	CryptoKey myPrivateKey;
 	CryptoKey pmsnKey;
 	ECDSA_Handle ecdsaHandle;
 	ECDSA_OperationSign operationSign;
 	int_fast16_t operationResult;
-	uint8_t r[32] = {0};
-	uint8_t s[32] = {0};
-
+	//open the handle with default parameters
 	ecdsaHandle = ECDSA_open(0, NULL);
-	if (!ecdsaHandle)
-	{
-		printf("\nFailed to open ecdsaHandle!!!!\n");
+	if (!ecdsaHandle){
+		//TODO handle error
 		PT_EXIT(&state->pt);
 	}
 
@@ -686,25 +666,22 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 
 	state->ecc_sign_state.process = state->process;
 	state->ecc_sign_state.curve_info = &nist_p_256;
-
 	ec_uint8v_to_uint32v(state->ecc_sign_state.secret, private_key, ES256_PRIVATE_KEY_LEN);
 
 	crypto_fill_random((uint8_t *) state->ecc_sign_state.k_e, ES256_PRIVATE_KEY_LEN);
 
 	printf("SHA256 and random number generation successful. About to run HW signing...\n");
 	pka_enable();
+	printf("Sign HW\n");
 	PT_SPAWN(&state->pt, &state->ecc_sign_state.pt, ecc_dsa_sign(&state->ecc_sign_state));
 	pka_disable();
 
 	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
 
-	if (state->ecc_sign_state.result != PKA_STATUS_SUCCESS)
-	{
+	if (state->ecc_sign_state.result != PKA_STATUS_SUCCESS)	{
 		printf("Failed to sign message with %d\n", state->ecc_sign_state.result);
 		PT_EXIT(&state->pt);
-	}
-	else
-	{
+	} else {
 		printf("Message sign success!\n");
 	}
 	//Add signature to the message
@@ -712,12 +689,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t buffer_len, size
 	ec_uint32v_to_uint8v(signature + ES256_PRIVATE_KEY_LEN, state->ecc_sign_state.signature_s, ES256_PRIVATE_KEY_LEN);
 	state->sig_len = ES256_SIGNATURE_LEN;
 	
-	//self-check
-	/*printf("Performing sign self-check...\n");
-	static verify_state_t test;
-	test.process = state->process;
-	PT_SPAWN(&state->pt, &test.pt, ecc_verify(&test, public_key, buffer, msg_len + state->sig_len));
-	*/
+	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
 #endif /*CONTIKI_TARGET_ZOUL*/
 #endif /*OSCORE_WITH_HW_CRYPTO*/
 	PT_END(&state->pt);
@@ -732,6 +704,16 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	PT_SEM_WAIT(&state->pt, &crypto_processor_mutex);
 	printf("Crypto processor available (verify)!\n");
 
+	//const size_t msg_len = buffer_len - ES256_SIGNATURE_LEN;
+
+	const uint8_t *sig_r = signature;//buffer + msg_len;
+	const uint8_t *sig_s = signature + ES256_PRIVATE_KEY_LEN;//buffer + msg_len + ES256_PRIVATE_KEY_LEN;
+	//FIXME
+	printf("Signature r\n");
+	kprintf_hex(sig_r, (uint8_t) (ES256_SIGNATURE_LEN / 2));
+	printf("Signature s\n");
+	kprintf_hex(sig_s, (uint8_t) (ES256_SIGNATURE_LEN / 2));
+
 #endif
 	uint8_t message_hash[SHA256_DIGEST_LENGTH];
 
@@ -743,6 +725,7 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	dtls_sha256_update(&msg_hash_ctx, buffer, buffer_len);
 	dtls_sha256_final(message_hash, &msg_hash_ctx);
 	printf("Spawning a sw verify process\n");
+	printf("Verify SW\n");
 	PT_SPAWN(&state->pt, &state->verify_sw_pt, ecc_verify_sw(state, public_key, message_hash, signature));
 
 #else //HW crypto
@@ -853,10 +836,13 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 
 	state->ecc_verify_state.process = state->process;
 	state->ecc_verify_state.curve_info = &nist_p_256;
+	ec_uint8v_to_uint32v(state->ecc_verify_state.public.x, public_key, 32);
+	ec_uint8v_to_uint32v(state->ecc_verify_state.public.y, &public_key[32], 32);
 
 	printf("SHA256 successful. Ready for the verification in HW...\n");
 
 	pka_enable();
+	printf("Verify HW\n");
 	PT_SPAWN(&state->pt, &state->ecc_verify_state.pt, ecc_dsa_verify(&state->ecc_verify_state));
 	pka_disable();
 
@@ -897,6 +883,7 @@ queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *pu
 	item->private_key = private_key;
 	item->public_key = public_key;
 	memcpy(item->message, message, message_len);
+	item->message_buffer_len = 250;
 	item->message_len = message_len;
 	item->signature = signature;
 	
