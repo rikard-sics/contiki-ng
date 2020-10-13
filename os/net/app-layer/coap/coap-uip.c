@@ -108,7 +108,7 @@ kprintf_hex2(const uint8_t *data, unsigned int len)
   printf("\n");
 }
 /*---------------------------------------------------------------------------*/
-/*void
+void
 coap_log_msg(coap_message_t *msg)
 {
 	LOG_INFO("Logging coap message\n");
@@ -134,7 +134,7 @@ coap_log_msg(coap_message_t *msg)
 		LOG_INFO("Uri host:\n");
 		printf("%.*s \n", 4, host);
 	}
-}*/
+}
 /*---------------------------------------------------------------------------*/
 void
 coap_endpoint_log(const coap_endpoint_t *ep)
@@ -277,12 +277,13 @@ coap_endpoint_parse(const char *text, size_t size, coap_endpoint_t *ep)
 }
 /*---------------------------------------------------------------------------*/
 static const coap_endpoint_t *
-get_src_endpoint(coap_endpoint_t* src, uint8_t secure)
+get_src_endpoint(uint8_t secure)
 {
-  uip_ipaddr_copy(&src->ipaddr, &UIP_IP_BUF->srcipaddr);
-  src->port = UIP_UDP_BUF->srcport;
-  src->secure = secure;
-  return src;
+  static coap_endpoint_t src;
+  uip_ipaddr_copy(&src.ipaddr, &UIP_IP_BUF->srcipaddr);
+  src.port = UIP_UDP_BUF->srcport;
+  src.secure = secure;
+  return &src;
 }
 /*---------------------------------------------------------------------------*/
 int
@@ -395,8 +396,7 @@ process_secure_data(void)
   LOG_INFO("  Length: %u\n", uip_datalen());
 
   if(dtls_context) {
-    coap_endpoint_t src;
-    dtls_handle_message(dtls_context, (coap_endpoint_t *)get_src_endpoint(&src, 1),
+    dtls_handle_message(dtls_context, (coap_endpoint_t *)get_src_endpoint(1),
                         uip_appdata, uip_datalen());
   }
 }
@@ -478,7 +478,10 @@ coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t length)
   LOG_INFO("DEBUG seding to ");
   LOG_INFO_COAP_EP(ep);
   LOG_INFO_("DEBUG  %u bytes\n", length);
-  //printf_hex(data, length);
+  printf_hex(data, length);
+  printf("send to:\n");
+  LOG_INFO_6ADDR(&ep->ipaddr);
+  printf("\n");
   uip_udp_packet_sendto(udp_conn, data, length, &ep->ipaddr, ep->port);
   return length;
 }
@@ -534,7 +537,7 @@ PROCESS_THREAD(coap_engine, ev, data)
     }
     else if (ev == pe_message_signed) {
 	    LOG_INFO("Received message signed event!\n");
-	    //coap_log_msg(response);
+	    coap_log_msg(response);
 	    schedule_send_response();
     }
 #endif /* WITH_GROUPCOM */
