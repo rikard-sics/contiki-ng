@@ -1366,10 +1366,10 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
          coap_pkt->buffer[4],
          coap_pkt->buffer[5], coap_pkt->buffer[6], coap_pkt->buffer[7]
          );
-printf("payload field\n");
+/*printf("payload field\n");
 printf_hex(coap_pkt->payload, coap_pkt->payload_len);
 printf("serialized payload\n");
-printf_hex(&(coap_pkt->buffer[option - buffer]), coap_pkt->payload_len);
+printf_hex(&(coap_pkt->buffer[option - buffer]), coap_pkt->payload_len);*/
 
  if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL){
     return (option - buffer) + coap_pkt->payload_len; /* packet length */
