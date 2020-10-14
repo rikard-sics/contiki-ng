@@ -108,7 +108,7 @@ kprintf_hex2(const uint8_t *data, unsigned int len)
   printf("\n");
 }
 /*---------------------------------------------------------------------------*/
-void
+/*void
 coap_log_msg(coap_message_t *msg)
 {
 	LOG_INFO("Logging coap message\n");
@@ -134,7 +134,7 @@ coap_log_msg(coap_message_t *msg)
 		LOG_INFO("Uri host:\n");
 		printf("%.*s \n", 4, host);
 	}
-}
+}*/
 /*---------------------------------------------------------------------------*/
 void
 coap_endpoint_log(const coap_endpoint_t *ep)
@@ -478,7 +478,7 @@ coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t length)
   LOG_INFO("DEBUG seding to ");
   LOG_INFO_COAP_EP(ep);
   LOG_INFO_("DEBUG  %u bytes\n", length);
-  printf_hex(data, length);
+  //printf_hex(data, length);
   uip_udp_packet_sendto(udp_conn, data, length, &ep->ipaddr, ep->port);
   return length;
 }
@@ -529,7 +529,7 @@ PROCESS_THREAD(coap_engine, ev, data)
     }
     else if (ev == pe_message_signed) {
 	    LOG_INFO("Received message signed event!\n");
-	    coap_log_msg(response);
+	    //coap_log_msg(response);
 	    schedule_send_response();
     }
 #endif /* WITH_GROUPCOM */
