@@ -30,7 +30,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-MIN_STACKSIZE = 0x600;  /* 1536 bytes */
+MIN_STACKSIZE = 0xC00;  /*was 0x600= 1536 bytes */
 HEAPSIZE      = 0x100;  /* 256 bytes */
 
 MEMORY

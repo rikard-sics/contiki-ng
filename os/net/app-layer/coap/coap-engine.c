@@ -70,12 +70,12 @@ static uint16_t dr_mid;
 /*Callback function to actually send the delayed response*/
 void send_delayed_response_callback(void *data)
 {
-LOG_DBG("Send_delayed_response_callback:\n");
+//LOG_DBG("Send_delayed_response_callback:\n");
  uint16_t *mid_;
  mid_ = (uint16_t *) data;
  coap_transaction_t *trans;
  if((trans = coap_get_transaction_by_mid(*mid_))) {
-   LOG_DBG("Transaction found!!! Sending...\n");
+   //LOG_DBG("Transaction found!!! Sending...\n");
    coap_send_transaction(trans);
  }
  else {
@@ -473,7 +473,7 @@ coap_receive(const coap_endpoint_t *src,
       if(is_mcast) {
         /*Copy transport data to a timer data. The response will be sent at timer expiration.*/
         uint8_t tmp_time = 1;
-        LOG_DBG("About to prepare delayed response!\n");
+        //LOG_DBG("About to prepare delayed response!\n");
         LOG_DBG("Scheduling delayed response after %d seconds...\n", tmp_time);
         dr_mid = message->mid;
         //dr_mid should point to message or something else
@@ -565,8 +565,8 @@ coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
 		      LOG_ERR("POSTCRYPTO serialization failed!\n");
 	      	      return;
 	      }
-	      printf("postcrypto msg\n");
-		printf_hex(transaction->message, msg_len);
+	      /*printf("postcrypto msg\n");
+		printf_hex(transaction->message, msg_len);*/
 	      transaction->message_len = msg_len;
 	      LOG_DBG("SEND POSTCRYPTO: attempting to send the transaction.\n");
 	      send_delayed_response_callback(&(message->mid));
