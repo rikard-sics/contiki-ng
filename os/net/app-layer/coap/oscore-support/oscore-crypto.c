@@ -44,7 +44,6 @@
 #include "cose.h"
 #include <stdio.h>
 #include "dtls-hmac.h"
-#include "sys/rtimer.h"
 
 /* Log configuration */
 #include "coap-log.h"
@@ -62,6 +61,8 @@
 #ifdef OSCORE_WITH_HW_CRYPTO
 
 #include "sys/pt-sem.h"
+process_event_t pe_crypto_lock_released;
+static struct pt_sem crypto_processor_mutex;
 
 #ifdef CONTIKI_TARGET_ZOUL
 #include "dev/ecc-algorithm.h"
@@ -85,10 +86,6 @@
 
 #endif /*OSCORE_WITH_HW_CRYPTO*/
 
-#ifdef OSCORE_WITH_HW_CRYPTO
-process_event_t pe_crypto_lock_released;
-static struct pt_sem crypto_processor_mutex;
-#endif /*OSCORE_WITH_HW_CRYPTO*/
 
 process_event_t pe_message_signed;
 process_event_t pe_message_verified;
@@ -120,7 +117,7 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
                   || nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
     return -5;
   }
-  unsigned long start = RTIMER_NOW();
+  
   /*
   LOG_DBG("Encrypt:\n");
   LOG_DBG("Key:\n");
@@ -134,7 +131,7 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
    */
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
-printf("HW\n");
+  /*Force usage of HW drivers */
   cc2538_ccm_star_driver.set_key(key);
   cc2538_ccm_star_driver.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
 #elif CONTIKI_TARGET_SIMPLELINK 
@@ -142,12 +139,10 @@ printf("HW\n");
 
 #endif /*CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
 #else /* not OSCORE_WITH_HW_CRYPTO  */
-printf("SW\n");
-  CCM_STAR.set_key(key);
-  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
+  /*Force usage of SW drivers */
+  ccm_star_driver.set_key(key);
+  ccm_star_driver.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
 #endif /* OSCORE_WITH_HW_CRYPTO */
-  unsigned long stop = RTIMER_NOW();
-  printf("enc: %lu\n", (stop - start));
 
   return plaintext_len + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
 }
@@ -162,7 +157,7 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
                 || nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
     return -5;
   }
-  unsigned long start = RTIMER_NOW();
+  
   uint8_t tag_buffer[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
   uint16_t plaintext_len = ciphertext_len - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
   /* LOG_DBG("Decrypt:\n");
@@ -178,7 +173,7 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
 
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
-printf("HW\n");
+  /*Force usage of HW drivers */
   cc2538_ccm_star_driver.set_key(key);
   cc2538_ccm_star_driver.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
 #elif CONTIKI_TARGET_SIMPLELINK 
@@ -186,16 +181,15 @@ printf("HW\n");
 
 #endif /*CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
 #else /* not OSCORE_WITH_HW_CRYPTO  */
-printf("SW\n");
-  CCM_STAR.set_key(key);
-  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
+  /*Force usage of SW drivers */
+  ccm_star_driver.set_key(key);
+  ccm_star_driver.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
 #endif /* OSCORE_WITH_HW_CRYPTO */
-  unsigned long stop = RTIMER_NOW();
-  printf("dec: %lu\n", (stop - start));
+  
   if(memcmp(tag_buffer, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN) != 0) {
           return 0; /* Decryption failure */
   }
-  
+
   return plaintext_len;
 }
 /*---------------------------------------------------------------------------*/
