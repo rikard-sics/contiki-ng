@@ -42,21 +42,22 @@
 #include "ccm-star.h"
 #include <string.h>
 #include "cose.h"
-
 #include <stdio.h>
 #include "dtls-hmac.h"
+#include "sys/rtimer.h"
 
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "coap-uip"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
-#include "sys/rtimer.h"
 #ifdef WITH_GROUPCOM
 #include "sys/pt.h"
 #include "os/lib/queue.h"
 #include "os/lib/memb.h"
 #include "random.h"
+
+
 /*SW/HW crypto libraries*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 
@@ -114,30 +115,40 @@ kprintf_hex(unsigned char *data, unsigned int len)
    that ciphertext buffer is of the correct length. */
 int
 encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len,
-        uint8_t *aad, uint8_t aad_len, uint8_t *buffer, uint16_t plaintext_len)
-{
-
-  if(alg != COSE_Algorithm_AES_CCM_16_64_128 || key_len !=  COSE_algorithm_AES_CCM_16_64_128_KEY_LEN 
-		  || nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
+        uint8_t *aad, uint8_t aad_len, uint8_t *buffer, uint16_t plaintext_len) {
+  if(alg != COSE_Algorithm_AES_CCM_16_64_128 || key_len !=  COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
+                  || nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
     return -5;
   }
-   /*
-   printf("Encrypt:\n");
-   printf("Key:\n");
+  unsigned long start = RTIMER_NOW();
+  /*
+  LOG_DBG("Encrypt:\n");
+  LOG_DBG("Key:\n");
    kprintf_hex(key, key_len);
-   printf("IV:\n");
+  LOG_DBG("IV:\n");
    kprintf_hex(nonce, nonce_len);
-   printf("AAD:\n");
+  LOG_DBG("AAD:\n");
    kprintf_hex(aad, aad_len);
-   printf("Plaintext:\n");
+  LOG_DBG("Plaintext:\n");
    kprintf_hex(buffer, plaintext_len);
    */
+#ifdef OSCORE_WITH_HW_CRYPTO
+#ifdef CONTIKI_TARGET_ZOUL
+printf("HW\n");
+  cc2538_ccm_star_driver.set_key(key);
+  cc2538_ccm_star_driver.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
+#elif CONTIKI_TARGET_SIMPLELINK 
+  /* Simplelink HW goes here */
+
+#endif /*CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
+#else /* not OSCORE_WITH_HW_CRYPTO  */
+printf("SW\n");
   CCM_STAR.set_key(key);
   CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
-   /*
-   printf("Ciphertext&Tag:\n");
-   kprintf_hex(buffer, plaintext_len + 8);
-   */
+#endif /* OSCORE_WITH_HW_CRYPTO */
+  unsigned long stop = RTIMER_NOW();
+  printf("enc: %lu\n", (stop - start));
+
   return plaintext_len + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
 }
 /*---------------------------------------------------------------------------*/
@@ -146,32 +157,43 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
    that plaintext buffer is of the correct length. */
 int
 decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonce_len,
-        uint8_t *aad, uint8_t aad_len, uint8_t *buffer, uint16_t ciphertext_len)
-{
-
+        uint8_t *aad, uint8_t aad_len, uint8_t *buffer, uint16_t ciphertext_len){
   if(alg != COSE_Algorithm_AES_CCM_16_64_128 || key_len != COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
-		|| nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
+                || nonce_len != COSE_algorithm_AES_CCM_16_64_128_IV_LEN) {
     return -5;
   }
-
+  unsigned long start = RTIMER_NOW();
   uint8_t tag_buffer[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
-  
-  CCM_STAR.set_key(key);
-  /*  printf("Decrypt:\n");
-     printf("Key:\n");
+  uint16_t plaintext_len = ciphertext_len - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
+  /* LOG_DBG("Decrypt:\n");
+     LOG_DBG("Key:\n");
      kprintf_hex(key, key_len);
-     printf("IV:\n");
+     LOG_DBG("IV:\n");
      kprintf_hex(nonce, nonce_len);
-     printf("AAD:\n");
+     LOG_DBG("AAD:\n");
      kprintf_hex(aad, aad_len);
-     printf("Ciphertext&Tag:\n");
+     LOG_DBG("Ciphertext&Tag:\n");
      kprintf_hex(buffer, ciphertext_len);
    */
-  uint16_t plaintext_len = ciphertext_len - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
-  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
 
+#ifdef OSCORE_WITH_HW_CRYPTO
+#ifdef CONTIKI_TARGET_ZOUL
+printf("HW\n");
+  cc2538_ccm_star_driver.set_key(key);
+  cc2538_ccm_star_driver.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
+#elif CONTIKI_TARGET_SIMPLELINK 
+  /* Simplelink HW goes here */
+
+#endif /*CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
+#else /* not OSCORE_WITH_HW_CRYPTO  */
+printf("SW\n");
+  CCM_STAR.set_key(key);
+  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
+#endif /* OSCORE_WITH_HW_CRYPTO */
+  unsigned long stop = RTIMER_NOW();
+  printf("dec: %lu\n", (stop - start));
   if(memcmp(tag_buffer, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN) != 0) {
-      	  return 0; /* Decryption failure */
+          return 0; /* Decryption failure */
   }
   
   return plaintext_len;
@@ -489,7 +511,7 @@ PT_THREAD(ecc_sign_deterministic(sign_state_t *state, uint8_t *private_key, uint
 	uint8_t res = -1;
 	res = uECC_sign_deterministic(private_key, message_hash, hash_context, signature);
 	printf("Deterministic sign yielded %d\n", res);
-	printf_hex(signature, 64);
+	kprintf_hex(signature, 64);
 	PT_END(&state->sign_deterministic_pt);
 }
 
@@ -661,7 +683,6 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 
 #endif /*OSCORE_WITH_HW_CRYPTO*/
 	uint8_t message_hash[SHA256_DIGEST_LENGTH];
-	uint8_t sha_ret;
 #ifndef OSCORE_WITH_HW_CRYPTO
 	printf("Using dtls_sha256\n");
 
