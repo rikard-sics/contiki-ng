@@ -60,22 +60,21 @@
 #endif /* WITH_OSCORE */
 
 #ifdef WITH_GROUPCOM
-/*For leisure time randomisation*/
+/*Leisure time*/
 #include "sys/node-id.h"
-//#include "sys/random.h"
-//#include "coap-timer.h"
 #include "sys/ctimer.h"
 static uint16_t dr_mid;
+static struct ctimer dr_timer;
 
 /*Callback function to actually send the delayed response*/
 void send_delayed_response_callback(void *data)
 {
-//LOG_DBG("Send_delayed_response_callback:\n");
+ LOG_DBG("Send_delayed_response_callback:\n");
  uint16_t *mid_;
  mid_ = (uint16_t *) data;
  coap_transaction_t *trans;
  if((trans = coap_get_transaction_by_mid(*mid_))) {
-   //LOG_DBG("Transaction found!!! Sending...\n");
+   LOG_DBG("Transaction found!!! Sending...\n");
    coap_send_transaction(trans);
  }
  else {
@@ -464,13 +463,11 @@ coap_receive(const coap_endpoint_t *src,
 #ifdef WITH_GROUPCOM
       if(is_mcast) {
         /*Copy transport data to a timer data. The response will be sent at timer expiration.*/
-        uint8_t tmp_time = 1;
-        //LOG_DBG("About to prepare delayed response!\n");
+        uint8_t tmp_time = node_id % 5;//random_rand() % 10; /*TODO some better way*/
         LOG_DBG("Scheduling delayed response after %d seconds...\n", tmp_time);
-        dr_mid = message->mid;
-        //dr_mid should point to message or something else
+        //dr_mid = message->mid;
         send_delayed_response_callback(&(message->mid));
-	//ctimer_set(&dr_timer, CLOCK_SECOND * tmp_time, send_delayed_response_callback, NULL);
+	//ctimer_set(&dr_timer, CLOCK_SECOND * tmp_time, send_delayed_response_callback, &dr_mid);
       } else {
         LOG_DBG("No groupcom, running coap_send_transation...\n");    
         coap_send_transaction(transaction);
@@ -545,6 +542,7 @@ void
 coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
 {
       size_t msg_len = 0;
+      uint8_t tmp_time = random_rand() % 10; /*TODO some better way*/
       coap_transaction_t *transaction = NULL;
       transaction = coap_get_transaction_by_mid(message->mid);
       if(transaction != NULL) {
@@ -553,11 +551,13 @@ coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
 		      LOG_ERR("POSTCRYPTO serialization failed!\n");
 	      	      return;
 	      }
-	      /*printf("postcrypto msg\n");
-		printf_hex(transaction->message, msg_len);*/
 	      transaction->message_len = msg_len;
-	      LOG_DBG("SEND POSTCRYPTO: attempting to send the transaction.\n");
-	      send_delayed_response_callback(&(message->mid));
+              LOG_DBG("Scheduling delayed response after %d seconds...\n", tmp_time);
+              dr_mid = message->mid;
+              /*send_delayed_response_callback(&(message->mid));*/
+	      ctimer_set(&dr_timer, CLOCK_SECOND * tmp_time, send_delayed_response_callback, &dr_mid);
+	      //LOG_DBG("SEND POSTCRYPTO: attempting to send the transaction.\n");
+	      //send_delayed_response_callback(&(message->mid));
       } else {
 	      LOG_WARN("SEND POSTCRYPTO: transaction not found!\n");
       }
@@ -583,9 +583,15 @@ coap_engine_init(void)
   coap_transport_init();
   coap_init_connection();
 #ifdef WITH_GROUPCOM
-//  random_init(node_id);
-//  ctimer_init();
-//  LOG_INFO("Ctimers initialised!");
+  uint8_t s = node_id % 0xFF;
+  printf("Initialising random with seed %d, node_id: %d\n", s, node_id);
+/*  random_init(s);
+  printf("Test 1: %d", random_rand());
+  printf("Test 2: %d", random_rand());
+  printf("Test 3: %d", random_rand());
+  printf("Test 4: %d", random_rand());
+  printf("Test 5: %d", random_rand());*/
+  LOG_INFO("Leisure time randomisation initialised!\n");
 #endif /*WITH_GROUPCOM*/
 }
 /*---------------------------------------------------------------------------*/
