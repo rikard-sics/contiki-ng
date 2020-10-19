@@ -49,7 +49,7 @@
 #include "contiki.h"
 #include "net/ipv6/uip-udp-packet.h"
 #include "net/ipv6/uiplib.h"
-#include "net/ipv6/uip.h" //ipaddr comparison
+#include "net/ipv6/uip.h" /*ipaddr comparison*/
 #include "net/routing/routing.h"
 #include "coap.h"
 #include "coap-engine.h"
@@ -90,23 +90,24 @@ PROCESS(coap_engine, "CoAP Engine");
 
 static struct uip_udp_conn *udp_conn = NULL;
 #ifdef WITH_GROUPCOM
-#define VERIFY_RESULT_UNDEFINED -10
-static coap_message_t request[1]; //FIXME enable multiple message processing
+static coap_message_t request[1]; /*TODO enable multiple message processing*/
 static coap_message_t response[1];
-static coap_status_t parse_status; //FIXME enable multiple messages to be handled at a time
+static coap_status_t parse_status; /*TODO enable multiple message processing*/
 static uint8_t *verify_result;
-#endif
 static uint8_t is_mcast = 0;
-/*--------------------------------------------------------------------------*/
-void
-kprintf_hex2(const uint8_t *data, unsigned int len)
-{
-  unsigned int i = 0;
-  for(i = 0; i < len; i++) {
-    printf("%02x ", data[i]);
-  }
-  printf("\n");
-}
+/*TODO change checking srcaddr into checking the dst group addr.*/
+#define is_addr_mcast_group(a)		\
+  ((((a)->u8[0]) == 0xfd) &&            \
+   (((a)->u8[1]) == 0x00) &&            \
+   (((a)->u16[1]) == 0) &&              \
+   (((a)->u16[2]) == 0) &&              \
+   (((a)->u16[3]) == 0) &&              \
+   (((a)->u16[4]) == 0) &&              \
+   (((a)->u16[5]) == 0) &&              \
+   (((a)->u16[6]) == 0) &&              \
+   (((a)->u8[14]) == 0) &&              \
+   (((a)->u8[15]) == 0x01))
+#endif /*WITH_GROUPCOM*/
 /*---------------------------------------------------------------------------*/
 /*void
 coap_log_msg(coap_message_t *msg)
@@ -409,15 +410,13 @@ process_data(void)
   LOG_INFO_6ADDR(&UIP_IP_BUF->srcipaddr);
   LOG_INFO_("]:%u\n", uip_ntohs(UIP_UDP_BUF->srcport));
   LOG_INFO("  Length: %u\n", uip_datalen());
-  LOG_INFO("is_mcast: %d\n", is_mcast);
 #ifdef WITH_GROUPCOM
-  //uint8_t is_mcast = uip_is_addr_linklocal_allnodes_mcast(&UIP_IP_BUF->destipaddr);
-  is_mcast = 1;
+  is_mcast = is_addr_mcast_group(&UIP_IP_BUF->srcipaddr);
+  LOG_INFO("is_mcast: %d\n", is_mcast);
   parse_status = coap_receive(uip_appdata, uip_datalen(), request);
 #else
-  is_mcast = 0;
-  coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast);
-#endif
+  coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen(), 0);
+#endif /*WITH_GROUCPOM*/
 }
 #ifdef WITH_GROUPCOM
 /*---------------------------------------------------------------------------*/
@@ -432,9 +431,6 @@ static void
 schedule_send_response(void)
 {
 	LOG_INFO("signing completed. Continue the CoAP sending process.\n");
-	printf("response payload\n");
-	printf_hex(response->payload, response->payload_len);
-	printf("COAP_MAX_PACKET_SIZE COAP_MAX_PACKET_SIZE %d\n", COAP_MAX_PACKET_SIZE);
 	coap_send_postcrypto(request, response);
 }
 /*---------------------------------------------------------------------------*/
@@ -475,13 +471,6 @@ coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t length)
   }
 #endif /* WITH_DTLS */
   
-  LOG_INFO("DEBUG seding to ");
-  LOG_INFO_COAP_EP(ep);
-  LOG_INFO_("DEBUG  %u bytes\n", length);
-  printf_hex(data, length);
-  printf("send to:\n");
-  LOG_INFO_6ADDR(&ep->ipaddr);
-  printf("\n");
   uip_udp_packet_sendto(udp_conn, data, length, &ep->ipaddr, ep->port);
   return length;
 }
@@ -499,7 +488,6 @@ PROCESS_THREAD(coap_engine, ev, data)
 
   udp_bind(udp_conn, SERVER_LISTEN_PORT);
   LOG_INFO("Listening on port %u\n", uip_ntohs(udp_conn->lport));
-
 #ifdef WITH_DTLS
   /* create new context with app-data */
   dtls_conn = udp_new(NULL, 0, NULL);
@@ -529,15 +517,13 @@ PROCESS_THREAD(coap_engine, ev, data)
       }
     }
 #ifdef WITH_GROUPCOM
-    else if (ev == pe_message_verified) {
+    else if(ev == pe_message_verified) {
 	    verify_result = (uint8_t *) data;
 	    LOG_INFO("Received message verified event! Verify result: %d\n", *verify_result);
 	    process_data_cont(*verify_result);
 	    verify_result = NULL;
-    }
-    else if (ev == pe_message_signed) {
+    } else if(ev == pe_message_signed) {
 	    LOG_INFO("Received message signed event!\n");
-	    //coap_log_msg(response);
 	    schedule_send_response();
     }
 #endif /* WITH_GROUPCOM */
