@@ -82,8 +82,6 @@ void coap_engine_init(void);
 
 #ifdef WITH_GROUPCOM
 
-//Code added for HW crypto support
-
 coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_message_t *message);
 int coap_receive_cont(const coap_endpoint_t *src,
              uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, uint8_t verify_res, coap_status_t in_status, coap_message_t *msg, coap_message_t *resp);
@@ -92,9 +90,8 @@ void coap_send_postcrypto(coap_message_t *message, coap_message_t *response);
 
 int coap_receive(const coap_endpoint_t *src,
                  uint8_t *payload, uint16_t payload_length, uint8_t is_mcast);
-#endif
+#endif/*WITH_GROUPCOM*/
 
-//End of HW crypto code
 coap_handler_status_t coap_call_handlers(coap_message_t *request,
                                          coap_message_t *response,
                                          uint8_t *buffer,
