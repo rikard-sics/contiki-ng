@@ -50,9 +50,9 @@ typedef struct coap_periodic_resource_s coap_periodic_resource_t;
 #include "coap.h"
 #include "coap-timer.h"
 
-#ifdef WITH_OSCORE
+#ifdef WITH_GROUPCOM
 #include "oscore-crypto.h"
-#endif /* WITH_OSCORE */
+#endif /* WITH_GROUPCOM */
 
 typedef enum {
   COAP_HANDLER_STATUS_CONTINUE,
@@ -80,17 +80,18 @@ void coap_remove_handler(coap_handler_t *handler);
 
 void coap_engine_init(void);
 
-//int coap_receive(const coap_endpoint_t *src,
-//                 uint8_t *payload, uint16_t payload_length, uint8_t is_mcast);
-
-//Code added for HW crypto support
+#ifdef WITH_GROUPCOM
 
 coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_message_t *message);
 int coap_receive_cont(const coap_endpoint_t *src,
              uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, uint8_t verify_res, coap_status_t in_status, coap_message_t *msg, coap_message_t *resp);
 void coap_send_postcrypto(coap_message_t *message, coap_message_t *response);
+#else
 
-/*End of HW crypto code*/
+int coap_receive(const coap_endpoint_t *src,
+                 uint8_t *payload, uint16_t payload_length, uint8_t is_mcast);
+#endif/*WITH_GROUPCOM*/
+
 coap_handler_status_t coap_call_handlers(coap_message_t *request,
                                          coap_message_t *response,
                                          uint8_t *buffer,
