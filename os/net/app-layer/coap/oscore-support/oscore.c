@@ -52,15 +52,6 @@
 #define LOG_MODULE "coap"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
-void
-printf_hex(unsigned char *data, unsigned int len)
-{
-  unsigned int i = 0;
-  for(i = 0; i < len; i++) {
-    LOG_DBG_("%02x ", data[i]);
-  }
-  LOG_DBG_("\n");
-}
 uint8_t
 coap_is_request(coap_message_t *coap_pkt)
 {
@@ -171,8 +162,9 @@ oscore_encode_option_value(uint8_t *option_buffer, cose_encrypt0_t *cose, uint8_
     offset += cose->key_id_len;
   }
 #endif
-printf("\nOscore encode option value: the encoded option:\n");  
-printf_hex(option_buffer, offset);
+  LOG_DBG("OSCORE encoded option value, len %d, full [",offset);
+  LOG_DBG_COAP_BYTES(option_buffer, offset);
+  LOG_DBG_("]\n");
 
   if(offset == 1 && option_buffer[0] == 0) { /* If option_value is 0x00 it should be empty. */
 	  return 0;
@@ -272,8 +264,9 @@ oscore_decode_message(coap_message_t *coap_pkt)
       return UNAUTHORIZED_4_01;
     }
     else {
-      LOG_DBG_("Gid length=%d Value comes below.\n", gid_len);
-      printf_hex(group_id, gid_len);
+       LOG_DBG("Group-ID, len %d, full [",gid_len);
+       LOG_DBG_COAP_BYTES(group_id, gid_len);
+       LOG_DBG_("]\n");
     }
 #endif    
     /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
@@ -302,7 +295,6 @@ oscore_decode_message(coap_message_t *coap_pkt)
   coap_pkt->security_context = ctx;
 
   size_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, 0);
-  printf_hex(aad_buffer, aad_len);
   cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
   cose_encrypt0_set_alg(cose, ctx->alg);
   

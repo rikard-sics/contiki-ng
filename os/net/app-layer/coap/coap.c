@@ -89,7 +89,7 @@ coap_log_2(uint16_t value)
 }
 /*---------------------------------------------------------------------------*/
 static uint32_t
-coap_parse_int_option(const uint8_t *bytes, size_t length)
+coap_parse_int_option(uint8_t *bytes, size_t length)
 {
   uint32_t var = 0;
   int i = 0;
@@ -430,19 +430,21 @@ coap_serialize_message_coap(coap_message_t *coap_pkt, uint8_t *buffer)
 size_t
 coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
-#ifdef WITH_OSCORE
-  if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)) {
-    size_t s = oscore_prepare_message(coap_pkt, buffer);
-    LOG_DBG("Sending OSCORE message (size=%zu).\n", s);
-    return s;
-  } else {
-    size_t s = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
-    LOG_DBG("Sending COAP message (size=%zu).\n", s);
-    return s;
-  }
-#else /* WITH_OSCORE */
-  return coap_serialize_message_coap(coap_pkt, buffer);
-#endif /* WITH_OSCORE */
+    #ifdef WITH_OSCORE
+    if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)){
+       size_t message_len = oscore_prepare_message(coap_pkt, buffer);
+       LOG_DBG("Sending OSCORE message, len %zu, full [",message_len);
+       LOG_DBG_COAP_BYTES(buffer, message_len);
+       LOG_DBG_("]\n");
+       return message_len;
+    }else{
+       LOG_DBG_("Sending COAP message.\n");
+       size_t message_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
+       return message_len;
+    }
+    #else /* WITH_OSCORE */
+    return coap_serialize_message_coap(coap_pkt, buffer);
+    #endif /* WITH_OSCORE */
 }
 #ifdef WITH_GROUPCOM
 size_t
@@ -457,22 +459,6 @@ coap_serialize_postcrypto(coap_message_t *coap_pkt, uint8_t *buffer)
 coap_status_t
 coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
 {
-#define CHECK_OPTION_BOUNDARY(byte_count)                               \
-  do {                                                                  \
-    if(current_option + (byte_count) > data + data_len) {               \
-      LOG_WARN("BAD REQUEST: option delta outside buffer (%u > %u)\n",  \
-               (unsigned)(current_option + (byte_count) - data),        \
-               data_len);                                               \
-      return BAD_REQUEST_4_00;                                          \
-    }                                                                   \
-  } while (0)
-
-  if(data_len < COAP_HEADER_LEN) {
-    /* Too short - malformed CoAP message */
-    LOG_WARN("BAD REQUEST: message too short\n");
-    return BAD_REQUEST_4_00;
-  }
-
   /* initialize message */
   memset(coap_pkt, 0, sizeof(coap_message_t));
 
@@ -504,12 +490,13 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   }
 
   uint8_t *current_option = data + COAP_HEADER_LEN;
-  CHECK_OPTION_BOUNDARY(coap_pkt->token_len);
 
   memcpy(coap_pkt->token, current_option, coap_pkt->token_len);
-  LOG_DBG("Token (len %u) [0x", coap_pkt->token_len);
-  LOG_DBG_BYTES(coap_pkt->token, coap_pkt->token_len);
-  LOG_DBG_("]\n");
+  LOG_DBG("Token (len %u) [0x%02X%02X%02X%02X%02X%02X%02X%02X]\n",
+          coap_pkt->token_len, coap_pkt->token[0], coap_pkt->token[1],
+          coap_pkt->token[2], coap_pkt->token[3], coap_pkt->token[4],
+          coap_pkt->token[5], coap_pkt->token[6], coap_pkt->token[7]
+          );                     /* FIXME always prints 8 bytes */
 
   /* parse options */
   memset(coap_pkt->options, 0, sizeof(coap_pkt->options));
@@ -520,7 +507,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   size_t option_length = 0;
   
 #ifdef WITH_OSCORE
-  bool oscore_found = false;
+  uint8_t oscore_found = 0;
 #endif /* WITH_OSCORE */
 
   while(current_option < data + data_len) {
@@ -702,18 +689,18 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
       LOG_DBG_("]\n");
       break;
     case COAP_OPTION_OSCORE:
-#ifdef WITH_OSCORE
+      #ifdef WITH_OSCORE
       coap_pkt->object_security = (uint8_t *)current_option;
       coap_pkt->object_security_len = option_length;
       LOG_DBG_("Object-Security [");
       LOG_DBG_COAP_STRING((char *)(coap_pkt->object_security), coap_pkt->object_security_len);
       LOG_DBG_("]\n");  
-      oscore_found = true;
-#else /* WITH_OSCORE */
+      oscore_found = 1;
+      #else /* WITH_OSCORE */
       LOG_DBG_("OSCORE NOT IMPLEMENTED!\n");
       coap_error_message = "OSCORE not supported";
       return BAD_OPTION_4_02;
-#endif /* WITH_OSCORE */    
+      #endif /* WITH_OSCORE */    
       break;
     case COAP_OPTION_OBSERVE:
       coap_pkt->observe = coap_parse_int_option(current_option,
@@ -766,12 +753,12 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
     current_option += option_length;
   }                             /* for */
   LOG_DBG("-Done parsing-------\n");
-#if WITH_OSCORE
+  #if WITH_OSCORE
   if(oscore_found){
    	LOG_DBG_("REMOVE: OSCORE found, decoding\n"); 
 	 return	oscore_decode_message(coap_pkt);
   }
-#endif /* WITH_OSCORE */
+  #endif /* WITH_OSCORE */
   return NO_ERROR;
 }
 /*---------------------------------------------------------------------------*/
@@ -1702,18 +1689,13 @@ int coap_set_header_object_security(coap_message_t *coap_pkt, uint8_t *object_se
   return coap_pkt->object_security_len;
 }
 
-void coap_set_oscore(coap_message_t *coap_pkt, oscore_ctx_t* ctx)
+
+//TODO for oscore
+int
+coap_set_oscore(coap_message_t *coap_pkt)
 {
   coap_set_option(coap_pkt, COAP_OPTION_OSCORE);
-  coap_pkt->security_context = ctx;
-
-  if(ctx == NULL) {
-    LOG_WARN("coap_set_oscore: Setting NULL security context\n");
-  }
-
-  if(coap_pkt->token_len == 0) {
-    LOG_WARN("coap_set_oscore: 0-length token\n");
-  }
+  return 0;
 }
 #endif /* WITH_OSCORE */
 /** @} */
