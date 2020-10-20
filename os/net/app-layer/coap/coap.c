@@ -454,7 +454,7 @@ coap_serialize_postcrypto(coap_message_t *coap_pkt, uint8_t *buffer)
 	size_t s = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
 	return s;
 }
-#endif
+#endif /*WITH_GROUPCOM*/
 /*---------------------------------------------------------------------------*/
 coap_status_t
 coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
@@ -754,7 +754,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   }                             /* for */
   LOG_DBG("-Done parsing-------\n");
   #if WITH_OSCORE
-  if(oscore_found){
+  if(oscore_found) {
    	LOG_DBG_("REMOVE: OSCORE found, decoding\n"); 
 	 return	oscore_decode_message(coap_pkt);
   }
@@ -1215,21 +1215,21 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
   unsigned int current_number = 0;
 
   /* Initialize */
-  //TODO Fix the buffer issue the SERIALIZE OPTION macros works on the option* pointer
-  //Consider the Integrityprotect and plaintext (oscoap) cases, we might be using different buffers
-  //However, maybe one can use the same buffer to save memory
+  /*TODO Fix the buffer issue the SERIALIZE OPTION macros works on the option* pointer
+   *Consider the Integrityprotect and plaintext (oscoap) cases, we might be using different buffers
+   *However, maybe one can use the same buffer to save memory*/
   
   coap_pkt->buffer = buffer;
 
-  if(role == ROLE_COAP){
+  if(role == ROLE_COAP) {
       LOG_DBG_("Serializing, role COAP\n");
-  } else if (role == ROLE_CONFIDENTIAL){
+  } else if (role == ROLE_CONFIDENTIAL) {
       LOG_DBG_("Serializing, role CONFIDENTIAL\n");
-  } else if( role == ROLE_PROTECTED){
+  } else if (role == ROLE_PROTECTED){
       LOG_DBG_("Serializing, role PROTECTED\n");
   }
 
-  if(role == ROLE_COAP){
+  if(role == ROLE_COAP) {
     coap_pkt->version = 1;
 
     LOG_DBG_("-Serializing MID %u to %p, ", coap_pkt->mid, coap_pkt->buffer);
@@ -1252,7 +1252,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
     return 4;
   }
 
-  if(role == ROLE_COAP){
+  if(role == ROLE_COAP) {
     /* set Token */
     LOG_DBG_("Token (len %u)", coap_pkt->token_len);
     option = coap_pkt->buffer + COAP_HEADER_LEN;
@@ -1263,7 +1263,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
       ++option;
     }
     LOG_DBG_("-\n");
-  } else if(role == ROLE_CONFIDENTIAL){
+  } else if(role == ROLE_CONFIDENTIAL) {
     coap_pkt->buffer[0] = coap_pkt->code;
     option  = coap_pkt->buffer + 1;
   } else {
@@ -1275,16 +1275,16 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
   LOG_DBG_("-Serializing options at %p-\n", option);
 
   /* The options must be serialized in the order of their number */
-  if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL){
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL) {
     COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_IF_MATCH, if_match, "If-Match");
   }
  
-  if( role == ROLE_COAP || role == ROLE_PROTECTED ){
+  if(role == ROLE_COAP || role == ROLE_PROTECTED ) {
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_URI_HOST, uri_host, '\0',
                                "Uri-Host");
   }
  
-  if(  role == ROLE_COAP || role == ROLE_CONFIDENTIAL){
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL) {
     COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_ETAG, etag, "ETag");
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_IF_NONE_MATCH,
                               content_format -
@@ -1292,41 +1292,41 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
                               content_format /* hack to get a zero field */,
                               "If-None-Match");
   }
-  if (role == ROLE_COAP || role == ROLE_PROTECTED  ){
+  if (role == ROLE_COAP || role == ROLE_PROTECTED  ) {
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_OBSERVE, observe, "Observe");
   }
-  if( role == ROLE_COAP || role == ROLE_PROTECTED ){
+  if(role == ROLE_COAP || role == ROLE_PROTECTED ) {
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_URI_PORT, uri_port, "Uri-Port");
   }
   
   COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_LOCATION_PATH, location_path, '/',
                                "Location-Path");
-  if( role == ROLE_COAP){ 
+  if(role == ROLE_COAP) { 
     COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OSCORE, object_security, "Object-Security"); //if number = 9
   }
-  if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL ){
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL ) {
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_URI_PATH, uri_path, '/',
                                "Uri-Path");
   }
   
-  if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL){
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL) {
     LOG_DBG_("Serialize content format: %d\n", coap_pkt->content_format);
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_CONTENT_FORMAT, content_format,
                             "Content-Format");
   }
-  if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL ){
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL ) {
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_MAX_AGE, max_age, "Max-Age");
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_URI_QUERY, uri_query, '&',
                                "Uri-Query");
   }
  
-  if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL ){
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL ) {
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_ACCEPT, accept, "Accept");
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_LOCATION_QUERY, location_query,
                                '&', "Location-Query");
   }
   
-  if(role == ROLE_COAP ){
+  if(role == ROLE_COAP ) {
     COAP_SERIALIZE_BLOCK_OPTION(COAP_OPTION_BLOCK2, block2, "Block2");
     COAP_SERIALIZE_BLOCK_OPTION(COAP_OPTION_BLOCK1, block1, "Block1");
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_SIZE2, size2, "Size2");
@@ -1335,12 +1335,12 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_PROXY_SCHEME, proxy_scheme, '\0',
                                  "Proxy-Scheme");
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_SIZE1, size1, "Size1");
-  //  COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OSCORE, object_security, "Object-Security");
+  /*  COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OSCORE, object_security, "Object-Security");*/
 
   }
   LOG_DBG_("-Done serializing at %p----\n", option);
 
-  if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL){
+  if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL) {
     /* Pack payload */
     if((option - coap_pkt->buffer) <= COAP_MAX_HEADER_SIZE) {
       /* Payload marker */
@@ -1355,7 +1355,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
       coap_error_message = "Serialized header exceeds COAP_MAX_HEADER_SIZE";
       return 0;
     }
-  } //Do nothing for ROLE_PROTECTED
+  } /*Do nothing for ROLE_PROTECTED*/
 
   LOG_DBG_("-Done %u B (header len %u, payload len %u)-\n",
          (unsigned int)(coap_pkt->payload_len + option - buffer),
@@ -1370,29 +1370,26 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
          coap_pkt->buffer[4],
          coap_pkt->buffer[5], coap_pkt->buffer[6], coap_pkt->buffer[7]
          );
-/*printf("payload field\n");
-printf_hex(coap_pkt->payload, coap_pkt->payload_len);
-printf("serialized payload\n");
-printf_hex(&(coap_pkt->buffer[option - buffer]), coap_pkt->payload_len);*/
 
- if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL){
+ if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL) {
     return (option - buffer) + coap_pkt->payload_len; /* packet length */
-  } else { // ROLE PROTECTED
+  } else { /* ROLE PROTECTED*/
     return (option - buffer);
   }
 }
 
 coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
-                                         uint16_t data_len, uint8_t role){
+                                         uint16_t data_len, uint8_t role)
+{
 
   int OSCOAP = 0;    
   uint8_t* original_buffer = NULL;
 
-  if(role == ROLE_COAP){
+  if(role == ROLE_COAP) {
     memset(coap_pkt, 0, sizeof(coap_message_t));
     coap_pkt->buffer = data; 
 
-  } else if (role == ROLE_CONFIDENTIAL){
+  } else if (role == ROLE_CONFIDENTIAL) {
     original_buffer = coap_pkt->buffer;
     coap_pkt->buffer = data;
   } 
@@ -1421,7 +1418,7 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
   }
 
   uint8_t *current_option;
-  if(role == ROLE_CONFIDENTIAL){
+  if(role == ROLE_CONFIDENTIAL) {
     coap_pkt->code = *data;
     data++; //Step past the encrypted Coap Code
     data_len--; // Decrement the length because of the encrypted code
@@ -1450,7 +1447,7 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
   while(current_option < data + data_len) {
     /* payload marker 0xFF, currently only checking for 0xF* because rest is reserved */
     if((current_option[0] & 0xF0) == 0xF0) {
-      //TODO if OSCORE GET put payload to NULL
+      /*TODO if OSCORE GET put payload to NULL*/
       coap_pkt->payload = ++current_option;
       coap_pkt->payload_len = data_len - (coap_pkt->payload - data);
       /* also for receiving, the Erbium upper bound is REST_MAX_CHUNK_SIZE */
@@ -1545,7 +1542,7 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
       LOG_DBG_("Proxy-Uri NOT IMPLEMENTED [%.*s]\n", (int)coap_pkt->proxy_uri_len,
              coap_pkt->proxy_uri);
       coap_error_message = "This is a constrained server (Contiki)";
-//      return PROXYING_NOT_SUPPORTED_5_05;
+/*      return PROXYING_NOT_SUPPORTED_5_05;*/
       break;
     case COAP_OPTION_PROXY_SCHEME:
 #if COAP_PROXY_OPTION_PROCESSING
@@ -1555,7 +1552,7 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
       LOG_DBG_("Proxy-Scheme NOT IMPLEMENTED [%.*s]\n",
              (int)coap_pkt->proxy_scheme_len, coap_pkt->proxy_scheme);
       coap_error_message = "This is a constrained server (Contiki)";
-//      return PROXYING_NOT_SUPPORTED_5_05;
+/*      return PROXYING_NOT_SUPPORTED_5_05;*/
       break;
 
     case COAP_OPTION_URI_HOST:
@@ -1660,10 +1657,10 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
 
     current_option += option_length;
   }                             /* for */
-    if(OSCOAP && role == ROLE_COAP){
+    if(OSCOAP && role == ROLE_COAP) {
       coap_pkt->buffer = original_buffer;
-      if(coap_pkt->object_security_len == 0 && coap_pkt->payload_len == 0){
-        return 0; //OSCOAP_MALFORMED_PACKET;
+      if(coap_pkt->object_security_len == 0 && coap_pkt->payload_len == 0) {
+        return 0; /*OSCOAP_MALFORMED_PACKET;*/
       } else {
         return oscore_decode_message(coap_pkt);
       }
@@ -1673,7 +1670,8 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
     return NO_ERROR;
 }
 
-int coap_get_header_object_security(coap_message_t *coap_pkt, uint8_t **object_security){
+int coap_get_header_object_security(coap_message_t *coap_pkt, uint8_t **object_security)
+{
   if(!coap_is_option(coap_pkt, COAP_OPTION_OSCORE)) {
     return 0;
   }
@@ -1681,7 +1679,8 @@ int coap_get_header_object_security(coap_message_t *coap_pkt, uint8_t **object_s
   return coap_pkt->object_security_len;
 }
 
-int coap_set_header_object_security(coap_message_t *coap_pkt, uint8_t *object_security, size_t object_security_len){
+int coap_set_header_object_security(coap_message_t *coap_pkt, uint8_t *object_security, size_t object_security_len)
+{
   coap_pkt->object_security = object_security;
   coap_pkt->object_security_len = object_security_len;
 
@@ -1690,7 +1689,6 @@ int coap_set_header_object_security(coap_message_t *coap_pkt, uint8_t *object_se
 }
 
 
-//TODO for oscore
 int
 coap_set_oscore(coap_message_t *coap_pkt)
 {
