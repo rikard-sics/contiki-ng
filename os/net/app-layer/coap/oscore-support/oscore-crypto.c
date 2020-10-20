@@ -265,7 +265,7 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   AESCCM_Params params;
   CryptoKey cryptoKey;
   int_fast16_t decryptionResult;
-  uint8_t output[plaintext_len], mac[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
+  uint8_t output[plaintext_len];
   AESCCM_Params_init(&params);
 
   handle = AESCCM_open(0, &params);
@@ -407,7 +407,7 @@ typedef struct {
 
 PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature));
 
-PT_THREAD(ecc_(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature));
+PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature));
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Initialise oscore crypto resources (HW engines, processes, etc.).
@@ -450,7 +450,7 @@ oscore_crypto_init(void)
 #ifdef CONTIKI_TARGET_SIMPLELINK
 /*---------------------------------------------------------------------------*/
 static uint8_t
-sha2_hash(uint8_t *message, size_t len, uint8_t *hash)
+sha2_hash(const uint8_t *message, size_t len, uint8_t *hash)
 {
 	int_fast16_t result;
 	/*One-step hash */
@@ -567,7 +567,10 @@ PT_THREAD(ecc_sign_deterministic(sign_state_t *state, uint8_t *private_key, uint
 	PT_BEGIN(&state->sign_deterministic_pt);
 	uint8_t res = -1;
 	res = uECC_sign_deterministic(private_key, message_hash, hash_context, signature);
-	kprintf_hex(signature, 64);
+	if(res != 1) {
+		printf("Deterministic sign in SW failed with code %d!\n", res);
+		PT_EXIT(&state->sign_deterministic_pt);
+	}
 	PT_END(&state->sign_deterministic_pt);
 }
 
@@ -576,6 +579,10 @@ PT_THREAD(ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8_t *mes
 	PT_BEGIN(&state->verify_sw_pt);
 	uint8_t res = -1;
         res = uECC_verify(public_key, message_hash, signature);
+	if(res != 1) {
+		printf("Deterministic verify in SW failed with code %d!\n", res);
+		PT_EXIT(&state->verify_sw_pt);
+	}
 	PT_END(&state->verify_sw_pt);
 }
 #endif /*OSCORE_WITH_HW_CRYPTO*/
@@ -619,7 +626,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	ECDSA_OperationSign operationSign;
 	int_fast16_t trngResult, operationResult;
 
-	sha_ret= sha2_hash(buffer, msg_len, message_hash);
+	sha_ret= sha2_hash((const uint8_t *) buffer, msg_len, message_hash);
 	if(sha_ret != SHA2_STATUS_SUCCESS) {
 		printf("SHA2 failed! Code: %u", sha_ret);
 		PT_EXIT(&state->pt);
