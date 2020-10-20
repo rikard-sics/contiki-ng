@@ -430,19 +430,21 @@ coap_serialize_message_coap(coap_message_t *coap_pkt, uint8_t *buffer)
 size_t
 coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
-#ifdef WITH_OSCORE
-  if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)) {
-    size_t s = oscore_prepare_message(coap_pkt, buffer);
-    LOG_DBG("Sending OSCORE message (size=%zu).\n", s);
-    return s;
-  } else {
-    size_t s = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
-    LOG_DBG("Sending COAP message (size=%zu).\n", s);
-    return s;
-  }
-#else /* WITH_OSCORE */
-  return coap_serialize_message_coap(coap_pkt, buffer);
-#endif /* WITH_OSCORE */
+    #ifdef WITH_OSCORE
+    if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)){
+       size_t message_len = oscore_prepare_message(coap_pkt, buffer);
+       LOG_DBG("Sending OSCORE message, len %zu, full [",message_len);
+       LOG_DBG_COAP_BYTES(buffer, message_len);
+       LOG_DBG_("]\n");
+       return message_len;
+    }else{
+       LOG_DBG_("Sending COAP message.\n");
+       size_t message_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
+       return message_len;
+    }
+    #else /* WITH_OSCORE */
+    return coap_serialize_message_coap(coap_pkt, buffer);
+    #endif /* WITH_OSCORE */
 }
 #ifdef WITH_GROUPCOM
 size_t

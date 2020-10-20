@@ -95,10 +95,6 @@ bool oscore_is_request_protected(const coap_message_t *request);
 
 
 
-/* Initialize the context storage and the protected resource storage. */
-/* Initialize the context storage, the token - seq association storrage and the URI - context association storage. */
-void oscore_init(void);
-
 #ifdef WITH_GROUPCOM
 void oscore_populate_sign(uint8_t coap_is_request, cose_sign1_t *sign, oscore_ctx_t *ctx);
 

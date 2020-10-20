@@ -98,15 +98,6 @@ PROCESS(verifier, "verifier");
 #endif /*WITH_GROUPCOM*/
 /*Utilities*/
 /*---------------------------------------------------------------------------*/
-void
-kprintf_hex(unsigned char *data, unsigned int len) {
-  unsigned int i = 0;
-  for(i = 0; i < len; i++) {
-    printf("%02x ", data[i]);
-  }
-  printf("\n");
-}
-/*---------------------------------------------------------------------------*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 void
 reverse_endianness(uint8_t *a, unsigned int len) {
@@ -567,10 +558,6 @@ PT_THREAD(ecc_sign_deterministic(sign_state_t *state, uint8_t *private_key, uint
 	PT_BEGIN(&state->sign_deterministic_pt);
 	uint8_t res = -1;
 	res = uECC_sign_deterministic(private_key, message_hash, hash_context, signature);
-	if(res != 1) {
-		printf("Deterministic sign in SW failed with code %d!\n", res);
-		PT_EXIT(&state->sign_deterministic_pt);
-	}
 	PT_END(&state->sign_deterministic_pt);
 }
 

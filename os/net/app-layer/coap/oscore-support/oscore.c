@@ -58,28 +58,8 @@
 #define LOG_MODULE "coap"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
-/* Sets Alg, Partial IV Key ID and Key in COSE. */
-static void
-oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const oscore_ctx_t *ctx, bool sending);
-
-/* Creates and sets External AAD */
-static int
-oscore_prepare_aad(const coap_message_t *coap_pkt, const cose_encrypt0_t *cose, nanocbor_encoder_t* enc, bool sending);
-
-/*Return 1 if OK, Error code otherwise */
-static bool
-oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, const cose_encrypt0_t *cose);
-
-static void
-printf_hex_detailed(const char* name, const uint8_t *data, size_t len)
-{
-  LOG_DBG("%s (len=%zu): ", name, len);
-  LOG_DBG_BYTES(data, len);
-  LOG_DBG_("\n");
-}
-
-static bool
-coap_is_request(const coap_message_t *coap_pkt)
+uint8_t
+coap_is_request(coap_message_t *coap_pkt)
 {
   return coap_pkt->code >= COAP_GET && coap_pkt->code <= COAP_DELETE;
 }
@@ -188,8 +168,9 @@ oscore_encode_option_value(uint8_t *option_buffer, const cose_encrypt0_t *cose, 
     offset += cose->key_id_len;
   }
 #endif
-printf("\nOscore encode option value: the encoded option:\n");  
-printf_hex(option_buffer, offset);
+  LOG_DBG("OSCORE encoded option value, len %d, full [",offset);
+  LOG_DBG_COAP_BYTES(option_buffer, offset);
+  LOG_DBG_("]\n");
 
   if(offset == 1 && option_buffer[0] == 0) { /* If option_value is 0x00 it should be empty. */
 	  return 0;
@@ -299,8 +280,9 @@ oscore_decode_message(coap_message_t *coap_pkt)
       return UNAUTHORIZED_4_01;
     }
     else {
-      LOG_DBG_("Gid length=%d Value comes below.\n", gid_len);
-      printf_hex(group_id, gid_len);
+       LOG_DBG("Group-ID, len %d, full [",gid_len);
+       LOG_DBG_COAP_BYTES(group_id, gid_len);
+       LOG_DBG_("]\n");
     }
 #endif    
     /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
@@ -355,7 +337,6 @@ oscore_decode_message(coap_message_t *coap_pkt)
   coap_pkt->security_context = ctx;
 
   size_t aad_len = oscore_prepare_aad(coap_pkt, cose, aad_buffer, 0);
-  printf_hex(aad_buffer, aad_len);
   cose_encrypt0_set_aad(cose, aad_buffer, aad_len);
   cose_encrypt0_set_alg(cose, ctx->alg);
   
