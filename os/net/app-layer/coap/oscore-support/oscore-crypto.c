@@ -71,12 +71,10 @@ static struct pt_sem crypto_processor_mutex;
 #endif /*CONTIKI_TARGET_ZOUL*/
 
 #ifdef CONTIKI_TARGET_SIMPLELINK
-#include "ti/drivers/TRNG.h"
 #include "ti/drivers/SHA2.h"
 #include "ti/drivers/ECDSA.h"
 #include "ti/drivers/AESCCM.h"
 #include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
-#include "ti/drivers/cryptoutils/ecc/ECCParams.h"
 #endif /*CONTIKI_TARGET_SIMPLELINK*/
 
 #ifdef CONTIKI_TARGET_NATIVE
@@ -97,15 +95,6 @@ PROCESS(signer, "signer");
 PROCESS(verifier, "verifier");
 #endif /*WITH_GROUPCOM*/
 /*Utilities*/
-/*---------------------------------------------------------------------------*/
-void
-kprintf_hex(unsigned char *data, unsigned int len) {
-  unsigned int i = 0;
-  for(i = 0; i < len; i++) {
-    printf("%02x ", data[i]);
-  }
-  printf("\n");
-}
 /*---------------------------------------------------------------------------*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 void
@@ -265,7 +254,7 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   AESCCM_Params params;
   CryptoKey cryptoKey;
   int_fast16_t decryptionResult;
-  uint8_t output[plaintext_len];
+  uint8_t output[plaintext_len], mac[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
   AESCCM_Params_init(&params);
 
   handle = AESCCM_open(0, &params);
@@ -407,7 +396,7 @@ typedef struct {
 
 PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature));
 
-PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature));
+PT_THREAD(ecc_(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature));
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Initialise oscore crypto resources (HW engines, processes, etc.).
@@ -423,9 +412,6 @@ oscore_crypto_init(void)
 	pka_init();
 	pka_disable();
 #elif CONTIKI_TARGET_SIMPLELINK
-	TRNG_init();
-	TRNG_Params trng_params;
-	TRNG_Params_init(&trng_params);
 	AESCCM_init();
 	AESCCM_Params aesccm_params;
 	AESCCM_Params_init(&aesccm_params);
@@ -450,7 +436,7 @@ oscore_crypto_init(void)
 #ifdef CONTIKI_TARGET_SIMPLELINK
 /*---------------------------------------------------------------------------*/
 static uint8_t
-sha2_hash(const uint8_t *message, size_t len, uint8_t *hash)
+sha2_hash(uint8_t *message, size_t len, uint8_t *hash)
 {
 	int_fast16_t result;
 	/*One-step hash */
@@ -567,10 +553,6 @@ PT_THREAD(ecc_sign_deterministic(sign_state_t *state, uint8_t *private_key, uint
 	PT_BEGIN(&state->sign_deterministic_pt);
 	uint8_t res = -1;
 	res = uECC_sign_deterministic(private_key, message_hash, hash_context, signature);
-	if(res != 1) {
-		printf("Deterministic sign in SW failed with code %d!\n", res);
-		PT_EXIT(&state->sign_deterministic_pt);
-	}
 	PT_END(&state->sign_deterministic_pt);
 }
 
@@ -579,10 +561,6 @@ PT_THREAD(ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8_t *mes
 	PT_BEGIN(&state->verify_sw_pt);
 	uint8_t res = -1;
         res = uECC_verify(public_key, message_hash, signature);
-	if(res != 1) {
-		printf("Deterministic verify in SW failed with code %d!\n", res);
-		PT_EXIT(&state->verify_sw_pt);
-	}
 	PT_END(&state->verify_sw_pt);
 }
 #endif /*OSCORE_WITH_HW_CRYPTO*/
@@ -614,42 +592,21 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	uint8_t hash[SHA256_DIGEST_LENGTH];
 	uint8_t r[32] = {0};
 	uint8_t s[32] = {0};
-	/*uint8_t k[32] =  		       {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
+	uint8_t k[32] =  		       {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
 						0x9F, 0xE1, 0xFB, 0x04, 0xF2, 0x4B, 0x50, 0x58,
 						0x91, 0xE3, 0xAC, 0x4D, 0x2A, 0x5D, 0x43, 0xAA,
-						0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};*/
-	uint8_t k[32] = {0}; /*The number will be created by TRNG*/
-	TRNG_Handle trngHandle;
+						0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};
 	CryptoKey myPrivateKey;
 	CryptoKey pmsnKey;
 	ECDSA_Handle ecdsaHandle;
 	ECDSA_OperationSign operationSign;
-	int_fast16_t trngResult, operationResult;
+	int_fast16_t operationResult;
 
-	sha_ret= sha2_hash((const uint8_t *) buffer, msg_len, message_hash);
+	sha_ret= sha2_hash(buffer, msg_len, message_hash);
 	if(sha_ret != SHA2_STATUS_SUCCESS) {
 		printf("SHA2 failed! Code: %u", sha_ret);
 		PT_EXIT(&state->pt);
 	}
-
-	trngHandle = TRNG_open(0, NULL);
-	if(!trngHandle) {
-		printf("Failed to open TRNG handle!\n");
-		PT_EXIT(&state->pt);
-	}
-
-	CryptoKeyPlaintext_initBlankKey(&pmsnKey, k, ECCParams_NISTP256.length);
-	trngResult = TRNG_generateEntropy(trngHandle, &pmsnKey);
-
-	if(trngResult != TRNG_STATUS_SUCCESS) {
-		printf("TRNG failed with code: %d", trngResult);
-		PT_EXIT(&state->pt);
-	}
-
-	TRNG_close(trngHandle);
-
-	printf("DEBUG: TRNG has generated the following k for signing:\n");
-	kprintf_hex(k, 32);
 
 	ecdsaHandle = ECDSA_open(0, NULL);
 	if(!ecdsaHandle) {
@@ -663,7 +620,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	convert_simplelink(hash, SHA256_DIGEST_LENGTH);
 
 	CryptoKeyPlaintext_initKey(&myPrivateKey, priv_key, ES256_PRIVATE_KEY_LEN);
-	//CryptoKeyPlaintext_initKey(&pmsnKey, k, sizeof(k));
+	CryptoKeyPlaintext_initKey(&pmsnKey, k, sizeof(k));
 
 	ECDSA_OperationSign_init(&operationSign);
 	operationSign.curve = &ECCParams_NISTP256;
