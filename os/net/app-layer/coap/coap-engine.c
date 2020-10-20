@@ -589,7 +589,7 @@ void
 coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
 {
       size_t msg_len = 0;
-      uint8_t tmp_time = random_rand() % 10; /*TODO some better way*/
+      uint8_t tmp_time = random_rand() % 5; /*TODO some better way*/
       coap_transaction_t *transaction = NULL;
       transaction = coap_get_transaction_by_mid(message->mid);
       if(transaction != NULL) {

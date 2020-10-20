@@ -71,10 +71,12 @@ static struct pt_sem crypto_processor_mutex;
 #endif /*CONTIKI_TARGET_ZOUL*/
 
 #ifdef CONTIKI_TARGET_SIMPLELINK
+#include "ti/drivers/TRNG.h"
 #include "ti/drivers/SHA2.h"
 #include "ti/drivers/ECDSA.h"
 #include "ti/drivers/AESCCM.h"
 #include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
+#include "ti/drivers/cryptoutils/ecc/ECCParams.h"
 #endif /*CONTIKI_TARGET_SIMPLELINK*/
 
 #ifdef CONTIKI_TARGET_NATIVE
@@ -421,6 +423,9 @@ oscore_crypto_init(void)
 	pka_init();
 	pka_disable();
 #elif CONTIKI_TARGET_SIMPLELINK
+	TRNG_init();
+	TRNG_Params trng_params;
+	TRNG_Params_init(&trng_params);
 	AESCCM_init();
 	AESCCM_Params aesccm_params;
 	AESCCM_Params_init(&aesccm_params);
@@ -602,21 +607,42 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	uint8_t hash[SHA256_DIGEST_LENGTH];
 	uint8_t r[32] = {0};
 	uint8_t s[32] = {0};
-	uint8_t k[32] =  		       {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
+	/*uint8_t k[32] =  		       {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
 						0x9F, 0xE1, 0xFB, 0x04, 0xF2, 0x4B, 0x50, 0x58,
 						0x91, 0xE3, 0xAC, 0x4D, 0x2A, 0x5D, 0x43, 0xAA,
-						0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};
+						0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};*/
+	uint8_t k[32] = {0}; /*The number will be created by TRNG*/
+	TRNG_Handle trngHandle;
 	CryptoKey myPrivateKey;
 	CryptoKey pmsnKey;
 	ECDSA_Handle ecdsaHandle;
 	ECDSA_OperationSign operationSign;
-	int_fast16_t operationResult;
+	int_fast16_t trngResult, operationResult;
 
 	sha_ret= sha2_hash(buffer, msg_len, message_hash);
 	if(sha_ret != SHA2_STATUS_SUCCESS) {
 		printf("SHA2 failed! Code: %u", sha_ret);
 		PT_EXIT(&state->pt);
 	}
+
+	trngHandle = TRNG_open(0, NULL);
+	if(!trngHandle) {
+		printf("Failed to open TRNG handle!\n");
+		PT_EXIT(&state->pt);
+	}
+
+	CryptoKeyPlaintext_initBlankKey(&pmsnKey, k, ECCParams_NISTP256.length);
+	trngResult = TRNG_generateEntropy(trngHandle, &pmsnKey);
+
+	if(trngResult != TRNG_STATUS_SUCCESS) {
+		printf("TRNG failed with code: %d", trngResult);
+		PT_EXIT(&state->pt);
+	}
+
+	TRNG_close(trngHandle);
+
+	printf("DEBUG: TRNG has generated the following k for signing:\n");
+	kprintf_hex(k, 32);
 
 	ecdsaHandle = ECDSA_open(0, NULL);
 	if(!ecdsaHandle) {
@@ -630,7 +656,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	convert_simplelink(hash, SHA256_DIGEST_LENGTH);
 
 	CryptoKeyPlaintext_initKey(&myPrivateKey, priv_key, ES256_PRIVATE_KEY_LEN);
-	CryptoKeyPlaintext_initKey(&pmsnKey, k, sizeof(k));
+	//CryptoKeyPlaintext_initKey(&pmsnKey, k, sizeof(k));
 
 	ECDSA_OperationSign_init(&operationSign);
 	operationSign.curve = &ECCParams_NISTP256;
