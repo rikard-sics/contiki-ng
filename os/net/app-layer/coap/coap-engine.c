@@ -66,24 +66,22 @@
 static uint16_t dr_mid;
 static struct ctimer dr_timer;
 
+/*---------------------------------------------------------------------------*/
 /*Callback function to actually send the delayed response*/
 void send_delayed_response_callback(void *data)
 {
- LOG_DBG("Send_delayed_response_callback:\n");
  uint16_t *mid_;
- mid_ = (uint16_t *) data;
  coap_transaction_t *trans;
+ mid_ = (uint16_t *) data;
  if((trans = coap_get_transaction_by_mid(*mid_))) {
-   LOG_DBG("Transaction found!!! Sending...\n");
+   LOG_DBG("Transaction found! Sending...\n");
    coap_send_transaction(trans);
    ctimer_stop(&dr_timer);
-   printf("Ctimer stopped!\n");
- }
- else {
+ } else {
    LOG_DBG("No transaction found, no response will be sent...\n");
  }
- 
 }
+/*---------------------------------------------------------------------------*/
 #endif /*WITH_GROUPCOM*/
 
 static void process_callback(coap_timer_t *t);
@@ -177,10 +175,11 @@ extern coap_resource_t res_well_known_core;
 #ifdef WITH_GROUPCOM
 /*Only capture the data and start the signature verification*/
 coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_message_t *message)
-{//we neglect the output because the oscore code only schedules the verification process
+{
 	LOG_DBG("Coap_receive: calling coap_parse for initial processing...\n");
 	return coap_parse_message(message, payload, payload_length);
 }
+/*---------------------------------------------------------------------------*/
 /*This function can only be called after the signature verification has finished*/
 int
 coap_receive_cont(const coap_endpoint_t *src,
@@ -198,34 +197,29 @@ coap_receive(const coap_endpoint_t *src,
 #else
   static coap_message_t response[1];
   response[0] = *response;
-#endif
+#endif /*WITH_GROUPCOM*/
   coap_transaction_t *transaction = NULL;
   coap_handler_status_t status;
-//#ifdef WITH_GROUPCOM
   uint8_t is_testmcast = 0;
   uint8_t is_testmcastq = 0;
   const char *res1 = "test/mcast", *res2 = "test/mcastq";
-//#endif
 #ifdef WITH_GROUPCOM
   coap_status_code = in_status;
 #else
   coap_status_code = coap_parse_message(message, payload, payload_length);
-#endif
+#endif /*WITH_GROUPCOM*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
-  if(verify_res != 0)
-  {
+  if(verify_res != 0) {
 	  LOG_DBG("The ECC verification failed with the following code: %u", verify_res);
 	  coap_status_code = OSCORE_DECRYPTION_ERROR;
   }
-#endif
-#endif
+#endif /*CONTIKI_TARGET_ZOUL*/
+#endif /*OSCORE_WITH_HW_CRYPTO*/
   coap_set_src_endpoint(message, src);
 
   if(coap_status_code == NO_ERROR) {
-
     /*TODO duplicates suppression, if required by application */
-
     LOG_DBG("  Parsed: v %u, t %u, tkl %u, c %u, mid %u\n", message->version,
             message->type, message->token_len, message->code, message->mid);
     LOG_DBG("  URL:");
@@ -235,7 +229,6 @@ coap_receive(const coap_endpoint_t *src,
     LOG_DBG_COAP_STRING((const char *)message->payload, message->payload_len);
     LOG_DBG_("\n");
 
-//#ifdef WITH_GROUPCOM
   if(message->uri_path)/*Server responses have NULL STR, so for client mcast check is not needed*/
   {
   
@@ -247,19 +240,18 @@ coap_receive(const coap_endpoint_t *src,
     if(is_mcast) {
      LOG_DBG("Is test/mcast: %d, is test/mcastq: %d\n", is_testmcast, is_testmcastq);
      if(!is_testmcast && !is_testmcastq) {
-       LOG_DBG("\nERROR:Cannot request unicast resouces with multicast address! Ignoring...\n");
+       LOG_DBG("\nCannot request unicast resouces with multicast address! Ignoring...\n");
        return 0;
      }
-    }/*is_mcast*/
-    else {
+    } else {
      if(is_testmcast || is_testmcastq) {
-       LOG_DBG("\nERROR:Cannot request multicast resource with unicast address! Ignoring...\n");
+       LOG_DBG("\nCannot request multicast resource with unicast address! Ignoring...\n");
        return 0;
      }
-    }/*else*/
-
-  } else LOG_DBG("\nA client receiving a response, no mcast check.\n");
-//#endif
+    }
+  } else {
+	  LOG_DBG("\nA client receiving a response, no mcast check.\n");
+  }
     /* handle requests */
     if(message->code >= COAP_GET && message->code <= COAP_DELETE) {
 
@@ -278,7 +270,7 @@ coap_receive(const coap_endpoint_t *src,
         } else {
 #ifdef WITH_GROUPCOM		
 	  if(is_testmcastq) {
-            LOG_INFO("\nGot a multicast request for a quiet resource (response suppression)...");
+            LOG_DBG("\nGot a multicast request for a quiet resource (response suppression)...");
 	    status = call_service(message, response,
                                 transaction->message + COAP_MAX_HEADER_SIZE,
                                 block_size, &new_offset);
@@ -290,21 +282,21 @@ coap_receive(const coap_endpoint_t *src,
             coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
                               coap_get_mid());
 	  }
-#endif
+#endif /*WITH_GROUPCOM*/
           /* unreliable NON requests are answered with a NON as well */
             coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
                               coap_get_mid());
 
         }
-        #ifdef WITH_OSCORE 
-	if(coap_is_option(message, COAP_OPTION_OSCORE)){
+#ifdef WITH_OSCORE 
+	if(coap_is_option(message, COAP_OPTION_OSCORE)) {
 	  coap_set_oscore(response);
-	  if(message->security_context == NULL){
+	  if(message->security_context == NULL) {
 		  LOG_DBG("context is NULL\n");
 	  }
           response->security_context = message->security_context;
         }
-        #endif /* WITH_OSCORE */
+#endif /* WITH_OSCORE */
 	/* mirror token */
         if(message->token_len) {
           coap_set_token(response, message->token, message->token_len);
@@ -404,11 +396,11 @@ coap_receive(const coap_endpoint_t *src,
         }
           if(coap_status_code == NO_ERROR) {
 #ifdef WITH_GROUPCOM
-		//start the signing process and return.
+		/*start the signing process and return.*/
 		size_t prepare_out = oscore_prepare_message(response, transaction->message);
-		if (prepare_out == PACKET_SERIALIZATION_ERROR) {
+		if(prepare_out == PACKET_SERIALIZATION_ERROR) {
 			coap_status_code = PACKET_SERIALIZATION_ERROR;
-		} else if (prepare_out == NO_ERROR) {
+		} else if(prepare_out == NO_ERROR) {
 			LOG_DBG("Message prepared, signing in progress. Returning for now...\n");
 			return 0;
 		}
@@ -417,7 +409,7 @@ coap_receive(const coap_endpoint_t *src,
 		   coap_serialize_message(response, transaction->message)) == 0) {
               coap_status_code = PACKET_SERIALIZATION_ERROR;
             }
-#endif
+#endif /*WITH_GROUPCOM*/
           }
       } else {
         coap_status_code = SERVICE_UNAVAILABLE_5_03;
@@ -473,11 +465,10 @@ coap_receive(const coap_endpoint_t *src,
 #ifdef WITH_GROUPCOM
       if(is_mcast) {
         /*Copy transport data to a timer data. The response will be sent at timer expiration.*/
-        uint8_t tmp_time = node_id % 5;//random_rand() % 10; /*TODO some better way*/
+        uint8_t tmp_time = random_rand() % 10; /*TODO a better way*/
         LOG_DBG("Scheduling delayed response after %d seconds...\n", tmp_time);
-        //dr_mid = message->mid;
-        send_delayed_response_callback(&(message->mid));
-	//ctimer_set(&dr_timer, CLOCK_SECOND * tmp_time, send_delayed_response_callback, &dr_mid);
+        dr_mid = message->mid;
+	ctimer_set(&dr_timer, CLOCK_SECOND * tmp_time, send_delayed_response_callback, &dr_mid);
       } else {
         LOG_DBG("No groupcom, running coap_send_transation...\n");    
         coap_send_transaction(transaction);
@@ -536,7 +527,7 @@ coap_receive(const coap_endpoint_t *src,
     coap_init_message(message, reply_type, coap_status_code,
                       message->mid);
 #ifdef WITH_OSCORE
-    if( token_len){
+    if(token_len) {
         coap_set_token(message, tmp_token, token_len);
     }
 #endif /* WITH_OSCORE */
@@ -568,10 +559,7 @@ coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
 	      transaction->message_len = msg_len;
               LOG_DBG("Scheduling delayed response after %d seconds...\n", tmp_time);
               dr_mid = message->mid;
-              /*send_delayed_response_callback(&(message->mid));*/
 	      ctimer_set(&dr_timer, CLOCK_SECOND * tmp_time, send_delayed_response_callback, &dr_mid);
-	      //LOG_DBG("SEND POSTCRYPTO: attempting to send the transaction.\n");
-	      //send_delayed_response_callback(&(message->mid));
       } else {
 	      LOG_WARN("SEND POSTCRYPTO: transaction not found!\n");
       }
@@ -598,17 +586,6 @@ coap_engine_init(void)
 
   coap_transport_init();
   coap_init_connection();
-#ifdef WITH_GROUPCOM
-  uint8_t s = node_id % 0xFF;
-  printf("Initialising random with seed %d, node_id: %d\n", s, node_id);
-/*  random_init(s);
-  printf("Test 1: %d", random_rand());
-  printf("Test 2: %d", random_rand());
-  printf("Test 3: %d", random_rand());
-  printf("Test 4: %d", random_rand());
-  printf("Test 5: %d", random_rand());*/
-  LOG_INFO("Leisure time randomisation initialised!\n");
-#endif /*WITH_GROUPCOM*/
 }
 /*---------------------------------------------------------------------------*/
 /**

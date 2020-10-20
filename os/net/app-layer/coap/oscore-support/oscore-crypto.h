@@ -127,9 +127,9 @@ typedef struct messages_to_verify_entry
 	const uint8_t *message;
 	uint16_t message_len;
 	uint8_t result;
-#ifdef OSCORE_WITH_HW_CRYPTO
+/*#ifdef OSCORE_WITH_HW_CRYPTO
 	const
-#endif /*OSCORE_WITH_HW_CRYPTO*/
+#endif *//*OSCORE_WITH_HW_CRYPTO*/
        	uint8_t *public_key; 
 	uint8_t *signature;
 
