@@ -71,10 +71,12 @@ static struct pt_sem crypto_processor_mutex;
 #endif /*CONTIKI_TARGET_ZOUL*/
 
 #ifdef CONTIKI_TARGET_SIMPLELINK
+#include "ti/drivers/TRNG.h"
 #include "ti/drivers/SHA2.h"
 #include "ti/drivers/ECDSA.h"
 #include "ti/drivers/AESCCM.h"
 #include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
+#include "ti/drivers/cryptoutils/ecc/ECCParams.h"
 #endif /*CONTIKI_TARGET_SIMPLELINK*/
 
 #ifdef CONTIKI_TARGET_NATIVE
@@ -193,7 +195,7 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   handle = AESCCM_open(0, NULL);
  
   if (handle == NULL) {
-      printf("\nCould not open AESCCM handle!\n");
+      LOG_ERR("\nCould not open AESCCM handle!\n");
       return -1;
   }
 
@@ -216,7 +218,7 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   encryptionResult = AESCCM_oneStepEncrypt(handle, &operation);
 
   if (encryptionResult != AESCCM_STATUS_SUCCESS) {
-    printf("\nAESCCM encryption failed with code: %d\n", encryptionResult);
+    LOG_ERR("\nAESCCM encryption failed with code: %d\n", encryptionResult);
     return -1;
   }
   memcpy(buffer, output, plaintext_len);
@@ -254,13 +256,13 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   AESCCM_Params params;
   CryptoKey cryptoKey;
   int_fast16_t decryptionResult;
-  uint8_t output[plaintext_len], mac[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
+  uint8_t output[plaintext_len];
   AESCCM_Params_init(&params);
 
   handle = AESCCM_open(0, &params);
 
   if (handle == NULL) {
-    printf("Could not open AESCCM handle!\n");
+    LOG_ERR("Could not open AESCCM handle!\n");
     return -1; 
   }
 
@@ -282,7 +284,7 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   decryptionResult = AESCCM_oneStepDecrypt(handle, &operation);
 
   if (decryptionResult != AESCCM_STATUS_SUCCESS) {
-       printf("Decryption in HW failed with code %d\n", decryptionResult);
+       LOG_ERR("Decryption in HW failed with code %d\n", decryptionResult);
        return 0;
   }
   memcpy(buffer, output, plaintext_len);
@@ -396,7 +398,7 @@ typedef struct {
 
 PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature));
 
-PT_THREAD(ecc_(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature));
+PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature));
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Initialise oscore crypto resources (HW engines, processes, etc.).
@@ -412,6 +414,9 @@ oscore_crypto_init(void)
 	pka_init();
 	pka_disable();
 #elif CONTIKI_TARGET_SIMPLELINK
+	TRNG_init();
+	TRNG_Params trng_params;
+	TRNG_Params_init(&trng_params);
 	AESCCM_init();
 	AESCCM_Params aesccm_params;
 	AESCCM_Params_init(&aesccm_params);
@@ -430,26 +435,26 @@ oscore_crypto_init(void)
 	pe_message_verified = process_alloc_event();
 	process_start(&signer, NULL);
 	process_start(&verifier, NULL);
-	printf("OSCORE crypto initialised.\n");
+	LOG_INFO("OSCORE crypto initialised.\n");
 }
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_SIMPLELINK
 /*---------------------------------------------------------------------------*/
 static uint8_t
-sha2_hash(uint8_t *message, size_t len, uint8_t *hash)
+sha2_hash(const uint8_t *message, size_t len, uint8_t *hash)
 {
 	int_fast16_t result;
 	/*One-step hash */
 	SHA2_Handle handle;
 	handle = SHA2_open(0, NULL);
 	if(!handle) {
-		printf("SHA2: could not open handle!\n");
+		LOG_ERR("SHA2: could not open handle!\n");
 		return -1;
 	}
 
 	result = SHA2_hashData(handle, message, len, hash);
 	if(result != SHA2_STATUS_SUCCESS) {
-		printf("SHA2 failed, result: %d", result);
+		LOG_ERR("SHA2 failed, result: %d", result);
 	}
 	SHA2_close(handle);
 	return (uint8_t) result;
@@ -488,17 +493,17 @@ sha256_hash(const uint8_t *buffer, size_t len, uint8_t *hash)
 	}
 	ret = sha256_init(&sha256_state);
 	if(ret != CRYPTO_SUCCESS) {
-		printf("sha256_init failed with %u\n", ret);
+		LOG_ERR("sha256_init failed with %u\n", ret);
 		goto end;
 	}
 	ret = sha256_process(&sha256_state, buffer, len);
 	if(ret != CRYPTO_SUCCESS) {
-		printf("sha256_process failed with %u\n", ret);
+		LOG_ERR("sha256_process failed with %u\n", ret);
 		goto end;
 	}
 	ret = sha256_done(&sha256_state, hash);
 	if(ret != CRYPTO_SUCCESS) {
-		printf("sha256_done failed with %u\n", ret);
+		LOG_ERR("sha256_done failed with %u\n", ret);
 		goto end;
 	}
 end:
@@ -553,6 +558,10 @@ PT_THREAD(ecc_sign_deterministic(sign_state_t *state, uint8_t *private_key, uint
 	PT_BEGIN(&state->sign_deterministic_pt);
 	uint8_t res = -1;
 	res = uECC_sign_deterministic(private_key, message_hash, hash_context, signature);
+	if(res != 1) {
+		LOG_ERR("Deterministic sign in SW failed with code %d!\n", res);
+		PT_EXIT(&state->sign_deterministic_pt);
+	}
 	PT_END(&state->sign_deterministic_pt);
 }
 
@@ -561,6 +570,10 @@ PT_THREAD(ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8_t *mes
 	PT_BEGIN(&state->verify_sw_pt);
 	uint8_t res = -1;
         res = uECC_verify(public_key, message_hash, signature);
+	if(res != 1) {
+		LOG_ERR("Deterministic verify in SW failed with code %d!\n", res);
+		PT_EXIT(&state->verify_sw_pt);
+	}
 	PT_END(&state->verify_sw_pt);
 }
 #endif /*OSCORE_WITH_HW_CRYPTO*/
@@ -592,25 +605,43 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	uint8_t hash[SHA256_DIGEST_LENGTH];
 	uint8_t r[32] = {0};
 	uint8_t s[32] = {0};
-	uint8_t k[32] =  		       {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
+	/*uint8_t k[32] =  		       {0xAE, 0x50, 0xEE, 0xFA, 0x27, 0xB4, 0xDB, 0x14,
 						0x9F, 0xE1, 0xFB, 0x04, 0xF2, 0x4B, 0x50, 0x58,
 						0x91, 0xE3, 0xAC, 0x4D, 0x2A, 0x5D, 0x43, 0xAA,
-						0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};
+						0xCA, 0xC8, 0x7F, 0x79, 0x52, 0x7E, 0x1A, 0x7A};*/
+	uint8_t k[32] = {0}; /*The number will be created by TRNG*/
+	TRNG_Handle trngHandle;
 	CryptoKey myPrivateKey;
 	CryptoKey pmsnKey;
 	ECDSA_Handle ecdsaHandle;
 	ECDSA_OperationSign operationSign;
-	int_fast16_t operationResult;
+	int_fast16_t trngResult, operationResult;
 
-	sha_ret= sha2_hash(buffer, msg_len, message_hash);
+	sha_ret= sha2_hash((const uint8_t *) buffer, msg_len, message_hash);
 	if(sha_ret != SHA2_STATUS_SUCCESS) {
-		printf("SHA2 failed! Code: %u", sha_ret);
+		LOG_ERR("SHA2 failed! Code: %u", sha_ret);
 		PT_EXIT(&state->pt);
 	}
 
+	trngHandle = TRNG_open(0, NULL);
+	if(!trngHandle) {
+		LOG_ERR("Failed to open TRNG handle!\n");
+		PT_EXIT(&state->pt);
+	}
+
+	CryptoKeyPlaintext_initBlankKey(&pmsnKey, k, ECCParams_NISTP256.length);
+	trngResult = TRNG_generateEntropy(trngHandle, &pmsnKey);
+
+	if(trngResult != TRNG_STATUS_SUCCESS) {
+		LOG_ERR("TRNG failed with code: %d", trngResult);
+		PT_EXIT(&state->pt);
+	}
+
+	TRNG_close(trngHandle);
+
 	ecdsaHandle = ECDSA_open(0, NULL);
 	if(!ecdsaHandle) {
-		printf("\nFailed to open ecdsaHandle!!!!\n");
+		LOG_ERR("\nFailed to open ecdsaHandle!!!!\n");
 		PT_EXIT(&state->pt);
 	}
 	memcpy(priv_key, private_key, ES256_PRIVATE_KEY_LEN);
@@ -620,7 +651,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	convert_simplelink(hash, SHA256_DIGEST_LENGTH);
 
 	CryptoKeyPlaintext_initKey(&myPrivateKey, priv_key, ES256_PRIVATE_KEY_LEN);
-	CryptoKeyPlaintext_initKey(&pmsnKey, k, sizeof(k));
+	//CryptoKeyPlaintext_initKey(&pmsnKey, k, sizeof(k));
 
 	ECDSA_OperationSign_init(&operationSign);
 	operationSign.curve = &ECCParams_NISTP256;
@@ -633,7 +664,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	operationResult = ECDSA_sign(ecdsaHandle, &operationSign);
 
 	if(operationResult != ECDSA_STATUS_SUCCESS) {
-		printf("Sign failed with the following code: %d", operationResult);
+		LOG_ERR("Sign failed with the following code: %d", operationResult);
 		PT_EXIT(&state->pt);
 	}
 	/*reverse all bytes of r and s*/
@@ -649,7 +680,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 #ifdef CONTIKI_TARGET_ZOUL
 	sha_ret = sha256_hash(buffer, msg_len, message_hash);
 	if(sha_ret != CRYPTO_SUCCESS) {
-		printf("sha256_hash failed with %u\n", sha_ret);
+		LOG_ERR("sha256_hash failed with %u\n", sha_ret);
 		state->ecc_sign_state.result = sha_ret;
 		PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
 		PT_EXIT(&state->pt);
@@ -670,7 +701,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
 
 	if(state->ecc_sign_state.result != PKA_STATUS_SUCCESS)	{
-		printf("Failed to sign message with %d\n", state->ecc_sign_state.result);
+		LOG_ERR("Failed to sign message with %d\n", state->ecc_sign_state.result);
 		PT_EXIT(&state->pt);
 	} 
 	ec_uint32v_to_uint8v(signature, state->ecc_sign_state.point_r.x, ES256_PRIVATE_KEY_LEN);
@@ -711,14 +742,14 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	uint8_t sig_s[ES256_PRIVATE_KEY_LEN];	
 	sha_ret = sha2_hash(buffer, buffer_len, message_hash);
 	if(sha_ret != SHA2_STATUS_SUCCESS) {
-		printf("Sha2 failed with the code: %u!\n", sha_ret);
+		LOG_ERR("Sha2 failed with the code: %u!\n", sha_ret);
 		PT_EXIT(&state->pt);
 	}
 
 	ecdsaHandle = ECDSA_open(0, NULL);
 
 	if(!ecdsaHandle) {
-		printf("Could not open ECDSA handle!\n");
+		LOG_ERR("Could not open ECDSA handle!\n");
 		PT_EXIT(&state->pt);
 	}
 
@@ -751,10 +782,10 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
 
 	if(operationResult != ECDSA_STATUS_SUCCESS) {
-		printf("Verify failed with the following code: %d\n", operationResult);
+		LOG_ERR("Verify failed with the following code: %d\n", operationResult);
 		PT_EXIT(&state->pt);
 	} else {
-		printf("Verify in Simplelink HW succeded!\n");
+		LOG_DBG("Verify in Simplelink HW succeded!\n");
 	}
 
 	ECDSA_close(ecdsaHandle);
@@ -767,7 +798,7 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 
 	sha_ret = sha256_hash(buffer, buffer_len, message_hash);
 	if(sha_ret != CRYPTO_SUCCESS) {
-		printf("sha256_hash failed with %u\n", sha_ret);
+		LOG_ERR("sha256_hash failed with %u\n", sha_ret);
 		state->ecc_verify_state.result = sha_ret;
 		PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
 		PT_EXIT(&state->pt);
@@ -787,7 +818,7 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
 
 	if(state->ecc_verify_state.result != PKA_STATUS_SUCCESS) {
-		printf("Failed to verify message with %d\n", state->ecc_verify_state.result);
+		LOG_ERR("Failed to verify message with %d\n", state->ecc_verify_state.result);
 		PT_EXIT(&state->pt);
 	}
 #endif /*CONTIKI_TARGET_ZOUL*/
@@ -806,7 +837,7 @@ queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *pu
 {
 	messages_to_sign_entry_t *item = memb_alloc(&messages_to_sign_memb);
 	if(!item) {
-		printf("queue_message_to_sign: out of memory\n");
+		LOG_ERR("queue_message_to_sign: out of memory\n");
 		return false;
 	}
 	item->process = process;
@@ -837,7 +868,7 @@ PROCESS_THREAD(signer, ev, data)
 	queue_init(messages_to_sign);
 	memb_init(&messages_to_sign_memb);
 
-	printf("Process signer started!\n");
+	LOG_INFO("Process signer started!\n");
 	while(1) {
 		PROCESS_YIELD_UNTIL(!queue_is_empty(messages_to_sign));
 		while(!queue_is_empty(messages_to_sign)){
@@ -850,7 +881,7 @@ PROCESS_THREAD(signer, ev, data)
 			item->result = state.ecc_sign_state.result;
 #endif /* OSCORE_WITH_HW_CRYPTO && CONTIKI_TARGET_ZOUL */
  			if(process_post(PROCESS_BROADCAST, pe_message_signed, item) != PROCESS_ERR_OK){ 
-				printf("Failed to post pe_message_signed to %s\n", item->process->name);
+				LOG_ERR("Failed to post pe_message_signed to %s\n", item->process->name);
 			} else {
 				queue_message_to_sign_done(item);
 			}
@@ -868,7 +899,7 @@ queue_message_to_verify(struct process *process, uint8_t *signature, uint8_t *me
 {
 	messages_to_verify_entry_t *item = memb_alloc(&messages_to_verify_memb);
 	if(!item) {
-		printf("queue_message_to_verify: out of memory\n");
+		LOG_ERR("queue_message_to_verify: out of memory\n");
 		return false;
 	}
 	item->process = process;
@@ -898,7 +929,7 @@ PROCESS_THREAD(verifier, ev, data)
 	queue_init(messages_to_verify);
 	memb_init(&messages_to_verify_memb);
 
-	printf("Process verifier started!\n");
+	LOG_INFO("Process verifier started!\n");
 	while(1) {
 		PROCESS_YIELD_UNTIL(!queue_is_empty(messages_to_verify));
 
@@ -916,7 +947,7 @@ PROCESS_THREAD(verifier, ev, data)
 			static uint8_t verify_result;
 		        verify_result = item->result;
 			if(process_post(PROCESS_BROADCAST, pe_message_verified, &verify_result) != PROCESS_ERR_OK) {
-				printf("Failed to post pe_message_verified to %s\n", item->process->name);
+				LOG_ERR("Failed to post pe_message_verified to %s\n", item->process->name);
 			} else {
 				queue_message_to_verify_done(item);
 			}
@@ -936,7 +967,7 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
   }
   
   if(!queue_message_to_sign(PROCESS_CURRENT(), private_key, public_key, ciphertext, ciphertext_len, signature)) {
-	  printf("Could not queue the message to sign!\n");
+	  LOG_ERR("Could not queue the message to sign!\n");
 	  return 0;
   }
   return 1;
@@ -952,7 +983,7 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
 
   if(!queue_message_to_verify(PROCESS_CURRENT(), signature, plaintext, plaintext_len, public_key))
   {
-	  printf("Could not queue message to verify\n");
+	  LOG_ERR("Could not queue message to verify\n");
 	  return 0;
   }
   return 1;
