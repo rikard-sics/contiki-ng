@@ -1,0 +1,3 @@
+Run this command to update the submodules after pulling/cloning the repo:
+git submodule update --init --recursive
+
