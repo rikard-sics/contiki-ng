@@ -148,9 +148,9 @@ PROCESS_THREAD(er_example_server, ev, data)
   uECC_make_key(public, private);
 
   // Try signing some data (non-deterministic)
-  uECC_sign(private, message_hash, sig);
+  // uECC_sign(private, message_hash, sig);
 
-  // Try signing some data (deterministic) (FIXME)
+  // Try signing some data (deterministic)
   #define ES256_SIGNATURE_LEN 64
   #define ES256_PRIVATE_KEY_LEN 32
   #define ES256_PUBLIC_KEY_LEN 64
