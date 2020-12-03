@@ -31,7 +31,7 @@
 
 /**
  * \file
- *      ECDSA 256 signing example in software.
+ *      ECDSA 256 shared secret calculation example in software.
  * \author
  *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
  *      Rikard Höglund
@@ -90,30 +90,6 @@ extern coap_resource_t res_temperature;
 PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 
-//Rikard: Supporting deterministic signing
-typedef struct SHA256_HashContext {
-    uECC_HashContext uECC;
-    dtls_sha256_ctx ctx;
-} SHA256_HashContext;
-
-static void init_SHA256(uECC_HashContext *base) {
-    SHA256_HashContext *context = (SHA256_HashContext *)base;
-    dtls_sha256_init(&context->ctx);
-}
-
-static void update_SHA256(uECC_HashContext *base,
-                          const uint8_t *message,
-                          unsigned message_size) {
-    SHA256_HashContext *context = (SHA256_HashContext *)base;
-    dtls_sha256_update(&context->ctx, message, message_size);
-}
-
-static void finish_SHA256(uECC_HashContext *base, uint8_t *hash_result) {
-    SHA256_HashContext *context = (SHA256_HashContext *)base;
-    dtls_sha256_final(hash_result, &context->ctx);
-}
-//Rikard: End deterministic signing support
-
 PROCESS_THREAD(er_example_server, ev, data)
 {
   PROCESS_BEGIN();
@@ -123,12 +99,12 @@ PROCESS_THREAD(er_example_server, ev, data)
   LOG_INFO("Starting Erbium Example Server\n");
 
 
-  //Rikard: Testing signing
+  //Rikard: Testing shared secret calculation
   //Note that the curve is set in the Makefile
 
   printf("===\r\n");
   printf("===\r\n");
-  printf("Signing starting\r\n");
+  printf("Shared secret calculation starting\r\n");
 
 /*
   uint8_t rcv_public_key[64] = { 0xCA, 0x37, 0x63, 0x38, 0x99, 0x87, 0x8F, 0xD0, 0x32, 0xA6, 0xCA, 0x20, 0xBF, 0xE3, 0x45, 0x09,
@@ -148,44 +124,31 @@ PROCESS_THREAD(er_example_server, ev, data)
    0x31, 0x50, 0x64, 0xC0, 0x76, 0x93, 0x32, 0x28, 0x48, 0xF2, 0x24, 0x15, 0x43, 0x07, 0xAE, 0xF9 };
 */
 
-  uint8_t private[32] = {0};
-  uint8_t public[64] = {0};
-  //uint8_t hash[32] = {0};
-  uint8_t sig[64] = {0};
+  uint8_t private1[32] = {0};
+  uint8_t private2[32] = {0};
+  uint8_t public1[64] = {0};
+  uint8_t public2[64] = {0};
+  uint8_t secret1[32] = {0};
+  uint8_t secret2[32] = {0};
 
-  // Messages needs to be hashed manually
-  #define SHA256_DIGEST_LENGTH 32
-  uint8_t message_hash[SHA256_DIGEST_LENGTH];
-  uint8_t buffer[64] = {0};
-  int msg_len = 64;
-  dtls_sha256_ctx msg_hash_ctx;
-  dtls_sha256_init(&msg_hash_ctx);
-  dtls_sha256_update(&msg_hash_ctx, buffer, msg_len);
-  dtls_sha256_final(message_hash, &msg_hash_ctx);
+  // Generate 2 keys
+  uECC_make_key(public1, private1);
+  uECC_make_key(public2, private2);
 
-  // Generate a key
-  uECC_make_key(public, private);
+  // Calculate shared secret 1
+  uECC_shared_secret(public2, private1, secret1);
 
-  // Try signing some data (non-deterministic)
-  // uECC_sign(private, message_hash, sig);
+  // Calculate shared secret 2
+  uECC_shared_secret(public1, private2, secret2);
 
-  // Try signing some data (deterministic)
-  #define ES256_SIGNATURE_LEN 64
-  #define ES256_PRIVATE_KEY_LEN 32
-  #define ES256_PUBLIC_KEY_LEN 64
-  uint8_t tmp[ES256_PRIVATE_KEY_LEN + ES256_PRIVATE_KEY_LEN + ES256_SIGNATURE_LEN];
-  SHA256_HashContext ctx = {{&init_SHA256, &update_SHA256, &finish_SHA256, 64, 32, tmp}};
-  uECC_sign_deterministic(private, message_hash, &ctx.uECC, sig);
-
-  // Verify the signature
-  bool verified = uECC_verify(public, message_hash, sig);
-  if(verified) {
-    printf("Signature correct\r\n");
+  // Make sure they are the same
+  if (memcmp(secret1, secret2, sizeof(secret1)) != 0) {
+    printf("Shared secrets are NOT identical\n");
   } else {
-    printf("Signature NOT correct\r\n");
+    printf("Shared secrets are identical\n");
   }
 
-  printf("Signing over\r\n");
+  printf("Shared secret calculation over\r\n");
   printf("===\r\n");
   printf("===\r\n");
 
