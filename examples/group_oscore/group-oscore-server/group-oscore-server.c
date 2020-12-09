@@ -85,14 +85,14 @@ PROCESS_THREAD(er_example_server, ev, data)
   static oscore_ctx_t *context;
   context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 1, group_id, 3, OSCORE_DEFAULT_REPLAY_WINDOW, group_id);
   if(!context){
-        printf("Could not create OSCORE Security Context!\n");
+        LOG_ERR("Could not create OSCORE Security Context!\n");
   }
 
   uint8_t key_id[1] = { 0x25 };
   oscore_ctx_t *ctx;
   ctx = oscore_find_ctx_by_rid(key_id, 1);
   if(ctx == NULL){
-    printf("CONTEXT NOT FOUND\n");
+    LOG_ERR("CONTEXT NOT FOUND\n");
   }
   oscore_add_group_keys(ctx, snd_public_key, snd_private_key, rcv_public_key, rcv_private_key, COSE_Algorithm_ES256, COSE_Elliptic_Curve_P256);  
   //coap_activate_resource(&res_hello, "test/hello");
