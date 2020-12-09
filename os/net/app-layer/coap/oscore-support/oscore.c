@@ -484,7 +484,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   size_t sign_encoded_len = oscore_prepare_sig_structure(sign_encoded_buffer, 
                aad_buffer, aad_len, cose->content, ciphertext_len); 
   memset(&(content_buffer[ciphertext_len]), 0xAA, 64);
-printf("SIGNATURE SHOULD GO HERE %p \n", &(content_buffer[ciphertext_len]));
+//printf("SIGNATURE SHOULD GO HERE %p \n", &(content_buffer[ciphertext_len]));
   cose_sign1_set_signature(sign, &(content_buffer[ciphertext_len]));
   cose_sign1_set_ciphertext(sign, sign_encoded_buffer, sign_encoded_len);
   /* Queue message to sign */
