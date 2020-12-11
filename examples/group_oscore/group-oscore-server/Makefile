@@ -12,6 +12,13 @@ MODULES += os/net/ipv6/multicast
 
 #CFLAGS += -E
 
+#If no SERVER is defined use Server 1
+ifeq ($(strip $(SERVER)),)
+CFLAGS += -DSERVER=1
+else
+CFLAGS += -DSERVER=$(SERVER)
+endif
+
 MAKE_WITH_OSCORE = 1
 MAKE_WITH_GROUPCOM = 1
 MAKE_WITH_HW_CRYPTO = 1
