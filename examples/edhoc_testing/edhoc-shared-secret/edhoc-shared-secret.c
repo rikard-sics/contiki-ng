@@ -99,8 +99,8 @@ PROCESS_THREAD(er_example_server, ev, data)
   LOG_INFO("Starting Erbium Example Server\n");
 
 
-  //Rikard: Testing shared secret calculation
-  //Note that the curve is set in the Makefile
+  // Rikard: Testing shared secret calculation
+  // Note that the curve is set in the Makefile
 
   printf("===\r\n");
   printf("===\r\n");
@@ -124,12 +124,15 @@ PROCESS_THREAD(er_example_server, ev, data)
    0x31, 0x50, 0x64, 0xC0, 0x76, 0x93, 0x32, 0x28, 0x48, 0xF2, 0x24, 0x15, 0x43, 0x07, 0xAE, 0xF9 };
 */
 
-  uint8_t private1[32] = {0};
-  uint8_t private2[32] = {0};
-  uint8_t public1[64] = {0};
-  uint8_t public2[64] = {0};
-  uint8_t secret1[32] = {0};
-  uint8_t secret2[32] = {0};
+  #define PUBSIZE 64
+  #define PRIVSIZE 64
+
+  uint8_t private1[PRIVSIZE] = { 0 };
+  uint8_t private2[PRIVSIZE] = { 0 };
+  uint8_t public1[PUBSIZE] = { 0 };
+  uint8_t public2[PUBSIZE] = { 0 };
+  uint8_t secret1[PRIVSIZE] = { 0 };
+  uint8_t secret2[PRIVSIZE] = { 0 };
 
   // Generate 2 keys
   uECC_make_key(public1, private1);
@@ -142,15 +145,48 @@ PROCESS_THREAD(er_example_server, ev, data)
   uECC_shared_secret(public1, private2, secret2);
 
   // Make sure they are the same
+  printf("*Test 1: ");
   if (memcmp(secret1, secret2, sizeof(secret1)) != 0) {
-    printf("Shared secrets are NOT identical\n");
+    printf("Shared secrets are NOT identical\r\n");
   } else {
-    printf("Shared secrets are identical\n");
+    printf("Shared secrets are identical\r\n");
+  }
+
+  // Try with test vectors
+  // https://github.com/conz27/crypto-test-vectors/blob/master/ecdh.py
+  // Vector 0: pub_key = (QCAVSx, QCAVSy), priv_key = dIUT, secret = ZIUT
+  uint8_t dPrivate[PRIVSIZE] = { 0x7d, 0x7d, 0xc5, 0xf7, 0x1e, 0xb2, 0x9d, 0xda, 0xf8, 0x0d, 0x62, 0x14, 0x63, 0x2e, 0xea, 0xe0,
+   0x3d, 0x90, 0x58, 0xaf, 0x1f, 0xb6, 0xd2, 0x2e, 0xd8, 0x0b, 0xad, 0xb6, 0x2b, 0xc1, 0xa5, 0x34 };
+  uint8_t qPublic[PUBSIZE] = { 0x70, 0x0c, 0x48, 0xf7, 0x7f, 0x56, 0x58, 0x4c, 0x5c, 0xc6, 0x32, 0xca, 0x65, 0x64, 0x0d, 0xb9,
+   0x1b, 0x6b, 0xac, 0xce, 0x3a, 0x4d, 0xf6, 0xb4, 0x2c, 0xe7, 0xcc, 0x83, 0x88, 0x33, 0xd2, 0x87, /**/ 0xdb, 0x71, 0xe5,
+   0x09, 0xe3, 0xfd, 0x9b, 0x06, 0x0d, 0xdb, 0x20, 0xba, 0x5c, 0x51, 0xdc, 0xc5, 0x94, 0x8d, 0x46, 0xfb, 0xf6, 0x40, 0xdf,
+   0xe0, 0x44, 0x17, 0x82, 0xca, 0xb8, 0x5f, 0xa4, 0xac };
+  uint8_t secretOur[PRIVSIZE] = { 0 };
+  uint8_t secretExpected[PRIVSIZE] = { 0x46, 0xfc, 0x62, 0x10, 0x64, 0x20, 0xff, 0x01, 0x2e, 0x54, 0xa4, 0x34, 0xfb, 0xdd, 0x2d,
+   0x25, 0xcc, 0xc5, 0x85, 0x20, 0x60, 0x56, 0x1e, 0x68, 0x04, 0x0d, 0xd7, 0x77, 0x89, 0x97, 0xbd, 0x7b };
+
+  // Calculate shared secret from test vectors
+  uECC_shared_secret(qPublic, dPrivate, secretOur);
+
+  printf("Shared secret from test vectors:\r\n");
+  for(int i = 0 ; i < PRIVSIZE ; i++) {
+    printf("%02X", secretOur[i]);
+  }
+  printf("\r\n");
+
+  // Make sure ours is same as expected
+  printf("*Test 2: ");
+  if (memcmp(secretExpected, secretOur, sizeof(secretExpected)) != 0) {
+    printf("Shared secret DOES NOT match test vector\r\n");
+  } else {
+    printf("Shared secret matches test vector\r\n");
   }
 
   printf("Shared secret calculation over\r\n");
   printf("===\r\n");
   printf("===\r\n");
+
+  //Rikard: End testing shared secret calculation
 
   /*
    * Bind the resources to their Uri-Path.
