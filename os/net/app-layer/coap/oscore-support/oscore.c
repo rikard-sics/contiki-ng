@@ -143,9 +143,9 @@ u64tob(uint64_t value, uint8_t *buffer)
 static uint64_t
 btou64(const uint8_t *bytes, size_t len)
 {
-  uint8_t buffer[8];
+  uint8_t buffer[sizeof(uint64_t)];
   memset(buffer, 0, sizeof(buffer)); /* function variables are not initializated to anything */
-  int offset = 8 - len;
+  int offset = sizeof(buffer) - len;
   uint64_t num;
 
   memcpy((uint8_t *)(buffer + offset), bytes, len);
@@ -773,8 +773,6 @@ oscore_increment_sender_seq(oscore_ctx_t *ctx)
 void
 oscore_init(void)
 {
-  oscore_ctx_store_init();
-
   /* Initialize the security_context storage and the protected resource storage. */
   oscore_exchange_store_init();
 

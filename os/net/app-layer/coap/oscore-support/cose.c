@@ -94,12 +94,14 @@ cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, const uint8_t **buffer)
   return ptr->key_id_len;
 }
 
-uint8_t cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, const uint8_t **buffer){
+uint8_t
+cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, const uint8_t **buffer){
   *buffer = ptr->kid_context;
   return ptr->kid_context_len;
 }
 
-void cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size){
+void
+cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size){
   ptr->kid_context = buffer;
   ptr->kid_context_len = size;
 } 

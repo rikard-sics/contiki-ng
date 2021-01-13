@@ -48,8 +48,17 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+
 #define OSCORE_SINGLE 0
 #define OSCORE_GROUP 1
+
+/*
+ * The maximum length of Sender ID in
+ * bytes equals the length of the AEAD nonce minus 6
+ * https://tools.ietf.org/html/rfc8613#section-3.3
+ */
+#define OSCORE_SENDER_ID_MAX_LEN(NONE_LENGTH) (NONE_LENGTH - 6)
+#define OSCORE_SENDER_ID_MAX_SUPPORTED_LEN OSCORE_SENDER_ID_MAX_LEN(COSE_LARGEST_IV_LENGTH)
 
 size_t oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role);
 coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len, uint8_t role);
@@ -72,15 +81,11 @@ void oscore_clear_options(coap_message_t *ptr);
 /* Return 0 if SEQ MAX, return 1 if OK */
 bool oscore_increment_sender_seq(oscore_ctx_t *ctx);
 
-/*Compress and extract COSE messages as per the OSCORE standard. */
-//uint8_t oscore_cose_compress(cose_encrypt0_t *cose, uint8_t *buffer);
-//uint8_t oscore_cose_decompress(cose_encrypt0_t *cose, uint8_t *buffer, size_t buffer_len);
-
 /* Mark a resource as protected by OSCORE, incoming COAP requests to that resource will be rejected. */
 void oscore_protect_resource(coap_resource_t *resource);
 bool oscore_is_resource_protected(const coap_resource_t *resource);
 
-/*Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
+/* Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
 bool oscore_is_request_protected(const coap_message_t *request);
 
 /* Initialize the context storage and the protected resource storage. */
