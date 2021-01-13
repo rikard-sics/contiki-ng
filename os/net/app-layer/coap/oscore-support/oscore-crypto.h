@@ -53,6 +53,7 @@
 
 /* Plaintext Maxlen and Tag Maxlen is quite generous. */
 #define AEAD_PLAINTEXT_MAXLEN COAP_MAX_CHUNK_SIZE
+
 /* Enough for all COSE-AES-CCM algorithms. */
 #define AEAD_TAG_MAXLEN 16
 
