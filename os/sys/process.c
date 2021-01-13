@@ -324,12 +324,12 @@ process_post(struct process *p, process_event_t ev, process_data_t data)
   process_num_events_t snum;
 
   if(PROCESS_CURRENT() == NULL) {
-    PRINTF("process_post: NULL process posts event %d to process '%s', nevents %d\n",
-           ev, PROCESS_NAME_STRING(p), nevents);
+    PRINTF("process_post: NULL process posts event %d to process '%s', nevents %d/%d\n",
+           ev, PROCESS_NAME_STRING(p), nevents, PROCESS_CONF_NUMEVENTS);
   } else {
-    PRINTF("process_post: Process '%s' posts event %d to process '%s', nevents %d\n",
+    PRINTF("process_post: Process '%s' posts event %d to process '%s', nevents %d/%d\n",
            PROCESS_NAME_STRING(PROCESS_CURRENT()), ev,
-           p == PROCESS_BROADCAST ? "<broadcast>" : PROCESS_NAME_STRING(p), nevents);
+           p == PROCESS_BROADCAST ? "<broadcast>" : PROCESS_NAME_STRING(p), nevents, PROCESS_CONF_NUMEVENTS);
   }
 
   if(nevents == PROCESS_CONF_NUMEVENTS) {
