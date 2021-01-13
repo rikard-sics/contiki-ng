@@ -105,7 +105,7 @@ bool oscore_is_resource_protected(const coap_resource_t *resource)
 static uint8_t
 u64tob(uint64_t value, uint8_t *buffer)
 {
-  memset(buffer, 0, 8);
+  memset(buffer, 0, sizeof(uint64_t));
   uint8_t length = 0;
   for(int i = 0; i < 8; i++){
     uint8_t temp = (value >> (8*i)) & 0xFF;
@@ -125,9 +125,9 @@ u64tob(uint64_t value, uint8_t *buffer)
 static uint64_t
 btou64(const uint8_t *bytes, size_t len)
 {
-  uint8_t buffer[8];
+  uint8_t buffer[sizeof(uint64_t)];
   memset(buffer, 0, sizeof(buffer)); /* function variables are not initializated to anything */
-  int offset = 8 - len;
+  int offset = sizeof(buffer) - len;
   uint64_t num;
 
   memcpy((uint8_t *)(buffer + offset), bytes, len);
