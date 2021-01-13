@@ -139,10 +139,9 @@ stack_check_get_reserved_size(void)
 /*---------------------------------------------------------------------------*/
 #if STACK_CHECK_PERIODIC_CHECKS
 /*---------------------------------------------------------------------------*/
+static struct etimer et;
 PROCESS_THREAD(stack_check_process, ev, data)
 {
-  static struct etimer et;
-
   PROCESS_BEGIN();
 
   etimer_set(&et, STACK_CHECK_PERIOD);
