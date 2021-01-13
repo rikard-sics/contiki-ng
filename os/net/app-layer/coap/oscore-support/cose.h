@@ -59,6 +59,9 @@
 #define COSE_algorithm_AES_CCM_64_64_128_TAG_LEN  8
 
 
+#define COSE_LARGEST_IV_LENGTH COSE_algorithm_AES_CCM_16_64_128_IV_LEN
+
+
 /* COSE Encrypt0 Struct */
 typedef struct cose_encrypt0_t {
 
