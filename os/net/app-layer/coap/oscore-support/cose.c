@@ -47,11 +47,13 @@ cose_encrypt0_init(cose_encrypt0_t *ptr)
 {
   memset(ptr, 0, sizeof(cose_encrypt0_t));
 }
+
 void
 cose_encrypt0_set_alg(cose_encrypt0_t *ptr, uint8_t alg)
 {
   ptr->alg = alg;
 }
+
 void
 cose_encrypt0_set_content(cose_encrypt0_t *ptr, uint8_t *buffer, uint16_t size)
 {
@@ -68,6 +70,7 @@ cose_encrypt0_set_partial_iv(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_
   memcpy(ptr->partial_iv, buffer, size);
   ptr->partial_iv_len = size;
 }
+
 /* Return length */
 uint8_t
 cose_encrypt0_get_partial_iv(cose_encrypt0_t *ptr, const uint8_t **buffer)
@@ -75,12 +78,14 @@ cose_encrypt0_get_partial_iv(cose_encrypt0_t *ptr, const uint8_t **buffer)
   *buffer = ptr->partial_iv;
   return ptr->partial_iv_len;
 }
+
 void
 cose_encrypt0_set_key_id(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
 {
   ptr->key_id = buffer;
   ptr->key_id_len = size;
 }
+
 /* Return length */
 uint8_t
 cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, const uint8_t **buffer)
@@ -89,12 +94,14 @@ cose_encrypt0_get_key_id(cose_encrypt0_t *ptr, const uint8_t **buffer)
   return ptr->key_id_len;
 }
 
-uint8_t cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, const uint8_t **buffer){
+uint8_t
+cose_encrypt0_get_kid_context(cose_encrypt0_t *ptr, const uint8_t **buffer){
   *buffer = ptr->kid_context;
   return ptr->kid_context_len;
 }
 
-void cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size){
+void
+cose_encrypt0_set_kid_context(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size){
   ptr->kid_context = buffer;
   ptr->kid_context_len = size;
 } 
@@ -106,6 +113,7 @@ cose_encrypt0_set_aad(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
   ptr->aad = buffer;
   ptr->aad_len = size;
 }
+
 /* Returns 1 if successfull, 0 if key is of incorrect length. */
 bool
 cose_encrypt0_set_key(cose_encrypt0_t *ptr, const uint8_t *key, uint8_t key_size)
@@ -119,12 +127,14 @@ cose_encrypt0_set_key(cose_encrypt0_t *ptr, const uint8_t *key, uint8_t key_size
 
   return true;
 }
+
 void
 cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
 {
   ptr->nonce = buffer;
   ptr->nonce_len = size;
 }
+
 int
 cose_encrypt0_encrypt(cose_encrypt0_t *ptr)
 {
@@ -147,6 +157,7 @@ cose_encrypt0_encrypt(cose_encrypt0_t *ptr)
     ptr->aad, ptr->aad_len,
     ptr->content, ptr->content_len);
 }
+
 int
 cose_encrypt0_decrypt(cose_encrypt0_t *ptr)
 {

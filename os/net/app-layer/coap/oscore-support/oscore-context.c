@@ -69,21 +69,9 @@ MEMB(exchange_memb, oscore_exchange_t, TOKEN_SEQ_NUM);
 LIST(common_context_list);
 LIST(exchange_list);
 
-#ifdef OSCORE_EP_CTX_ASSOCIATION
-typedef struct ep_ctx {
-  struct ep_ctx *next;
-  coap_endpoint_t *ep;
-  const char *uri;
-  oscore_ctx_t *ctx;
-} ep_ctx_t;
-
-MEMB(ep_ctx_memb, ep_ctx_t, EP_CTX_NUM);
-LIST(ep_ctx_list);
-#endif
-
 #define INFO_BUFFER_LENGTH ( \
   1 + /* array */ \
-  1 + 6 + /* bstr, identity maximum length */ \
+  1 + OSCORE_SENDER_ID_MAX_SUPPORTED_LEN + /* bstr, identity maximum length */ \
   1 + OSCORE_MAX_ID_CONTEXT_LEN + /* bstr, id context maximum length */ \
   1 + /* algorithm */ \
   1 + 3 + /* tstr, "Key" or "IV" */ \
