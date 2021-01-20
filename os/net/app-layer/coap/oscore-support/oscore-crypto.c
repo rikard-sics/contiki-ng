@@ -84,8 +84,8 @@ static struct pt_sem crypto_processor_mutex;
 #endif /*CONTIKI_TARGET_NATIVE*/
 
 #else /*SW crypto*/
-
 #include "uECC.h"
+#include "lib/ccm-star.h"
 
 #endif /*OSCORE_WITH_HW_CRYPTO*/
 
@@ -95,6 +95,32 @@ process_event_t pe_message_verified;
 
 PROCESS(signer, "signer");
 PROCESS(verifier, "verifier");
+#else /* not WITH_GROUPCOM */
+
+/*SW/HW crypto libraries*/
+#ifdef OSCORE_WITH_HW_CRYPTO
+#include "sys/pt-sem.h"
+process_event_t pe_crypto_lock_released;
+static struct pt_sem crypto_processor_mutex;
+
+#ifdef CONTIKI_TARGET_ZOUL
+#include "dev/sha256.h"
+#endif /*CONTIKI_TARGET_ZOUL*/
+
+#ifdef CONTIKI_TARGET_SIMPLELINK
+#include "ti/drivers/SHA2.h"
+#include "ti/drivers/AESCCM.h"
+#include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
+#endif /*CONTIKI_TARGET_SIMPLELINK*/
+
+#ifdef CONTIKI_TARGET_NATIVE
+#error "Cannot run HW crypto on native!"
+#endif /*CONTIKI_TARGET_NATIVE*/
+
+#else /*OSCORE_WITH_HW_CRYPTO*/
+#include "lib/ccm-star.h"
+#endif /*OSCORE_WITH_HW_CRYPTO*/
+
 #endif /*WITH_GROUPCOM*/
 /*Utilities*/
 /*---------------------------------------------------------------------------*/
@@ -226,8 +252,8 @@ encrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   AESCCM_close(handle);
 #endif /*CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
 #else /* not OSCORE_WITH_HW_CRYPTO  */
-  ccm_star_driver.set_key(key);
-  ccm_star_driver.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
+  CCM_STAR.set_key(key);
+  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
 #endif /* OSCORE_WITH_HW_CRYPTO */
 
   return plaintext_len + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
@@ -292,8 +318,8 @@ decrypt(uint8_t alg, uint8_t *key, uint8_t key_len, uint8_t *nonce, uint8_t nonc
   return plaintext_len;
 #endif /*CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
 #else /* not OSCORE_WITH_HW_CRYPTO  */
-  ccm_star_driver.set_key(key);
-  ccm_star_driver.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
+  CCM_STAR.set_key(key);
+  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);
 #endif /* OSCORE_WITH_HW_CRYPTO */
   if(memcmp(tag_buffer, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN) != 0) {
           return 0; /* Decryption failure */
