@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = group-oscore-server
+CONTIKI_PROJECT = group-coap-test-server
 all: $(CONTIKI_PROJECT)
 
 # Do not try to build on Sky because of code size limitation
@@ -23,10 +23,6 @@ endif
 ifdef $(TEST)
 CFLAGS += -DTEST=$(TEST)
 endif
-
-MAKE_WITH_OSCORE = 1
-MAKE_WITH_GROUPCOM = 1
-MAKE_WITH_HW_CRYPTO = 1
 
 # Include CoAP resources
 MODULES_REL += ./resources

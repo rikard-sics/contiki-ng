@@ -45,18 +45,6 @@
 
 /*(1) Memory occupancy (RAM and ROM)(2) Time spent by the CPU to process incoming/outgoing messages(3) Time spent by the radio to transmit CoAP messages(4) Time spent by the radio to receive CoAP messages(5) Energy consumed by the CPU to process incoming/outgoing messages(6) Energy consumed by the radio to transmit CoAP responses(7) Energy consumed by the radio to receive CoAP requests(8)Round Trip Time experienced by the client, measured since the time the CoAP request is sent until the last CoAPresponse is received. */
 
-#if TEST == 1 //Memory Tests
-
-#elif TEST == 2 //CPU Test
-
-#elif TEST == 3 //Radio Test send
-
-#elif TEST == 4 //Radio Test receive
-
-#elif TEST == 8 //Round Trip Time Test
-#else
-
-#endif /* TEST */
 
 /* Change this to switch engines. Engine codes in uip-mcast6-engines.h */
 #ifndef UIP_MCAST6_CONF_ENGINE
