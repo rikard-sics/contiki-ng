@@ -19,6 +19,11 @@ else
 CFLAGS += -DSERVER=$(SERVER)
 endif
 
+#If no TEST is defined do not use any
+ifdef $(TEST)
+CFLAGS += -DTEST=$(TEST)
+endif
+
 MAKE_WITH_OSCORE = 1
 MAKE_WITH_GROUPCOM = 1
 MAKE_WITH_HW_CRYPTO = 1

@@ -93,11 +93,14 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   LOG_INFO("Starting Group OSCORE Server\n");
 
-  oscore_init();
+  oscore_init_server();
 
   /*Derive an OSCORE-Security-Context. */
-  static oscore_ctx_t context;
-  oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 1, group_id, 3, group_id);
+  static oscore_ctx_t *context;
+  context = oscore_derive_ctx(master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 1, group_id, 3, OSCORE_DEFAULT_REPLAY_WINDOW, group_id);
+  if(!context){
+        LOG_ERR("Could not create OSCORE Security Context!\n");
+  }
 
   uint8_t key_id[1] = { 0x25 };
   oscore_ctx_t *ctx;
