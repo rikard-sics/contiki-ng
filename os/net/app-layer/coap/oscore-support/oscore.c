@@ -449,6 +449,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 #endif /*WITH_GROUPCOM*/
 
 #ifndef WITH_GROUPCOM
+  uint8_t option_value_buffer[15]; /* When using Group-OSCORE this has to be global. */
   uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
 #endif /* not WITH_GROUPCOM */
   uint8_t aad_buffer[35];
