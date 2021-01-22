@@ -397,7 +397,8 @@ static void
 process_data_cont(uint8_t verify_res)
 {
 	LOG_INFO("signature verification yielded. Calling the receive continuation\n");
-	coap_receive_cont(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast, verify_res, parse_status, request, response);
+  coap_endpoint_t src;
+	coap_receive_cont(get_src_endpoint(&src, 0), uip_appdata, uip_datalen(), is_mcast, verify_res, parse_status, request, response);
 }
 /*---------------------------------------------------------------------------*/
 static void 
@@ -485,12 +486,12 @@ PROCESS_THREAD(coap_engine, ev, data)
       }
     }
 #ifdef WITH_GROUPCOM
-    else if(ev == pe_message_verified) {
+    else if(ev == oscore_pe_message_verified) {
 	    verify_result = (uint8_t *) data;
 	    LOG_INFO("Received message verified event! Verify result: %d\n", *verify_result);
 	    process_data_cont(*verify_result);
 	    verify_result = NULL;
-    } else if(ev == pe_message_signed) {
+    } else if(ev == oscore_pe_message_signed) {
 	    LOG_INFO("Received message signed event!\n");
 	    schedule_send_response();
     }

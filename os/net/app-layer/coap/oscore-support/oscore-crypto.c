@@ -80,8 +80,8 @@ printf_hex(const char *name, const uint8_t *data, unsigned int len)
 #ifdef OSCORE_WITH_HW_CRYPTO
 
 #include "sys/pt-sem.h"
-process_event_t pe_crypto_lock_released;
-static struct pt_sem crypto_processor_mutex;
+process_event_t oscore_pe_crypto_lock_released;
+static struct pt_sem oscore_crypto_processor_mutex;
 
 #ifdef CONTIKI_TARGET_ZOUL
 #include "dev/ecc-algorithm.h"
@@ -109,18 +109,18 @@ static struct pt_sem crypto_processor_mutex;
 #endif /*OSCORE_WITH_HW_CRYPTO*/
 
 
-process_event_t pe_message_signed;
-process_event_t pe_message_verified;
+process_event_t oscore_pe_message_signed;
+process_event_t oscore_pe_message_verified;
 
-PROCESS(signer, "signer");
-PROCESS(verifier, "verifier");
+PROCESS(oscore_signer, "oscore_signer");
+PROCESS(oscore_verifier, "oscore_verifier");
 #else /* not WITH_GROUPCOM */
 
 /*SW/HW crypto libraries*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 #include "sys/pt-sem.h"
-process_event_t pe_crypto_lock_released;
-static struct pt_sem crypto_processor_mutex;
+process_event_t oscore_pe_crypto_lock_released;
+static struct pt_sem oscore_crypto_processor_mutex;
 
 #ifdef CONTIKI_TARGET_ZOUL
 #include "dev/sha256.h"
@@ -505,9 +505,9 @@ typedef struct {
 
 } verify_state_t;
 
-PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature));
+PT_THREAD(oscore_ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature));
 
-PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature));
+PT_THREAD(oscore_ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature));
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Initialise oscore crypto resources (HW engines, processes, etc.).
@@ -537,13 +537,13 @@ oscore_crypto_init(void)
 	ECDSA_Params ecdsa_params;
 	ECDSA_Params_init(&ecdsa_params);
 #endif	/*CONTIKI_TARGET_ZOUL*/
-	PT_SEM_INIT(&crypto_processor_mutex, 1);
-	pe_crypto_lock_released = process_alloc_event();
+	PT_SEM_INIT(&oscore_crypto_processor_mutex, 1);
+	oscore_pe_crypto_lock_released = process_alloc_event();
 #endif /*OSCORE_WITH_HW_CRYPTO*/
-	pe_message_signed = process_alloc_event();
-	pe_message_verified = process_alloc_event();
-	process_start(&signer, NULL);
-	process_start(&verifier, NULL);
+	oscore_pe_message_signed = process_alloc_event();
+	oscore_pe_message_verified = process_alloc_event();
+	process_start(&oscore_signer, NULL);
+	process_start(&oscore_verifier, NULL);
 	LOG_INFO("OSCORE crypto initialised.\n");
 }
 #ifdef OSCORE_WITH_HW_CRYPTO
@@ -572,7 +572,7 @@ sha2_hash(const uint8_t *message, size_t len, uint8_t *hash)
 #ifdef CONTIKI_TARGET_ZOUL
 /*---------------------------------------------------------------------------*/
 bool
-crypto_fill_random(uint8_t *buffer, size_t size_in_bytes)
+oscore_crypto_fill_random(uint8_t *buffer, size_t size_in_bytes)
 {
 	if(buffer == NULL) {
 		return false;
@@ -662,7 +662,7 @@ static void finish_SHA256(uECC_HashContext *base, uint8_t *hash_result) {
     dtls_sha256_final(hash_result, &context->ctx);
 }
 
-PT_THREAD(ecc_sign_deterministic(sign_state_t *state, uint8_t *private_key, uint8_t *message_hash, uECC_HashContext *hash_context, uint8_t *signature))
+PT_THREAD(oscore_ecc_sign_deterministic(sign_state_t *state, uint8_t *private_key, uint8_t *message_hash, uECC_HashContext *hash_context, uint8_t *signature))
 {
 	PT_BEGIN(&state->sign_deterministic_pt);
 	uint8_t res = -1;
@@ -674,7 +674,7 @@ PT_THREAD(ecc_sign_deterministic(sign_state_t *state, uint8_t *private_key, uint
 	PT_END(&state->sign_deterministic_pt);
 }
 
-PT_THREAD(ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8_t *message_hash, uint8_t *signature))
+PT_THREAD(oscore_ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8_t *message_hash, uint8_t *signature))
 {
 	PT_BEGIN(&state->verify_sw_pt);
 	uint8_t res = -1;
@@ -687,13 +687,13 @@ PT_THREAD(ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8_t *mes
 }
 #endif /*OSCORE_WITH_HW_CRYPTO*/
 
-PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature))
+PT_THREAD(oscore_ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature))
 {
 	PT_BEGIN(&state->pt);
 	uint8_t message_hash[SHA256_DIGEST_LENGTH];/*==SHA56_DIGEST_LEN_BYTES*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 	uint8_t sha_ret;
-	PT_SEM_WAIT(&state->pt, &crypto_processor_mutex);
+	PT_SEM_WAIT(&state->pt, &oscore_crypto_processor_mutex);
 #endif /* OSCORE_WITH_HW_CRYPTO */
 	state->sig_len = 0;
 #ifndef OSCORE_WITH_HW_CRYPTO /*SW crypto is used */
@@ -791,7 +791,7 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	if(sha_ret != CRYPTO_SUCCESS) {
 		LOG_ERR("sha256_hash failed with %u\n", sha_ret);
 		state->ecc_sign_state.result = sha_ret;
-		PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
+		PT_SEM_SIGNAL(&state->pt, &oscore_crypto_processor_mutex);
 		PT_EXIT(&state->pt);
 	}
 
@@ -801,13 +801,13 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	state->ecc_sign_state.curve_info = &nist_p_256;
 	ec_uint8v_to_uint32v(state->ecc_sign_state.secret, private_key, ES256_PRIVATE_KEY_LEN);
 
-	crypto_fill_random((uint8_t *) state->ecc_sign_state.k_e, ES256_PRIVATE_KEY_LEN);
+	oscore_crypto_fill_random((uint8_t *) state->ecc_sign_state.k_e, ES256_PRIVATE_KEY_LEN);
 
 	pka_enable();
 	PT_SPAWN(&state->pt, &state->ecc_sign_state.pt, ecc_dsa_sign(&state->ecc_sign_state));
 	pka_disable();
 
-	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
+	PT_SEM_SIGNAL(&state->pt, &oscore_crypto_processor_mutex);
 
 	if(state->ecc_sign_state.result != PKA_STATUS_SUCCESS)	{
 		LOG_ERR("Failed to sign message with %d\n", state->ecc_sign_state.result);
@@ -817,17 +817,17 @@ PT_THREAD(ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t
 	ec_uint32v_to_uint8v(signature + ES256_PRIVATE_KEY_LEN, state->ecc_sign_state.signature_s, ES256_PRIVATE_KEY_LEN);
 	state->sig_len = ES256_SIGNATURE_LEN;
 	
-	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
+	PT_SEM_SIGNAL(&state->pt, &oscore_crypto_processor_mutex);
 #endif /*CONTIKI_TARGET_ZOUL*/
 #endif /*OSCORE_WITH_HW_CRYPTO*/
 	PT_END(&state->pt);
 }
 
-PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature))
+PT_THREAD(oscore_ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature))
 {
 	PT_BEGIN(&state->pt);
 #ifdef OSCORE_WITH_HW_CRYPTO
-	PT_SEM_WAIT(&state->pt, &crypto_processor_mutex);
+	PT_SEM_WAIT(&state->pt, &oscore_crypto_processor_mutex);
 #endif /*OSCORE_WITH_HW_CRYPTO*/
 	uint8_t message_hash[SHA256_DIGEST_LENGTH];
 #ifndef OSCORE_WITH_HW_CRYPTO
@@ -909,7 +909,7 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	if(sha_ret != CRYPTO_SUCCESS) {
 		LOG_ERR("sha256_hash failed with %u\n", sha_ret);
 		state->ecc_verify_state.result = sha_ret;
-		PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
+		PT_SEM_SIGNAL(&state->pt, &oscore_crypto_processor_mutex);
 		PT_EXIT(&state->pt);
 	}
 
@@ -924,7 +924,7 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	PT_SPAWN(&state->pt, &state->ecc_verify_state.pt, ecc_dsa_verify(&state->ecc_verify_state));
 	pka_disable();
 
-	PT_SEM_SIGNAL(&state->pt, &crypto_processor_mutex);
+	PT_SEM_SIGNAL(&state->pt, &oscore_crypto_processor_mutex);
 
 	if(state->ecc_verify_state.result != PKA_STATUS_SUCCESS) {
 		LOG_ERR("Failed to verify message with %d\n", state->ecc_verify_state.result);
@@ -935,16 +935,16 @@ PT_THREAD(ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *
 	PT_END(&state->pt);
 }	
 
-QUEUE(messages_to_sign);
-MEMB(messages_to_sign_memb, messages_to_sign_entry_t, MSGS_TO_SIGN_SIZE);
+QUEUE(oscore_messages_to_sign);
+MEMB(oscore_messages_to_sign_memb, oscore_messages_to_sign_entry_t, MSGS_TO_SIGN_SIZE);
 
-QUEUE(messages_to_verify);
-MEMB(messages_to_verify_memb, messages_to_verify_entry_t, MSGS_TO_VERIFY_SIZE);
+QUEUE(oscore_messages_to_verify);
+MEMB(oscore_messages_to_verify_memb, oscore_messages_to_verify_entry_t, MSGS_TO_VERIFY_SIZE);
 /*---------------------------------------------------------------------------*/
 bool
-queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *public_key, uint8_t *message, uint16_t message_len, uint8_t *signature)
+oscore_queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *public_key, uint8_t *message, uint16_t message_len, uint8_t *signature)
 {
-	messages_to_sign_entry_t *item = memb_alloc(&messages_to_sign_memb);
+	oscore_messages_to_sign_entry_t *item = memb_alloc(&oscore_messages_to_sign_memb);
 	if(!item) {
 		LOG_ERR("queue_message_to_sign: out of memory\n");
 		return false;
@@ -956,47 +956,47 @@ queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *pu
 	item->message_len = message_len;
 	item->signature = signature;
 	
-	queue_enqueue(messages_to_sign, item);
+	queue_enqueue(oscore_messages_to_sign, item);
 
-	process_post_synch(&signer, PROCESS_EVENT_CONTINUE, NULL);
+	process_post_synch(&oscore_signer, PROCESS_EVENT_CONTINUE, NULL);
 
 	return true;
 }
 
 /*---------------------------------------------------------------------------*/
 void
-queue_message_to_sign_done(messages_to_sign_entry_t *item)
+oscore_queue_message_to_sign_done(oscore_messages_to_sign_entry_t *item)
 {
-	memb_free(&messages_to_sign_memb, item);
+	memb_free(&oscore_messages_to_sign_memb, item);
 }
 
-PROCESS_THREAD(signer, ev, data)
+PROCESS_THREAD(oscore_signer, ev, data)
 {
 	PROCESS_BEGIN();
 
-	queue_init(messages_to_sign);
-	memb_init(&messages_to_sign_memb);
+	queue_init(oscore_messages_to_sign);
+	memb_init(&oscore_messages_to_sign_memb);
 
 	LOG_INFO("Process signer started!\n");
 	while(1) {
-		PROCESS_YIELD_UNTIL(!queue_is_empty(messages_to_sign));
-		while(!queue_is_empty(messages_to_sign)){
-			static messages_to_sign_entry_t *item;
-			item = (messages_to_sign_entry_t *) queue_dequeue(messages_to_sign);
+		PROCESS_YIELD_UNTIL(!queue_is_empty(oscore_messages_to_sign));
+		while(!queue_is_empty(oscore_messages_to_sign)){
+			static oscore_messages_to_sign_entry_t *item;
+			item = (oscore_messages_to_sign_entry_t *) queue_dequeue(oscore_messages_to_sign);
 			static sign_state_t state;
-			state.process = &signer;
-			PROCESS_PT_SPAWN(&state.pt, ecc_sign(&state, item->message, item->message_len, item->private_key, item->public_key, item->signature));
+			state.process = &oscore_signer;
+			PROCESS_PT_SPAWN(&state.pt, oscore_ecc_sign(&state, item->message, item->message_len, item->private_key, item->public_key, item->signature));
 #if defined OSCORE_WITH_HW_CRYPTO && defined CONTIKI_TARGET_ZOUL
 			item->result = state.ecc_sign_state.result;
 #endif /* OSCORE_WITH_HW_CRYPTO && CONTIKI_TARGET_ZOUL */
- 			if(process_post(PROCESS_BROADCAST, pe_message_signed, item) != PROCESS_ERR_OK){ 
+ 			if(process_post(PROCESS_BROADCAST, oscore_pe_message_signed, item) != PROCESS_ERR_OK){ 
 				LOG_ERR("Failed to post pe_message_signed to %s\n", item->process->name);
 			} else {
-				queue_message_to_sign_done(item);
+				oscore_queue_message_to_sign_done(item);
 			}
 		}
 #ifdef OSCORE_WITH_HW_CRYPTO
-		process_post(PROCESS_BROADCAST, pe_crypto_lock_released, NULL);
+		process_post(PROCESS_BROADCAST, oscore_pe_crypto_lock_released, NULL);
 #endif /* OSCORE_WITH_HW_CRYPTO */
 	}
 
@@ -1004,9 +1004,9 @@ PROCESS_THREAD(signer, ev, data)
 }
 /*---------------------------------------------------------------------------*/
 bool
-queue_message_to_verify(struct process *process, uint8_t *signature, uint8_t *message, uint16_t message_len, uint8_t *public_key)
+oscore_queue_message_to_verify(struct process *process, uint8_t *signature, uint8_t *message, uint16_t message_len, uint8_t *public_key)
 {
-	messages_to_verify_entry_t *item = memb_alloc(&messages_to_verify_memb);
+	oscore_messages_to_verify_entry_t *item = memb_alloc(&oscore_messages_to_verify_memb);
 	if(!item) {
 		LOG_ERR("queue_message_to_verify: out of memory\n");
 		return false;
@@ -1017,37 +1017,37 @@ queue_message_to_verify(struct process *process, uint8_t *signature, uint8_t *me
 	item->message_len = message_len;
 	item->public_key = public_key;
 
-	queue_enqueue(messages_to_verify, item);
+	queue_enqueue(oscore_messages_to_verify, item);
 
-	process_post_synch(&verifier, PROCESS_EVENT_CONTINUE, NULL);
+	process_post_synch(&oscore_verifier, PROCESS_EVENT_CONTINUE, NULL);
 
 	return true;
 }
 
 /*---------------------------------------------------------------------------*/
 void
-queue_message_to_verify_done(messages_to_verify_entry_t *item)
+oscore_queue_message_to_verify_done(oscore_messages_to_verify_entry_t *item)
 {
-	memb_free(&messages_to_verify_memb, item);
+	memb_free(&oscore_messages_to_verify_memb, item);
 }
 
-PROCESS_THREAD(verifier, ev, data)
+PROCESS_THREAD(oscore_verifier, ev, data)
 {
 	PROCESS_BEGIN();
 
-	queue_init(messages_to_verify);
-	memb_init(&messages_to_verify_memb);
+	queue_init(oscore_messages_to_verify);
+	memb_init(&oscore_messages_to_verify_memb);
 
 	LOG_INFO("Process verifier started!\n");
 	while(1) {
-		PROCESS_YIELD_UNTIL(!queue_is_empty(messages_to_verify));
+		PROCESS_YIELD_UNTIL(!queue_is_empty(oscore_messages_to_verify));
 
-		while(!queue_is_empty(messages_to_verify)) {
-			static messages_to_verify_entry_t *item;
-			item = (messages_to_verify_entry_t *) queue_dequeue(messages_to_verify);
+		while(!queue_is_empty(oscore_messages_to_verify)) {
+			static oscore_messages_to_verify_entry_t *item;
+			item = (oscore_messages_to_verify_entry_t *) queue_dequeue(oscore_messages_to_verify);
 			static verify_state_t state;
-			state.process = &verifier;
-			PROCESS_PT_SPAWN(&state.pt, ecc_verify(&state, item->public_key, item->message, item->message_len, item->signature));
+			state.process = &oscore_verifier;
+			PROCESS_PT_SPAWN(&state.pt, oscore_ecc_verify(&state, item->public_key, item->message, item->message_len, item->signature));
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
 			item->result = state.ecc_verify_state.result;
@@ -1055,14 +1055,14 @@ PROCESS_THREAD(verifier, ev, data)
 #endif/*OSCORE_WITH_HW_CRYPTO*/
 			static uint8_t verify_result;
 		        verify_result = item->result;
-			if(process_post(PROCESS_BROADCAST, pe_message_verified, &verify_result) != PROCESS_ERR_OK) {
+			if(process_post(PROCESS_BROADCAST, oscore_pe_message_verified, &verify_result) != PROCESS_ERR_OK) {
 				LOG_ERR("Failed to post pe_message_verified to %s\n", item->process->name);
 			} else {
-				queue_message_to_verify_done(item);
+				oscore_queue_message_to_verify_done(item);
 			}
 		}
 #ifdef OSCORE_WITH_HW_CRYPTO
-		process_post(PROCESS_BROADCAST, pe_crypto_lock_released, NULL);
+		process_post(PROCESS_BROADCAST, oscore_pe_crypto_lock_released, NULL);
 #endif/*OSCORE_WITH_HW_CRYPTO*/
 	}
 	PROCESS_END();
@@ -1075,7 +1075,7 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
     return 0;
   }
   
-  if(!queue_message_to_sign(PROCESS_CURRENT(), private_key, public_key, ciphertext, ciphertext_len, signature)) {
+  if(!oscore_queue_message_to_sign(PROCESS_CURRENT(), private_key, public_key, ciphertext, ciphertext_len, signature)) {
 	  LOG_ERR("Could not queue the message to sign!\n");
 	  return 0;
   }
@@ -1090,7 +1090,7 @@ oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *p
     return 0;
   }
 
-  if(!queue_message_to_verify(PROCESS_CURRENT(), signature, plaintext, plaintext_len, public_key))
+  if(!oscore_queue_message_to_verify(PROCESS_CURRENT(), signature, plaintext, plaintext_len, public_key))
   {
 	  LOG_ERR("Could not queue message to verify\n");
 	  return 0;

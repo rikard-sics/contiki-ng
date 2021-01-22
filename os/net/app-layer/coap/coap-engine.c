@@ -48,6 +48,7 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
+#include "lib/random.h"
 
 /* Log configuration */
 #include "coap-log.h"
