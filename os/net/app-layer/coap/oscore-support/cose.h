@@ -45,14 +45,31 @@
 
 /*
  * See RFC8152 for the COSE algorithm definitions
- * https://tools.ietf.org/html/rfc8152#page-49
+ * https://tools.ietf.org/html/rfc8152#section-13.1
  */
+typedef enum {
+  COSE_Elliptic_Curve_P256 = 1,
+  //COSE_Elliptic_Curve_P384 = 2,
+  //COSE_Elliptic_Curve_P512 = 3,
 
-#define COSE_Algorithm_ES256   -7
-#define COSE_Elliptic_Curve_P256  1
+} COSE_Elliptic_Curves_t;
+
+/* https://tools.ietf.org/html/rfc8152#section-8.1 */
+typedef enum {
+  COSE_Algorithm_ES256 = -7,
+  //COSE_Algorithm_ES384 = -35,
+  //COSE_Algorithm_ES512 = -36,
+
+} COSE_ECDSA_Algorithms_t;
+
 #define ES256_SIGNATURE_LEN      64
 #define ES256_PRIVATE_KEY_LEN    32
 #define ES256_PUBLIC_KEY_LEN     64
+
+/*
+ * See RFC8152 for the COSE algorithm definitions
+ * https://tools.ietf.org/html/rfc8152#page-49
+ */
 
 #define COSE_Algorithm_AES_CCM_16_64_128 10
 #define COSE_algorithm_AES_CCM_16_64_128_KEY_LEN 16
