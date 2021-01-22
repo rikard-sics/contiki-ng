@@ -45,6 +45,7 @@
 
 /* Log configuration */
 #include "sys/log.h"
+#include "coap-log.h"
 #define LOG_MODULE "App"
 #define LOG_LEVEL LOG_LEVEL_APP
 /*
@@ -117,4 +118,12 @@ PROCESS_THREAD(er_example_server, ev, data)
   }                             /* while (1) */
 
   PROCESS_END();
+}
+
+void
+oscore_missing_security_context(const coap_endpoint_t *src)
+{
+  LOG_DBG("Missing security context for ");
+  LOG_DBG_COAP_EP(src);
+  LOG_DBG_("\n");
 }
