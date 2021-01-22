@@ -301,67 +301,67 @@ oscore_add_group_keys(oscore_ctx_t *ctx,
                             counter_signature_parameters; 
     ctx->mode = OSCORE_GROUP;
 
-    ctx->sender_context->private_key_len    = 0;
-    ctx->sender_context->public_key_len     = 0;
-    ctx->recipient_context->private_key_len = 0;
-    ctx->recipient_context->public_key_len  = 0;
+    ctx->sender_context.private_key_len    = 0;
+    ctx->sender_context.public_key_len     = 0;
+    ctx->recipient_context.private_key_len = 0;
+    ctx->recipient_context.public_key_len  = 0;
 
     if (snd_private_key != NULL){
-      memcpy(ctx->sender_context->private_key, snd_private_key,  
+      memcpy(ctx->sender_context.private_key, snd_private_key,  
                                         ES256_PRIVATE_KEY_LEN);
-      ctx->sender_context->private_key_len = 
+      ctx->sender_context.private_key_len = 
                                          ES256_PRIVATE_KEY_LEN;
     }
     if (snd_public_key != NULL){
-      memcpy(ctx->sender_context->public_key, snd_public_key,  
+      memcpy(ctx->sender_context.public_key, snd_public_key,  
                                         ES256_PUBLIC_KEY_LEN);
-      ctx->sender_context->public_key_len = 
+      ctx->sender_context.public_key_len = 
                                           ES256_PUBLIC_KEY_LEN;
     }
     if (rcv_private_key != NULL){
-      memcpy(ctx->recipient_context->private_key,
+      memcpy(ctx->recipient_context.private_key,
                       rcv_private_key, ES256_PRIVATE_KEY_LEN);
-      ctx->recipient_context->private_key_len = 
+      ctx->recipient_context.private_key_len = 
                                          ES256_PRIVATE_KEY_LEN;
     }
     if (rcv_public_key != NULL){
-      memcpy(ctx->recipient_context->public_key, rcv_public_key,  
+      memcpy(ctx->recipient_context.public_key, rcv_public_key,  
                                         ES256_PUBLIC_KEY_LEN); 
-      ctx->recipient_context->public_key_len = 
+      ctx->recipient_context.public_key_len = 
                                           ES256_PUBLIC_KEY_LEN;
     } 
     /*if (coap_get_log_level() >= LOG_INFO){ 
       int key_len= 0;
-      key_len = ctx->sender_context->private_key_len;
+      key_len = ctx->sender_context.private_key_len;
       if (key_len > 0) {
         fprintf(stderr,"sender private key:\n");
         for (int qq = 0; qq <key_len; qq++)
              fprintf(stderr,"%02x",
-                     ctx->sender_context->private_key[qq]);
+                     ctx->sender_context.private_key[qq]);
         fprintf(stderr,"\n");
       }
-      key_len = ctx->sender_context->public_key_len;
+      key_len = ctx->sender_context.public_key_len;
       if (key_len > 0) {
         fprintf(stderr,"sender public key:\n");
         for (int qq = 0; qq <key_len; qq++)
              fprintf(stderr,"%02x",
-                     ctx->sender_context->public_key[qq]);
+                     ctx->sender_context.public_key[qq]);
         fprintf(stderr,"\n");
       }
-      key_len = ctx->recipient_context->private_key_len;
+      key_len = ctx->recipient_context.private_key_len;
       if (key_len > 0) {
         fprintf(stderr,"recipient private key:\n");
         for (int qq = 0; qq <key_len; qq++)
              fprintf(stderr,"%02x",
-                     ctx->recipient_context->private_key[qq]);
+                     ctx->recipient_context.private_key[qq]);
         fprintf(stderr,"\n");
       }
-      key_len = ctx->recipient_context->public_key_len;
+      key_len = ctx->recipient_context.public_key_len;
       if (key_len > 0) {
         fprintf(stderr,"recipient public key:\n");
         for (int qq = 0; qq <key_len; qq++)
              fprintf(stderr,"%02x",
-                     ctx->recipient_context->public_key[qq]);
+                     ctx->recipient_context.public_key[qq]);
         fprintf(stderr,"\n");
       }
     } */ 
