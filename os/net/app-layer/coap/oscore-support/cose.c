@@ -211,12 +211,12 @@ void cose_sign1_set_sigstructure(cose_sign1_t *ptr, uint8_t *buffer, int size){
   ptr->sigstructure_len = size;
 }
 
-void cose_sign1_set_public_key(cose_sign1_t *ptr, uint8_t *buffer){
+void cose_sign1_set_public_key(cose_sign1_t *ptr, const uint8_t *buffer){
   ptr->public_key = buffer;
   ptr->public_key_len = ES256_PUBLIC_KEY_LEN;
 }
 
-void cose_sign1_set_private_key(cose_sign1_t *ptr, uint8_t *buffer){
+void cose_sign1_set_private_key(cose_sign1_t *ptr, const uint8_t *buffer){
   ptr->private_key = buffer;
   ptr->private_key_len = ES256_PRIVATE_KEY_LEN;
 }
@@ -229,4 +229,22 @@ int cose_sign1_verify(cose_sign1_t *ptr){
     return oscore_edDSA_verify(ptr->alg, ptr->alg_param, ptr->signature, ptr->ciphertext, ptr->ciphertext_len, ptr->public_key);
 }
 
+size_t cose_curve_public_key_length(COSE_Elliptic_Curves_t curve) {
+  switch (curve) {
+    case COSE_Elliptic_Curve_P256:
+      return 64;
 
+    default:
+      return 0;
+  }
+}
+
+size_t cose_curve_private_key_length(COSE_Elliptic_Curves_t curve) {
+  switch (curve) {
+    case COSE_Elliptic_Curve_P256:
+      return 32;
+
+    default:
+      return 0;
+  }
+}

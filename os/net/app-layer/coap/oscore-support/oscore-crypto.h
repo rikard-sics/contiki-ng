@@ -107,11 +107,12 @@ oscore_esDSA_keypair(int8_t alg, int8_t alg_param, uint8_t *private_key, uint8_t
 
 /* Return 0 if signing failure. Signatue length otherwise, signature length and key length are derived fron es256 values. No check is done to ensure that buffers are of the correct length. */
 int
-oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *ciphertext, uint16_t ciphertext_len, uint8_t *private_key, uint8_t *public_key);
+oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *ciphertext, uint16_t ciphertext_len, const uint8_t *private_key, const uint8_t *public_key);
 
 /* Return 0 if signing failure. Signatue length otherwise, signature length and key length are derived fron es256 values. No check is done to ensure that buffers are of the correct length. */
 int
-oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *plaintext, uint16_t plaintext_len, uint8_t *public_key);
+oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *plaintext, uint16_t plaintext_len, const uint8_t *public_key);
+
 #ifdef WITH_GROUPCOM
 /*Code inspired by Matthew*/
 void oscore_crypto_init(void);
@@ -127,15 +128,12 @@ typedef struct oscore_messages_to_verify_entry
 	const uint8_t *message;
 	uint16_t message_len;
 	uint8_t result;
-/*#ifdef OSCORE_WITH_HW_CRYPTO
-	const
-#endif *//*OSCORE_WITH_HW_CRYPTO*/
-    uint8_t *public_key; 
-	uint8_t *signature;
+    const uint8_t *public_key; 
+	const uint8_t *signature;
 
 } oscore_messages_to_verify_entry_t;
 
-bool oscore_queue_message_to_verify(struct process *process, uint8_t *signature, uint8_t *message, uint16_t message_len, uint8_t *public_key);
+bool oscore_queue_message_to_verify(struct process *process, const uint8_t *signature, const uint8_t *message, uint16_t message_len, const uint8_t *public_key);
 void oscore_ueue_message_to_verify_done(oscore_messages_to_verify_entry_t *item);
 
 typedef struct oscore_messages_to_sign_entry
@@ -144,14 +142,14 @@ typedef struct oscore_messages_to_sign_entry
 	struct process *process;
 	uint8_t  message[250];
 	uint16_t message_len;
-	uint8_t *private_key;
-	uint8_t *public_key;
+	const uint8_t *private_key;
+	const uint8_t *public_key;
 	uint8_t result;
 	uint8_t *signature;
 
 } oscore_messages_to_sign_entry_t;
 
-bool oscore_queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *public_key, uint8_t *message, uint16_t message_len, uint8_t *signature);
+bool oscore_queue_message_to_sign(struct process *process, const uint8_t *private_key, const uint8_t *public_key, const uint8_t *message, uint16_t message_len, uint8_t *signature);
 void oscore_queue_message_to_sign_done(oscore_messages_to_sign_entry_t *item);
 
 extern process_event_t oscore_pe_message_signed;

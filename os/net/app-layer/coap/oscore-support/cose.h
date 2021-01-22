@@ -40,6 +40,7 @@
 #ifndef _COSE_H
 #define _COSE_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -114,10 +115,10 @@ typedef struct cose_sign1_t {
   uint8_t alg;
   uint8_t alg_param;
 
-  uint8_t *private_key;
+  const uint8_t *private_key;
   int private_key_len;
 
-  uint8_t *public_key;
+  const uint8_t *public_key;
   int public_key_len;
 
   uint8_t *ciphertext;
@@ -166,31 +167,28 @@ int cose_encrypt0_decrypt(cose_encrypt0_t *ptr);
 
 void cose_sign1_init(cose_sign1_t *ptr);
 
-void cose_sign1_set_alg(cose_sign1_t *ptr, uint8_t alg,
-                                             uint8_t param);
+void cose_sign1_set_alg(cose_sign1_t *ptr, uint8_t alg, uint8_t param);
 
-void cose_sign1_set_ciphertext(cose_sign1_t *ptr, 
-                               uint8_t *buffer, int size);
+void cose_sign1_set_ciphertext(cose_sign1_t *ptr, uint8_t *buffer, int size);
 
-void cose_sign1_set_public_key(cose_sign1_t *ptr, 
-                                          uint8_t *buffer);
+void cose_sign1_set_public_key(cose_sign1_t *ptr, const uint8_t *buffer);
 
-void cose_sign1_set_private_key(cose_sign1_t *ptr, 
-                                           uint8_t *buffer);
+void cose_sign1_set_private_key(cose_sign1_t *ptr, const uint8_t *buffer);
 
 /* Return length */
-int cose_sign1_get_signature(cose_sign1_t *ptr, 
-                                          uint8_t **buffer);
+int cose_sign1_get_signature(cose_sign1_t *ptr, uint8_t **buffer);
 
-void cose_sign1_set_signature(cose_sign1_t *ptr,
-                                            uint8_t *buffer);
+void cose_sign1_set_signature(cose_sign1_t *ptr, uint8_t *buffer);
 
 int cose_sign1_sign(cose_sign1_t *ptr);
 
-void cose_sign1_set_sigstructure(cose_sign1_t *ptr,
-                                 uint8_t *buffer, int size);
+void cose_sign1_set_sigstructure(cose_sign1_t *ptr, uint8_t *buffer, int size);
 
 int cose_sign1_verify(cose_sign1_t *ptr);
+
+
+size_t cose_curve_public_key_length(COSE_Elliptic_Curves_t curve);
+size_t cose_curve_private_key_length(COSE_Elliptic_Curves_t curve);
 
 
 #endif /* _COSE_H */
