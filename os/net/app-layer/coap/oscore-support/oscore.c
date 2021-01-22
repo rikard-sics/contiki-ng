@@ -364,14 +364,14 @@ oscore_populate_cose(coap_message_t *pkt, cose_encrypt0_t *cose, oscore_ctx_t *c
 
 #ifdef WITH_GROUPCOM
     if(sending){//recent_seq is the one that actually gets updated
-      partial_iv_len = u64tob(ctx->recipient_context->recent_seq, partial_iv_buffer);
+      partial_iv_len = u64tob(ctx->recipient_context.recent_seq, partial_iv_buffer);
       cose_encrypt0_set_partial_iv(cose, partial_iv_buffer, partial_iv_len);
-      cose_encrypt0_set_key_id(cose, ctx->sender_context->sender_id, ctx->sender_context->sender_id_len);
-      cose_encrypt0_set_key(cose, ctx->sender_context->sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+      cose_encrypt0_set_key_id(cose, ctx->sender_context.sender_id, ctx->sender_context.sender_id_len);
+      cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   } else {
   
-    cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
-    cose_encrypt0_set_key(cose, ctx->recipient_context->recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+    cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
+    cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   }
 
 #else
@@ -487,7 +487,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   //When we are sending responses the Key-ID in the Signature AAD shall be the REQUEST Key ID.
   if(!coap_is_request(coap_pkt)){ 
-    cose_encrypt0_set_key_id(cose, ctx->recipient_context->recipient_id, ctx->recipient_context->recipient_id_len);
+    cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
   }
   //prepare external_aad structure with algs, params, etc. to later populate the sig_structure
   
@@ -706,11 +706,11 @@ oscore_populate_sign(uint8_t coap_is_request, cose_sign1_t *sign, oscore_ctx_t *
   cose_sign1_set_alg(sign, ctx->counter_signature_algorithm,
                      ctx->counter_signature_parameters);
   if (coap_is_request){
-    cose_sign1_set_private_key(sign, ctx->recipient_context->private_key); 
-    cose_sign1_set_public_key(sign, ctx->recipient_context->public_key);
+    cose_sign1_set_private_key(sign, ctx->recipient_context.private_key); 
+    cose_sign1_set_public_key(sign, ctx->recipient_context.public_key);
   } else {
-    cose_sign1_set_private_key(sign, ctx->sender_context->private_key); 
-    cose_sign1_set_public_key(sign, ctx->sender_context->public_key);
+    cose_sign1_set_private_key(sign, ctx->sender_context.private_key); 
+    cose_sign1_set_public_key(sign, ctx->sender_context.public_key);
   }
 }
 //
