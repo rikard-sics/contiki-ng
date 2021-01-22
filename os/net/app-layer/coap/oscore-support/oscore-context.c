@@ -283,36 +283,18 @@ oscore_add_group_keys(oscore_ctx_t *ctx,
 {
     ctx->mode = OSCORE_GROUP;
 
-    ctx->counter_signature_algorithm = 
-                            counter_signature_algorithm;
-    ctx->counter_signature_parameters = 
-                            counter_signature_parameters;
+    ctx->counter_signature_algorithm = counter_signature_algorithm;
+    ctx->counter_signature_parameters = counter_signature_parameters;
 
     /* Currently only support these parameters */
     assert(counter_signature_algorithm == COSE_Algorithm_ES256);
     assert(counter_signature_parameters == COSE_Elliptic_Curve_P256);
 
-    ctx->sender_context.private_key_len    = 0;
-    ctx->sender_context.public_key_len     = 0;
-    ctx->recipient_context.public_key_len  = 0;
+    ctx->sender_context.public_key = snd_public_key;
+    ctx->sender_context.private_key = snd_private_key;
+    ctx->sender_context.curve = counter_signature_parameters;
 
-    if (snd_private_key != NULL){
-      memcpy(ctx->sender_context.private_key, snd_private_key,  
-                                        ES256_PRIVATE_KEY_LEN);
-      ctx->sender_context.private_key_len = 
-                                         ES256_PRIVATE_KEY_LEN;
-    }
-    if (snd_public_key != NULL){
-      memcpy(ctx->sender_context.public_key, snd_public_key,  
-                                        ES256_PUBLIC_KEY_LEN);
-      ctx->sender_context.public_key_len = 
-                                          ES256_PUBLIC_KEY_LEN;
-    }
-    if (rcv_public_key != NULL){
-      memcpy(ctx->recipient_context.public_key, rcv_public_key,  
-                                        ES256_PUBLIC_KEY_LEN); 
-      ctx->recipient_context.public_key_len = 
-                                          ES256_PUBLIC_KEY_LEN;
-    }
+    ctx->recipient_context.public_key = rcv_public_key;
+    ctx->recipient_context.curve = counter_signature_parameters;
 }
 #endif /* WITH_GROUPCOM */

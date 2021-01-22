@@ -504,9 +504,9 @@ typedef struct {
 
 } verify_state_t;
 
-PT_THREAD(oscore_ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature));
+PT_THREAD(oscore_ecc_sign(sign_state_t *state, const uint8_t *buffer, size_t msg_len, const uint8_t *private_key, const uint8_t *public_key, uint8_t *signature));
 
-PT_THREAD(oscore_ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature));
+PT_THREAD(oscore_ecc_verify(verify_state_t *state, const uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, const uint8_t *signature));
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Initialise oscore crypto resources (HW engines, processes, etc.).
@@ -673,7 +673,7 @@ PT_THREAD(oscore_ecc_sign_deterministic(sign_state_t *state, uint8_t *private_ke
 	PT_END(&state->sign_deterministic_pt);
 }
 
-PT_THREAD(oscore_ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8_t *message_hash, uint8_t *signature))
+PT_THREAD(oscore_ecc_verify_sw(verify_state_t *state, const uint8_t *public_key, const uint8_t *message_hash, const uint8_t *signature))
 {
 	PT_BEGIN(&state->verify_sw_pt);
 	uint8_t res = -1;
@@ -686,7 +686,7 @@ PT_THREAD(oscore_ecc_verify_sw(verify_state_t *state, uint8_t *public_key, uint8
 }
 #endif /*OSCORE_WITH_HW_CRYPTO*/
 
-PT_THREAD(oscore_ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, uint8_t *private_key, uint8_t *public_key, uint8_t *signature))
+PT_THREAD(oscore_ecc_sign(sign_state_t *state, const uint8_t *buffer, size_t msg_len, const uint8_t *private_key, const uint8_t *public_key, uint8_t *signature))
 {
 	PT_BEGIN(&state->pt);
 	uint8_t message_hash[SHA256_DIGEST_LENGTH];/*==SHA56_DIGEST_LEN_BYTES*/
@@ -822,7 +822,7 @@ PT_THREAD(oscore_ecc_sign(sign_state_t *state, uint8_t *buffer, size_t msg_len, 
 	PT_END(&state->pt);
 }
 
-PT_THREAD(oscore_ecc_verify(verify_state_t *state, uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, uint8_t *signature))
+PT_THREAD(oscore_ecc_verify(verify_state_t *state, const uint8_t *public_key, const uint8_t *buffer, size_t buffer_len, const uint8_t *signature))
 {
 	PT_BEGIN(&state->pt);
 #ifdef OSCORE_WITH_HW_CRYPTO
@@ -941,7 +941,7 @@ QUEUE(oscore_messages_to_verify);
 MEMB(oscore_messages_to_verify_memb, oscore_messages_to_verify_entry_t, MSGS_TO_VERIFY_SIZE);
 /*---------------------------------------------------------------------------*/
 bool
-oscore_queue_message_to_sign(struct process *process, uint8_t *private_key, uint8_t *public_key, uint8_t *message, uint16_t message_len, uint8_t *signature)
+oscore_queue_message_to_sign(struct process *process, const uint8_t *private_key, const uint8_t *public_key, const uint8_t *message, uint16_t message_len, uint8_t *signature)
 {
 	oscore_messages_to_sign_entry_t *item = memb_alloc(&oscore_messages_to_sign_memb);
 	if(!item) {
@@ -1004,7 +1004,7 @@ PROCESS_THREAD(oscore_signer, ev, data)
 }
 /*---------------------------------------------------------------------------*/
 bool
-oscore_queue_message_to_verify(struct process *process, uint8_t *signature, uint8_t *message, uint16_t message_len, uint8_t *public_key)
+oscore_queue_message_to_verify(struct process *process, const uint8_t *signature, const uint8_t *message, uint16_t message_len, const uint8_t *public_key)
 {
 	oscore_messages_to_verify_entry_t *item = memb_alloc(&oscore_messages_to_verify_memb);
 	if(!item) {
@@ -1069,9 +1069,9 @@ PROCESS_THREAD(oscore_verifier, ev, data)
 }
 /*---------------------------------------------------------------------------*/
 int
-oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *ciphertext, uint16_t ciphertext_len, uint8_t *private_key, uint8_t *public_key)
+oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *ciphertext, uint16_t ciphertext_len, const uint8_t *private_key, const uint8_t *public_key)
 {
-   if(alg != COSE_Algorithm_ES256 || alg_param != COSE_Elliptic_Curve_P256)  {
+  if(alg != COSE_Algorithm_ES256 || alg_param != COSE_Elliptic_Curve_P256)  {
     return 0;
   }
   
@@ -1084,7 +1084,7 @@ oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *cip
 /*---------------------------------------------------------------------------*/
 /* Return 0 if signing failure. Signatue length otherwise, signature length and key length are derived fron ed25519 values. No check is done to ensure that buffers are of the correct length. */
 int
-oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *plaintext, uint16_t plaintext_len, uint8_t *public_key)
+oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *plaintext, uint16_t plaintext_len, const uint8_t *public_key)
 {
   if(alg != COSE_Algorithm_ES256 || alg_param != COSE_Elliptic_Curve_P256)  {
     return 0;
