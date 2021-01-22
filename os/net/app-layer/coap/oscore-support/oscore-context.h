@@ -122,11 +122,11 @@ typedef struct oscore_exchange {
 #ifdef WITH_GROUPCOM
 void
 oscore_add_group_keys(oscore_ctx_t *ctx,  
-   uint8_t *snd_public_key, 
-   uint8_t *snd_private_key,
-   uint8_t *rcv_public_key, 
-   int8_t counter_signature_algorithm,
-   int8_t counter_signature_parameters);
+   const uint8_t *snd_public_key,
+   const uint8_t *snd_private_key,
+   const uint8_t *rcv_public_key,
+   COSE_ECDSA_Algorithms_t counter_signature_algorithm,
+   COSE_Elliptic_Curves_t counter_signature_parameters);
 
 oscore_recipient_ctx_t *
 oscore_add_recipient(oscore_ctx_t *ctx, 
