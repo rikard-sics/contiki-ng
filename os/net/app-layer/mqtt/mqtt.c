@@ -468,7 +468,7 @@ PT_THREAD(write_out_props(struct pt *pt, struct mqtt_connection *conn,
 {
   PT_BEGIN(pt);
 
-  struct mqtt_prop_out_property *prop;
+  static struct mqtt_prop_out_property *prop;
 
   if(prop_list) {
     DBG("MQTT - Writing %i property bytes\n", prop_list->properties_len + prop_list->properties_len_enc_bytes);
@@ -504,7 +504,7 @@ PT_THREAD(connect_pt(struct pt *pt, struct mqtt_connection *conn))
   PT_BEGIN(pt);
 
 #if MQTT_5
-  struct mqtt_prop_list *will_props = MQTT_PROP_LIST_NONE;
+  static struct mqtt_prop_list *will_props = MQTT_PROP_LIST_NONE;
   if(conn->will.properties) {
     will_props = (struct mqtt_prop_list *)list_head(conn->will.properties);
   }
@@ -769,6 +769,13 @@ PT_THREAD(unsubscribe_pt(struct pt *pt, struct mqtt_connection *conn))
   conn->out_packet.remaining_length = MQTT_MID_SIZE +
     MQTT_STRING_LEN_SIZE +
     conn->out_packet.topic_length;
+
+#if MQTT_5
+  conn->out_packet.remaining_length +=
+    conn->out_props ? (conn->out_props->properties_len + conn->out_props->properties_len_enc_bytes)
+    : 1;
+#endif
+
   mqtt_encode_var_byte_int(conn->out_packet.remaining_length_enc,
                            &conn->out_packet.remaining_length_enc_bytes,
                            conn->out_packet.remaining_length);
@@ -782,9 +789,15 @@ PT_THREAD(unsubscribe_pt(struct pt *pt, struct mqtt_connection *conn))
   PT_MQTT_WRITE_BYTE(conn, conn->out_packet.fhdr);
   PT_MQTT_WRITE_BYTES(conn, (uint8_t *)conn->out_packet.remaining_length_enc,
                       conn->out_packet.remaining_length_enc_bytes);
+
   /* Write Variable Header */
   PT_MQTT_WRITE_BYTE(conn, (conn->out_packet.mid >> 8));
   PT_MQTT_WRITE_BYTE(conn, (conn->out_packet.mid & 0x00FF));
+#if MQTT_5
+  /* Write Properties */
+  write_out_props(pt, conn, conn->out_props);
+#endif
+
   /* Write Payload */
   PT_MQTT_WRITE_BYTE(conn, (conn->out_packet.topic_length >> 8));
   PT_MQTT_WRITE_BYTE(conn, (conn->out_packet.topic_length & 0x00FF));
@@ -1441,6 +1454,10 @@ tcp_input(struct tcp_socket *s,
       if(conn->in_publish_msg.first_chunk) {
         conn->in_publish_msg.payload_chunk_length -= conn->in_packet.properties_len +
           conn->in_packet.properties_enc_len;
+
+        /* Payload chunk should point past the MQTT properties and to the payload itself */
+        conn->in_publish_msg.payload_chunk += conn->in_packet.properties_len +
+          conn->in_packet.properties_enc_len;
       }
 #endif
 
@@ -1498,6 +1515,9 @@ tcp_input(struct tcp_socket *s,
 #if MQTT_5
     if(conn->in_publish_msg.first_chunk) {
       conn->in_publish_msg.payload_chunk_length -= conn->in_packet.properties_len +
+        conn->in_packet.properties_enc_len;
+      /* Payload chunk should point past the MQTT properties and to the payload itself */
+      conn->in_publish_msg.payload_chunk += conn->in_packet.properties_len +
         conn->in_packet.properties_enc_len;
     }
 #endif
