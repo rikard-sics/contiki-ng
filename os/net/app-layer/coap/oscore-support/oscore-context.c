@@ -275,17 +275,22 @@ oscore_remove_exchange(const uint8_t *token, uint8_t token_len)
 #ifdef WITH_GROUPCOM
 void
 oscore_add_group_keys(oscore_ctx_t *ctx,  
-   uint8_t *snd_public_key, 
-   uint8_t *snd_private_key,
-   uint8_t *rcv_public_key, 
-   int8_t counter_signature_algorithm,
-   int8_t counter_signature_parameters)
+   const uint8_t *snd_public_key,
+   const uint8_t *snd_private_key,
+   const uint8_t *rcv_public_key,
+   COSE_ECDSA_Algorithms_t counter_signature_algorithm,
+   COSE_Elliptic_Curves_t counter_signature_parameters)
 {
+    ctx->mode = OSCORE_GROUP;
+
     ctx->counter_signature_algorithm = 
                             counter_signature_algorithm;
     ctx->counter_signature_parameters = 
-                            counter_signature_parameters; 
-    ctx->mode = OSCORE_GROUP;
+                            counter_signature_parameters;
+
+    /* Currently only support these parameters */
+    assert(counter_signature_algorithm == COSE_Algorithm_ES256);
+    assert(counter_signature_parameters == COSE_Elliptic_Curve_P256);
 
     ctx->sender_context.private_key_len    = 0;
     ctx->sender_context.public_key_len     = 0;
@@ -308,41 +313,6 @@ oscore_add_group_keys(oscore_ctx_t *ctx,
                                         ES256_PUBLIC_KEY_LEN); 
       ctx->recipient_context.public_key_len = 
                                           ES256_PUBLIC_KEY_LEN;
-    } 
-    /*if (coap_get_log_level() >= LOG_INFO){ 
-      int key_len= 0;
-      key_len = ctx->sender_context.private_key_len;
-      if (key_len > 0) {
-        fprintf(stderr,"sender private key:\n");
-        for (int qq = 0; qq <key_len; qq++)
-             fprintf(stderr,"%02x",
-                     ctx->sender_context.private_key[qq]);
-        fprintf(stderr,"\n");
-      }
-      key_len = ctx->sender_context.public_key_len;
-      if (key_len > 0) {
-        fprintf(stderr,"sender public key:\n");
-        for (int qq = 0; qq <key_len; qq++)
-             fprintf(stderr,"%02x",
-                     ctx->sender_context.public_key[qq]);
-        fprintf(stderr,"\n");
-      }
-      key_len = ctx->recipient_context.private_key_len;
-      if (key_len > 0) {
-        fprintf(stderr,"recipient private key:\n");
-        for (int qq = 0; qq <key_len; qq++)
-             fprintf(stderr,"%02x",
-                     ctx->recipient_context.private_key[qq]);
-        fprintf(stderr,"\n");
-      }
-      key_len = ctx->recipient_context.public_key_len;
-      if (key_len > 0) {
-        fprintf(stderr,"recipient public key:\n");
-        for (int qq = 0; qq <key_len; qq++)
-             fprintf(stderr,"%02x",
-                     ctx->recipient_context.public_key[qq]);
-        fprintf(stderr,"\n");
-      }
-    } */ 
+    }
 }
 #endif /* WITH_GROUPCOM */
