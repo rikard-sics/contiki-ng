@@ -65,6 +65,9 @@
 #define LOG_MODULE "Main"
 #define LOG_LEVEL LOG_LEVEL_MAIN
 /*---------------------------------------------------------------------------*/
+#define STRINGIFY(a) STRINGIFY_(a)
+#define STRINGIFY_(a) #a
+/*---------------------------------------------------------------------------*/
 int
 #if PLATFORM_MAIN_ACCEPTS_ARGS
 main(int argc, char **argv)

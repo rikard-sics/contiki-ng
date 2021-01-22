@@ -48,6 +48,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#define OSCORE_SINGLE 0
+#define OSCORE_GROUP 1
+
 /*
  * The maximum length of Sender ID in
  * bytes equals the length of the AEAD nonce minus 6
@@ -64,7 +67,6 @@ coap_status_t oscore_decode_message(coap_message_t *coap_pkt);
 
 /*Decodes the OSCORE option value and places decoded values into the provided code structure */
 coap_status_t oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose);
-
 
 /* Prepares a new OSCORE message, returns the size of the message. */
 size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer);
@@ -84,8 +86,6 @@ bool oscore_is_resource_protected(const coap_resource_t *resource);
 
 /* Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
 bool oscore_is_request_protected(const coap_message_t *request);
-
-
 
 /* Initialize the context storage and the protected resource storage. */
 /* Initialize the context storage, the token - seq association storrage and the URI - context association storage. */

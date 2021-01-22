@@ -180,3 +180,53 @@ cose_encrypt0_decrypt(cose_encrypt0_t *ptr)
     ptr->aad, ptr->aad_len,
     ptr->content, ptr->content_len);
 }
+
+void cose_sign1_init(cose_sign1_t *ptr){
+  memset( ptr, 0, sizeof(cose_sign1_t));
+}
+
+void cose_sign1_set_alg(cose_sign1_t *ptr, uint8_t alg, uint8_t param){
+  ptr->alg = alg;
+  ptr->alg_param = param;
+}
+
+void cose_sign1_set_ciphertext(cose_sign1_t *ptr, uint8_t *buffer, int size){
+  ptr->ciphertext = buffer;
+  ptr->ciphertext_len = size;
+}
+
+/* Return length */
+int cose_sign1_get_signature(cose_sign1_t *ptr, uint8_t **buffer){
+  *buffer = ptr->signature;
+  return ptr->signature_len;
+}
+
+void cose_sign1_set_signature(cose_sign1_t *ptr, uint8_t *buffer){
+  ptr->signature = buffer;
+  ptr->signature_len = ES256_SIGNATURE_LEN;
+}
+
+void cose_sign1_set_sigstructure(cose_sign1_t *ptr, uint8_t *buffer, int size){
+  ptr->sigstructure = buffer;
+  ptr->sigstructure_len = size;
+}
+
+void cose_sign1_set_public_key(cose_sign1_t *ptr, uint8_t *buffer){
+  ptr->public_key = buffer;
+  ptr->public_key_len = ES256_PUBLIC_KEY_LEN;
+}
+
+void cose_sign1_set_private_key(cose_sign1_t *ptr, uint8_t *buffer){
+  ptr->private_key = buffer;
+  ptr->private_key_len = ES256_PRIVATE_KEY_LEN;
+}
+
+int cose_sign1_sign(cose_sign1_t *ptr){
+    return oscore_edDSA_sign(ptr->alg, ptr->alg_param, ptr->signature, ptr->ciphertext, ptr->ciphertext_len, ptr->private_key, ptr->public_key);
+}
+
+int cose_sign1_verify(cose_sign1_t *ptr){
+    return oscore_edDSA_verify(ptr->alg, ptr->alg_param, ptr->signature, ptr->ciphertext, ptr->ciphertext_len, ptr->public_key);
+}
+
+

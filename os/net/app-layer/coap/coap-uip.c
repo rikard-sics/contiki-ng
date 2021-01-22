@@ -49,6 +49,7 @@
 #include "contiki.h"
 #include "net/ipv6/uip-udp-packet.h"
 #include "net/ipv6/uiplib.h"
+#include "net/ipv6/uip.h" /*ipaddr comparison*/
 #include "net/routing/routing.h"
 #include "coap.h"
 #include "coap-engine.h"
@@ -88,7 +89,25 @@ static struct uip_udp_conn *dtls_conn = NULL;
 PROCESS(coap_engine, "CoAP Engine");
 
 static struct uip_udp_conn *udp_conn = NULL;
-
+#ifdef WITH_GROUPCOM
+static coap_message_t request[1]; /*TODO enable multiple message processing*/
+static coap_message_t response[1];
+static coap_status_t parse_status; /*TODO enable multiple message processing*/
+static uint8_t *verify_result;
+static uint8_t is_mcast = 0;
+/*TODO change checking srcaddr into checking the dst group addr.*/
+#define is_addr_mcast_group(a)		\
+  ((((a)->u8[0]) == 0xfd) &&            \
+   (((a)->u8[1]) == 0x00) &&            \
+   (((a)->u16[1]) == 0) &&              \
+   (((a)->u16[2]) == 0) &&              \
+   (((a)->u16[3]) == 0) &&              \
+   (((a)->u16[4]) == 0) &&              \
+   (((a)->u16[5]) == 0) &&              \
+   (((a)->u16[6]) == 0) &&              \
+   (((a)->u8[14]) == 0) &&              \
+   (((a)->u8[15]) == 0x01))
+#endif /*WITH_GROUPCOM*/
 /*---------------------------------------------------------------------------*/
 void
 coap_endpoint_log(const coap_endpoint_t *ep)
@@ -249,6 +268,8 @@ int
 coap_endpoint_is_connected(const coap_endpoint_t *ep)
 {
 #ifndef CONTIKI_TARGET_NATIVE
+  printf("is link local %d\n", uip_is_addr_linklocal(&ep->ipaddr));
+  printf("is reachable %d\n", NETSTACK_ROUTING.node_is_reachable());
   if(!uip_is_addr_linklocal(&ep->ipaddr)
     && NETSTACK_ROUTING.node_is_reachable() == 0) {
     return 0;
@@ -361,11 +382,32 @@ process_data(void)
   LOG_INFO_6ADDR(&UIP_IP_BUF->srcipaddr);
   LOG_INFO_("]:%u\n", uip_ntohs(UIP_UDP_BUF->srcport));
   LOG_INFO("  Length: %u\n", uip_datalen());
-
+#ifdef WITH_GROUPCOM
+  is_mcast = is_addr_mcast_group(&UIP_IP_BUF->srcipaddr);
+  LOG_INFO("is_mcast: %d\n", is_mcast);
+  parse_status = coap_receive(uip_appdata, uip_datalen(), request);
+#else
   coap_endpoint_t src;
-  coap_receive(get_src_endpoint(&src, 0), uip_appdata, uip_datalen());
+  coap_receive(get_src_endpoint(&src, 0), uip_appdata, uip_datalen(), 0);
+#endif /*WITH_GROUCPOM*/
+}
+#ifdef WITH_GROUPCOM
+/*---------------------------------------------------------------------------*/
+static void
+process_data_cont(uint8_t verify_res)
+{
+	LOG_INFO("signature verification yielded. Calling the receive continuation\n");
+	coap_receive_cont(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast, verify_res, parse_status, request, response);
 }
 /*---------------------------------------------------------------------------*/
+static void 
+schedule_send_response(void)
+{
+	LOG_INFO("signing completed. Continue the CoAP sending process.\n");
+	coap_send_postcrypto(request, response);
+}
+/*---------------------------------------------------------------------------*/
+#endif
 int
 coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t length)
 {
@@ -401,11 +443,8 @@ coap_sendto(const coap_endpoint_t *ep, const uint8_t *data, uint16_t length)
     }
   }
 #endif /* WITH_DTLS */
-
+  
   uip_udp_packet_sendto(udp_conn, data, length, &ep->ipaddr, ep->port);
-  LOG_INFO("sent to ");
-  LOG_INFO_COAP_EP(ep);
-  LOG_INFO_(" %u bytes\n", length);
   return length;
 }
 /*---------------------------------------------------------------------------*/
@@ -417,7 +456,6 @@ PROCESS_THREAD(coap_engine, ev, data)
   udp_conn = udp_new(NULL, 0, NULL);
   udp_bind(udp_conn, SERVER_LISTEN_PORT);
   LOG_INFO("Listening on port %u\n", uip_ntohs(udp_conn->lport));
-
 #ifdef WITH_DTLS
   /* create new context with app-data */
   dtls_conn = udp_new(NULL, 0, NULL);
@@ -435,7 +473,6 @@ PROCESS_THREAD(coap_engine, ev, data)
 
   while(1) {
     PROCESS_YIELD();
-
     if(ev == tcpip_event) {
       if(uip_newdata()) {
 #ifdef WITH_DTLS
@@ -447,6 +484,17 @@ PROCESS_THREAD(coap_engine, ev, data)
         process_data();
       }
     }
+#ifdef WITH_GROUPCOM
+    else if(ev == pe_message_verified) {
+	    verify_result = (uint8_t *) data;
+	    LOG_INFO("Received message verified event! Verify result: %d\n", *verify_result);
+	    process_data_cont(*verify_result);
+	    verify_result = NULL;
+    } else if(ev == pe_message_signed) {
+	    LOG_INFO("Received message signed event!\n");
+	    schedule_send_response();
+    }
+#endif /* WITH_GROUPCOM */
   } /* while (1) */
 
   PROCESS_END();
@@ -480,7 +528,7 @@ input_from_peer(struct dtls_context_t *ctx,
   /* Ensure that the endpoint is tagged as secure */
   session->secure = 1;
 
-  coap_receive(session, data, len);
+  coap_receive(session, data, len, 0);
 
   return 0;
 }

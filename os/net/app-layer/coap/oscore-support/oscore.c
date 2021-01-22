@@ -47,8 +47,11 @@
 #include "inttypes.h"
 #include "assert.h"
 
-#include "nanocbor/nanocbor.h"
-#include "nanocbor-helper.h"
+#include "oscore-nanocbor-helper.h"
+
+#ifdef WITH_GROUPCOM
+#include "oscore-crypto.h"
+#endif
 
 /* Log configuration */
 #include "sys/log.h"
@@ -66,6 +69,21 @@ oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const osc
 /* Creates and sets External AAD */
 static int
 oscore_prepare_aad(const coap_message_t *coap_pkt, const cose_encrypt0_t *cose, nanocbor_encoder_t* enc, bool sending);
+
+#ifdef WITH_GROUPCOM
+static void
+oscore_populate_sign(uint8_t coap_is_request, cose_sign1_t *sign, oscore_ctx_t *ctx);
+
+static int
+oscore_prepare_sig_structure(nanocbor_encoder_t* sig_enc,
+  const uint8_t *aad_buffer, uint8_t aad_len,
+  const uint8_t *text, uint8_t text_len);
+
+static int
+oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
+  const uint8_t *oscore_option, size_t oscore_option_len,
+  nanocbor_encoder_t* enc);
+#endif /* WITH_GROUPCOM */
 
 /*Return 1 if OK, Error code otherwise */
 static bool
@@ -158,7 +176,23 @@ oscore_encode_option_value(uint8_t *option_buffer, const cose_encrypt0_t *cose, 
     memcpy(&(option_buffer[offset]), cose->partial_iv, cose->partial_iv_len);
     offset += cose->partial_iv_len;
   }
-
+#ifdef WITH_GROUPCOM
+  //Always set the 4th LSB to 1 and set kid context = Gid. kid = rid.
+  //TODO right now hardcoded to only respond the Java client!
+  uint8_t kid[1] = { 0x52 }; //values taken from Java client and group-oscore-server.c
+  uint8_t gid[3] = { 0x44, 0x61, 0x6c };
+  uint8_t gid_len = 3, kid_len = 1;
+  //add kid_context = group id
+  option_buffer[0] |= 0x10;
+  option_buffer[offset] = gid_len; 
+  offset++;
+  memcpy(&(option_buffer[offset]), gid, gid_len);
+  offset += gid_len;
+  //add kid
+  option_buffer[0] |= 0x08;
+  memcpy(&(option_buffer[offset]), kid, kid_len);
+  offset += kid_len;
+#else
   if(cose->kid_context_len > 0 && cose->kid_context != NULL) {
     option_buffer[0] |= 0x10;
     option_buffer[offset] = cose->kid_context_len;
@@ -172,6 +206,11 @@ oscore_encode_option_value(uint8_t *option_buffer, const cose_encrypt0_t *cose, 
     memcpy(&(option_buffer[offset]), cose->key_id, cose->key_id_len);
     offset += cose->key_id_len;
   }
+#endif
+  LOG_DBG("OSCORE encoded option value, len %d, full [",offset);
+  LOG_DBG_BYTES(option_buffer, offset);
+  LOG_DBG_("]\n");
+
   if(offset == 1 && option_buffer[0] == 0) { /* If option_value is 0x00 it should be empty. */
 	  return 0;
   }
@@ -189,6 +228,13 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
             (option_value[0] & 0xE0) != 0) {
     return BAD_OPTION_4_02;
   }
+
+#ifdef WITH_GROUPCOM
+  /*h and k flags MUST be 1 in group OSCORE. h MUST be 1 only for requests. //TODO exclude h if client behaviour considered.*/  
+  if ((option_value[0] & 0x18) == 0) {
+    return BAD_OPTION_4_02;
+  }
+#endif
 
   uint8_t offset = 1;
   
@@ -209,6 +255,7 @@ oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_
     if (offset + kid_context_len > option_len) {
       return BAD_OPTION_4_02;
     }
+
     cose_encrypt0_set_kid_context(cose, &(option_value[offset]), kid_context_len);
     offset += kid_context_len;
   }
@@ -235,18 +282,25 @@ oscore_decode_message(coap_message_t *coap_pkt)
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
   uint8_t seq_buffer[CONTEXT_SEQ_LEN];
   cose_encrypt0_init(cose);
+#ifdef WITH_GROUPCOM
+  cose_sign1_t sign[1];
+  cose_sign1_init(sign);
+#endif /*WITH_GROUPCOM*/
 
   printf_hex_detailed("object_security", coap_pkt->object_security, coap_pkt->object_security_len);
 
   /* Options are discarded later when they are overwritten. This should be improved */
   coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
   if(ret != NO_ERROR){
-    LOG_ERR("OSCORE option value could not be parsed.\n");
-    coap_error_message = "OSCORE option could not be parsed.";
-    return ret;
+	  LOG_ERR("OSCORE option value could not be parsed.\n");
+	  coap_error_message = "OSCORE option could not be parsed.";
+	  return ret;
   }
 
   if(coap_is_request(coap_pkt)) {
+#ifdef WITH_GROUPCOM
+    const uint8_t *group_id; /*used to extract gid from OSCORE option*/
+#endif
     const uint8_t *key_id;
     const uint8_t key_id_len = cose_encrypt0_get_key_id(cose, &key_id);
 
@@ -260,6 +314,23 @@ oscore_decode_message(coap_message_t *coap_pkt)
       coap_error_message = "Security context not found";
       return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
     }
+
+#ifdef WITH_GROUPCOM
+    uint8_t gid_len = cose_encrypt0_get_kid_context(cose, &group_id);
+    if(gid_len == 0) {
+      LOG_DBG_("Gid length is 0.\n");
+      return UNAUTHORIZED_4_01;
+    } 
+    else if (*(ctx->gid) != *(group_id)) {
+      LOG_DBG_("Received gid does not match.\n");    
+      return UNAUTHORIZED_4_01;
+    }
+    else {
+       LOG_DBG("Group-ID, len %d, full [",gid_len);
+       LOG_DBG_BYTES(group_id, gid_len);
+       LOG_DBG_("]\n");
+    }
+#endif
 
     /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
     if(!oscore_validate_sender_seq(&ctx->recipient_context, cose)) {
@@ -326,7 +397,15 @@ oscore_decode_message(coap_message_t *coap_pkt)
   oscore_generate_nonce(cose, coap_pkt, nonce_buffer, sizeof(nonce_buffer));
   cose_encrypt0_set_nonce(cose, nonce_buffer, sizeof(nonce_buffer));
   
-  cose_encrypt0_set_content(cose, coap_pkt->payload, coap_pkt->payload_len);
+  uint16_t encrypt_len = coap_pkt->payload_len;
+#ifdef WITH_GROUPCOM
+  if (ctx->mode == OSCORE_GROUP){
+    encrypt_len = coap_pkt->payload_len - ES256_SIGNATURE_LEN;
+  }
+#endif /* WITH_GROUPCOM */
+  uint8_t tmp_buffer[encrypt_len];
+  memcpy(tmp_buffer, coap_pkt->payload, encrypt_len); 
+  cose_encrypt0_set_content(cose, coap_pkt->payload, encrypt_len);
 
   int res = cose_encrypt0_decrypt(cose);
   if(res <= 0) {
@@ -340,6 +419,37 @@ oscore_decode_message(coap_message_t *coap_pkt)
       return OSCORE_DECRYPTION_ERROR;
     }  
   }
+#ifdef WITH_GROUPCOM
+  if (ctx->mode == OSCORE_GROUP){
+  /* verify signature     */
+     uint8_t *signature_ptr = coap_pkt->payload + encrypt_len;//address of the signature (after the ciphertext)
+     uint8_t sig_buffer[sizeof(aad_buffer) + encrypt_len + 24];
+     //TODO optimize so we dont have to do this twice
+
+     nanocbor_encoder_t int_enc;
+     nanocbor_encoder_init(&int_enc, sig_buffer, sizeof(sig_buffer));
+     if (oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len, &int_enc) != NANOCBOR_OK) {
+       LOG_ERR("oscore_prepare_int failed\n");
+       return INTERNAL_SERVER_ERROR_5_00;
+     }
+
+     oscore_populate_sign(coap_is_request(coap_pkt), sign, ctx);
+
+     nanocbor_encoder_t sig_enc;
+     nanocbor_encoder_init(&sig_enc, sig_buffer, sizeof(sig_buffer));
+     if (oscore_prepare_sig_structure(&sig_enc,
+        aad_buffer, nanocbor_encoded_len(&int_enc),
+        tmp_buffer, encrypt_len) != NANOCBOR_OK) {
+      LOG_ERR("oscore_prepare_sig_structure failed\n");
+      return INTERNAL_SERVER_ERROR_5_00;
+     }
+     const size_t sig_len = nanocbor_encoded_len(&sig_enc);
+
+     cose_sign1_set_signature(sign, signature_ptr);
+     cose_sign1_set_ciphertext(sign, sig_buffer, sig_len);
+     cose_sign1_verify(sign);//we do not care about the response; the thing will be in progress
+  } 
+#endif /* WITH_GROUPCOM */
 
   return oscore_parser(coap_pkt, cose->content, res, ROLE_CONFIDENTIAL);
 }
@@ -349,6 +459,17 @@ oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const osc
 {
   cose_encrypt0_set_alg(cose, ctx->alg);
 
+#ifdef WITH_GROUPCOM
+    if(sending){//recent_seq is the one that actually gets updated
+      cose->partial_iv_len = u64tob(ctx->recipient_context.sliding_window.recent_seq, cose->partial_iv);
+      cose_encrypt0_set_key_id(cose, ctx->sender_context.sender_id, ctx->sender_context.sender_id_len);
+      cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+  } else {
+  
+    cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
+    cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+  }
+#else
   if(coap_is_request(pkt)) {
     if(sending){
       cose->partial_iv_len = u64tob(ctx->sender_context.seq, cose->partial_iv);
@@ -370,7 +491,15 @@ oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const osc
       cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
     }
   }
+#endif /* WITH_GROUPCOM */
 }
+
+/* Global buffers since oscore_prepare_message() return before message is sent. */
+#ifdef WITH_GROUPCOM
+uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN + ES256_SIGNATURE_LEN];
+uint8_t sign_encoded_buffer[100]; //TODO come up with a better way to size buffer
+uint8_t option_value_buffer[15];
+#endif /* WITH_GROUPCOM */
 
 /* Prepares a new OSCORE message, returns the size of the message. */
 size_t
@@ -379,10 +508,17 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   cose_encrypt0_t cose[1];
   cose_encrypt0_init(cose);
 
+#ifdef WITH_GROUPCOM
+  cose_sign1_t sign[1];
+  cose_sign1_init(sign);
+#endif /*WITH_GROUPCOM*/
+
+#ifndef WITH_GROUPCOM
+  uint8_t option_value_buffer[15]; /* When using Group-OSCORE this has to be global. */
   uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
+#endif /* not WITH_GROUPCOM */
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
-  uint8_t option_value_buffer[15];
 
   /*  1 Retrieve the Sender Context associated with the target resource. */
   oscore_ctx_t *ctx = coap_pkt->security_context;
@@ -393,6 +529,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   oscore_populate_cose(coap_pkt, cose, coap_pkt->security_context, true);
 
+  /* 2 Compose the AAD and the plaintext, as described in Sections 5.3 and 5.4.*/
   size_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, ROLE_CONFIDENTIAL);
   if(plaintext_len > COAP_MAX_CHUNK_SIZE){
     LOG_ERR("OSCORE Message to large (%zu > %u) to process.\n", plaintext_len, COAP_MAX_CHUNK_SIZE);
@@ -401,6 +538,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   cose_encrypt0_set_content(cose, content_buffer, plaintext_len);
   
+  /*3 Compute the AEAD nonce as described in Section 5.2*/ 
   nanocbor_encoder_t aad_enc;
   nanocbor_encoder_init(&aad_enc, aad_buffer, sizeof(aad_buffer));
   if (oscore_prepare_aad(coap_pkt, cose, &aad_enc, true) != NANOCBOR_OK) {
@@ -420,6 +558,10 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     oscore_increment_sender_seq(ctx);
   }
 
+  /*4 Encrypt the COSE object using the Sender Key*/
+  /*Groupcomm 4.2: The payload of the OSCORE messages SHALL encode the ciphertext of the COSE object
+   * concatenated with the value of the CounterSignature0 of the COSE object as in Appendix A.2 of RFC8152
+   * according to the Counter Signature Algorithm and Counter Signature Parameters in the Security Context.*/
   int ciphertext_len = cose_encrypt0_encrypt(cose);
   if(ciphertext_len < 0){
     LOG_ERR("OSCORE internal error %d.\n", ciphertext_len);
@@ -427,11 +569,55 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   }
   
   // Partial IV shall NOT be included in responses if not a request
+#ifdef WITH_GROUPCOM
+  const bool include_partial_iv = true;
+#else
   const bool include_partial_iv = coap_is_request(coap_pkt);
-  uint8_t option_value_len = oscore_encode_option_value(option_value_buffer, cose, include_partial_iv);
+#endif
+  const uint8_t option_value_len = oscore_encode_option_value(option_value_buffer, cose, include_partial_iv);
   
-  coap_set_payload(coap_pkt, content_buffer, ciphertext_len);
   coap_set_header_object_security(coap_pkt, option_value_buffer, option_value_len);
+
+#ifdef WITH_GROUPCOM
+  int total_len = ciphertext_len + ES256_SIGNATURE_LEN;
+
+  //set the keys and algorithms
+  oscore_populate_sign(coap_is_request(coap_pkt), sign, ctx);
+
+  //When we are sending responses the Key-ID in the Signature AAD shall be the REQUEST Key ID.
+  if(!coap_is_request(coap_pkt)){ 
+    cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
+  }
+  //prepare external_aad structure with algs, params, etc. to later populate the sig_structure
+  
+  nanocbor_encoder_t int_enc;
+  nanocbor_encoder_init(&int_enc, aad_buffer, sizeof(aad_buffer));
+  if (oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len, &int_enc) != NANOCBOR_OK) {
+    LOG_ERR("oscore_prepare_int failed\n");
+    return INTERNAL_SERVER_ERROR_5_00;
+  }
+
+  nanocbor_encoder_t sig_enc;
+  nanocbor_encoder_init(&sig_enc, sign_encoded_buffer, sizeof(sign_encoded_buffer));
+  if (oscore_prepare_sig_structure(&sig_enc, 
+               aad_buffer, nanocbor_encoded_len(&sig_enc),
+               cose->content, ciphertext_len) != NANOCBOR_OK) {
+    LOG_ERR("oscore_prepare_sig_structure failed\n");
+    return INTERNAL_SERVER_ERROR_5_00;
+  }
+  memset(&(content_buffer[ciphertext_len]), 0xAA, 64);
+
+//printf("SIGNATURE SHOULD GO HERE %p \n", &(content_buffer[ciphertext_len]));
+  cose_sign1_set_signature(sign, &(content_buffer[ciphertext_len]));
+  cose_sign1_set_ciphertext(sign, sign_encoded_buffer, nanocbor_encoded_len(&sig_enc));
+  /* Queue message to sign */
+  cose_sign1_sign(sign); //don't care about the result, it will be in progress
+  
+  coap_set_payload(coap_pkt, content_buffer, total_len);
+#else
+  coap_set_payload(coap_pkt, content_buffer, ciphertext_len);
+#endif /* WITH_GROUPCOM */
+
   
   /* Overwrite the CoAP code. */
   if(coap_is_request(coap_pkt)) {
@@ -442,9 +628,11 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   oscore_clear_options(coap_pkt);
 
-  uint8_t serialized_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
-
-  return serialized_len;
+#ifdef WITH_GROUPCOM
+  return 0;
+#else
+  return oscore_serializer(coap_pkt, buffer, ROLE_COAP);
+#endif
 }
 
 /* Creates and sets External AAD */
@@ -459,8 +647,24 @@ oscore_prepare_aad(const coap_message_t *coap_pkt, const cose_encrypt0_t *cose, 
   /* Serialize the External AAD*/
   NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 5));
   NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, 1)); /* Version, always for this version of the draft 1 */
+
+#ifdef WITH_GROUPCOM
+  if(coap_pkt->security_context->mode == OSCORE_GROUP){
+    NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 4)); /* Algoritms array */
+    NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, coap_pkt->security_context->alg)); 
+    NANOCBOR_CHECK(nanocbor_fmt_int(&aad_enc, -coap_pkt->security_context->counter_signature_algorithm)); 
+    NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, coap_pkt->security_context->counter_signature_parameters)); 
+    NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 2)); /* Countersign Key Parameters array */
+    NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, 26)); /*ECDSA_256 Hard coded */ 
+    NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, 1)); /*ECDSA_256 Hard coded */ 
+  } else {
+    NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 1)); /* Algorithms array */
+    NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, coap_pkt->security_context->alg)); /* Algorithm */
+  }
+#else 
   NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 1)); /* Algorithms array */
   NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, coap_pkt->security_context->alg)); /* Algorithm */
+#endif /*"WITH_GROUPCOM */
 
   /* When sending responses. */
   if(coap_is_request(coap_pkt)) {
@@ -567,8 +771,98 @@ oscore_init(void)
   /* Initialize the security_context storage and the protected resource storage. */
   oscore_exchange_store_init();
 
+#ifdef WITH_GROUPCOM
+  oscore_crypto_init();
+#endif
+
 #ifdef OSCORE_EP_CTX_ASSOCIATION
   /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
   oscore_ep_ctx_store_init();
 #endif
 }
+
+#ifdef WITH_GROUPCOM
+/* Sets alg and keys in COSE SIGN  */
+void
+oscore_populate_sign(uint8_t coap_is_request, cose_sign1_t *sign, oscore_ctx_t *ctx)
+{
+  cose_sign1_set_alg(sign, ctx->counter_signature_algorithm,
+                     ctx->counter_signature_parameters);
+  if (coap_is_request){
+    cose_sign1_set_private_key(sign, ctx->recipient_context.private_key); 
+    cose_sign1_set_public_key(sign, ctx->recipient_context.public_key);
+  } else {
+    cose_sign1_set_private_key(sign, ctx->sender_context.private_key); 
+    cose_sign1_set_public_key(sign, ctx->sender_context.public_key);
+  }
+}
+//
+// oscore_prepare_sig_structure
+// creates and sets structure to be signed
+static int
+oscore_prepare_sig_structure(nanocbor_encoder_t* sig_enc,
+  const uint8_t *aad_buffer, uint8_t aad_len,
+  const uint8_t *text, uint8_t text_len)
+{
+  NANOCBOR_CHECK(nanocbor_fmt_array(sig_enc, 5));
+  NANOCBOR_CHECK(nanocbor_put_tstr(sig_enc, "CounterSignature0"));
+  NANOCBOR_CHECK(nanocbor_put_bstr(sig_enc, NULL, 0));
+  NANOCBOR_CHECK(nanocbor_put_bstr(sig_enc, NULL, 0));
+  NANOCBOR_CHECK(nanocbor_put_bstr(sig_enc, aad_buffer, aad_len));
+  NANOCBOR_CHECK(nanocbor_put_bstr(sig_enc, text, text_len));
+
+  return NANOCBOR_OK;
+}
+
+static int
+oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
+  const uint8_t *oscore_option, size_t oscore_option_len,
+  nanocbor_encoder_t* enc)
+{
+  if (oscore_option_len > 0 && oscore_option != NULL) {
+    NANOCBOR_CHECK(nanocbor_fmt_array(enc, 6));
+  } else {
+    NANOCBOR_CHECK(nanocbor_fmt_array(enc, 5));
+  }
+  NANOCBOR_CHECK(nanocbor_fmt_uint(enc, 1));
+
+  /* Version, always "1" for this version of the draft */
+  if (ctx->mode == OSCORE_SINGLE) {
+    /* Algoritms array with one item */
+    NANOCBOR_CHECK(nanocbor_fmt_array(enc, 1));
+
+    /* Encryption Algorithm   */
+    NANOCBOR_CHECK(nanocbor_fmt_uint(enc, ctx->alg));
+
+  } else {  /* ctx-> mode == OSCORE_GROUP */
+    /* Algoritms array with 4 items */
+    NANOCBOR_CHECK(nanocbor_fmt_array(enc, 4));
+
+    /* Encryption Algorithm   */
+    NANOCBOR_CHECK(nanocbor_fmt_uint(enc, ctx->alg));
+
+    /* signature Algorithm */
+    NANOCBOR_CHECK(nanocbor_fmt_int(enc, -ctx->counter_signature_algorithm));
+    NANOCBOR_CHECK(nanocbor_fmt_uint(enc, ctx->counter_signature_parameters));
+
+    /* Signature algorithm array */
+    NANOCBOR_CHECK(nanocbor_fmt_array(enc, 2));
+    NANOCBOR_CHECK(nanocbor_fmt_uint(enc, 26));
+    NANOCBOR_CHECK(nanocbor_fmt_uint(enc, 1));
+    /* fill in correct 1 and 6  */
+  }
+  /* Request Key ID should go here */
+  NANOCBOR_CHECK(nanocbor_put_bstr(enc, cose->key_id, cose->key_id_len));
+  NANOCBOR_CHECK(nanocbor_put_bstr(enc, cose->partial_iv, cose->partial_iv_len));
+  NANOCBOR_CHECK(nanocbor_put_bstr(enc, NULL, 0));
+
+  if(oscore_option != NULL && oscore_option_len > 0){
+    NANOCBOR_CHECK(nanocbor_put_bstr(enc, oscore_option, oscore_option_len));
+  }
+
+  /* Put integrity protected option, at present there are none. */
+
+  return NANOCBOR_OK;
+}
+
+#endif /*WITH_GROUPCOM*/

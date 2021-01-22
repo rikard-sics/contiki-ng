@@ -48,6 +48,12 @@
  * https://tools.ietf.org/html/rfc8152#page-49
  */
 
+#define COSE_Algorithm_ES256   -7
+#define COSE_Elliptic_Curve_P256  1
+#define ES256_SIGNATURE_LEN      64
+#define ES256_PRIVATE_KEY_LEN    32
+#define ES256_PUBLIC_KEY_LEN     64
+
 #define COSE_Algorithm_AES_CCM_16_64_128 10
 #define COSE_algorithm_AES_CCM_16_64_128_KEY_LEN 16
 #define COSE_algorithm_AES_CCM_16_64_128_IV_LEN  13
@@ -85,6 +91,28 @@ typedef struct cose_encrypt0_t {
 
 } cose_encrypt0_t;
 
+/* COSE Sign1 Struct */
+typedef struct cose_sign1_t {
+
+  uint8_t alg;
+  uint8_t alg_param;
+
+  uint8_t *private_key;
+  int private_key_len;
+
+  uint8_t *public_key;
+  int public_key_len;
+
+  uint8_t *ciphertext;
+  int ciphertext_len;
+
+  uint8_t *sigstructure;
+  int sigstructure_len;
+
+  uint8_t *signature;
+  int signature_len;
+} cose_sign1_t;
+
 /* Initiate a new COSE Encrypt0 object. */
 void cose_encrypt0_init(cose_encrypt0_t *ptr);
 
@@ -116,5 +144,36 @@ void cose_encrypt0_set_nonce(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_
 
 int cose_encrypt0_encrypt(cose_encrypt0_t *ptr);
 int cose_encrypt0_decrypt(cose_encrypt0_t *ptr);
+
+/* COSE Sign-1 signature functions */
+
+void cose_sign1_init(cose_sign1_t *ptr);
+
+void cose_sign1_set_alg(cose_sign1_t *ptr, uint8_t alg,
+                                             uint8_t param);
+
+void cose_sign1_set_ciphertext(cose_sign1_t *ptr, 
+                               uint8_t *buffer, int size);
+
+void cose_sign1_set_public_key(cose_sign1_t *ptr, 
+                                          uint8_t *buffer);
+
+void cose_sign1_set_private_key(cose_sign1_t *ptr, 
+                                           uint8_t *buffer);
+
+/* Return length */
+int cose_sign1_get_signature(cose_sign1_t *ptr, 
+                                          uint8_t **buffer);
+
+void cose_sign1_set_signature(cose_sign1_t *ptr,
+                                            uint8_t *buffer);
+
+int cose_sign1_sign(cose_sign1_t *ptr);
+
+void cose_sign1_set_sigstructure(cose_sign1_t *ptr,
+                                 uint8_t *buffer, int size);
+
+int cose_sign1_verify(cose_sign1_t *ptr);
+
 
 #endif /* _COSE_H */
