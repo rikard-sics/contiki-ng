@@ -85,8 +85,6 @@ typedef struct oscore_recipient_ctx {
 #ifdef WITH_GROUPCOM
   uint8_t public_key[ES256_PUBLIC_KEY_LEN];
   uint8_t public_key_len;
-  uint8_t private_key[ES256_PRIVATE_KEY_LEN];
-  uint8_t private_key_len;
   struct oscore_recipient_ctx *next_recipient; 
   /* This field allows recipient chaining */
 #endif /* WITH_GROUPCOM */
@@ -127,7 +125,6 @@ oscore_add_group_keys(oscore_ctx_t *ctx,
    uint8_t *snd_public_key, 
    uint8_t *snd_private_key,
    uint8_t *rcv_public_key, 
-   uint8_t *rcv_private_key,
    int8_t counter_signature_algorithm,
    int8_t counter_signature_parameters);
 
