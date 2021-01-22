@@ -72,7 +72,7 @@ oscore_prepare_aad(const coap_message_t *coap_pkt, const cose_encrypt0_t *cose, 
 
 #ifdef WITH_GROUPCOM
 static void
-oscore_populate_sign(uint8_t coap_is_request, cose_sign1_t *sign, oscore_ctx_t *ctx);
+oscore_populate_sign(bool coap_is_request, cose_sign1_t *sign, oscore_ctx_t *ctx);
 
 static int
 oscore_prepare_sig_structure(nanocbor_encoder_t* sig_enc,
@@ -784,12 +784,11 @@ oscore_init(void)
 #ifdef WITH_GROUPCOM
 /* Sets alg and keys in COSE SIGN  */
 void
-oscore_populate_sign(uint8_t coap_is_request, cose_sign1_t *sign, oscore_ctx_t *ctx)
+oscore_populate_sign(bool coap_is_request, cose_sign1_t *sign, oscore_ctx_t *ctx)
 {
   cose_sign1_set_alg(sign, ctx->counter_signature_algorithm,
                      ctx->counter_signature_parameters);
   if (coap_is_request){
-    cose_sign1_set_private_key(sign, ctx->recipient_context.private_key); 
     cose_sign1_set_public_key(sign, ctx->recipient_context.public_key);
   } else {
     cose_sign1_set_private_key(sign, ctx->sender_context.private_key); 

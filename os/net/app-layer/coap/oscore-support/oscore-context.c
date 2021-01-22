@@ -278,7 +278,6 @@ oscore_add_group_keys(oscore_ctx_t *ctx,
    uint8_t *snd_public_key, 
    uint8_t *snd_private_key,
    uint8_t *rcv_public_key, 
-   uint8_t *rcv_private_key,
    int8_t counter_signature_algorithm,
    int8_t counter_signature_parameters)
 {
@@ -290,7 +289,6 @@ oscore_add_group_keys(oscore_ctx_t *ctx,
 
     ctx->sender_context.private_key_len    = 0;
     ctx->sender_context.public_key_len     = 0;
-    ctx->recipient_context.private_key_len = 0;
     ctx->recipient_context.public_key_len  = 0;
 
     if (snd_private_key != NULL){
@@ -304,12 +302,6 @@ oscore_add_group_keys(oscore_ctx_t *ctx,
                                         ES256_PUBLIC_KEY_LEN);
       ctx->sender_context.public_key_len = 
                                           ES256_PUBLIC_KEY_LEN;
-    }
-    if (rcv_private_key != NULL){
-      memcpy(ctx->recipient_context.private_key,
-                      rcv_private_key, ES256_PRIVATE_KEY_LEN);
-      ctx->recipient_context.private_key_len = 
-                                         ES256_PRIVATE_KEY_LEN;
     }
     if (rcv_public_key != NULL){
       memcpy(ctx->recipient_context.public_key, rcv_public_key,  
