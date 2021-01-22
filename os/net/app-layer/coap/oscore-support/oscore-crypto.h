@@ -130,7 +130,7 @@ typedef struct messages_to_verify_entry
 /*#ifdef OSCORE_WITH_HW_CRYPTO
 	const
 #endif *//*OSCORE_WITH_HW_CRYPTO*/
-       	uint8_t *public_key; 
+    uint8_t *public_key; 
 	uint8_t *signature;
 
 } messages_to_verify_entry_t;
