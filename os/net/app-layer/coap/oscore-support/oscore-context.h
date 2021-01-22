@@ -70,10 +70,9 @@ typedef struct oscore_sender_ctx {
   uint8_t sender_id_len;
 
 #ifdef WITH_GROUPCOM
-  uint8_t public_key[ES256_PUBLIC_KEY_LEN];
-  uint8_t public_key_len;
-  uint8_t private_key[ES256_PRIVATE_KEY_LEN];
-  uint8_t private_key_len;
+  const uint8_t *public_key;
+  const uint8_t *private_key;
+  COSE_Elliptic_Curves_t curve;
 #endif /* WITH_GROUPCOM */
 
 } oscore_sender_ctx_t;
@@ -84,10 +83,9 @@ typedef struct oscore_recipient_ctx {
   uint8_t recipient_id_len;
 
 #ifdef WITH_GROUPCOM
-  uint8_t public_key[ES256_PUBLIC_KEY_LEN];
-  uint8_t public_key_len;
-  struct oscore_recipient_ctx *next_recipient; 
-  /* This field allows recipient chaining */
+  const uint8_t *public_key;
+  COSE_Elliptic_Curves_t curve;
+  //struct oscore_recipient_ctx *next_recipient; /* This field allows recipient chaining */
 #endif /* WITH_GROUPCOM */
 
   oscore_sliding_window_t sliding_window;
