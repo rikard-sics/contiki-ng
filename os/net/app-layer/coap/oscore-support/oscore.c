@@ -460,12 +460,11 @@ oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const osc
   cose_encrypt0_set_alg(cose, ctx->alg);
 
 #ifdef WITH_GROUPCOM
-    if(sending){//recent_seq is the one that actually gets updated
-      cose->partial_iv_len = u64tob(ctx->recipient_context.sliding_window.recent_seq, cose->partial_iv);
-      cose_encrypt0_set_key_id(cose, ctx->sender_context.sender_id, ctx->sender_context.sender_id_len);
-      cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
+  if(sending){//recent_seq is the one that actually gets updated
+    cose->partial_iv_len = u64tob(ctx->recipient_context.sliding_window.recent_seq, cose->partial_iv);
+    cose_encrypt0_set_key_id(cose, ctx->sender_context.sender_id, ctx->sender_context.sender_id_len);
+    cose_encrypt0_set_key(cose, ctx->sender_context.sender_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   } else {
-  
     cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
     cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   }
@@ -850,6 +849,7 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
     NANOCBOR_CHECK(nanocbor_fmt_uint(enc, 1));
     /* fill in correct 1 and 6  */
   }
+
   /* Request Key ID should go here */
   NANOCBOR_CHECK(nanocbor_put_bstr(enc, cose->key_id, cose->key_id_len));
   NANOCBOR_CHECK(nanocbor_put_bstr(enc, cose->partial_iv, cose->partial_iv_len));
