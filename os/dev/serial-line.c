@@ -60,22 +60,21 @@ PROCESS(serial_line_process, "Serial driver");
 process_event_t serial_line_event_message;
 
 /*---------------------------------------------------------------------------*/
+static uint8_t serial_line_overflow = 0; /* Buffer overflow: ignore until END */
 int
 serial_line_input_byte(unsigned char c)
 {
-  static uint8_t overflow = 0; /* Buffer overflow: ignore until END */
-  
-  if(!overflow) {
+  if(!serial_line_overflow) {
     /* Add character */
     if(ringbuf_put(&rxbuf, c) == 0) {
       /* Buffer overflow: ignore the rest of the line */
-      overflow = 1;
+      serial_line_overflow = 1;
     }
   } else {
     /* Buffer overflowed:
      * Only (try to) add terminator characters, otherwise skip */
     if((c == END || c == END2) && ringbuf_put(&rxbuf, c) != 0) {
-      overflow = 0;
+      serial_line_overflow = 0;
     }
   }
 
