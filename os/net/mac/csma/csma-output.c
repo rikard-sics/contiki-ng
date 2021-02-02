@@ -437,13 +437,13 @@ packet_sent(struct neighbor_queue *n,
   }
 }
 /*---------------------------------------------------------------------------*/
+static uint8_t initialized = 0;
+static uint8_t seqno;
 void
 csma_output_packet(mac_callback_t sent, void *ptr)
 {
   struct packet_queue *q;
   struct neighbor_queue *n;
-  static uint8_t initialized = 0;
-  static uint8_t seqno;
   const linkaddr_t *addr = packetbuf_addr(PACKETBUF_ADDR_RECEIVER);
 
   if(!initialized) {

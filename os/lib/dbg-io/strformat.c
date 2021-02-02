@@ -240,14 +240,14 @@ output_uint_octal(char **posp, LARGEST_UNSIGNED v)
   return len;
 }
 /*---------------------------------------------------------------------------*/
+static const char space_buffer[16] = "                ";
 static strformat_result
 fill_space(const strformat_context_t *ctxt, unsigned int len)
 {
   strformat_result res;
-  static const char buffer[16] = "                ";
 
   while(len > 16) {
-    res = ctxt->write_str(ctxt->user_data, buffer, 16);
+    res = ctxt->write_str(ctxt->user_data, space_buffer, 16);
     if(res != STRFORMAT_OK) {
       return res;
     }
@@ -258,17 +258,17 @@ fill_space(const strformat_context_t *ctxt, unsigned int len)
     return STRFORMAT_OK;
   }
 
-  return ctxt->write_str(ctxt->user_data, buffer, len);
+  return ctxt->write_str(ctxt->user_data, space_buffer, len);
 }
 /*---------------------------------------------------------------------------*/
+static const char zero_buffer[16] = "0000000000000000";
 static strformat_result
 fill_zero(const strformat_context_t *ctxt, unsigned int len)
 {
   strformat_result res;
-  static const char buffer[16] = "0000000000000000";
 
   while(len > 16) {
-    res = ctxt->write_str(ctxt->user_data, buffer, 16);
+    res = ctxt->write_str(ctxt->user_data, zero_buffer, 16);
     if(res != STRFORMAT_OK) {
       return res;
     }
@@ -278,7 +278,7 @@ fill_zero(const strformat_context_t *ctxt, unsigned int len)
   if(len == 0) {
     return STRFORMAT_OK;
   }
-  return ctxt->write_str(ctxt->user_data, buffer, len);
+  return ctxt->write_str(ctxt->user_data, zero_buffer, len);
 }
 /*---------------------------------------------------------------------------*/
 int

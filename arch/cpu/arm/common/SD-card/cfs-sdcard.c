@@ -37,13 +37,14 @@ get_file(int fd)
   return &file_descriptors[fd];
 }
 
+static int cfs_initialized = 0;
+
 int
 cfs_open (const char *name, int flags)
 {
-  static int initialized = 0;
   eint8 mode;
   int fd;
-  if (!initialized) {
+  if (!cfs_initialized) {
     int fd;
     /* Mark all file descriptors as free */
     for (fd = 0; fd < MAX_FDS; fd++) {
