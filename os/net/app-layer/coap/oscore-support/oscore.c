@@ -383,8 +383,6 @@ oscore_decode_message(coap_message_t *coap_pkt)
   oscore_populate_cose(coap_pkt, cose, ctx, false);
   coap_pkt->security_context = ctx;
 
-  // TODO: AAD should not be generated here, but should come from
-  // the received message?
   nanocbor_encoder_t aad_enc;
   nanocbor_encoder_init(&aad_enc, aad_buffer, sizeof(aad_buffer));
   if (oscore_prepare_aad(coap_pkt, cose, &aad_enc, false) != NANOCBOR_OK) {

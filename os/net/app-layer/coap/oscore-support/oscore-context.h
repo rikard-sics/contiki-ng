@@ -57,12 +57,6 @@
 #define TOKEN_SEQ_NUM 30
 #endif
 
-#ifdef OSCORE_EP_CTX_ASSOCIATION
-#ifndef EP_CTX_NUM
-#define EP_CTX_NUM 10
-#endif
-#endif
-
 typedef struct oscore_sender_ctx {
   uint8_t sender_key[CONTEXT_KEY_LEN];
   uint64_t seq;

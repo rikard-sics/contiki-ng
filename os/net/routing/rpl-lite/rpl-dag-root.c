@@ -109,14 +109,13 @@ set_global_address(uip_ipaddr_t *prefix, uip_ipaddr_t *iid)
   }
 }
 /*---------------------------------------------------------------------------*/
+static uint8_t rpl_dag_initialized = 0;
 void
 rpl_dag_root_set_prefix(uip_ipaddr_t *prefix, uip_ipaddr_t *iid)
 {
-  static uint8_t initialized = 0;
-
-  if(!initialized) {
+  if(!rpl_dag_initialized) {
     set_global_address(prefix, iid);
-    initialized = 1;
+    rpl_dag_initialized = 1;
   }
 }
 /*---------------------------------------------------------------------------*/
