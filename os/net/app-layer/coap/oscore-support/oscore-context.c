@@ -115,11 +115,7 @@ compose_info(
 static bool
 bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b_len)
 {
-  if(a_len != b_len) {
-    return false;
-  }
-
-  return memcmp(a_ptr, b_ptr, a_len) == 0;
+  return a_len == b_len && memcmp(a_ptr, b_ptr, a_len) == 0;
 }
 
 void
@@ -136,7 +132,7 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
 
   if (id_context_len > OSCORE_MAX_ID_CONTEXT_LEN)
   {
-    LOG_WARN("Please increase OSCORE_MAX_ID_CONTEXT_LEN to be at least %u\n", id_context_len);
+    LOG_WARN("Please decrease OSCORE_MAX_ID_CONTEXT_LEN to be at maximum %" PRIu8 "\n", id_context_len);
   }
 
   /* sender_key */
@@ -220,8 +216,14 @@ oscore_get_exchange(const uint8_t *token, uint8_t token_len)
 bool
 oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context)
 {
+  if (token_len > COAP_TOKEN_LEN)
+  {
+    LOG_ERR("Token too long %" PRIu8 " > %" PRIu8 "\n", token_len, COAP_TOKEN_LEN);
+    return false;
+  }
+
   oscore_exchange_t *new_exchange = memb_alloc(&exchange_memb);
-  if(new_exchange == NULL){
+  if (new_exchange == NULL) {
     /* If we are at capacity for Endpoint <-> Context associations: */
     LOG_WARN("oscore_set_exchange: out of memory, will try to make room\n");
 
