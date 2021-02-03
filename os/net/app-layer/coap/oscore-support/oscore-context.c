@@ -44,10 +44,10 @@
 #include <string.h>
 #include "oscore-crypto.h"
 #include "oscore.h"
-#include "coap-log.h"
 #include "assert.h"
 
-#include "oscore-nanocbor-helper.h"
+#include "nanocbor/nanocbor.h"
+#include "nanocbor-helper.h"
 
 #include <stdio.h>
 
@@ -115,23 +115,9 @@ compose_info(
 static bool
 bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b_len)
 {
-  if(a_len != b_len) {
-    return false;
-  }
-  return memcmp(a_ptr, b_ptr, a_len) == 0;
+  return a_len == b_len && memcmp(a_ptr, b_ptr, a_len) == 0;
 }
 
-#ifdef WITH_GROUPCOM
-void
-oscore_derive_ctx(oscore_ctx_t *common_ctx,
-  const uint8_t *master_secret, uint8_t master_secret_len,
-  const uint8_t *master_salt, uint8_t master_salt_len,
-  uint8_t alg,
-  const uint8_t *sid, uint8_t sid_len,
-  const uint8_t *rid, uint8_t rid_len,
-  const uint8_t *id_context, uint8_t id_context_len,
-  const uint8_t *gid)
-#else
 void
 oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *master_secret, uint8_t master_secret_len,
@@ -140,14 +126,13 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,
   const uint8_t *id_context, uint8_t id_context_len)
-#endif
 {
   uint8_t info_buffer[INFO_BUFFER_LENGTH];
   uint8_t info_len;
 
   if (id_context_len > OSCORE_MAX_ID_CONTEXT_LEN)
   {
-    LOG_WARN("Please increase OSCORE_MAX_ID_CONTEXT_LEN to be at least %u\n", id_context_len);
+    LOG_WARN("Please decrease OSCORE_MAX_ID_CONTEXT_LEN to be at maximum %" PRIu8 "\n", id_context_len);
   }
 
   /* sender_key */
@@ -177,10 +162,6 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   common_ctx->master_secret = master_secret;
   common_ctx->master_secret_len = master_secret_len;
   common_ctx->alg = alg;
-
-#ifdef WITH_GROUPCOM 
-  common_ctx->gid = gid;
-#endif
 
   common_ctx->sender_context.sender_id = sid;
   common_ctx->sender_context.sender_id_len = sid_len;
@@ -235,8 +216,14 @@ oscore_get_exchange(const uint8_t *token, uint8_t token_len)
 bool
 oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context)
 {
+  if (token_len > COAP_TOKEN_LEN)
+  {
+    LOG_ERR("Token too long %" PRIu8 " > %" PRIu8 "\n", token_len, COAP_TOKEN_LEN);
+    return false;
+  }
+
   oscore_exchange_t *new_exchange = memb_alloc(&exchange_memb);
-  if(new_exchange == NULL){
+  if (new_exchange == NULL) {
     /* If we are at capacity for Endpoint <-> Context associations: */
     LOG_WARN("oscore_set_exchange: out of memory, will try to make room\n");
 
@@ -271,30 +258,3 @@ oscore_remove_exchange(const uint8_t *token, uint8_t token_len)
     memb_free(&exchange_memb, ptr);
   }
 }
-
-#ifdef WITH_GROUPCOM
-void
-oscore_add_group_keys(oscore_ctx_t *ctx,  
-   const uint8_t *snd_public_key,
-   const uint8_t *snd_private_key,
-   const uint8_t *rcv_public_key,
-   COSE_ECDSA_Algorithms_t counter_signature_algorithm,
-   COSE_Elliptic_Curves_t counter_signature_parameters)
-{
-    ctx->mode = OSCORE_GROUP;
-
-    ctx->counter_signature_algorithm = counter_signature_algorithm;
-    ctx->counter_signature_parameters = counter_signature_parameters;
-
-    /* Currently only support these parameters */
-    assert(counter_signature_algorithm == COSE_Algorithm_ES256);
-    assert(counter_signature_parameters == COSE_Elliptic_Curve_P256);
-
-    ctx->sender_context.public_key = snd_public_key;
-    ctx->sender_context.private_key = snd_private_key;
-    ctx->sender_context.curve = counter_signature_parameters;
-
-    ctx->recipient_context.public_key = rcv_public_key;
-    ctx->recipient_context.curve = counter_signature_parameters;
-}
-#endif /* WITH_GROUPCOM */
