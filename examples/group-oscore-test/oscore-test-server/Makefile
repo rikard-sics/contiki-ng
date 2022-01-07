@@ -37,4 +37,5 @@ MODULES_REL += ../resources
 WERROR=0
 
 CONTIKI=../../..
+include $(CONTIKI)/Makefile.identify-target
 include $(CONTIKI)/Makefile.include

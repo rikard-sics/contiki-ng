@@ -46,6 +46,12 @@
 /* Keys included from file */
 #include "../server-keys.h"
 
+/* For energy mesurements */
+#if OTII_ENERGY == 1 && CONTIKI_TARGET_SIMPLELINK == 1
+#include <Board.h>
+#include <ti/drivers/GPIO.h>
+#endif /* OTII_ENERGY && CONTIKI_TARGET_SIMPLELINK */
+
 /* Log configuration */
 #include "sys/log.h"
 #define LOG_MODULE "App"
@@ -79,6 +85,26 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   coap_activate_resource(&res_post, "uc/post");
   oscore_protect_resource(&res_post);
+
+#ifdef OTII_ENERGY
+  #if CONTIKI_TARGET_ZOUL
+    GPIO_SOFTWARE_CONTROL(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
+    GPIO_SET_OUTPUT(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
+    GPIO_SOFTWARE_CONTROL(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
+    GPIO_SET_OUTPUT(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
+
+    GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
+    GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
+  #elif CONTIKI_TARGET_SIMPLELINK
+    GPIO_init();
+    GPIO_setConfig(TEST_GPIO_SERIALIZE_PIN, GPIO_CFG_OUT_STD | GPIO_CFG_OUT_LOW);
+    GPIO_setConfig(TEST_GPIO_PARSE_PIN, GPIO_CFG_OUT_STD | GPIO_CFG_OUT_LOW);
+
+    GPIO_write(TEST_GPIO_SERIALIZE_PIN, 0);
+    GPIO_write(TEST_GPIO_PARSE_PIN, 0);
+  #endif /* TARGET */
+#endif /* OTII_ENERGY */
+
   /* Define application-specific events here. */
   while(1) {
     PROCESS_WAIT_EVENT();
