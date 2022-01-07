@@ -44,6 +44,13 @@
 
 #include "contiki-net.h"
 #include "net/ipv6/multicast/uip-mcast6.h"
+//#include "dev/gpio.h"
+
+/* For energy mesurements */
+#if OTII_ENERGY == 1 && CONTIKI_TARGET_SIMPLELINK == 1
+#include <Board.h>
+#include <ti/drivers/GPIO.h>
+#endif /* OTII_ENERGY && CONTIKI_TARGET_SIMPLELINK */
 
 /* Log configuration */
 #include "sys/log.h"
@@ -56,6 +63,8 @@
 extern coap_resource_t
   res_post;
 
+
+
 PROCESS(er_example_server, "Erbium Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 PROCESS_THREAD(er_example_server, ev, data)
@@ -65,6 +74,25 @@ PROCESS_THREAD(er_example_server, ev, data)
   PROCESS_PAUSE();
 
   coap_activate_resource(&res_post, "mc/post");
+
+#ifdef OTII_ENERGY
+
+#if CONTIKI_TARGET_ZOUL
+GPIO_SOFTWARE_CONTROL(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
+GPIO_SET_OUTPUT(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
+GPIO_SOFTWARE_CONTROL(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
+GPIO_SET_OUTPUT(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
+
+GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
+GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
+#elif CONTIKI_TARGET_SIMPLELINK
+GPIO_init();
+GPIO_setConfig(TEST_GPIO_SERIALIZE_PIN, GPIO_CFG_OUT_STD | GPIO_CFG_OUT_LOW);
+GPIO_setConfig(TEST_GPIO_PARSE_PIN, GPIO_CFG_OUT_STD | GPIO_CFG_OUT_LOW);
+GPIO_write(TEST_GPIO_SERIALIZE_PIN, 0);
+GPIO_write(TEST_GPIO_PARSE_PIN, 0);
+#endif /* TARGET */
+#endif /* OTII_ENERGY */
   
   while(1) {
     PROCESS_WAIT_EVENT();

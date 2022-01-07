@@ -6,6 +6,8 @@ PLATFORMS_EXCLUDE = sky z1
 
 CONTIKI=../../..
 
+include $(CONTIKI)/Makefile.identify-target
+
 MAKE_ROUTING = MAKE_ROUTING_RPL_LITE
 
 MAKE_WITH_GROUPCOM = 1
