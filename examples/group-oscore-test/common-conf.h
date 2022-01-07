@@ -3,7 +3,7 @@
 
 #if TEST == 1 //Memory Tests
 #define STACK_CHECK_CONF_ENABLED 1 
-#define STACK_CHECK_CONF_PERIOD 30*CLOCK_SECOND
+#define STACK_CHECK_CONF_PERIOD 10*CLOCK_SECOND
 
 #elif TEST == 2 //CPU Test
 #define STACK_CHECK_CONF_ENABLED 0 
@@ -19,10 +19,21 @@
 #elif TEST == 5 //Otii Energy mesurements
 #define OTII_ENERGY 1 
 #define STACK_CHECK_CONF_ENABLED 0 
+//Toggle GPIO pins when serialize and parse functions are executing to enable
+//precise enery mesurements.
 
-//FOR ZOUL, send prints over GPIO-UART instead of over the USB interface
-#define DBG_CONF_UART 1
+//For ZOUL
+#if CONTIKI_TARGET_ZOUL
+#define TEST_GPIO_PORT GPIO_PORT_TO_BASE(GPIO_C_NUM)
+#define TEST_GPIO_PARSE_PIN     GPIO_PIN_MASK(0)
+#define TEST_GPIO_SERIALIZE_PIN GPIO_PIN_MASK(1)
 
+#elif CONTIKI_TARGET_SIMPLELINK
+
+#define TEST_GPIO_PARSE_PIN Board_DIO25_ANALOG
+#define TEST_GPIO_SERIALIZE_PIN Board_DIO26_ANALOG
+
+#endif /* TARGET */
 #else
 #endif /* TEST */
 

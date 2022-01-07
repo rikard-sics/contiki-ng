@@ -54,6 +54,12 @@
 #define LOG_MODULE "coap-eng"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
+/* For energy mesurements */
+#if OTII_ENERGY == 1 && CONTIKI_TARGET_SIMPLELINK == 1
+#include <Board.h>
+#include <ti/drivers/GPIO.h>
+#endif /* OTII_ENERGY && CONTIKI_TARGET_SIMPLELINK */
+
 #ifdef WITH_OSCORE
 #include "oscore.h"
 #include "coap-transactions.h"
@@ -425,7 +431,12 @@ int coap_receive(const coap_endpoint_t *src,
       printf("s:%lu;\n", (serializing_time_e - serializing_time_s));
 #endif /* defined PROCESSING_TIME */
 #ifdef OTII_ENERGY
-      printf("D\n");
+#if CONTIKI_TARGET_ZOUL
+      GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
+#elif CONTIKI_TARGET_SIMPLELINK
+      GPIO_write(TEST_GPIO_SERIALIZE_PIN, 0);
+#endif /* TARGET */
+
 #endif /* OTII_ENERGY */
 #endif /* WITH_GROUPCOM && WITH_OSCORE == 0 */
 
@@ -449,7 +460,11 @@ int coap_receive(const coap_endpoint_t *src,
       printf("\n");
 #endif /* PROCESSING_TIME */
 #ifdef OTII_ENERGY
-      printf("D\n");
+#if CONTIKI_TARGET_ZOUL
+      GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
+#elif CONTIKI_TARGET_SIMPLELINK
+      GPIO_write(TEST_GPIO_SERIALIZE_PIN, 0);
+#endif /* TARGET */
 #endif /* OTII_ENERGY */
       coap_send_transaction(transaction);
 #endif /*WITH_GROUPCOM*/

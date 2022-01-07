@@ -508,11 +508,13 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   size_t sign_encoded_len = oscore_prepare_sig_structure(sign_encoded_buffer, 
       aad_buffer, aad_len, cose->content, ciphertext_len); 
-  //memset(&(content_buffer[ciphertext_len]), 0xAA, 64);
-  cose_sign1_set_signature(sign, &(content_buffer[ciphertext_len]));
+  memset(&(content_buffer[ciphertext_len]), 0x00, ECC_SIGNATURE_LEN);
   cose_sign1_set_ciphertext(sign, sign_encoded_buffer, sign_encoded_len);
-  /* Queue message to sign */
-  cose_sign1_sign(sign); //don't care about the result, it will be in progress
+  /* Queue message to sign if the message is a response*/
+  if(!coap_is_request(coap_pkt)){ 
+    cose_sign1_set_signature(sign, &(content_buffer[ciphertext_len]));
+    cose_sign1_sign(sign); //don't care about the result, it will be in progress
+  }
   coap_set_payload(coap_pkt, content_buffer, total_len);
 #else
   coap_set_payload(coap_pkt, content_buffer, ciphertext_len);
@@ -531,7 +533,10 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   oscore_clear_options(coap_pkt);
 #ifdef WITH_GROUPCOM
   if(is_request){ 
-    return oscore_serializer(coap_pkt, buffer, ROLE_COAP);
+    uint16_t serialized_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
+    cose_sign1_set_signature(sign, &(buffer[serialized_len - ECC_SIGNATURE_LEN]));
+    cose_sign1_sign(sign); //don't care about the result, it will be in progress
+    return serialized_len; 
   } else {
     LOG_DBG("Group-OSCORE Processing, exiting to yeild to the Singing PT\n");
     return 0;

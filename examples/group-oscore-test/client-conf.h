@@ -3,9 +3,11 @@
 
 
 /* For tests */ 
-#define ITERATIONS    10
+#define ITERATIONS     10
 #define SERVER_NUM     3
 #define PAYLOAD_NUM    4
+
+#define STACK_CHECK_CONF_ENABLED 0
 
 #define COAP_MAX_ATTEMPTS 1
 #define CONTEXT_NUM 5

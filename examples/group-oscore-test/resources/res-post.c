@@ -61,6 +61,12 @@ unsigned long sign_time_e = 0;
 #endif /* WITH_OSCORE */
 #endif /* PROCESSING_TIME */
 
+/* For energy mesurements */
+#if OTII_ENERGY && CONTIKI_TARGET_SIMPLELINK
+#include <ti/drivers/GPIO.h>
+#include <Board.h>
+#endif /* OTII_ENERGY && CONTIKI_TARGET_SIMPLELINK */
+
 /* Log configuration */
 #include "sys/log.h"
 #define LOG_MODULE "App"
@@ -90,13 +96,17 @@ res_post_put_handler(coap_message_t *request, coap_message_t *response, uint8_t 
   printf("d:%lu; ", (decryption_time_e - decryption_time_s));
  
   #ifdef WITH_GROUPCOM
-  printf("v:%lu; ", (verify_time_e - verify_time_s));
+  printf("v:%lu;l:%d ", (verify_time_e - verify_time_s), request->payload_len);
   #endif /* WITH_GROUPCOM */
   #endif /* WITH_OSCORE */
   printf("\n");
   #endif /* PROCESSING_TIME */
   #ifdef OTII_ENERGY
-  printf("B\n");
+  #if CONTIKI_TARGET_ZOUL
+  GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
+  #elif CONTIKI_TARGET_SIMPLELINK
+  GPIO_write(TEST_GPIO_PARSE_PIN, 0);
+  #endif /* TARGET */
   #endif /* OTII_ENERGY */
   const uint8_t *payload = NULL;
   int payload_len = coap_get_payload(request, &payload);
@@ -116,7 +126,11 @@ res_post_put_handler(coap_message_t *request, coap_message_t *response, uint8_t 
   serializing_time_s = RTIMER_NOW();
   #endif
   #ifdef OTII_ENERGY
-  printf("C\n");
+  #if CONTIKI_TARGET_ZOUL
+  GPIO_SET_PIN(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
+  #elif CONTIKI_TARGET_SIMPLELINK
+  GPIO_write(TEST_GPIO_SERIALIZE_PIN, 1);
+  #endif /* TARGET */
   #endif /* OTII_ENERGY */
 
 }

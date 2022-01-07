@@ -64,6 +64,12 @@
 #include "contiki-net.h"
 #include "net/ipv6/multicast/uip-mcast6.h"
 
+/* For energy mesurements */
+#if OTII_ENERGY == 1 && CONTIKI_TARGET_SIMPLELINK == 1
+#include <Board.h>
+#include <ti/drivers/GPIO.h>
+#endif /* OTII_ENERGY && CONTIKI_TARGET_SIMPLELINK */
+
 
 /* Log configuration */
 #include "coap-log.h"
@@ -558,8 +564,13 @@ PROCESS_THREAD(coap_engine, ev, data)
 	parsing_time_s = RTIMER_NOW();
 	#endif /* PROCESSING_TIME */
 	#ifdef OTII_ENERGY
-	printf("A\n");
-	#endif /* OTII_ENERGY */ 
+        #if CONTIKI_TARGET_ZOUL
+        GPIO_SET_PIN(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
+	#elif CONTIKI_TARGET_SIMPLELINK
+        GPIO_write(TEST_GPIO_PARSE_PIN, 1);
+        #endif /* TARGET */
+
+        #endif /* OTII_ENERGY */ 
 	process_data();
       }
     }
@@ -580,7 +591,11 @@ PROCESS_THREAD(coap_engine, ev, data)
   	    printf("g:%lu;\n", (sign_time_e - sign_time_s));
 	    #endif /* PROCESSING_TIME */
    	    #ifdef OTII_ENERGY
-	    printf("D\n");
+              #if CONTIKI_TARGET_ZOUL
+                GPIO_CLEAR_PIN(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
+	      #elif CONTIKI_TARGET_SIMPLELINK
+                GPIO_write(TEST_GPIO_SERIALIZE_PIN, 0);
+              #endif /* TARGET */
 	    #endif /* OTII_ENERGY */
     }
 #endif /* WITH_GROUPCOM */
