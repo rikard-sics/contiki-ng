@@ -44,7 +44,7 @@
 #include "cose.h"
 #include "oscore-context.h"
 #include "coap-engine.h"
-
+#include "oscore-association.h"
 #include <stdbool.h>
 #include <stdint.h>
 

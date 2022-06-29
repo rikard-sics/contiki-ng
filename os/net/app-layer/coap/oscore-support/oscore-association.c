@@ -37,6 +37,17 @@
  */
 
 #include "oscore-association.h"
+#include "lib/memb.h"
+#include "lib/list.h"
+
+/* Log configuration */
+#include "sys/log.h"
+#define LOG_MODULE "oscore"
+#ifdef LOG_CONF_LEVEL_OSCORE
+#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
+#else
+#define LOG_LEVEL LOG_LEVEL_WARN
+#endif
 
 #ifdef OSCORE_EP_CTX_ASSOCIATION
 
