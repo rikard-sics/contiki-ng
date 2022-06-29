@@ -55,7 +55,11 @@
 #define LOG_MODULE "App"
 #define LOG_LEVEL  LOG_LEVEL_APP
 
-char* server_uris[SERVER_NUM] = {"coap://[fd00::212:4b00:14b5:d967]", "coap://[fd00::212:4b00:14b5:ee10]","coap://[fd00::212:4b00:14b5:de92]" };
+/* Zoul servers */
+//char* server_uris[SERVER_NUM] = {"coap://[fd00::212:4b00:14b5:de16]", "coap://[fd00::212:4b00:14b5:ee10]","coap://[fd00::212:4b00:14b5:d8fb]" };
+/* Simplelink servers */
+char* server_uris[SERVER_NUM] = {"coap://[fd00::212:4b00:1ca7:6356]", "coap://[fd00::212:4b00:1ca1:99ff]","coap://[fd00::212:4b00:1ca7:7713]" };
+
 
 PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);

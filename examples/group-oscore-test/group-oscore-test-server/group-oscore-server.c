@@ -49,7 +49,7 @@
 /* For energy mesurements */
 #if OTII_ENERGY == 1 && CONTIKI_TARGET_SIMPLELINK == 1
 #include <Board.h>
-#include <ti/drivers/GPIO.h>
+#include "dev/gpio-hal.h" 
 #endif /* OTII_ENERGY && CONTIKI_TARGET_SIMPLELINK */
 
 /* Log configuration */
@@ -97,12 +97,9 @@ PROCESS_THREAD(er_example_server, ev, data)
     GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
     GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
   #elif CONTIKI_TARGET_SIMPLELINK
-    GPIO_init();
-    GPIO_setConfig(TEST_GPIO_SERIALIZE_PIN, GPIO_CFG_OUT_STD | GPIO_CFG_OUT_LOW);
-    GPIO_setConfig(TEST_GPIO_PARSE_PIN, GPIO_CFG_OUT_STD | GPIO_CFG_OUT_LOW);
-
-    GPIO_write(TEST_GPIO_SERIALIZE_PIN, 0);
-    GPIO_write(TEST_GPIO_PARSE_PIN, 0);
+    gpio_hal_arch_init();
+    gpio_hal_arch_pin_set_output(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
+    gpio_hal_arch_write_pin(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN, 0); 
   #endif /* TARGET */
 #endif /* OTII_ENERGY */
 

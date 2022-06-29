@@ -57,7 +57,7 @@
 /* For energy mesurements */
 #if OTII_ENERGY == 1 && CONTIKI_TARGET_SIMPLELINK == 1
 #include <Board.h>
-#include <ti/drivers/GPIO.h>
+#include "dev/gpio-hal.h" 
 #endif /* OTII_ENERGY && CONTIKI_TARGET_SIMPLELINK */
 
 #ifdef WITH_OSCORE
@@ -434,7 +434,7 @@ int coap_receive(const coap_endpoint_t *src,
 #if CONTIKI_TARGET_ZOUL
       GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
 #elif CONTIKI_TARGET_SIMPLELINK
-      GPIO_write(TEST_GPIO_SERIALIZE_PIN, 0);
+      gpio_hal_arch_write_pin(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN, 0);
 #endif /* TARGET */
 
 #endif /* OTII_ENERGY */
@@ -463,7 +463,7 @@ int coap_receive(const coap_endpoint_t *src,
 #if CONTIKI_TARGET_ZOUL
       GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
 #elif CONTIKI_TARGET_SIMPLELINK
-      GPIO_write(TEST_GPIO_SERIALIZE_PIN, 0);
+      gpio_hal_arch_write_pin(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN, 0);
 #endif /* TARGET */
 #endif /* OTII_ENERGY */
       coap_send_transaction(transaction);

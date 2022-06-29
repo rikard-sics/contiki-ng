@@ -42,9 +42,11 @@ extern gpio_hal_pin_t out_pin1, out_pin2, out_pin3;
 extern gpio_hal_pin_t btn_pin;
 
 #if GPIO_HAL_PORT_PIN_NUMBERING
+#error "here4"
 extern gpio_hal_port_t out_port1, out_port2_3;
 extern gpio_hal_port_t btn_port;
 #else
+#error "hasdj"
 #define out_port1   GPIO_HAL_NULL_PORT
 #define out_port2_3 GPIO_HAL_NULL_PORT
 #define btn_port    GPIO_HAL_NULL_PORT

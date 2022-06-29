@@ -100,7 +100,6 @@ PROCESS_THREAD(er_example_client, ev, data)
   static coap_message_t request[1]; /* This way the packet can be treated as pointer as usual. */
   static oscore_ctx_t *contexts[SERVER_NUM];
   static uint8_t token[2] = {0xAA, 0x00};
-  static int j = 0;
   static int p = 0;
   static int iter = 0;
   
@@ -133,7 +132,7 @@ PROCESS_THREAD(er_example_client, ev, data)
   while(1) {
     PROCESS_YIELD();
 
-    if(etimer_expired(&et)) {
+    if(etimer_expired(&et) && p < PAYLOAD_NUM) {
       send_time_s = RTIMER_NOW();
       num_msg = 0;
       first_response_time_s = 0;
@@ -149,18 +148,18 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       COAP_MULTICAST_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
       token[1]++;
-      printf("--Done--\n");
 
       iter++;
       printf("f:%lu,l:%lu,m:%d\n", (first_response_time_s - send_time_s), (last_response_time_s - send_time_s), num_msg);
       if( iter >= ITERATIONS){ /* If we have done the desired number of iterations we increase the payload length. */
         p++;
+        printf("%d\n", p);
         iter = 0;
       } 
 
       etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
     } else if(etimer_expired(&et) && p >= PAYLOAD_NUM) {
-        printf("Tests over!\n");
+        printf("E\n");
         leds_on(LEDS_GREEN);
         etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
     }

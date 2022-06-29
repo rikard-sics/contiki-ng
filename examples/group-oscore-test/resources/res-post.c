@@ -63,7 +63,7 @@ unsigned long sign_time_e = 0;
 
 /* For energy mesurements */
 #if OTII_ENERGY && CONTIKI_TARGET_SIMPLELINK
-#include <ti/drivers/GPIO.h>
+#include "dev/gpio-hal.h" 
 #include <Board.h>
 #endif /* OTII_ENERGY && CONTIKI_TARGET_SIMPLELINK */
 
@@ -105,7 +105,7 @@ res_post_put_handler(coap_message_t *request, coap_message_t *response, uint8_t 
   #if CONTIKI_TARGET_ZOUL
   GPIO_CLR_PIN(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN);
   #elif CONTIKI_TARGET_SIMPLELINK
-  GPIO_write(TEST_GPIO_PARSE_PIN, 0);
+  gpio_hal_arch_write_pin(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN, 0);
   #endif /* TARGET */
   #endif /* OTII_ENERGY */
   const uint8_t *payload = NULL;
@@ -129,7 +129,7 @@ res_post_put_handler(coap_message_t *request, coap_message_t *response, uint8_t 
   #if CONTIKI_TARGET_ZOUL
   GPIO_SET_PIN(TEST_GPIO_PORT, TEST_GPIO_SERIALIZE_PIN);
   #elif CONTIKI_TARGET_SIMPLELINK
-  GPIO_write(TEST_GPIO_SERIALIZE_PIN, 1);
+  gpio_hal_arch_write_pin(TEST_GPIO_PORT, TEST_GPIO_PARSE_PIN, 1);
   #endif /* TARGET */
   #endif /* OTII_ENERGY */
 
