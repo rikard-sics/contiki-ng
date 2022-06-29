@@ -250,13 +250,12 @@ coap_endpoint_parse(const char *text, size_t size, coap_endpoint_t *ep)
 }
 /*---------------------------------------------------------------------------*/
 static const coap_endpoint_t *
-get_src_endpoint(uint8_t secure)
+get_src_endpoint(coap_endpoint_t* src, uint8_t secure)
 {
-  static coap_endpoint_t src;
-  uip_ipaddr_copy(&src.ipaddr, &UIP_IP_BUF->srcipaddr);
-  src.port = UIP_UDP_BUF->srcport;
-  src.secure = secure;
-  return &src;
+  uip_ipaddr_copy(&src->ipaddr, &UIP_IP_BUF->srcipaddr);
+  src->port = UIP_UDP_BUF->srcport;
+  src->secure = secure;
+  return src;
 }
 /*---------------------------------------------------------------------------*/
 int
@@ -369,7 +368,8 @@ process_secure_data(void)
   LOG_INFO("  Length: %u\n", uip_datalen());
 
   if(dtls_context) {
-    dtls_handle_message(dtls_context, (coap_endpoint_t *)get_src_endpoint(1),
+    coap_endpoint_t src;
+    dtls_handle_message(dtls_context, (coap_endpoint_t *)get_src_endpoint(&src, 1),
                         uip_appdata, uip_datalen());
   }
 }
@@ -387,7 +387,8 @@ process_data(void)
   LOG_INFO("is_mcast: %d\n", is_mcast);
   parse_status = coap_receive(uip_appdata, uip_datalen(), request);
 #else
-  coap_receive(get_src_endpoint(0), uip_appdata, uip_datalen(), 0);
+  coap_endpoint_t src;
+  coap_receive(get_src_endpoint(&src, 0), uip_appdata, uip_datalen(), 0);
 #endif /*WITH_GROUCPOM*/
 }
 #ifdef WITH_GROUPCOM
@@ -396,7 +397,8 @@ static void
 process_data_cont(uint8_t verify_res)
 {
 	LOG_INFO("signature verification yielded. Calling the receive continuation\n");
-	coap_receive_cont(get_src_endpoint(0), uip_appdata, uip_datalen(), is_mcast, verify_res, parse_status, request, response);
+  coap_endpoint_t src;
+	coap_receive_cont(get_src_endpoint(&src, 0), uip_appdata, uip_datalen(), is_mcast, verify_res, parse_status, request, response);
 }
 /*---------------------------------------------------------------------------*/
 static void 
@@ -484,12 +486,12 @@ PROCESS_THREAD(coap_engine, ev, data)
       }
     }
 #ifdef WITH_GROUPCOM
-    else if(ev == pe_message_verified) {
+    else if(ev == oscore_pe_message_verified) {
 	    verify_result = (uint8_t *) data;
 	    LOG_INFO("Received message verified event! Verify result: %d\n", *verify_result);
 	    process_data_cont(*verify_result);
 	    verify_result = NULL;
-    } else if(ev == pe_message_signed) {
+    } else if(ev == oscore_pe_message_signed) {
 	    LOG_INFO("Received message signed event!\n");
 	    schedule_send_response();
     }

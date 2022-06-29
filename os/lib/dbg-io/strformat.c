@@ -32,6 +32,7 @@
 #include "contiki.h"
 
 #include <strformat.h>
+#include <strformat-float.h>
 /*---------------------------------------------------------------------------*/
 #define HAVE_DOUBLE
 #define HAVE_LONGLONG
@@ -239,14 +240,14 @@ output_uint_octal(char **posp, LARGEST_UNSIGNED v)
   return len;
 }
 /*---------------------------------------------------------------------------*/
+static const char space_buffer[16] = "                ";
 static strformat_result
 fill_space(const strformat_context_t *ctxt, unsigned int len)
 {
   strformat_result res;
-  static const char buffer[16] = "                ";
 
   while(len > 16) {
-    res = ctxt->write_str(ctxt->user_data, buffer, 16);
+    res = ctxt->write_str(ctxt->user_data, space_buffer, 16);
     if(res != STRFORMAT_OK) {
       return res;
     }
@@ -257,17 +258,17 @@ fill_space(const strformat_context_t *ctxt, unsigned int len)
     return STRFORMAT_OK;
   }
 
-  return ctxt->write_str(ctxt->user_data, buffer, len);
+  return ctxt->write_str(ctxt->user_data, space_buffer, len);
 }
 /*---------------------------------------------------------------------------*/
+static const char zero_buffer[16] = "0000000000000000";
 static strformat_result
 fill_zero(const strformat_context_t *ctxt, unsigned int len)
 {
   strformat_result res;
-  static const char buffer[16] = "0000000000000000";
 
   while(len > 16) {
-    res = ctxt->write_str(ctxt->user_data, buffer, 16);
+    res = ctxt->write_str(ctxt->user_data, zero_buffer, 16);
     if(res != STRFORMAT_OK) {
       return res;
     }
@@ -277,7 +278,7 @@ fill_zero(const strformat_context_t *ctxt, unsigned int len)
   if(len == 0) {
     return STRFORMAT_OK;
   }
-  return ctxt->write_str(ctxt->user_data, buffer, len);
+  return ctxt->write_str(ctxt->user_data, zero_buffer, len);
 }
 /*---------------------------------------------------------------------------*/
 int
@@ -709,6 +710,17 @@ format_str_v(const strformat_context_t *ctxt, const char *format, va_list ap)
       int *p = va_arg(ap, int *);
       *p = written;
     }
+#ifdef HAVE_DOUBLE
+    case CONV_FLOAT:
+    {
+      double d = va_arg(ap, double);
+
+      size_t ftoa_written = 0;
+      CHECKCB(_ftoa(ctxt, d, &ftoa_written));
+      written += ftoa_written;
+
+    } break;
+#endif
     break;
     }
   }

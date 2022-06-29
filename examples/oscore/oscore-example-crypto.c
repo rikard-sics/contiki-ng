@@ -29,70 +29,67 @@
  * This file is part of the Contiki operating system.
  */
 
-/**
- * \file
- *      Erbium (Er) CoAP Engine example.
- * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
- */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "contiki.h"
-#include "coap-engine.h"
-#include "oscore.h"
+#include "oscore-crypto.h"
+#include "cose.h"
 
-/* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "App"
-#define LOG_LEVEL LOG_LEVEL_APP
-/*
- * Resources to be activated need to be imported through the extern keyword.
- * The build system automatically compiles the resources in the corresponding sub-directory.
- */
-extern coap_resource_t
-#ifdef A
-  ret_stat,
-#endif /* A */
-  res_post;
+#include "dev/crypto.h"
 
-uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10 };
-uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40};
-uint8_t sender_id[1] = { 0x52 };
-uint8_t receiver_id[1] = { 0x25 };
-uint8_t group_id[3] = { 0x44, 0x61, 0x6c };
+static void printf_hex(const uint8_t *data, unsigned int len)
+{
+  unsigned int i = 0;
+  for(i = 0; i < len; i++) {
+    printf("%02x", data[i]);
+  }
+  printf("\n");
+}
 
-PROCESS(er_example_server, "Erbium Example Server");
-AUTOSTART_PROCESSES(&er_example_server);
-PROCESS_THREAD(er_example_server, ev, data)
+static const uint8_t key[16] = { 0xf6, 0xb1, 0x12, 0x19, 0xe1, 0xd1, 0xbc, 0x83, 0xb4, 0x0d, 0x33, 0xa4, 0xf8, 0x03, 0x52, 0x8d };
+static const uint8_t iv[13]  = { 0x37, 0xf2, 0x28, 0x6b, 0xfa, 0xc0, 0x43, 0x8f, 0xaa, 0x98, 0x30, 0xcd, 0x07 };
+static const uint8_t aad[] = { 0x83, 0x68, 0x45, 0x6e, 0x63, 0x72, 0x79, 0x70, 0x74, 0x30, 0x40, 0x4e, 0x85, 0x01, 0x81, 0x0a, 0x46, 0x4b, 0x00, 0x14, 0xd5, 0x2b, 0xe6, 0x41, 0x00, 0x40 };
+static const uint8_t plaintext[] = { 0x45 };
+
+PROCESS(oscore_crypto_test, "OSCORE crypto test");
+AUTOSTART_PROCESSES(&oscore_crypto_test);
+
+PROCESS_THREAD(oscore_crypto_test, ev, data)
 {
   PROCESS_BEGIN();
 
-  PROCESS_PAUSE();
+  crypto_init();
 
-  LOG_INFO("Starting Group OSCORE Server\n");
+  int ret;
 
-  oscore_init_server();
+  uint8_t buffer[sizeof(plaintext) + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
+  memcpy(buffer, plaintext, sizeof(plaintext));
 
-  /*Derive an OSCORE-Security-Context. */
-  static oscore_ctx_t context;
-  oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 1, group_id, 3);
+  printf("Encrypting...\n");
 
-  uint8_t key_id[1] = { 0x25 };
-  oscore_ctx_t *ctx;
-  ctx = oscore_find_ctx_by_rid(key_id, 1);
-  if(ctx == NULL){
-    LOG_ERR("CONTEXT NOT FOUND\n");
-  }
-  coap_activate_resource(&res_post, "test/post");
-  
-  //multicast initialisation stuff here
-  //uip_ip6addr(addr, addr0, addr1, addr2, addr3, addr4, addr5, addr6, addr7)
-  /* Define application-specific events here. */
-  while(1) {
-    PROCESS_WAIT_EVENT();
-  }                             /* while (1) */
+  ret = encrypt(COSE_Algorithm_AES_CCM_16_64_128,
+    key, sizeof(key),
+    iv, sizeof(iv),
+    aad, sizeof(aad),
+    buffer, sizeof(plaintext));
+
+  printf_hex(buffer, sizeof(buffer));
+
+  printf("Encrypting result = %d\n", ret);
+  printf("\n");
+  printf("Decrypting...\n");
+
+  ret = decrypt(COSE_Algorithm_AES_CCM_16_64_128,
+    key, sizeof(key),
+    iv, sizeof(iv),
+    aad, sizeof(aad),
+    buffer, sizeof(plaintext));
+
+  printf_hex(buffer, sizeof(buffer));
+
+  printf("Decrypting result = %d\n", ret);
 
   PROCESS_END();
 }

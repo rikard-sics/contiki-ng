@@ -495,11 +495,9 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   }
 
   memcpy(coap_pkt->token, current_option, coap_pkt->token_len);
-  LOG_DBG("Token (len %u) [0x%02X%02X%02X%02X%02X%02X%02X%02X]\n",
-          coap_pkt->token_len, coap_pkt->token[0], coap_pkt->token[1],
-          coap_pkt->token[2], coap_pkt->token[3], coap_pkt->token[4],
-          coap_pkt->token[5], coap_pkt->token[6], coap_pkt->token[7]
-          );                     /* FIXME always prints 8 bytes */
+  LOG_DBG("Token (len %u) [0x", coap_pkt->token_len);
+  LOG_DBG_BYTES(coap_pkt->token, coap_pkt->token_len);
+  LOG_DBG_("]\n");
 
   /* parse options */
   memset(coap_pkt->options, 0, sizeof(coap_pkt->options));
@@ -719,7 +717,7 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
       LOG_DBG_COAP_STRING((char *)(coap_pkt->object_security), coap_pkt->object_security_len);
       LOG_DBG_("]\n");  
       oscore_found = true;
-      #else /* WITH_OSCORE */
+#else /* WITH_OSCORE */
       LOG_DBG_("OSCORE NOT IMPLEMENTED!\n");
       coap_error_message = "OSCORE not supported";
       return BAD_OPTION_4_02;
@@ -1706,9 +1704,18 @@ int coap_set_header_object_security(coap_message_t *coap_pkt, uint8_t *object_se
 }
 
 void
-coap_set_oscore(coap_message_t *coap_pkt)
+coap_set_oscore(coap_message_t *coap_pkt, oscore_ctx_t* ctx)
 {
   coap_set_option(coap_pkt, COAP_OPTION_OSCORE);
+  coap_pkt->security_context = ctx;
+
+  if(ctx == NULL) {
+    LOG_WARN("coap_set_oscore: Setting NULL security context\n");
+  }
+
+  if(coap_pkt->token_len == 0) {
+    LOG_WARN("coap_set_oscore: 0-length token\n");
+  }
 }
 #endif /* WITH_OSCORE */
 /** @} */

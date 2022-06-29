@@ -41,11 +41,13 @@
 #include <stddef.h>
 #include "lib/memb.h"
 #include "lib/list.h"
-#include "cbor.h"
 #include <string.h>
 #include "oscore-crypto.h"
 #include "oscore.h"
 #include "coap-log.h"
+#include "assert.h"
+
+#include "oscore-nanocbor-helper.h"
 
 #include <stdio.h>
 
@@ -58,12 +60,23 @@
 #define LOG_LEVEL LOG_LEVEL_WARN
 #endif
 
+#ifndef OSCORE_MAX_ID_CONTEXT_LEN
+#define OSCORE_MAX_ID_CONTEXT_LEN 1
+#endif
+
 MEMB(exchange_memb, oscore_exchange_t, TOKEN_SEQ_NUM);
-MEMB(ep_ctx_memb, ep_ctx_t, EP_CTX_NUM);
 
 LIST(common_context_list);
 LIST(exchange_list);
-LIST(ep_ctx_list);
+
+#define INFO_BUFFER_LENGTH ( \
+  1 + /* array */ \
+  1 + OSCORE_SENDER_ID_MAX_SUPPORTED_LEN + /* bstr, identity maximum length */ \
+  1 + OSCORE_MAX_ID_CONTEXT_LEN + /* bstr, id context maximum length */ \
+  1 + /* algorithm */ \
+  1 + 3 + /* tstr, "Key" or "IV" */ \
+  1 /* int, output length */ \
+)
 
 void
 oscore_ctx_store_init(void)
@@ -77,42 +90,32 @@ compose_info(
   uint8_t alg,
   const uint8_t *id, uint8_t id_len,
   const uint8_t *id_context, uint8_t id_context_len,
+  const char* kind,
   uint8_t out_len)
 {
-  uint8_t ret = 0;
+  nanocbor_encoder_t enc;
+  nanocbor_encoder_init(&enc, buffer, buffer_len);
 
-  // TODO: Needs bounds checking on buffer_len
+  NANOCBOR_CHECK(nanocbor_fmt_array(&enc, 5));
+  NANOCBOR_CHECK(nanocbor_put_bstr(&enc, id, id_len));
 
-  ret += cbor_put_array(&buffer, 5);
-  ret += cbor_put_bytes(&buffer, id, id_len);
-  if(id_context != NULL && id_context_len > 0){
-  	ret += cbor_put_bytes(&buffer, id_context, id_context_len);
+  if(id_context != NULL && id_context_len > 0) {
+    NANOCBOR_CHECK(nanocbor_put_bstr(&enc, id_context, id_context_len));
   } else {
-	ret += cbor_put_nil(&buffer); 
-  }
-  ret += cbor_put_unsigned(&buffer, alg);
-  char *text;
-  uint8_t text_len;
-  if(out_len != 16) {
-    text = "IV";
-    text_len = 2;
-  } else {
-    text = "Key";
-    text_len = 3;
+    NANOCBOR_CHECK(nanocbor_fmt_null(&enc));
   }
 
-  ret += cbor_put_text(&buffer, text, text_len);
-  ret += cbor_put_unsigned(&buffer, out_len);
-  return ret;
+  NANOCBOR_CHECK(nanocbor_fmt_uint(&enc, alg));
+  NANOCBOR_CHECK(nanocbor_put_tstr(&enc, kind));
+  NANOCBOR_CHECK(nanocbor_fmt_uint(&enc, out_len));
+
+  return nanocbor_encoded_len(&enc);
 }
 
 static bool
 bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b_len)
 {
-  if(a_len != b_len) {
-    return false;
-  }
-  return memcmp(a_ptr, b_ptr, a_len) == 0;
+  return a_len == b_len && memcmp(a_ptr, b_ptr, a_len) == 0;
 }
 
 #ifdef WITH_GROUPCOM
@@ -124,7 +127,6 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,
   const uint8_t *id_context, uint8_t id_context_len,
-  uint8_t replay_window,
   const uint8_t *gid)
 #else
 void
@@ -134,49 +136,57 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   uint8_t alg,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,
-  const uint8_t *id_context, uint8_t id_context_len,
-  uint8_t replay_window)
+  const uint8_t *id_context, uint8_t id_context_len)
 #endif
 {
-  uint8_t info_buffer[15];
+  uint8_t info_buffer[INFO_BUFFER_LENGTH];
   uint8_t info_len;
 
-  /* sender_ key */
-  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, sid, sid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
-  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->sender_context.sender_key, CONTEXT_KEY_LEN);
+  if (id_context_len > OSCORE_MAX_ID_CONTEXT_LEN)
+  {
+    LOG_WARN("Please decrease OSCORE_MAX_ID_CONTEXT_LEN to be at maximum %" PRIu8 "\n", id_context_len);
+  }
+
+  /* sender_key */
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, sid, sid_len, id_context, id_context_len, "Key", CONTEXT_KEY_LEN);
+  assert(info_len > 0);
+  hkdf(master_salt, master_salt_len,
+       master_secret, master_secret_len,
+       info_buffer, info_len,
+       common_ctx->sender_context.sender_key, CONTEXT_KEY_LEN);
 
   /* Receiver key */
-  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, rid, rid_len, id_context, id_context_len, CONTEXT_KEY_LEN);
-  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->recipient_context.recipient_key, CONTEXT_KEY_LEN);
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, rid, rid_len, id_context, id_context_len, "Key", CONTEXT_KEY_LEN);
+  assert(info_len > 0);
+  hkdf(master_salt, master_salt_len,
+       master_secret, master_secret_len,
+       info_buffer, info_len,
+       common_ctx->recipient_context.recipient_key, CONTEXT_KEY_LEN);
 
   /* common IV */
-  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, NULL, 0, id_context, id_context_len, CONTEXT_INIT_VECT_LEN);
-  hkdf(master_salt, master_salt_len, master_secret, master_secret_len, info_buffer, info_len, common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
+  info_len = compose_info(info_buffer, sizeof(info_buffer), alg, NULL, 0, id_context, id_context_len, "IV", CONTEXT_INIT_VECT_LEN);
+  assert(info_len > 0);
+  hkdf(master_salt, master_salt_len,
+       master_secret, master_secret_len,
+       info_buffer, info_len,
+       common_ctx->common_iv, CONTEXT_INIT_VECT_LEN);
 
   common_ctx->master_secret = master_secret;
   common_ctx->master_secret_len = master_secret_len;
-  common_ctx->master_salt = master_salt;
-  common_ctx->master_salt_len = master_salt_len;
   common_ctx->alg = alg;
-  common_ctx->id_context = id_context;
-  common_ctx->id_context_len = id_context_len;
+
 #ifdef WITH_GROUPCOM 
   common_ctx->gid = gid;
 #endif
 
   common_ctx->sender_context.sender_id = sid;
   common_ctx->sender_context.sender_id_len = sid_len;
-  common_ctx->sender_context.seq = 0;
+  common_ctx->sender_context.seq = 0; /* rfc8613 Section 3.2.2 */
 
   common_ctx->recipient_context.recipient_id = rid;
   common_ctx->recipient_context.recipient_id_len = rid_len;
-  common_ctx->recipient_context.largest_seq = -1;
-  common_ctx->recipient_context.recent_seq = 0;
-  common_ctx->recipient_context.replay_window_size = replay_window;
-  common_ctx->recipient_context.rollback_largest_seq = 0;
-  common_ctx->recipient_context.sliding_window = 0;
-  common_ctx->recipient_context.rollback_sliding_window = -1;
-  common_ctx->recipient_context.initialized = 0;
+
+  oscore_sliding_window_init(&common_ctx->recipient_context.sliding_window);
 
   list_add(common_context_list, common_ctx);
 }
@@ -193,7 +203,7 @@ oscore_find_ctx_by_rid(const uint8_t *rid, uint8_t rid_len)
 {
   oscore_ctx_t *ptr = NULL;
   for(ptr = list_head(common_context_list); ptr != NULL; ptr = list_item_next(ptr)){
-    if(bytes_equal(ptr->recipient_context.recipient_id, ptr->recipient_context.recipient_id_len, rid, rid_len) ){
+    if(bytes_equal(ptr->recipient_context.recipient_id, ptr->recipient_context.recipient_id_len, rid, rid_len)) {
       return ptr;
     }
   }
@@ -208,7 +218,7 @@ oscore_exchange_store_init(void)
   list_init(exchange_list);
 }
 
-static oscore_exchange_t*
+oscore_exchange_t*
 oscore_get_exchange(const uint8_t *token, uint8_t token_len)
 {
   for(oscore_exchange_t *ptr = list_head(exchange_list); ptr != NULL; ptr = list_item_next(ptr)) {
@@ -219,27 +229,29 @@ oscore_get_exchange(const uint8_t *token, uint8_t token_len)
   return NULL;
 }
 
-
-oscore_ctx_t*
-oscore_get_contex_from_exchange(const uint8_t *token, uint8_t token_len, uint64_t *seq)
-{
-  oscore_exchange_t *ptr = oscore_get_exchange(token, token_len);
-  if (ptr) {
-    *seq = ptr->seq;
-    return ptr->context;
-  } else {
-    *seq = 0;
-    return NULL;
-  }
-}
-
 bool
 oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscore_ctx_t *context)
 {
-  oscore_exchange_t *new_exchange = memb_alloc(&exchange_memb);
-  if(new_exchange == NULL){
-    LOG_ERR("oscore_set_exchange: out of memory\n");
+  if (token_len > COAP_TOKEN_LEN)
+  {
+    LOG_ERR("Token too long %" PRIu8 " > %" PRIu8 "\n", token_len, COAP_TOKEN_LEN);
     return false;
+  }
+
+  oscore_exchange_t *new_exchange = memb_alloc(&exchange_memb);
+  if (new_exchange == NULL) {
+    /* If we are at capacity for Endpoint <-> Context associations: */
+    LOG_WARN("oscore_set_exchange: out of memory, will try to make room\n");
+
+    /* Remove first element in list, to make space for a new one. */
+    /* The head of the list contains the oldest inserted item,
+     * so most likely to never be coming back to us */
+    new_exchange = list_pop(exchange_list);
+
+    if (new_exchange == NULL) {
+      LOG_ERR("oscore_set_exchange: failed to make room\n");
+      return false;
+    }
   }
 
   memcpy(new_exchange->token, token, token_len);
@@ -247,7 +259,9 @@ oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscor
   new_exchange->seq = seq;
   new_exchange->context = context;
 
+  /* Add to end of the exchange list */
   list_add(exchange_list, new_exchange);
+
   return true;
 }
 
@@ -260,160 +274,30 @@ oscore_remove_exchange(const uint8_t *token, uint8_t token_len)
     memb_free(&exchange_memb, ptr);
   }
 }
-/* URI <=> RID association */
-void
-oscore_ep_ctx_store_init(void)
-{
-  memb_init(&ep_ctx_memb);
-  list_init(ep_ctx_list);
-}
-
-static int
-_strcmp(const char *a, const char *b){
-  if(a == NULL && b != NULL){
-    return -1;
-  } else if (a != NULL && b == NULL) {
-    return 1;
-  } else if (a == NULL && b == NULL) {
-    return 0;
-  }
-  return strcmp(a,b);
-}
-
-static ep_ctx_t *
-oscore_ep_ctx_find(coap_endpoint_t *ep, const char *uri)
-{
-  for(ep_ctx_t *ptr = list_head(ep_ctx_list); ptr != NULL; ptr = list_item_next(ptr)) {
-    if((coap_endpoint_cmp(ep, ptr->ep) && (_strcmp(uri, ptr->uri) == 0))) {
-      return ptr;
-    }
-  }
-  return NULL;
-}
-
-bool
-oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx)
-{
-  ep_ctx_t *new_ep_ctx;
-
-  new_ep_ctx = oscore_ep_ctx_find(ep, uri);
-  if (new_ep_ctx) {
-    LOG_INFO("oscore_ep_ctx_set_association: updating existing context 0x%" PRIXPTR " -> 0x%" PRIXPTR "\n",
-      (uintptr_t)new_ep_ctx->ctx, (uintptr_t)ctx);
-    new_ep_ctx->ctx = ctx;
-    return true;
-  }
-
-  new_ep_ctx = memb_alloc(&ep_ctx_memb);
-  if(new_ep_ctx == NULL) {
-    return false;
-  }
-  new_ep_ctx->ep = ep;
-  new_ep_ctx->uri = uri;
-  new_ep_ctx->ctx = ctx;
-  list_add(ep_ctx_list, new_ep_ctx);
- 
-  return true;
-}
-
-oscore_ctx_t *
-oscore_get_context_from_ep(coap_endpoint_t *ep, const char *uri)
-{
-  ep_ctx_t *ptr = oscore_ep_ctx_find(ep, uri);
-  if (ptr) {
-    return ptr->ctx;
-  }
-  return NULL;
-}
-
-void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri)
-{
-  ep_ctx_t *ptr = oscore_ep_ctx_find(ep, uri);
-  if (ptr) {
-    list_remove(ep_ctx_list, ptr);
-    memb_free(&ep_ctx_memb, ptr);
-  }
-}
 
 #ifdef WITH_GROUPCOM
 void
 oscore_add_group_keys(oscore_ctx_t *ctx,  
-   uint8_t *snd_public_key, 
-   uint8_t *snd_private_key,
-   uint8_t *rcv_public_key, 
-   uint8_t *rcv_private_key,
-   int8_t counter_signature_algorithm,
-   int8_t counter_signature_parameters)
+   const uint8_t *snd_public_key,
+   const uint8_t *snd_private_key,
+   const uint8_t *rcv_public_key,
+   COSE_ECDSA_Algorithms_t counter_signature_algorithm,
+   COSE_Elliptic_Curves_t counter_signature_parameters)
 {
-    ctx->counter_signature_algorithm = 
-                            counter_signature_algorithm;
-    ctx->counter_signature_parameters = 
-                            counter_signature_parameters; 
     ctx->mode = OSCORE_GROUP;
 
-    ctx->sender_context.private_key_len    = 0;
-    ctx->sender_context.public_key_len     = 0;
-    ctx->recipient_context.private_key_len = 0;
-    ctx->recipient_context.public_key_len  = 0;
+    ctx->counter_signature_algorithm = counter_signature_algorithm;
+    ctx->counter_signature_parameters = counter_signature_parameters;
 
-    if (snd_private_key != NULL){
-      memcpy(ctx->sender_context.private_key, snd_private_key,  
-                                        ES256_PRIVATE_KEY_LEN);
-      ctx->sender_context.private_key_len = 
-                                         ES256_PRIVATE_KEY_LEN;
-    }
-    if (snd_public_key != NULL){
-      memcpy(ctx->sender_context.public_key, snd_public_key,  
-                                        ES256_PUBLIC_KEY_LEN);
-      ctx->sender_context.public_key_len = 
-                                          ES256_PUBLIC_KEY_LEN;
-    }
-    if (rcv_private_key != NULL){
-      memcpy(ctx->recipient_context.private_key,
-                      rcv_private_key, ES256_PRIVATE_KEY_LEN);
-      ctx->recipient_context.private_key_len = 
-                                         ES256_PRIVATE_KEY_LEN;
-    }
-    if (rcv_public_key != NULL){
-      memcpy(ctx->recipient_context.public_key, rcv_public_key,  
-                                        ES256_PUBLIC_KEY_LEN); 
-      ctx->recipient_context.public_key_len = 
-                                          ES256_PUBLIC_KEY_LEN;
-    } 
-    /*if (coap_get_log_level() >= LOG_INFO){ 
-      int key_len= 0;
-      key_len = ctx->sender_context.private_key_len;
-      if (key_len > 0) {
-        fprintf(stderr,"sender private key:\n");
-        for (int qq = 0; qq <key_len; qq++)
-             fprintf(stderr,"%02x",
-                     ctx->sender_context.private_key[qq]);
-        fprintf(stderr,"\n");
-      }
-      key_len = ctx->sender_context.public_key_len;
-      if (key_len > 0) {
-        fprintf(stderr,"sender public key:\n");
-        for (int qq = 0; qq <key_len; qq++)
-             fprintf(stderr,"%02x",
-                     ctx->sender_context.public_key[qq]);
-        fprintf(stderr,"\n");
-      }
-      key_len = ctx->recipient_context.private_key_len;
-      if (key_len > 0) {
-        fprintf(stderr,"recipient private key:\n");
-        for (int qq = 0; qq <key_len; qq++)
-             fprintf(stderr,"%02x",
-                     ctx->recipient_context.private_key[qq]);
-        fprintf(stderr,"\n");
-      }
-      key_len = ctx->recipient_context.public_key_len;
-      if (key_len > 0) {
-        fprintf(stderr,"recipient public key:\n");
-        for (int qq = 0; qq <key_len; qq++)
-             fprintf(stderr,"%02x",
-                     ctx->recipient_context.public_key[qq]);
-        fprintf(stderr,"\n");
-      }
-    } */ 
+    /* Currently only support these parameters */
+    assert(counter_signature_algorithm == COSE_Algorithm_ES256);
+    assert(counter_signature_parameters == COSE_Elliptic_Curve_P256);
+
+    ctx->sender_context.public_key = snd_public_key;
+    ctx->sender_context.private_key = snd_private_key;
+    ctx->sender_context.curve = counter_signature_parameters;
+
+    ctx->recipient_context.public_key = rcv_public_key;
+    ctx->recipient_context.curve = counter_signature_parameters;
 }
 #endif /* WITH_GROUPCOM */

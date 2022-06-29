@@ -114,7 +114,7 @@ PROCESS_THREAD(er_example_server, ev, data)
   #ifdef WITH_OSCORE
   /*Derive an OSCORE-Security-Context. */
   static oscore_ctx_t context;
-  oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+  oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0);
 
   uint8_t key_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
   oscore_ctx_t *ctx;

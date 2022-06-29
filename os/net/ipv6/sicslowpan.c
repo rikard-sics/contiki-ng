@@ -1248,6 +1248,7 @@ uncompress_hdr_iphc(uint8_t *buf, uint16_t buf_size, uint16_t ip_len)
 
   CHECK_READ_SPACE(1);
   while(nhc && (*hc06_ptr & SICSLOWPAN_NHC_MASK) == SICSLOWPAN_NHC_EXT_HDR) {
+    CHECK_READ_SPACE(1);
     uint8_t eid = (*hc06_ptr & 0x0e) >> 1;
     /* next header compression flag */
     uint8_t nh = (*hc06_ptr & 0x01);
@@ -1260,6 +1261,7 @@ uncompress_hdr_iphc(uint8_t *buf, uint16_t buf_size, uint16_t ip_len)
     hc06_ptr++;
     CHECK_READ_SPACE(1);
     if(!nh) {
+      CHECK_READ_SPACE(1);
       next = *hc06_ptr;
       hc06_ptr++;
       LOG_DBG("uncompression: next header is inlined. Next: %d\n", next);
@@ -1305,8 +1307,9 @@ uncompress_hdr_iphc(uint8_t *buf, uint16_t buf_size, uint16_t ip_len)
     exthdr->next = next;
     last_nextheader = &exthdr->next;
 
-    /* The loop condition needs to read one byte after the next len bytes in the buffer. */
-    CHECK_READ_SPACE(len + 1);
+
+    CHECK_READ_SPACE(len);
+
     memcpy((uint8_t *)exthdr + UIP_EXT_HDR_LEN, hc06_ptr, len);
     hc06_ptr += len;
 

@@ -92,7 +92,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 
   #ifdef WITH_OSCORE
   static oscore_ctx_t context;
-  oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 0, receiver_id, 1, NULL, 0, OSCORE_DEFAULT_REPLAY_WINDOW);
+  oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 0, receiver_id, 1, NULL, 0);
 
   uint8_t ret = 0;
   ret += oscore_ep_ctx_set_association(&server_ep, service_urls[2], &context);

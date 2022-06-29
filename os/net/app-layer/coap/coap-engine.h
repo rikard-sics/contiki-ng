@@ -54,6 +54,8 @@ typedef struct coap_periodic_resource_s coap_periodic_resource_t;
 #include "oscore-crypto.h"
 #endif /* WITH_GROUPCOM */
 
+#include <stdbool.h>
+
 typedef enum {
   COAP_HANDLER_STATUS_CONTINUE,
   COAP_HANDLER_STATUS_PROCESSED
@@ -124,9 +126,9 @@ struct coap_resource_s {
     coap_resource_trigger_handler_t trigger;
     coap_resource_trigger_handler_t resume;
   };
-  #ifdef WITH_OSCORE
-  uint8_t oscore_protected;
-  #endif /* WITH_OSCORE */
+#ifdef WITH_OSCORE
+  bool oscore_protected;
+#endif /* WITH_OSCORE */
 };
 
 struct coap_periodic_resource_s {

@@ -30,30 +30,31 @@
 
 /**
  * \file
- *      An implementation of the Concise Binary Object Representation (RFC7049).
+ *      An implementation of the Object Security for Constrained RESTful Enviornments (Internet-Draft-15) .
  * \author
  *      Martin Gunnarsson  <martin.gunnarsson@ri.se>
  *
  */
 
+#ifndef _OSCORE_ASSOCIATION_H
+#define _OSCORE_ASSOCIATION_H
 
-#ifndef _CBOR_H
-#define _CBOR_H
-#include <stddef.h>
-#include <inttypes.h>
+#ifdef OSCORE_EP_CTX_ASSOCIATION
 
-int cbor_put_nil(uint8_t **buffer);
+#include "oscore-context.h"
+#include "coap-endpoint.h"
 
-int cbor_put_text(uint8_t **buffer, const char *text, uint8_t text_len);
+#include <stdbool.h>
 
-int cbor_put_array(uint8_t **buffer, uint8_t elements);
+#ifndef EP_CTX_NUM
+#define EP_CTX_NUM 10
+#endif
 
-int cbor_put_bytes(uint8_t **buffer, const uint8_t *bytes, uint8_t bytes_len);
+/* URI <=> CTX association */
+void oscore_ep_ctx_store_init(void);
+bool oscore_ep_ctx_set_association(coap_endpoint_t *ep, const char *uri, oscore_ctx_t *ctx);
+oscore_ctx_t *oscore_get_context_from_ep(coap_endpoint_t *ep, const char *uri);
+void oscore_remove_ep_ctx(coap_endpoint_t *ep, const char *uri);
+#endif
 
-int cbor_put_map(uint8_t **buffer, uint8_t elements);
-
-int cbor_put_unsigned(uint8_t **buffer, uint8_t value);
-
-int cbor_put_negative(uint8_t **buffer, int64_t value);
-
-#endif /* _cbor_H */
+#endif

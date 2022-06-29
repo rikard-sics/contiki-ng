@@ -48,10 +48,16 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define OSCORE_DEFAULT_REPLAY_WINDOW 32
-
 #define OSCORE_SINGLE 0
 #define OSCORE_GROUP 1
+
+/*
+ * The maximum length of Sender ID in
+ * bytes equals the length of the AEAD nonce minus 6
+ * https://tools.ietf.org/html/rfc8613#section-3.3
+ */
+#define OSCORE_SENDER_ID_MAX_LEN(NONE_LENGTH) (NONE_LENGTH - 6)
+#define OSCORE_SENDER_ID_MAX_SUPPORTED_LEN OSCORE_SENDER_ID_MAX_LEN(COSE_LARGEST_IV_LENGTH)
 
 size_t oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role);
 coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len, uint8_t role);
@@ -66,42 +72,23 @@ coap_status_t oscore_decode_option_value(uint8_t *option_value, int option_len, 
 size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer);
 
 /* Creates Nonce */
-void oscore_generate_nonce(cose_encrypt0_t *ptr, coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size);
+void oscore_generate_nonce(const cose_encrypt0_t *ptr, const coap_message_t *coap_pkt, uint8_t *buffer, uint8_t size);
 
-/*Remove all protected options */
+/* Remove all protected options */
 void oscore_clear_options(coap_message_t *ptr);
-
-/*Return 1 if OK, Error code otherwise */
-bool oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, cose_encrypt0_t *cose);
 
 /* Return 0 if SEQ MAX, return 1 if OK */
 bool oscore_increment_sender_seq(oscore_ctx_t *ctx);
-
-/* Restore the sequence number and replay-window to the previous state. This is to be used when decryption fail. */
-void oscore_roll_back_seq(oscore_recipient_ctx_t *ctx);
-
-/*Compress and extract COSE messages as per the OSCORE standard. */
-uint8_t oscore_cose_compress(cose_encrypt0_t *cose, uint8_t *buffer);
-uint8_t oscore_cose_decompress(cose_encrypt0_t *cose, uint8_t *buffer, size_t buffer_len);
 
 /* Mark a resource as protected by OSCORE, incoming COAP requests to that resource will be rejected. */
 void oscore_protect_resource(coap_resource_t *resource);
 bool oscore_is_resource_protected(const coap_resource_t *resource);
 
-bool oscore_protected_request(const coap_message_t *request);
-/*Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
-
+/* Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
+bool oscore_is_request_protected(const coap_message_t *request);
 
 /* Initialize the context storage and the protected resource storage. */
 /* Initialize the context storage, the token - seq association storrage and the URI - context association storage. */
 void oscore_init(void);
-
-#ifdef WITH_GROUPCOM
-void oscore_populate_sign(uint8_t coap_is_request, cose_sign1_t *sign, oscore_ctx_t *ctx);
-
-size_t oscore_prepare_sig_structure(uint8_t *sig_ptr, uint8_t *aad_buffer, uint8_t aad_len, uint8_t *text, uint8_t text_len);
-
-size_t oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose, uint8_t *oscore_option, size_t oscore_option_len, uint8_t *external_aad_ptr);
-#endif /* WITH_GROUPCOM */
 
 #endif /* _OSCORE_H */

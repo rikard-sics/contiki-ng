@@ -144,7 +144,7 @@ void   list_push(list_t list, void *item);
 void * list_chop(list_t list);
 
 void   list_add(list_t list, void *item);
-void   list_remove(list_t list, void *item);
+bool   list_remove(list_t list, void *item);
 
 int    list_length(list_t list);
 
