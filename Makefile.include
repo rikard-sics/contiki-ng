@@ -1,7 +1,8 @@
 # -*- makefile -*-
 
-# Set CONTIKI to the directory where Makefile.include resides.
-CONTIKI := $(patsubst %/,%,$(dir $(lastword $(MAKEFILE_LIST))))
+ifndef CONTIKI
+  ${error CONTIKI not defined! You must specify where Contiki resides}
+endif
 
 # Give an error message when using an old version of GNU Make.
 MAKE_MAJOR_VERSION := $(word 1,$(subst ., ,$(MAKE_VERSION)))
@@ -51,20 +52,7 @@ else ifeq ($(QUIET),1)
   Q = @
 endif
 
-ifneq (, $(shell which ccache))
-  CCACHE ?= ccache
-endif
-
-# Command converting lowercase to uppercase, and "-" and "/" to "_".
-UPPERCASE_CMD = tr '[:lower:][\-/]' '[:upper:][__]'
-
-COMMA := ,
-
-COOJA_PATH ?= $(CONTIKI_NG_TOOLS_DIR)/cooja
-JAVA = java
-GRADLE = $(COOJA_PATH)/gradlew
-
-BUILD_DIR ?= build
+BUILD_DIR = build
 BUILD_DIR_TARGET = $(BUILD_DIR)/$(TARGET)
 BUILD_DIR_TARGET_BOARD = $(BUILD_DIR_TARGET)/$(BOARD)
 # If BOARD was empty, make sure we don't end up with a sequence of slashes
@@ -73,7 +61,6 @@ BUILD_DIR_FULL = $(BUILD_DIR_TARGET_BOARD:/=)/$(BUILD_DIR_CONFIG)
 BUILD_DIR_BOARD = $(BUILD_DIR_FULL:/=)
 GENDIR = $(BUILD_DIR_BOARD)/gen
 OBJECTDIR = $(BUILD_DIR_BOARD)/obj
-DEPDIR = $(OBJECTDIR)/.deps
 
 TARGET_UPPERCASE := ${shell echo $(TARGET) | $(UPPERCASE_CMD)}
 CFLAGS += -DCONTIKI=1 -DCONTIKI_TARGET_$(TARGET_UPPERCASE)=1
@@ -151,95 +138,7 @@ ifneq ($(MAKECMDGOALS),clean)
       $(error Board '$(BOARD)' not available for target '$(TARGET)'.)
     endif
   endif
-
-  # Validate the toolchain.
-  ifeq (, $(shell which $(CC)))
-    $(error Target "$(TARGET)" compiler "$(CC)" cannot be found)
-  endif
-
-  GCC_VERSION := $(shell $(CC) -dumpfullversion -dumpversion)
-  GCC_MAJOR_VERSION := $(word 1,$(subst ., ,$(GCC_VERSION)))
-  GCC_MINOR_VERSION := $(word 2,$(subst ., ,$(GCC_VERSION)))
-
-  ifeq ("$(CC)","arm-none-eabi-gcc")
-    # Silence some warnings when using GCC 12.
-    ifeq (12,$(GCC_MAJOR_VERSION))
-      # Disable -Warray-bounds false positives.
-      CFLAGS += --param=min-pagesize=0
-      # FIXME: Investigate if the warning can be re-enabled.
-      # https://www.redhat.com/en/blog/linkers-warnings-about-executable-stacks-and-segments
-      LDFLAGS += -Wl,--no-warn-rwx-segments
-    endif
-    ifeq (13,$(GCC_MAJOR_VERSION))
-      # Disable -Warray-bounds false positives. Supposed to be improved
-      # in GCC 13 (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99578).
-      CFLAGS += --param=min-pagesize=0
-      # FIXME: Investigate if the warning can be re-enabled.
-      # https://www.redhat.com/en/blog/linkers-warnings-about-executable-stacks-and-segments
-      LDFLAGS += -Wl,--no-warn-rwx-segments
-    endif
-    # Warn if using version 6.3.x of arm-none-eabi-gcc
-    ifeq (6,$(GCC_MAJOR_VERSION))
-      ifeq (3,$(GCC_MINOR_VERSION))
-        $(warning Warning: $(CC) version 6.3.x may create broken Contiki-NG executables.)
-        $(warning We recommend to upgrade or downgrade your toolchain.)
-      endif
-    endif
-  endif
-
-  # Error if using 4.6.x or older msp430-gcc
-  ifeq ("$(CC)","msp430-gcc")
-    ifeq ($(shell test $(GCC_MAJOR_VERSION) -lt 5; echo $$?),0)
-      ifeq ($(shell test $(GCC_MINOR_VERSION) -lt 7; echo $$?),0)
-        $(error GCC 4.7 or later is required for MSP430.)
-      endif
-    endif
-  endif
-endif
-
-CP ?= cp
-
-ifdef NO_CHECK_STRUCTS
-  PAHOLE = echo ""
-else
-  ifeq ($(CHECK_STRUCTS),1)
-    DEBUG = 1
-  endif
-endif
-
-# Default to use pahole for finding holes in structs.
-PAHOLE ?= pahole
-# There are structs with holes in external libraries, exclude these structs.
-PAHOLE_EXCLUDES ?= _IO_FILE
-PAHOLE_FLAGS ?= -H 1 --exclude=$(PAHOLE_EXCLUDES)
-
-# Default to release builds.
-DEBUG ?= 0
-# Default to generate debug information for gdb. Targets can override this.
-CFLAGS_DEBUG ?= -ggdb
-
-ifeq ($(DEBUG),1)
-  CFLAGS += $(CFLAGS_DEBUG)
-endif
-
-# Default to not use static analysis.
-ANALYZE ?= 0
-ifeq ($(ANALYZE),1)
-  # Define something corresponding to __clang_analyzer__ for GCC as well.
-  CFLAGS += -fanalyzer -D__gcc_analyzer__ $(CFLAGS_FANALYZER)
-  # FIXME: poor -fanalyzer results with GCC 13 according to documentation.
-  #        Add ANALYZE support to CXXFLAGS when GCC supports it better.
-endif
-
-# Configure link-time-optimization (LTO).
-FLAGS_LTO ?= -flto
-
-ifdef LTO
-  CFLAGS += $(FLAGS_LTO)
-  LDFLAGS += $(FLAGS_LTO)
-  ifdef NO_LTO_TARGET
-    PLATFORM_ACTION = skip
-  endif
+  include $(target_makefile)
 endif
 
 # Decide whether to build or to skip this target for this platform
@@ -271,8 +170,8 @@ endif # $(BOARD) not empty
 
 PLATFORM_ACTION ?= build
 
-# Provide way to create directories that have been removed by make clean.
-$(OBJECTDIR) $(DEPDIR) $(GENDIR):
+# Provide way to create $(OBJECTDIR) if it has been removed by make clean
+$(OBJECTDIR):
 	$(TRACE_MKDIR)
 	$(Q)mkdir -p $@
 
@@ -372,19 +271,11 @@ else ifeq ($(MAKE_ROUTING),MAKE_ROUTING_NULLROUTING)
   MODULES += $(CONTIKI_NG_ROUTING_DIR)/nullrouting
 endif
 
-# OSCORE requires NanoCBOR
-ifeq ($(MAKE_WITH_OSCORE),1)
-  MAKE_WITH_NANOCBOR = 1
-endif
-ifeq ($(MAKE_WITH_NANOCBOR),1)
-  MODULES += $(CONTIKI_NG_LIB_DIR)/nanocbor/src $(CONTIKI_NG_LIB_DIR)/nanocbor/include
-  CFLAGS += -DNANOCBOR_BYTEORDER_HEADER=\"nanocbor-endian-helper.h\"
-endif
-
 MODULEDIRS = $(MODULES_REL) ${addprefix $(CONTIKI)/, $(MODULES)}
 # Sort removes duplicates.
 UNIQUEMODULES = $(sort $(MODULEDIRS))
 MODULES_SOURCES = ${foreach d, $(UNIQUEMODULES), ${subst ${d}/,,${wildcard $(d)/*.c}}}
+CONTIKI_SOURCEFILES += $(MODULES_SOURCES)
 
 # Include module-specific makefiles
 MODULES_INCLUDES = ${wildcard ${foreach d, $(UNIQUEMODULES), $(d)/Makefile.${notdir $(d)}}}
@@ -422,7 +313,7 @@ ifeq ($(V),1)
   TRACE_OBJDUMP  =
   TRACE_MKDIR =
   TRACE_CP =
-  Q ?=
+  Q=
 else
   TRACE_CC = @echo "  CC       " $<
   TRACE_CXX = @echo "  CXX      " $<
@@ -433,7 +324,7 @@ else
   TRACE_OBJDUMP  = @echo "  OBJDUMP  " $< "-->" $@
   TRACE_MKDIR = @echo "  MKDIR    " $@
   TRACE_CP       = @echo "  CP       " $< "-->" $@
-  Q ?= @
+  Q=@
 endif
 
 ### Forward comma-separated list of arbitrary defines to the compiler
@@ -479,75 +370,43 @@ else
 CONTIKI_VERSION = -DCONTIKI_VERSION_STRING=\"Contiki-NG\"
 endif
 
-# These files are compiled with -DCONTIKI_VERSION_STRING in CFLAGS.
-NEEDS_CONTIKI_VERSION_FILES += contiki-main.c lwm2m-device.c
+### Automatic dependency generation
+
+ifneq ($(MAKECMDGOALS),clean)
+-include ${addprefix $(OBJECTDIR)/,$(CONTIKI_SOURCEFILES:.c=.d) \
+                                   $(PROJECT_SOURCEFILES:.c=.d)}
+-include ${addprefix $(OBJECTDIR)/,$(PROJECT_SOURCEFILES:.cpp=.d)}
+endif
+
+### See http://make.paulandlesley.org/autodep.html#advanced
+
+define FINALIZE_DEPENDENCY
+cp $(@:.o=.d) $(@:.o=.$$$$); \
+sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+    -e '/^$$/ d' -e 's/$$/ :/' < $(@:.o=.$$$$) >> $(@:.o=.d); \
+rm -f $(@:.o=.$$$$)
+endef
 
 ### Harmonize filename of a .map file, if the platform's build system wants
 ### to create one
 CONTIKI_NG_PROJECT_MAP = $(BUILD_DIR_BOARD)/$(basename $(notdir $@)).map
 
-# At this stage, all source files for the build have been defined, so
-# define the corresponding object files.
-#
-# The logic is that the general build system adds source files with wildcards,
-# and architectures/applications can specify exclusions to that through
-# variables ending with _EXCLUDES and _EXCLUDES_$(TARGET_UPPERCASE).
-CONTIKI_SOURCEFILES += $(filter-out $(MODULES_SOURCES_EXCLUDES) $(MODULES_SOURCES_EXCLUDES_$(TARGET_UPPERCASE)), $(MODULES_SOURCES))
-CONTIKI_FILTERED_SOURCEFILES = $(filter-out $(CONTIKI_SOURCES_EXCLUDES) $(CONTIKI_SOURCES_EXCLUDES_$(TARGET_UPPERCASE)), $(CONTIKI_SOURCEFILES))
-CONTIKI_OBJECTFILES += ${addprefix $(OBJECTDIR)/,${call oname, $(CONTIKI_FILTERED_SOURCEFILES)}}
-PROJECT_FILTERED_SOURCEFILES = $(filter-out $(PROJECT_SOURCES_EXCLUDES) $(PROJECT_SOURCES_EXCLUDES_$(TARGET_UPPERCASE)), $(PROJECT_SOURCEFILES))
-PROJECT_OBJECTFILES += ${addprefix $(OBJECTDIR)/,${call oname, $(PROJECT_FILTERED_SOURCEFILES)}}
-
-.PHONY: all clean distclean usage help targets boards savetarget savedefines viewconf
+.PHONY: clean distclean usage help targets boards savetarget savedefines viewconf
 
 clean:
-	$(Q)rm -f *.e $(CLEAN)
-	$(Q)rm -rf $(BUILD_DIR_TARGET)
+	-$(Q)rm -f *.d *.e *.o $(CLEAN)
+	-$(Q)rm -rf $(BUILD_DIR_TARGET)
+	-$(Q)rm -f $(addsuffix .$(TARGET), $(CONTIKI_PROJECT))
+	@echo Target $(TARGET) cleaned
 
 distclean:
-	$(Q)[ "$(TARGETDIRS)" = "" ] || for TARG in `ls $(TARGETDIRS)`; do \
+	@for TARG in `ls $(CONTIKI_NG_RELOC_PLATFORM_DIR) $(TARGETDIRS)`; do \
+		echo Running: $(MAKE) TARGET=$$TARG clean; \
 		$(MAKE) TARGET=$$TARG clean; \
 	done
-	$(Q)rm -rf $(BUILD_DIR)
+	-$(Q)rm -rf $(BUILD_DIR)
 
-# Compare % and %.diffupdate, replace % with %.diffupdate if they differ.
-$(GENDIR)/%: $(GENDIR)/%.diffupdate | $(GENDIR)
-	$(Q)diff $< $@ > /dev/null 2>&1 || mv $< $@
-
-# Start cooja through "make file.csc", where the real target is defined through the csc.
-%.csc %.csc.gz: FORCE
-	$(Q)$(GRADLE) --no-watch-fs --parallel --build-cache -p $(COOJA_PATH) run --args="--contiki=$(realpath $(CONTIKI)) --logdir=$(CURDIR) $(addprefix $(CURDIR)/,$@)"
-
-ifdef SOURCE_LDSCRIPT
-LDSCRIPT = $(OBJECTDIR)/$(notdir $(SOURCE_LDSCRIPT:.lds=.ld))
-endif
-
-### Automatic dependency generation, see
-### http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/#advanced
-
-DEPFLAGS ?= -MT $@ -MMD -MP -MF $(DEPDIR)/$(notdir $<).d
-
-# Source files for CONTIKI_PROJECT can be C or C++, so add both.
-# LDSCRIPT is generated with the preprocessor on some targets, so enable
-# those targets to avoid rebuilds as well.
-DEPFILES := $(TARGET_DEPFILES) \
-            $(addprefix $(DEPDIR)/, \
-               $(addsuffix .c.d, $(CONTIKI_PROJECT)) \
-               $(addsuffix .cpp.d, $(CONTIKI_PROJECT)) \
-               $(addsuffix .d, \
-                  $(notdir $(CONTIKI_SOURCEFILES)) \
-                  $(notdir $(PROJECT_SOURCEFILES)) \
-                  $(notdir $(LDSCRIPT))))
-
-$(DEPFILES):
-include $(wildcard $(DEPFILES))
-
-# Add CONTIKI_VERSION to CFLAGS for these files.
-NEEDS_VERSION_OBJFILES = $(NEEDS_CONTIKI_VERSION_FILES:%.c=$(OBJECTDIR)/%.o)
-$(NEEDS_VERSION_OBJFILES): CFLAGS += $(CONTIKI_VERSION)
-
-# Include custom build rule Makefiles specified by platforms/CPUs.
-include $(MAKEFILES_CUSTOMRULES)
+-include $(CONTIKI_NG_RELOC_PLATFORM_DIR)/$(TARGET)/Makefile.customrules-$(TARGET)
 
 ifndef CUSTOM_RULE_IN_TO_GENDIR
 QUOTE := '
@@ -568,35 +427,17 @@ endif
 endif
 
 ifndef CUSTOM_RULE_C_TO_OBJECTDIR_O
-$(OBJECTDIR)/%.o: %.c | $(DEPDIR)
-ifeq ($(CLANG),1)
-ifeq ($(TIDY),1)
-	$(Q)if git ls-files --error-unmatch $< >/dev/null 2>&1; then \
-          $(CLANG_TIDY) $< -- $(CFLAGS); \
-        fi
-endif
-endif
+$(OBJECTDIR)/%.o: %.c | $(OBJECTDIR)
 	$(TRACE_CC)
-	$(Q)$(CCACHE) $(CC) $(CFLAGS) $(DEPFLAGS) -c $< -o $@
-ifeq ($(CHECK_STRUCTS),1)
-	$(Q)$(PAHOLE) $(PAHOLE_FLAGS) $@ | perl -ne 'exit 1 if /XXX/'
-endif
+	$(Q)$(CC) $(CFLAGS) -MMD -c $< -o $@
+	@$(FINALIZE_DEPENDENCY)
 endif
 
 ifndef CUSTOM_RULE_CPP_TO_OBJECTDIR_O
-$(OBJECTDIR)/%.o: %.cpp | $(DEPDIR)
-ifeq ($(CLANG),1)
-ifeq ($(TIDY),1)
-	$(Q)if git ls-files --error-unmatch $< >/dev/null 2>&1; then \
-          $(CLANG_TIDY) $< -- $(CXXFLAGS); \
-        fi
-endif
-endif
+$(OBJECTDIR)/%.o: %.cpp | $(OBJECTDIR)
 	$(TRACE_CXX)
-	$(Q)$(CCACHE) $(CXX) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
-ifeq ($(CHECK_STRUCTS),1)
-	$(Q)$(PAHOLE) $(PAHOLE_FLAGS) $@ | perl -ne 'exit 1 if /XXX/'
-endif
+	$(Q)$(CXX) $(CXXFLAGS) -MMD -c $< -o $@
+	@$(FINALIZE_DEPENDENCY)
 endif
 
 ifndef CUSTOM_RULE_S_TO_OBJECTDIR_O
@@ -611,25 +452,65 @@ endif
 ifndef CUSTOM_RULE_C_TO_OBJECTDIR_S
 $(OBJECTDIR)/%.s: %.c | $(OBJECTDIR)
 	$(TRACE_CC)
-	$(Q)$(CCACHE) $(CC) $(CFLAGS) -S $< -o $@
+	$(Q)$(CC) $(CFLAGS) -S $< -o $@
 endif
 
 ifndef CUSTOM_RULE_CPP_TO_OBJECTDIR_S
 $(OBJECTDIR)/%.s: %.cpp | $(OBJECTDIR)
 	$(TRACE_CXX)
-	$(Q)$(CCACHE) $(CXX) $(CXXFLAGS) -S $< -o $@
+	$(Q)$(CXX) $(CXXFLAGS) -S $< -o $@
 endif
 
 ifndef CUSTOM_RULE_C_TO_OBJECTDIR_E
 $(OBJECTDIR)/%.e: %.c | $(OBJECTDIR)
 	$(TRACE_CC)
-	$(Q)$(CCACHE) $(CC) $(CFLAGS) -E $< -o $@
+	$(Q)$(CC) $(CFLAGS) -E $< -o $@
 endif
 
 ifndef CUSTOM_RULE_CPP_TO_OBJECTDIR_E
 $(OBJECTDIR)/%.e: %.cpp | $(OBJECTDIR)
 	$(TRACE_CXX)
-	$(Q)$(CCACHE) $(CXX) $(CXXFLAGS) -E $< -o $@
+	$(Q)$(CXX) $(CXXFLAGS) -E $< -o $@
+endif
+
+ifndef CUSTOM_RULE_C_TO_O
+%.o: %.c
+	$(TRACE_CC)
+	$(Q)$(CC) $(CFLAGS) -c $< -o $@
+endif
+
+ifndef CUSTOM_RULE_CPP_TO_O
+%.o: %.cpp
+	$(TRACE_CXX)
+	$(Q)$(CXX) $(CXXFLAGS) -c $< -o $@
+endif
+
+ifndef CUSTOM_RULE_C_TO_S
+%.s: %.c
+	$(TRACE_CC)
+	$(Q)$(CC) $(CFLAGS) -S $< -o $@
+endif
+
+ifndef CUSTOM_RULE_C_TO_E
+%.e: %.c
+	$(TRACE_CC)
+	$(Q)$(CC) $(CFLAGS) -E $< -o $@
+endif
+
+ifndef CUSTOM_RULE_CPP_TO_E
+%.e: %.cpp
+	$(TRACE_CXX)
+	$(Q)$(CXX) $(CXXFLAGS) -E $< -o $@
+endif
+
+ifndef AROPTS
+  AROPTS = rcf
+endif
+
+ifndef CUSTOM_RULE_ALLOBJS_TO_TARGETLIB
+$(CONTIKI_NG_TARGET_LIB): $(CONTIKI_OBJECTFILES)
+	$(TRACE_AR)
+	$(Q)$(AR) $(AROPTS) $@ $^
 endif
 
 ifndef LD
@@ -643,31 +524,16 @@ ifdef LIBNAME
 endif
 
 ifndef CUSTOM_RULE_LINK
-# Targets can define LD_START_GROUP and LD_END_GROUP to resolve circular
-# dependencies between linked libraries, see:
-# https://stackoverflow.com/questions/5651869/gcc-what-are-the-start-group-and-end-group-command-line-options/5651895
-# These are not defined by default since it has a significant performance cost.
-TARGET_LIBEXTRAS = $(LD_START_GROUP) $(TARGET_LIBFILES) $(LD_END_GROUP)
-
-# The order of object files passed to $(LD) varies across runs and this causes
-# binary sizes to vary. Sort the files to get a deterministic size.
-#
-# Cooja passes LIBNAME through the environment and all .csc files contain
-# calls to make with a target that is *not* what Cooja needs. Add
-# a compatibility line for link rule so we can have a single rule that
-# outputs to LIBNAME on all platforms.
-$(BUILD_DIR_BOARD)/%.$(TARGET): LIBNAME ?= $@
-$(BUILD_DIR_BOARD)/%.$(TARGET): $(OBJECTDIR)/%.o $(LDSCRIPT) $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) $(CONTIKI_OBJECTFILES) $(INTERNAL_DEPS)
+$(BUILD_DIR_BOARD)/%.$(TARGET): %.o $(PROJECT_OBJECTFILES) $(PROJECT_LIBRARIES) $(CONTIKI_NG_TARGET_LIB)
 	$(TRACE_LD)
-	$(Q)$(LD) $(LDFLAGS) $(TARGET_STARTFILES) $(sort ${filter-out FORCE $(LDSCRIPT) %.a,$^}) ${filter %.a,$^} $(TARGET_LIBEXTRAS) $(LDLIBS) -o $(LIBNAME)
-ifdef BINARY_SIZE_LOGFILE
-	$(Q)$(SIZE) $(LIBNAME) | grep $(BUILD_DIR_BOARD) >> $(BINARY_SIZE_LOGFILE)
-endif
+	$(Q)$(LD) $(LDFLAGS) $(TARGET_STARTFILES) ${filter-out %.a,$^} \
+	    ${filter %.a,$^} $(TARGET_LIBFILES) -o $@
 endif
 
 # Keep an empty command so this is a rule, not just a prerequisite.
 %.$(TARGET): $(BUILD_DIR_BOARD)/%.$(TARGET)
-	@
+	$(TRACE_CP)
+	$(Q)cp $< $@
 
 %.ramprof: $(BUILD_DIR_BOARD)/%.$(TARGET)
 	$(NM) -S -td --size-sort $< | grep -i " [abdrw] " | cut -d' ' -f2,4
@@ -688,7 +554,7 @@ else
 endif
 
 savetarget:
-	@rm -f Makefile.target
+	-@rm -f Makefile.target
 	@echo "saving Makefile.target"
 	@echo >Makefile.target "TARGET = $(TARGET)"
 ifneq ($(BOARD),)
@@ -699,7 +565,7 @@ ifneq ($(BOARD_REVISION),)
 endif
 
 savedefines:
-	@rm -f Makefile.$(TARGET).defines
+	-@rm -f Makefile.$(TARGET).defines
 	@echo "saving Makefile.$(TARGET).defines"
 	@echo >Makefile.$(TARGET).defines "DEFINES = $(DEFINES)"
 
@@ -723,17 +589,6 @@ endif
 	@echo "'><' Means the flag is unset and has no default value"
 	@echo "To view more Make variables, edit $(CONTIKI)/Makefile.include, rule 'viewconf'"
 	@echo "To view more C variables, edit $(VIEWCONF)"
-
-###
-### Targets using tools/motelist
-###
-CONTIKI_NG_MOTELIST_DIR = $(CONTIKI_NG_TOOLS_DIR)/motelist
-CONTIKI_NG_MOTELIST = $(CONTIKI_NG_MOTELIST_DIR)/motelist.py
-
-.PHONY: motelist-all
-
-motelist-all:
-	$(Q)$(CONTIKI_NG_MOTELIST)
 
 ### Include Makefile.embedded for relevant platforms, in order to pull in
 ### rules for login, serialview etc
