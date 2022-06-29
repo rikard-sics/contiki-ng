@@ -193,7 +193,6 @@ static uint8_t curr_page;
 static int last_tx_status;
 /** @} */
 
-
 static int last_rssi;
 
 /* ----------------------------------------------------------------- */
@@ -1247,6 +1246,7 @@ uncompress_hdr_iphc(uint8_t *buf, uint16_t buf_size, uint16_t ip_len)
   last_nextheader =  &SICSLOWPAN_IP_BUF(buf)->proto;
   ip_payload = SICSLOWPAN_IPPAYLOAD_BUF(buf);
 
+  CHECK_READ_SPACE(1);
   while(nhc && (*hc06_ptr & SICSLOWPAN_NHC_MASK) == SICSLOWPAN_NHC_EXT_HDR) {
     CHECK_READ_SPACE(1);
     uint8_t eid = (*hc06_ptr & 0x0e) >> 1;
@@ -1259,6 +1259,7 @@ uncompress_hdr_iphc(uint8_t *buf, uint16_t buf_size, uint16_t ip_len)
     nhc = nh;
 
     hc06_ptr++;
+    CHECK_READ_SPACE(1);
     if(!nh) {
       CHECK_READ_SPACE(1);
       next = *hc06_ptr;
@@ -1306,7 +1307,9 @@ uncompress_hdr_iphc(uint8_t *buf, uint16_t buf_size, uint16_t ip_len)
     exthdr->next = next;
     last_nextheader = &exthdr->next;
 
+
     CHECK_READ_SPACE(len);
+
     memcpy((uint8_t *)exthdr + UIP_EXT_HDR_LEN, hc06_ptr, len);
     hc06_ptr += len;
 
@@ -1589,8 +1592,7 @@ fragment_copy_payload_and_send(uint16_t uip_offset, linkaddr_t *dest) {
 
   /* Check tx result. */
   if((last_tx_status == MAC_TX_COLLISION) ||
-     (last_tx_status == MAC_TX_ERR) ||
-     (last_tx_status == MAC_TX_ERR_FATAL)) {
+     (last_tx_status >= MAC_TX_ERR)) {
     LOG_ERR("output: error in fragment tx, dropping subsequent fragments.\n");
     return 0;
   }
@@ -1885,9 +1887,12 @@ input(void)
   buffer = (uint8_t *)UIP_IP_BUF;
   buffer_size = UIP_BUFSIZE;
 
-  /* Save the RSSI of the incoming packet in case the upper layer will
+  /* Save the RSSI and LQI of the incoming packet in case the upper layer will
      want to query us for it later. */
   last_rssi = (signed short)packetbuf_attr(PACKETBUF_ATTR_RSSI);
+  uipbuf_set_attr(UIPBUF_ATTR_RSSI, packetbuf_attr(PACKETBUF_ATTR_RSSI));
+  uipbuf_set_attr(UIPBUF_ATTR_LINK_QUALITY, packetbuf_attr(PACKETBUF_ATTR_LINK_QUALITY));
+
 
 #if SICSLOWPAN_CONF_FRAG
 
