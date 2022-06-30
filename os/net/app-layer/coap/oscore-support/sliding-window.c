@@ -1,5 +1,5 @@
 #include "sliding-window.h"
-
+#include <inttypes.h>
 #include "assert.h"
 
 /* Log configuration */
@@ -9,6 +9,13 @@
 #define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
 #else
 #define LOG_LEVEL LOG_LEVEL_WARN
+#endif
+
+// From MBradbury
+// GCC 9 newlib is broken
+// https://stackoverflow.com/questions/14535556/why-doesnt-priu64-work-in-this-code
+#ifndef PRIu64
+#define PRIu64 "llu"
 #endif
 
 void oscore_sliding_window_init(oscore_sliding_window_t* w)

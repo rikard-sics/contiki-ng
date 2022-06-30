@@ -62,6 +62,13 @@
 #define LOG_LEVEL LOG_LEVEL_WARN
 #endif
 
+// From MBradbury
+// GCC 9 newlib is broken
+// https://stackoverflow.com/questions/14535556/why-doesnt-priu64-work-in-this-code
+#ifndef PRIu64
+#define PRIu64 "llu"
+#endif
+
 /* Sets Alg, Partial IV Key ID and Key in COSE. */
 static void
 oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const oscore_ctx_t *ctx, bool sending);
