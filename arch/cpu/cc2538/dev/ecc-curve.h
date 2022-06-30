@@ -60,15 +60,19 @@ extern const ecc_curve_info_t nist_p_384;
 /*
  * NIST P-256, X9.62 prime256v1
  */
+
 extern const ecc_curve_info_t nist_p_256;
 #endif
+
 
 #if ECC_MAXIMUM_LENGTH*32 >= 192
 /*
  * NIST P-192, X9.62 prime192v1
  */
+
 extern const ecc_curve_info_t nist_p_192;
 #endif
+
 
 #endif /* CURVE_INFO_H_ */
 

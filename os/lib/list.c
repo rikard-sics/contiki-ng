@@ -79,7 +79,7 @@ list_init(list_t list)
  * \sa list_tail()
  */
 void *
-list_head(const list_t list)
+list_head(list_t list)
 {
   return *list;
 }
@@ -97,7 +97,7 @@ list_head(const list_t list)
  * \param src The source list.
  */
 void
-list_copy(list_t dest, const list_t src)
+list_copy(list_t dest, list_t src)
 {
   *dest = *src;
 }
@@ -114,7 +114,7 @@ list_copy(list_t dest, const list_t src)
  * \sa list_head()
  */
 void *
-list_tail(const list_t list)
+list_tail(list_t list)
 {
   struct list *l;
 
@@ -230,16 +230,16 @@ list_pop(list_t list)
  *
  * \param list The list.
  * \param item The item that is to be removed from the list.
- *
+ * \return True if the item was removed, otherwise false.
  */
 /*---------------------------------------------------------------------------*/
-void
-list_remove(list_t list, const void *item)
+bool
+list_remove(list_t list, void *item)
 {
   struct list *l, *r;
 
   if(*list == NULL) {
-    return;
+    return false;
   }
 
   r = NULL;
@@ -253,10 +253,12 @@ list_remove(list_t list, const void *item)
         r->next = l->next;
       }
       l->next = NULL;
-      return;
+      return true;
     }
     r = l;
   }
+
+  return false;
 }
 /*---------------------------------------------------------------------------*/
 /**
@@ -269,7 +271,7 @@ list_remove(list_t list, const void *item)
  */
 /*---------------------------------------------------------------------------*/
 int
-list_length(const list_t list)
+list_length(list_t list)
 {
   struct list *l;
   int n = 0;
@@ -319,7 +321,7 @@ list_insert(list_t list, void *previtem, void *newitem)
  *             lists.
  */
 void *
-list_item_next(const void *item)
+list_item_next(void *item)
 {
   return item == NULL ? NULL : ((struct list *)item)->next;
 }
@@ -335,7 +337,7 @@ list_item_next(const void *item)
  *			   is present in the list.
  */
 bool
-list_contains(const list_t list, const void *item)
+list_contains(list_t list, void *item)
 {
   struct list *l;
   for(l = *list; l != NULL; l = l->next) {

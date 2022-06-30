@@ -484,11 +484,9 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   uint8_t *current_option = data + COAP_HEADER_LEN;
 
   memcpy(coap_pkt->token, current_option, coap_pkt->token_len);
-  LOG_DBG("Token (len %u) [0x%02X%02X%02X%02X%02X%02X%02X%02X]\n",
-          coap_pkt->token_len, coap_pkt->token[0], coap_pkt->token[1],
-          coap_pkt->token[2], coap_pkt->token[3], coap_pkt->token[4],
-          coap_pkt->token[5], coap_pkt->token[6], coap_pkt->token[7]
-          );                     /* FIXME always prints 8 bytes */
+  LOG_DBG("Token (len %u) [0x", coap_pkt->token_len);
+  LOG_DBG_BYTES(coap_pkt->token, coap_pkt->token_len);
+  LOG_DBG_("]\n");
 
   /* parse options */
   memset(coap_pkt->options, 0, sizeof(coap_pkt->options));

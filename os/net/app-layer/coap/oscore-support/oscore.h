@@ -48,7 +48,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-
 #define OSCORE_SINGLE 0
 #define OSCORE_GROUP 1
 

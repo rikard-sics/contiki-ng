@@ -291,9 +291,9 @@ coap_receive(const coap_endpoint_t *src,
                             coap_get_mid());
 	  }
 #endif /*WITH_GROUPCOM*/
-          /* unreliable NON requests are answered with a NON as well */
-          coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
-                            coap_get_mid());
+        /* unreliable NON requests are answered with a NON as well */
+        coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
+                          coap_get_mid());
         }
 
         /* mirror token */
@@ -537,7 +537,7 @@ coap_receive(const coap_endpoint_t *src,
 #endif
     coap_set_payload(message, coap_error_message,
                      strlen(coap_error_message));
-    coap_sendto(src, payload, coap_serialize_message(message, payload));
+    coap_sendto(src, payload, coap_serialize_message(response, payload));
   }
 
   /* if(new data) */
