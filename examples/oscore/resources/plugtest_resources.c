@@ -40,7 +40,7 @@ void test1_a(coap_message_t* request){
   printf("\n\nTest 1a: Starting!\n");
   coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
   coap_set_header_uri_path(request, urls[1]);
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
  
   printf("Test 1a: Sending!\n");
 }
@@ -67,7 +67,7 @@ void test2_a(coap_message_t* request){
   printf("\n\nTest 2a: Starting!\n");
   coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
   coap_set_header_uri_path(request, urls[2]);
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
  
   const char *uri_query = "first=1";
   coap_set_header_uri_query(request, uri_query);
@@ -114,7 +114,7 @@ void test3_a(coap_message_t* request){
   coap_set_header_uri_path(request, urls[3]);
   coap_set_header_accept(request, 0);
 
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
 
   printf("Test 3a: Sending!\n");
 }
@@ -156,7 +156,7 @@ void test4_a(coap_message_t* request){
   printf("\n\nTest 4a: Starting!\n");
   coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
   coap_set_header_uri_path(request, urls[3]);
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
   coap_set_header_accept(request, 0);
   printf("Test 4a: Sending!\n");
 }
@@ -196,7 +196,7 @@ void test8_a(coap_message_t* request){
   printf("\n\nTest 8a: Starting!\n");
   coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
   coap_set_header_uri_path(request, urls[5]);
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
   coap_set_header_content_format(request, 0);
   coap_set_payload(request, payload, 1);
 
@@ -236,7 +236,7 @@ void test9_a(coap_message_t* request){
   printf("\n\nTest 9a: Starting!\n");
   coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
   coap_set_header_uri_path(request, urls[6]);
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
   coap_set_header_content_format(request, 0);
   coap_set_header_if_match(request, if_match_9a, 1);
   coap_set_payload(request, payload_9a, 1);
@@ -267,7 +267,7 @@ void test10_a(coap_message_t* request){
   printf("\n\nTest 10a: Starting!\n");
   coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
   coap_set_header_uri_path(request, urls[6]);
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
   coap_set_header_content_format(request, 0);
   coap_set_header_if_none_match(request);
   coap_set_payload(request, payload_10a, 1);
@@ -298,7 +298,7 @@ void test11_a(coap_message_t* request){
   coap_init_message(request, COAP_TYPE_CON, COAP_DELETE, 0);
   coap_set_header_uri_path(request, urls[7]);
 
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
 
   printf("Test 11a: Sending!\n");
 }
@@ -339,7 +339,7 @@ void test12_a(coap_message_t* request){
   coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
   coap_set_header_uri_path(request, urls[1]);
 
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
   uint8_t id[1] = { 0x01 };
   security_context = oscore_find_ctx_by_rid(id, 1);
   if( security_context == NULL ){
@@ -377,7 +377,7 @@ void test13_a(coap_message_t* request){
   coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
   coap_set_header_uri_path(request, urls[1]);
 
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
   
   memcpy(security_context->sender_context.sender_key, false_sender_key, 16);
   printf("Test 13a: Sending!\n");
@@ -407,7 +407,7 @@ void test14_a(coap_message_t* request){
   coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
   coap_set_header_uri_path(request, urls[1]);
 
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
   
   memcpy(security_context->recipient_context.recipient_key, false_recipient_key, 16);
   printf("Test 14a: Sending!\n");
@@ -437,7 +437,7 @@ void test15_a(coap_message_t* request){
   coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
   coap_set_header_uri_path(request, urls[1]);
 
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
   
   real_sender_seq = security_context->sender_context.seq;
   security_context->sender_context.seq = 1;
@@ -468,7 +468,7 @@ void test16_a(coap_message_t* request){
   coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
   coap_set_header_uri_path(request, urls[0]);
 
-  coap_set_oscore(request);
+  // coap_set_oscore(request);
   
   printf("Test 16a: Sending!\n");
 }
