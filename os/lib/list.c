@@ -193,6 +193,32 @@ list_insert(list_t list, void *previtem, void *newitem)
   }
 }
 /*---------------------------------------------------------------------------*/
+/**
+ * \brief      Get the next item following this item
+ * \param item A list item
+ * \returns    A next item on the list
+ *
+ *             This function takes a list item and returns the next
+ *             item on the list, or NULL if there are no more items on
+ *             the list. This function is used when iterating through
+ *             lists.
+ */
+void *
+list_item_next(const void *item)
+{
+  return item == NULL ? NULL : ((struct list *)item)->next;
+}
+/*---------------------------------------------------------------------------*/
+/**
+ * \brief      Check if the list contains an item
+ * \param list The list that is checked
+ * \param item An item to look for in the list
+ * \returns    0 if the list does not contains the item, and 1 otherwise
+ *
+ *             This function searches for an item in the list and returns 
+ *			   0 if the list does not contain the item, and 1 if the item
+ *			   is present in the list.
+ */
 bool
 list_contains(const_list_t list, const void *item)
 {
