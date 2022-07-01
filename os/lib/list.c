@@ -321,7 +321,7 @@ list_insert(list_t list, void *previtem, void *newitem)
  *             lists.
  */
 void *
-list_item_next(void *item)
+list_item_next(const void *item)
 {
   return item == NULL ? NULL : ((struct list *)item)->next;
 }

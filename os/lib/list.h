@@ -152,7 +152,7 @@ void   list_copy(list_t dest, list_t src);
 
 void   list_insert(list_t list, void *previtem, void *newitem);
 
-void * list_item_next(void *item);
+void * list_item_next(const void *item);
 
 bool list_contains(list_t list, void *item);
 

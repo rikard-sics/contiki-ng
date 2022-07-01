@@ -11,7 +11,7 @@ ifeq ($(MAKE_WITH_OSCORE),1)
   ${error Could not find the tinyDTLS submodule. Please run "git submodule update --init" and try again}
  endif
 
- ifeq (${wildcard $(CONTIKI)/$(NANOCBOR_PATH)/Makefile},)
+ ifeq (${wildcard $(CONTIKI)/$(NANOCBOR_PATH)/README.md},)
   ${error Could not find the nanoCBOR submodule. Please run "git submodule update --init" and try again}
  endif
 
