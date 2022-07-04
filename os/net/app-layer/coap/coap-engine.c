@@ -248,17 +248,17 @@ coap_receive(const coap_endpoint_t *src,
     if(is_mcast) {
      LOG_DBG("Is test/mcast: %d, is test/mcastq: %d\n", is_testmcast, is_testmcastq);
      if(!is_testmcast && !is_testmcastq) {
-       LOG_DBG("\nCannot request unicast resouces with multicast address! Ignoring...\n");
+       LOG_DBG("Cannot request unicast resouces with multicast address! Ignoring...\n");
        return 0;
      }
     } else {
      if(is_testmcast || is_testmcastq) {
-       LOG_DBG("\nCannot request multicast resource with unicast address! Ignoring...\n");
+       LOG_DBG("Cannot request multicast resource with unicast address! Ignoring...\n");
        return 0;
      }
     }
   } else {
-	  LOG_DBG("\nA client receiving a response, no mcast check.\n");
+	  LOG_DBG("A client receiving a response, no mcast check.\n");
   }
     /* handle requests */
     if(message->code >= COAP_GET && message->code <= COAP_DELETE) {
@@ -278,14 +278,14 @@ coap_receive(const coap_endpoint_t *src,
         } else {
 #ifdef WITH_GROUPCOM		
 	  if(is_testmcastq) {
-            LOG_DBG("\nGot a multicast request for a quiet resource (response suppression)...");
+            LOG_DBG("Got a multicast request for a quiet resource (response suppression)...");
 	    status = call_service(message, response,
                                 transaction->message + COAP_MAX_HEADER_SIZE,
                                 block_size, &new_offset);
 	    return 0;
 
 	  } else {
-	    LOG_DBG("\nA response will be sent...");  
+	    LOG_DBG("A response will be sent...");  
           /* unreliable NON requests are answered with a NON as well */
           coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
                             coap_get_mid());

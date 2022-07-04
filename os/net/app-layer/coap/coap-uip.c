@@ -268,8 +268,6 @@ int
 coap_endpoint_is_connected(const coap_endpoint_t *ep)
 {
 #ifndef CONTIKI_TARGET_NATIVE
-  printf("is link local %d\n", uip_is_addr_linklocal(&ep->ipaddr));
-  printf("is reachable %d\n", NETSTACK_ROUTING.node_is_reachable());
   if(!uip_is_addr_linklocal(&ep->ipaddr)
     && NETSTACK_ROUTING.node_is_reachable() == 0) {
     return 0;
