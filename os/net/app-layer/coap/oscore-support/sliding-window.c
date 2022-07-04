@@ -3,13 +3,9 @@
 #include "assert.h"
 
 /* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "oscore"
-#ifdef LOG_CONF_LEVEL_OSCORE
-#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
-#else
-#define LOG_LEVEL LOG_LEVEL_WARN
-#endif
+#include "coap-log.h"
+#define LOG_MODULE "oscore-sliding-window"
+#define LOG_LEVEL LOG_LEVEL_COAP
 
 // From MBradbury
 // GCC 9 newlib is broken

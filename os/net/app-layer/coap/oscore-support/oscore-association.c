@@ -41,13 +41,9 @@
 #include "lib/list.h"
 
 /* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "oscore"
-#ifdef LOG_CONF_LEVEL_OSCORE
-#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
-#else
-#define LOG_LEVEL LOG_LEVEL_WARN
-#endif
+#include "coap-log.h"
+#define LOG_MODULE "oscore-context-association"
+#define LOG_LEVEL LOG_LEVEL_COAP
 
 #ifdef OSCORE_EP_CTX_ASSOCIATION
 
