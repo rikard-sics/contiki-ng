@@ -42,7 +42,6 @@
 #include "oscore.h"
 #include "oscore-association.h"
 #include "coap.h"
-#include "coap-log.h"
 #include "stdio.h"
 #include "inttypes.h"
 #include "assert.h"
@@ -54,13 +53,9 @@
 #endif
 
 /* Log configuration */
-#include "sys/log.h"
+#include "coap-log.h"
 #define LOG_MODULE "oscore"
-#ifdef LOG_CONF_LEVEL_OSCORE
-#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
-#else
-#define LOG_LEVEL LOG_LEVEL_WARN
-#endif
+#define LOG_LEVEL LOG_LEVEL_COAP
 
 // From MBradbury
 // GCC 9 newlib is broken

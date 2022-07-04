@@ -44,7 +44,6 @@
 #include <string.h>
 #include "oscore-crypto.h"
 #include "oscore.h"
-#include "coap-log.h"
 #include "assert.h"
 
 #include "oscore-nanocbor-helper.h"
@@ -52,13 +51,9 @@
 #include <stdio.h>
 
 /* Log configuration */
-#include "sys/log.h"
+#include "coap-log.h"
 #define LOG_MODULE "oscore"
-#ifdef LOG_CONF_LEVEL_OSCORE
-#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
-#else
-#define LOG_LEVEL LOG_LEVEL_WARN
-#endif
+#define LOG_LEVEL LOG_LEVEL_COAP
 
 #ifndef OSCORE_MAX_ID_CONTEXT_LEN
 #define OSCORE_MAX_ID_CONTEXT_LEN 1

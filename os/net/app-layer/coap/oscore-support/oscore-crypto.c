@@ -46,27 +46,10 @@
 #include "assert.h"
 
 /* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "oscore"
-#ifdef LOG_CONF_LEVEL_OSCORE
-#define LOG_LEVEL LOG_CONF_LEVEL_OSCORE
-#else
-#define LOG_LEVEL LOG_LEVEL_WARN
-#endif
+#include "coap-log.h"
+#define LOG_MODULE "oscore-crypto"
+#define LOG_LEVEL LOG_LEVEL_COAP
 
-#if LOG_LEVEL == LOG_LEVEL_DBG
-#define OSCORE_ENC_DEC_DEBUG
-#endif
-
-#ifdef OSCORE_ENC_DEC_DEBUG
-static void
-printf_hex(const char *name, const uint8_t *data, unsigned int len)
-{
-  LOG_DBG("%s (len=%u): ", name, len);
-  LOG_DBG_BYTES(data, len);
-  LOG_DBG_("\n");
-}
-#endif
 
 #ifdef WITH_GROUPCOM
 #include "sys/pt.h"
@@ -242,14 +225,22 @@ encrypt(uint8_t alg,
 
   uint8_t* tag_buffer = &buffer[plaintext_len];
 
-#ifdef OSCORE_ENC_DEC_DEBUG
-  LOG_DBG("Encrypt:\n");
-  printf_hex("Key", key, key_len);
-  printf_hex("IV", nonce, nonce_len);
-  printf_hex("AAD", aad, aad_len);
-  printf_hex("Plaintext", buffer, plaintext_len);
-  printf_hex("Tag", tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
-#endif
+  LOG_DBG("Encrypting:\n");
+  LOG_DBG("Key (len %u) [0x", key_len);
+  LOG_DBG_BYTES(key, key_len);
+  LOG_DBG_("]\n");
+  LOG_DBG("IV (len %u) [0x", nonce_len);
+  LOG_DBG_BYTES(nonce, nonce_len);
+  LOG_DBG_("]\n");
+  LOG_DBG("ADD (len %u) [0x", aad_len);
+  LOG_DBG_BYTES(aad, aad_len);
+  LOG_DBG_("]\n");
+  LOG_DBG("Plaintext (len %u) [0x", plaintext_len);
+  LOG_DBG_BYTES(buffer, plaintext_len);
+  LOG_DBG_("]\n");
+  LOG_DBG("Tag (len %u) [0x", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  LOG_DBG_BYTES(tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  LOG_DBG_("]\n");
   
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
@@ -336,15 +327,23 @@ decrypt(uint8_t alg,
   uint8_t tag_buffer[COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
   uint16_t plaintext_len = ciphertext_len - COSE_algorithm_AES_CCM_16_64_128_TAG_LEN;
 
-#ifdef OSCORE_ENC_DEC_DEBUG
-  LOG_DBG("Decrypt:\n");
-  printf_hex("Key", key, key_len);
-  printf_hex("IV", nonce, nonce_len);
-  printf_hex("AAD", aad, aad_len);
-  printf_hex("Ciphertext", buffer, plaintext_len);
-  printf_hex("Tag", &buffer[plaintext_len], COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
-#endif
-  
+  LOG_DBG("Decrypting:\n");
+  LOG_DBG("Key (len %u) [0x", key_len);
+  LOG_DBG_BYTES(key, key_len);
+  LOG_DBG_("]\n");
+  LOG_DBG("IV (len %u) [0x", nonce_len);
+  LOG_DBG_BYTES(nonce, nonce_len);
+  LOG_DBG_("]\n");
+  LOG_DBG("ADD (len %u) [0x", aad_len);
+  LOG_DBG_BYTES(aad, aad_len);
+  LOG_DBG_("]\n");
+  LOG_DBG("Ciphertext (len %u) [0x", plaintext_len);
+  LOG_DBG_BYTES(buffer, plaintext_len);
+  LOG_DBG_("]\n");
+  LOG_DBG("Tag (len %u) [0x", COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  LOG_DBG_BYTES(&buffer[plaintext_len], COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
+  LOG_DBG_("]\n");
+
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
   cc2538_ccm_star_driver.set_key(key);
