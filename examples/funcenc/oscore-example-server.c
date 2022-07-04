@@ -42,12 +42,12 @@
 #include "coap-engine.h"
 #include "oscore.h"
 #include "oscore-context.h"
-
+#include "coap-blocking-api.h"
 
 /* Log configuration */
-#include "sys/log.h"
-#define LOG_MODULE "App"
-#define LOG_LEVEL LOG_LEVEL_APP
+#include "coap-log.h"
+#define LOG_MODULE "server"
+#define LOG_LEVEL LOG_LEVEL_DBG
 
 /*
  * Resources to be activated need to be imported through the extern keyword.
@@ -63,6 +63,25 @@ uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40};
 uint8_t sender_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 uint8_t receiver_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
 
+static struct etimer et;
+
+#define SERVER_EP "coap://[fd00::212:4b00:14b5:d8fb]"
+char *url = "test/hello";
+#define TOGGLE_INTERVAL 10
+
+/* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
+void
+client_chunk_handler(coap_message_t *response)
+{
+   const uint8_t *chunk;
+  
+  int len = coap_get_payload(response, &chunk);
+  LOG_DBG("Response: ");
+  printf("%.*s\n", len, (char *)chunk);
+}
+
+
+
 PROCESS(er_example_server, "OSCORE Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 
@@ -71,44 +90,49 @@ PROCESS_THREAD(er_example_server, ev, data)
   PROCESS_BEGIN();
 
   PROCESS_PAUSE();
-
   printf("Starting OSCORE Example Server\n");
-
-#ifdef RF_CHANNEL
-  printf("RF channel: %u\n", RF_CHANNEL);
-#endif
-#ifdef IEEE802154_PANID
-  printf("PAN ID: 0x%04X\n", IEEE802154_PANID);
-#endif
+  
+  static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
+  static coap_endpoint_t server_ep;
+  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
 
   /*Derive an OSCORE-Security-Context. */
   static oscore_ctx_t context;
   oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0);
 
-  uint8_t key_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
-  oscore_ctx_t *ctx;
-  ctx = oscore_find_ctx_by_rid(key_id, 6);
-  if(ctx == NULL){
-    printf("CONTEXT NOT FOUND\n");
-  }else {
-    printf("context FOUND!\n");
-  }
 
-  /*
-   * Bind the resources to their Uri-Path.
-   * WARNING: Activating twice only means alternate path, not two instances!
-   * All static variables are the same for each URI path.
-   */
   coap_activate_resource(&res_hello, "test/hello");
-  
-  /*Marks a resource as protected by OSCORE. A CoAP request arriving to the resource will not be processed and return a UNAUTHORIZED_4_01
-   * response. Only the specified resources "test/hello", "debug/mirror", "test/chunks", "test/separate" and "test/push" are protected in this example.*/
+  oscore_ep_ctx_set_association(&server_ep, url, &context);
+
   oscore_protect_resource(&res_hello);
-  
-  /* Define application-specific events here. */
+
+  etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
+
   while(1) {
-    PROCESS_WAIT_EVENT();
-  }                             /* while (1) */
+    PROCESS_YIELD();
+
+    if(etimer_expired(&et)) {
+      LOG_DBG("--Toggle timer--\n");
+
+      /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
+      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0); 
+      coap_set_header_uri_path(request, url);
+
+      const char msg[] = "Toggle!";
+
+      coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1); 
+
+      LOG_DBG_COAP_EP(&server_ep);
+      LOG_DBG_("\n");
+
+      COAP_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
+
+      LOG_DBG("--Done--\n");
+
+      etimer_reset(&et);
+
+    }   
+  }
 
   PROCESS_END();
 }

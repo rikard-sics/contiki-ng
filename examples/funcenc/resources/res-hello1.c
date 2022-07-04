@@ -60,8 +60,8 @@ res_get_handler(coap_message_t *request, coap_message_t *response, uint8_t *buff
 {
   
   /* Some data that has the length up to REST_MAX_CHUNK_SIZE. For more, see the chunk resource. */
-  char const *const message = "Hello World! ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy";
-  int length = 12; /*          |<-------->| */
+  char const *const message = "Tjenare Jorden! ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxy";
+  int length = 15; /*          |<-------->| */
 
   memcpy(buffer, message, length);
   

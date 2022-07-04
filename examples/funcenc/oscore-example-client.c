@@ -54,12 +54,11 @@ uint8_t receiver_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "client"
-#define LOG_LEVEL  LOG_LEVEL_COAP
+#define LOG_LEVEL  LOG_LEVEL_DBG
 
 #define TOGGLE_INTERVAL 10
+extern coap_resource_t res_hello1;
 
-/* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
-//#define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
 #define SERVER_EP "coap://[fd00::212:4b00:14b5:ee10]"
 
 PROCESS(er_example_client, "OSCORE Example Client");
@@ -77,8 +76,8 @@ client_chunk_handler(coap_message_t *response)
   const uint8_t *chunk;
 
   int len = coap_get_payload(response, &chunk);
-  printf("response: \n");
-  printf("|%.*s", len, (char *)chunk);
+  LOG_DBG("Response: ");
+  printf("%.*s\n", len, (char *)chunk);
 }
 
 PROCESS_THREAD(er_example_client, ev, data)
@@ -94,12 +93,11 @@ PROCESS_THREAD(er_example_client, ev, data)
   static oscore_ctx_t context;
   oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0);
 
-  /* Set the association between a remote URL and a security contect. When sending a message the specified context will be used to 
-   * protect the message. Note that this can be done on a resource-by-resource basis. Thus any requests to .well-known/core will not 
-   * be OSCORE protected.*/  
   oscore_ep_ctx_set_association(&server_ep, url, &context);
 
 
+  coap_activate_resource(&res_hello1, "test/hello");
+  oscore_protect_resource(&res_hello1);
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
   
 
@@ -117,12 +115,12 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
 
-      LOG_INFO_COAP_EP(&server_ep);
-      LOG_INFO_("\n");
+      LOG_DBG_COAP_EP(&server_ep);
+      LOG_DBG_("\n");
 
       COAP_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
 
-      printf("\n--Done--\n");
+      LOG_DBG("--Done--\n");
 
       etimer_reset(&et);
 
