@@ -753,8 +753,8 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
   LOG_DBG("-Done parsing-------\n");
 #if WITH_OSCORE
   if(oscore_found){
-   	LOG_DBG_("REMOVE: OSCORE found, decoding\n"); 
-	 return	oscore_decode_message(coap_pkt);
+      LOG_DBG("OSCORE found, decoding.\n"); 
+      return oscore_decode_message(coap_pkt);
   }
 #endif /* WITH_OSCORE */
   return NO_ERROR;
