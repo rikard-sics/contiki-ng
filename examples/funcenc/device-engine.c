@@ -154,10 +154,10 @@ void send_masking_key_shares(uint8_t role){
   coap_message_t request[1];
   char msg[10];
   coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
-  coap_set_header_uri_path(request, urls[i]);
+  coap_set_header_uri_path(request, urls[role]);
   uint8_t m = role*10 + i;
   sprintf(msg, "%d", m);
-  coap_set_payload(request, &m, 1);
+  coap_set_payload(request, msg, strlen(msg));
   printf("Sending %s \n", msg);
   LOG_DBG_COAP_EP(&endpoints[i]);
   LOG_DBG_("\n");
@@ -171,11 +171,7 @@ static void res_post_handler(coap_message_t *request, coap_message_t *response, 
   
   const uint8_t *payload = NULL;
   int payload_len = coap_get_payload(request, &payload);
-  printf("Got : ");
-  for (int i = 0; i < payload_len; i++){
-    printf("%02X", payload[i]);
-  }
-  printf("\n");
+  printf("Got %d bytes: %s\n", payload_len, (char*)payload);
   coap_set_status_code(response, CHANGED_2_04);
 }
 
