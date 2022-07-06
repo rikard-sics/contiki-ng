@@ -1,18 +1,14 @@
-all: oscore-example-server oscore-example-client
+all: device
 # use target "oscore-plugtest-server" explicitly when required
 
 CONTIKI=../..
-
-MAKE_WITH_OSCORE = 1
-WERROR = 1
-CFLAGS += -DCOOJA_MTARCH_STACKSIZE=4096
-CFLAGS += -DOSCORE_EP_CTX_ASSOCIATION
 
 # build RESTful resources
 include $(CONTIKI)/Makefile.identify-target
 
 MODULES_REL += ./resources
 MODULES_REL += $(TARGET)
+PROJECT_SOURCEFILES += device-engine.c
 
 # Include the CoAP implementation
 MODULES += os/net/app-layer/coap

@@ -100,7 +100,7 @@ PROCESS_THREAD(er_example_server, ev, data)
   static oscore_ctx_t context;
   oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0);
 
-
+server_ep
   coap_activate_resource(&res_hello, "test/hello");
   oscore_ep_ctx_set_association(&server_ep, url, &context);
 
