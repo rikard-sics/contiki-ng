@@ -45,6 +45,6 @@
 
 uint8_t determine_role();
 
-void start_device();
-
+void start_device(uint8_t role);
+void send_masking_key_shares(uint8_t role);
 void start_evaluator();
