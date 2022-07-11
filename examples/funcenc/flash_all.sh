@@ -1,6 +1,8 @@
 #!/bin/bash
 
-declare -a StringArray=("L4100CUS" "L4100CUO"  "L4100CVP" "L4100AWK" )
+#declare -a StringArray=("L4100CUS" "L4100CUO"  "L4100CVP" "L4100AWK" )
+#declare -a StringArray=("L4100CUS" "L4100CUO")
+declare -a StringArray=("L4100CUO")
 
 
 for val in ${StringArray[@]}; do

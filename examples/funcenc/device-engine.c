@@ -161,7 +161,6 @@ void send_masking_key_shares(uint8_t role){
   printf("Sending %s \n", msg);
   LOG_DBG_COAP_EP(&endpoints[i]);
   LOG_DBG_("\n");
-  //COAP_BLOCKING_REQUEST(&endpoints[i], request, client_chunk_handler);
   coap_send_request(&callback_state[i], &endpoints[i], request, callback_func);
 
   }
