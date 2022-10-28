@@ -1,0 +1,5 @@
+serial number	ip				Role
+L4100AWK	fe80::212:4b00:1ca7:82f6	Evaluator
+L4100CUO	fe80::212:4b00:26ad:46ec	Device 1
+L4100CVP	fe80::212:4b00:26ad:4971	Device 2
+L4100CUS	fe80::212:4b00:26ad:454d	Device 3
