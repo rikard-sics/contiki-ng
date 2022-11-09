@@ -7,6 +7,8 @@ PLATFORMS_EXCLUDE = sky z1
 
 CONTIKI=../..
 
+PROJECT_SOURCEFILES+= psa-crypto.c
+
 # Include the CoAP implementation
 include $(CONTIKI)/Makefile.dir-variables
 MODULES += $(CONTIKI_NG_APP_LAYER_DIR)/coap

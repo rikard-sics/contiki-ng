@@ -43,66 +43,35 @@
 #include "contiki-net.h"
 #include "coap-engine.h"
 #include "coap-blocking-api.h"
-#if PLATFORM_SUPPORTS_BUTTON_HAL
-#include "dev/button-hal.h"
-#else
-#include "dev/button-sensor.h"
-#endif
+#include "psa-crypto.h"
 
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "App"
 #define LOG_LEVEL  LOG_LEVEL_APP
 
-#include "ti/drivers/ECDH.h"
-#include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
-#include "ti/drivers/cryptoutils/ecc/ECCParams.h"
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 #define SERVER_EP "coap://[fd00::1]"
 
+/* Declaired in psa-crypto.c */
+extern uint8_t psa_key_material[PSA_KEY_LEN]; //Allocate 2096 128 bit values
+extern uint8_t psa_scratchpad[PSA_KEY_LEN]; //Allocate 2096 128 bit values
+extern uint8_t myPrivateKeyingMaterial[32];
+extern uint8_t myPublicKeyingMaterial[64];
+extern uint8_t theirPublicKeyingMaterial[64];
+extern uint8_t sharedSecretKeyingMaterial[64]; //TODO try reading from this when ECDH is done
+extern uint8_t symmetricKeyingMaterial[64];
+extern uint16_t my_id;
+
 #define TOGGLE_INTERVAL 10
 
-// Our private key is 0x0000000000000000000000000000000000000000000000000000000000000001
-// In practice, this value should come from a TRNG, PRNG, PUF, or device-specific pre-seeded key
-uint8_t myPrivateKeyingMaterial[32] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-uint8_t myPublicKeyingMaterial[64] = {0};
-uint8_t theirPublicKeyingMaterial[64] = {0};
-uint8_t sharedSecretKeyingMaterial[64] = {0}; //TODO try reading from this when ECDH is done
-uint8_t symmetricKeyingMaterial[16] = {0};
-
-CryptoKey myPrivateKey;
-CryptoKey myPublicKey;
-CryptoKey theirPublicKey;
-CryptoKey sharedSecret;
-CryptoKey symmetricKey;
-
-ECDH_Handle ecdhHandle;
-int_fast16_t operationResult;
-ECDH_OperationGeneratePublicKey operationGeneratePublicKey;
-ECDH_OperationComputeSharedSecret operationComputeSharedSecret;
 PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
-
-static unsigned long start;
-static unsigned long end;
-static int k;
-
 static const char* key_url = "other/block";
 
-void
-reverse_endianness(uint8_t *a, unsigned int len) {
-	uint8_t i, tmp[len];
-	memcpy(tmp, a, len);
-	for(i = 0; i < len; i++) {
-		 a[len - 1 - i] = tmp[i];
-	}
-}
 
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
 void
@@ -117,68 +86,44 @@ client_chunk_handler(coap_message_t *response)
 
   //int len = coap_get_payload(response, &chunk);
   coap_get_payload(response, &chunk);
-
+  
+  
   //printf("|%.*s", len, (char *)chunk);
   memcpy(&theirPublicKeyingMaterial, &chunk[1], 64);
-/*  printf("Before inversion\n");
+  printf("Before inversion\n");
   for(int i = 0; i < 64; i++){
     printf("%02X", theirPublicKeyingMaterial[i]);
   }
   printf("\n");
-*/
+
   reverse_endianness(theirPublicKeyingMaterial, 32);
   reverse_endianness(&theirPublicKeyingMaterial[32], 32);
-/*  printf("After inversion\n");
+  printf("After inversion\n");
   for(int i = 0; i < 64; i++){
     printf("%02X", theirPublicKeyingMaterial[i]);
   }
   printf("\n");
-*/
 
-  CryptoKeyPlaintext_initKey(&theirPublicKey, theirPublicKeyingMaterial, sizeof(theirPublicKeyingMaterial));
-  CryptoKeyPlaintext_initBlankKey(&sharedSecret, sharedSecretKeyingMaterial, sizeof(sharedSecretKeyingMaterial));
-
-  ECDH_OperationComputeSharedSecret_init(&operationComputeSharedSecret);
-  operationComputeSharedSecret.curve              = &ECCParams_NISTP256;
-  operationComputeSharedSecret.myPrivateKey       = &myPrivateKey;
-  operationComputeSharedSecret.theirPublicKey     = &theirPublicKey;
-  operationComputeSharedSecret.sharedSecret       = &sharedSecret;
-
-  operationResult = ECDH_computeSharedSecret(ecdhHandle, &operationComputeSharedSecret);
-  if (operationResult != ECDH_STATUS_SUCCESS) {
-    printf("Could not generate shared secret\n");
-  }
-  //TODO hash the shared secret accoding to NIKE
-
+  uint16_t their_id =  55555;
+  //call NIKE
+  NIKE(my_id, their_id, myPrivateKeyingMaterial, theirPublicKeyingMaterial);
+  //get symmetric key
+  //generate 33kb of symmetric data
+  //
+  generate_keystream(symmetricKeyingMaterial, 100);
 
 }
+
+
 
 PROCESS_THREAD(er_example_client, ev, data)
 {
   static coap_endpoint_t server_ep;
   PROCESS_BEGIN();
 
-  //Init ECDH driver
-  ECDH_init();
-  ecdhHandle = ECDH_open(0, NULL);
-  if (!ecdhHandle) {
-    printf("ECDH driver could not be opened!\n");
-  }
-
-  CryptoKeyPlaintext_initKey(&myPrivateKey, myPrivateKeyingMaterial, sizeof(myPrivateKeyingMaterial));
-  CryptoKeyPlaintext_initBlankKey(&myPublicKey, myPublicKeyingMaterial, sizeof(myPublicKeyingMaterial));
-
-  ECDH_OperationGeneratePublicKey_init(&operationGeneratePublicKey);
-  operationGeneratePublicKey.curve            = &ECCParams_NISTP256;
-  operationGeneratePublicKey.myPrivateKey     = &myPrivateKey;
-  operationGeneratePublicKey.myPublicKey      = &myPublicKey;
-
-  operationResult = ECDH_generatePublicKey(ecdhHandle, &operationGeneratePublicKey);
-  if (operationResult != ECDH_STATUS_SUCCESS) {
-    printf("Could not generate public key!\n");
-  }
-
-
+  init_psa_crypto();
+  //generate_psa_key(); 
+  
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
 
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
@@ -193,17 +138,12 @@ PROCESS_THREAD(er_example_client, ev, data)
       printf("--Toggle timer--\n");
 
 
-      start = RTIMER_NOW();
-      for (k = 0; k < 100; k++) {
-        coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
-        coap_set_header_uri_path(request, key_url);
-        COAP_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
-      }
-      end = RTIMER_NOW();
+      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
+      coap_set_header_uri_path(request, key_url);
+      COAP_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
       
-      printf("Time: %lus\n", (end-start)/RTIMER_ARCH_SECOND);
-      printf("\n--Done--\n");
 
+      printf("--Done--\n");
       etimer_reset(&et);
 
     }

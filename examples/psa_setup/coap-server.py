@@ -11,6 +11,8 @@ from pycoin.encoding import sec, hexbytes
 from pycoin.satoshi import der
 from secrets import randbelow
 from hashlib import sha256
+from Crypto.Cipher import AES
+from Crypto.Util import Counter
 
 key = None
 
@@ -53,18 +55,54 @@ class WhoAmI(resource.Resource):
                 payload="\n".join(text).encode('utf8'))
 
 # logging setup
-
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("coap-server").setLevel(logging.DEBUG)
 
+def print_like_iot(two_points):
+    two_points = sec.public_pair_to_sec(pubKey, compressed=False)
+    two_points = hexbytes.b2h(two_points[1:]) # strip first 0x04 byte and convert to hex string
+    #reverse endianness of x and y corrdinates
+    print(len(two_points))
+    x = "".join(reversed([two_points[i:i+2] for i in range(0, 64, 2)]))
+    y = "".join(reversed([two_points[i:i+2] for i in range(64, 128, 2)]))
+    print("two points {}{}".format(x,y))
+
+def nike(id1, id2, their_pk, my_sk):
+    print("nike")
+    shared_secret = their_pk*my_sk
+    shared_secret = sec.public_pair_to_sec(shared_secret, compressed=False)
+    shared_secret = shared_secret[1:]
+    
+    data = id1.to_bytes(2, byteorder='big')
+    data += id2.to_bytes(2, byteorder='big')
+    data += shared_secret
+    symmetric_key = sha256(data).digest()
+    return symmetric_key
+
 generator = p256.secp256r1_generator
-privKey = randbelow(generator.order())
+privKey = 0xbd8092a09fab6910483fe6d9baacf77c59532daad8fc1b7c35c806acf7909bed
+#privKey = randbelow(generator.order())
 pubKey = generator * privKey
 sec_pub = sec.public_pair_to_sec(pubKey, compressed=False)
+print("priv: ", hex(privKey))
 print("pub: ", hexbytes.b2h(sec_pub))
-print(type(sec_pub))
-print(len(sec_pub))
 key = sec_pub
+
+#compute public key because I have not found a way to import a key in hex format
+sk = 0x7E0016170DB75D19D055912415F5ACA6431B2FADCEA5C5949007332015191654
+pk_iot = generator*sk
+
+plaintext = bytearray(100)
+
+symmetric_key = nike(1, 55555, pk_iot, privKey)
+
+IV = bytearray(16)
+iv = int.from_bytes(IV, byteorder='big')
+ctr = Counter.new(128, initial_value=iv)
+
+crypto = AES.new(symmetric_key, AES.MODE_CTR, counter=ctr)
+ciphertext = crypto.encrypt(bytes(plaintext))
+print("ciphertext: ", hexbytes.b2h(ciphertext))
 
 async def main():
 

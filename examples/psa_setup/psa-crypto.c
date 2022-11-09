@@ -1,0 +1,229 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "contiki.h"
+#include "ti/drivers/ECDH.h"
+#include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
+#include "ti/drivers/cryptoutils/ecc/ECCParams.h"
+#include "ti/drivers/TRNG.h"
+#include "ti/drivers/SHA2.h"
+#include "ti/drivers/AESCTR.h"
+#include "psa-crypto.h"
+
+/* Log configuration */
+#include "coap-log.h"
+#define LOG_MODULE "App"
+#define LOG_LEVEL  LOG_LEVEL_APP
+
+uint8_t myPrivateKeyingMaterial[32] = {0x54,0x16,0x19,0x15,0x20,0x33,0x07,0x90,0x94,0xc5,
+                                      0xa5,0xce,0xad,0x2f,0x1b,0x43,0xa6,0xac,0xf5,0x15,
+                                      0x24,0x91,0x55,0xd0,0x19,0x5d,0xb7,0x0d,0x17,0x16,0x00,0x7e};
+
+#define PSA_KEY_LEN 16*2096
+
+/*extern to be used globaly */
+uint8_t psa_key_material[PSA_KEY_LEN]; //Allocate 2096 128 bit values
+uint8_t psa_scratchpad[1000]; //Allocate 2096 128 bit values
+uint8_t myPublicKeyingMaterial[64] = {0};
+uint8_t theirPublicKeyingMaterial[64] = {0};
+uint8_t sharedSecretKeyingMaterial[64] = {0}; //TODO try reading from this when ECDH is done
+uint8_t symmetricKeyingMaterial[32] = {0};
+uint16_t my_id = 1;
+
+CryptoKey myPrivateKey;
+CryptoKey myPublicKey;
+CryptoKey psa_key; //Used to interface the TRNG
+
+ECDH_Handle ecdhHandle;
+ECDH_OperationGeneratePublicKey operationGeneratePublicKey;
+ECDH_OperationComputeSharedSecret operationComputeSharedSecret;
+
+void
+reverse_endianness(uint8_t *a, unsigned int len) {
+	uint8_t i, tmp[len];
+	memcpy(tmp, a, len);
+	for(i = 0; i < len; i++) {
+		 a[len - 1 - i] = tmp[i];
+	}
+}
+
+static void prepare_nike_data(uint16_t my_id, uint16_t remote_id, uint8_t* shared_secret, uint8_t* data) {
+  //Set my_id and reverse order to big endian
+  uint16_t* int_ptr = (uint16_t*)&data[0];
+  *int_ptr = my_id;
+  reverse_endianness(&data[0], 2);
+  //Set remote_id and reverse order to big endian
+  int_ptr = (uint16_t*)&data[2];
+  *int_ptr = remote_id;
+  reverse_endianness(&data[2], 2);
+  
+  memcpy(&data[4], sharedSecretKeyingMaterial, 64);
+  //Reverse endianness of x & y in shared secret
+  reverse_endianness(&data[4], 32);
+  reverse_endianness(&data[4+32], 32);
+
+}
+
+void NIKE(uint16_t my_id, uint16_t remote_id, uint8_t* my_sk, uint8_t* remote_pk) {
+
+  CryptoKey theirPublicKey;
+  CryptoKey sharedSecret;
+  //CryptoKey symmetricKey;
+  SHA2_Handle handle;
+  uint16_t result;
+  CryptoKeyPlaintext_initKey(&theirPublicKey, theirPublicKeyingMaterial, sizeof(theirPublicKeyingMaterial));
+  CryptoKeyPlaintext_initBlankKey(&sharedSecret, sharedSecretKeyingMaterial, sizeof(sharedSecretKeyingMaterial));
+
+  ECDH_OperationComputeSharedSecret_init(&operationComputeSharedSecret);
+  operationComputeSharedSecret.curve              = &ECCParams_NISTP256;
+  operationComputeSharedSecret.myPrivateKey       = &myPrivateKey;
+  operationComputeSharedSecret.theirPublicKey     = &theirPublicKey;
+  operationComputeSharedSecret.sharedSecret       = &sharedSecret;
+
+  result = ECDH_computeSharedSecret(ecdhHandle, &operationComputeSharedSecret);
+  if (result != ECDH_STATUS_SUCCESS) {
+    printf("Could not generate shared secret\n");
+  }
+
+  //Hash the shared secret accoding to NIKE
+  handle = SHA2_open(0, NULL);
+  if (!handle) {
+    printf("SHA2 driver could not be opened\n");
+  }
+
+  printf("ECDH secret\n");
+  for (int i = 0; i < 64; i++) {
+    printf("%02X", sharedSecretKeyingMaterial[i]);
+  }
+  printf("\n");
+ 
+   
+  //data is our_id||their_id||shared_secret
+  //We do this with the mysterious magic of C pointers
+  uint8_t data[2+2+64];
+
+  prepare_nike_data(my_id, remote_id, sharedSecretKeyingMaterial, data);
+  printf("nike data\n");
+  for (int i = 0; i < 68; i++) {
+    printf("%02X", data[i]);
+  }
+  printf("\n");
+
+  result = SHA2_hashData(handle, data, 2+2+64, symmetricKeyingMaterial);
+  if (result != SHA2_STATUS_SUCCESS) {
+    printf("SHA2 driver could not produce value\n");
+  }
+  SHA2_close(handle);
+  printf("hash:\n");
+  for (int i = 0; i < 32; i++) {
+    printf("%02X", symmetricKeyingMaterial[i]);
+  }
+  printf("\n");
+}
+
+void generate_keystream(uint8_t* symmetric_key, uint16_t keystream_len){
+  //32 byte input key
+  //nonce 0
+  memset(psa_key_material, 0, 200);
+  memset(psa_scratchpad, 0, 200);
+  
+  uint8_t initialCounter[16] = {0}; 
+  AESCTR_Handle handle;
+  CryptoKey cryptoKey;
+  int_fast16_t encryptionResult;
+
+  handle = AESCTR_open(0, NULL);
+  if (!handle) {
+    printf("Could not open AES handle\n");
+  }
+ 
+  CryptoKeyPlaintext_initKey(&cryptoKey, symmetric_key, 32);
+  AESCTR_Operation operation;
+  AESCTR_Operation_init(&operation);
+
+  operation.key               = &cryptoKey;
+  operation.input             = psa_key_material;
+  operation.output            = psa_scratchpad;
+  operation.inputLength       = keystream_len;
+  operation.initialCounter    = initialCounter;
+
+  encryptionResult = AESCTR_oneStepEncrypt(handle, &operation);
+
+  if (encryptionResult != AESCTR_STATUS_SUCCESS) {
+    printf("AESCTR failed!\n");
+  }
+
+  printf("generated bytes:\n");
+  for (int i = 0; i < keystream_len; i++) {
+    printf("%02X", psa_scratchpad[i]);
+  }
+  printf("\n");
+
+  AESCTR_close(handle);
+
+
+}
+
+void init_psa_crypto() {
+  
+  uint16_t result;
+
+  TRNG_init();
+  ECDH_init();
+  SHA2_init();
+  AESCTR_init();
+
+  ecdhHandle = ECDH_open(0, NULL);
+  if (!ecdhHandle) {
+    printf("ECDH driver could not be opened!\n");
+  }
+
+  CryptoKeyPlaintext_initKey(&myPrivateKey, myPrivateKeyingMaterial, sizeof(myPrivateKeyingMaterial));
+  CryptoKeyPlaintext_initBlankKey(&myPublicKey, myPublicKeyingMaterial, sizeof(myPublicKeyingMaterial));
+
+  ECDH_OperationGeneratePublicKey_init(&operationGeneratePublicKey);
+  operationGeneratePublicKey.curve            = &ECCParams_NISTP256;
+  operationGeneratePublicKey.myPrivateKey     = &myPrivateKey;
+  operationGeneratePublicKey.myPublicKey      = &myPublicKey;
+
+  result = ECDH_generatePublicKey(ecdhHandle, &operationGeneratePublicKey);
+  if (result != ECDH_STATUS_SUCCESS) {
+    printf("Could not generate public key!\n");
+  }
+  
+  printf("Private Key:\n");
+  for( int i = 0; i < 32; i++){
+    printf("%02X", myPrivateKeyingMaterial[i]);
+  }
+  printf("\nPublic Key:\n");
+  for( int i = 0; i < 64; i++){
+    printf("%02X", myPublicKeyingMaterial[i]);
+  }
+
+}
+
+
+void generate_psa_key() {
+  TRNG_Handle trngHandle;
+  uint16_t result;
+
+  result = CryptoKeyPlaintext_initBlankKey(&psa_key, psa_key_material, PSA_KEY_LEN);
+  if( result != CryptoKey_STATUS_SUCCESS) {
+    printf("Error! Could not create crypto key!\n");
+  }
+
+  trngHandle = TRNG_open(0, NULL);
+  if (!trngHandle) {
+    printf("Error! Cannot open TRNG handle!\n");
+  }
+
+  result = TRNG_generateEntropy(trngHandle, &psa_key);
+
+  if (result != TRNG_STATUS_SUCCESS) {
+    printf("Error! TRNG did not work!\n");
+  } else {
+    printf("Sucess! Key created!\n");
+  }
+ 
+  TRNG_close(trngHandle);
+}
