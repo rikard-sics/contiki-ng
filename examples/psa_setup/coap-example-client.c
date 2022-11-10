@@ -56,7 +56,7 @@
 
 /* Declaired in psa-crypto.c */
 extern uint8_t psa_key_material[PSA_KEY_LEN]; //Allocate 2096 128 bit values
-extern uint8_t psa_scratchpad[PSA_KEY_LEN]; //Allocate 2096 128 bit values
+extern uint8_t psa_scratchpad[1000]; //Allocate 2096 128 bit values
 extern uint8_t myPrivateKeyingMaterial[32];
 extern uint8_t myPublicKeyingMaterial[64];
 extern uint8_t theirPublicKeyingMaterial[64];
@@ -123,7 +123,9 @@ PROCESS_THREAD(er_example_client, ev, data)
 
   init_psa_crypto();
   //generate_psa_key(); 
-  
+ 
+  psa_encrypt(NULL, 12, 0);
+
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
 
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);

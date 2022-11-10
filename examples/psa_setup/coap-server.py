@@ -13,6 +13,7 @@ from secrets import randbelow
 from hashlib import sha256
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
+import hashlib
 
 key = None
 
@@ -79,6 +80,31 @@ def nike(id1, id2, their_pk, my_sk):
     symmetric_key = sha256(data).digest()
     return symmetric_key
 
+
+def generate_keystream(symmetric_key, length):
+    plaintext = bytearray(length)
+    IV = bytearray(16)
+    iv = int.from_bytes(IV, byteorder='big')
+    ctr = Counter.new(128, initial_value=iv)
+
+    crypto = AES.new(symmetric_key, AES.MODE_CTR, counter=ctr)
+    ciphertext = crypto.encrypt(bytes(plaintext))
+    return ciphertext
+
+def psa_encrypt(psa_key, label, message):
+    print("psa encrypt")
+    
+    for lamb in range(10): # start small
+        data = label.to_bytes(8, byteorder='big')
+        data += b'\x00'
+        data += lamb.to_bytes(2, byteorder='big')
+        print(hexbytes.b2h(data))
+        s = hashlib.sha3_512()
+        s.update(data)
+        print(s.hexdigest())
+
+
+
 generator = p256.secp256r1_generator
 privKey = 0xbd8092a09fab6910483fe6d9baacf77c59532daad8fc1b7c35c806acf7909bed
 #privKey = randbelow(generator.order())
@@ -92,17 +118,13 @@ key = sec_pub
 sk = 0x7E0016170DB75D19D055912415F5ACA6431B2FADCEA5C5949007332015191654
 pk_iot = generator*sk
 
-plaintext = bytearray(100)
 
 symmetric_key = nike(1, 55555, pk_iot, privKey)
 
-IV = bytearray(16)
-iv = int.from_bytes(IV, byteorder='big')
-ctr = Counter.new(128, initial_value=iv)
-
-crypto = AES.new(symmetric_key, AES.MODE_CTR, counter=ctr)
-ciphertext = crypto.encrypt(bytes(plaintext))
+ciphertext = generate_keystream(symmetric_key, 100)
 print("ciphertext: ", hexbytes.b2h(ciphertext))
+
+psa_encrypt(None, 12, 0)
 
 async def main():
 

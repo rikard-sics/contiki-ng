@@ -9,6 +9,7 @@
 #include "ti/drivers/SHA2.h"
 #include "ti/drivers/AESCTR.h"
 #include "psa-crypto.h"
+#include "sha3.h"
 
 /* Log configuration */
 #include "coap-log.h"
@@ -195,10 +196,12 @@ void init_psa_crypto() {
   for( int i = 0; i < 32; i++){
     printf("%02X", myPrivateKeyingMaterial[i]);
   }
-  printf("\nPublic Key:\n");
+  printf("\n");
+  printf("Public Key:\n");
   for( int i = 0; i < 64; i++){
     printf("%02X", myPublicKeyingMaterial[i]);
   }
+  printf("\n");
 
 }
 
@@ -226,4 +229,47 @@ void generate_psa_key() {
   }
  
   TRNG_close(trngHandle);
+}
+
+void psa_encrypt(uint8_t* psa_key, uint64_t label, uint64_t message) {
+  printf("PSA encrypt\n");
+  sha3_context c;
+  const uint8_t* hash;
+//just a hash test
+//input is 8 bytes of label||0x00||two bytes of lambda
+//label and lambda is big-endian
+
+  for ( uint16_t lambda = 0; lambda < 10; lambda++) {
+//      hash label||i
+    uint8_t data[11];
+    memset(data, 0, 11);
+    uint64_t* u64_ptr = (uint64_t*)&data[0];
+    *u64_ptr = label;
+    reverse_endianness(&data[0], 8);
+  
+    uint16_t* u16_ptr = (uint16_t*)&data[9];
+    *u16_ptr = lambda;
+    reverse_endianness(&data[9], 2);
+ 
+
+    printf("data\n");
+    for ( int i = 0; i < 11; i++) {
+      printf("%02X", data[i]);
+    }
+    printf("\n"); 
+    sha3_Init512(&c);
+    sha3_Update(&c, data, 11);
+    hash = sha3_Finalize(&c);
+    printf("hash\n");
+    for ( int i = 0; i < 64; i++) {
+      printf("%02X", hash[i]);
+    }
+    printf("\n"); 
+        
+//      convert to integer
+//      mod 2^128
+//      add
+}
+
+
 }

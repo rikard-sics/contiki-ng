@@ -20,3 +20,5 @@ void generate_keystream(uint8_t* symmetric_key, uint16_t keystream_len);
 void init_psa_crypto();
 
 void generate_psa_key();
+
+void psa_encrypt(uint8_t* psa_key, uint64_t label, uint64_t message);
