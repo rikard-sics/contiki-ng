@@ -110,7 +110,7 @@ client_chunk_handler(coap_message_t *response)
   //get symmetric key
   //generate 33kb of symmetric data
   //
-  generate_keystream(symmetricKeyingMaterial, 100);
+  generate_keystream(symmetricKeyingMaterial, 16);
 
 }
 
