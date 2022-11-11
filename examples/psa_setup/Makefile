@@ -7,7 +7,7 @@ PLATFORMS_EXCLUDE = sky z1
 
 CONTIKI=../..
 
-PROJECT_SOURCEFILES += psa-crypto.c sha3.c biguint128.c intio.c uint.c
+PROJECT_SOURCEFILES += psa-crypto.c sha3.c biguint128.c intio.c uint.c psa-key.c
 
 # Include the CoAP implementation
 include $(CONTIKI)/Makefile.dir-variables

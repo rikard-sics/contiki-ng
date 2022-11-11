@@ -1,3 +1,6 @@
+#ifndef PSA_CRYPTO_H
+#define PSA_CRYPTO_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +13,7 @@
 
 
 #define PSA_KEY_LEN 16*10 //2096
+//#define PSA_KEY_LEN 16*2096 //2096
 
 void reverse_endianness(uint8_t *a, unsigned int len);
 
@@ -21,4 +25,8 @@ void init_psa_crypto();
 
 void generate_psa_key();
 
+void encrypt_psa_key();
+
 void psa_encrypt(uint8_t* psa_key, uint64_t label, uint64_t message);
+
+#endif /* PSA_CRYPTO_H */

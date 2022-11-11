@@ -81,28 +81,46 @@ def nike(id1, id2, their_pk, my_sk):
     return symmetric_key
 
 
-def generate_keystream(symmetric_key, length):
-    plaintext = bytearray(length)
-    IV = bytearray(16)
-    iv = int.from_bytes(IV, byteorder='big')
-    ctr = Counter.new(128, initial_value=iv)
-
-    crypto = AES.new(symmetric_key, AES.MODE_CTR, counter=ctr)
-    ciphertext = crypto.encrypt(bytes(plaintext))
-    return ciphertext
 
 def psa_encrypt(psa_key, label, message):
     print("psa encrypt")
     
-    for lamb in range(10): # start small
+    for lamb in range(1): # start small
         data = label.to_bytes(8, byteorder='big')
         data += b'\x00'
         data += lamb.to_bytes(2, byteorder='big')
         print(hexbytes.b2h(data))
         s = hashlib.sha3_512()
         s.update(data)
-        print(s.hexdigest())
+        h = s.digest()
+        i = int.from_bytes(h[-16:], "big")
+        print("hash: ", hexbytes.b2h(h))
+        print("int: ", i)
 
+
+        
+def generate_keystream(psa_key, symmetric_key, length):
+    c = []
+    crypto = AES.new(symmetric_key, AES.MODE_ECB)
+    for i in range(10):
+        counter = i.to_bytes(16, byteorder='big')
+        #print("ctr: ",hexbytes.b2h(counter))
+        ciphertext = crypto.encrypt(bytes(counter))
+        #print("{} ciphertext {}".format(i,hexbytes.b2h(ciphertext)))
+        num = int.from_bytes(ciphertext, "big") 
+        #print("interpreted as: ", num)
+        c.append((num+psa_key[i])%(2**128))
+        c.append("Adding: {} + {} = {}".format(psa_key[i], num, (num+psa_key[i])%(2**128)))
+    return c
+
+def import_key_file():
+    print("reading PSA key from file")
+    arr = []
+    with open('key.txt', 'r') as f:
+        for line in f:
+            arr.append(int(line, 16))
+
+    return arr
 
 
 generator = p256.secp256r1_generator
@@ -114,6 +132,7 @@ print("priv: ", hex(privKey))
 print("pub: ", hexbytes.b2h(sec_pub))
 key = sec_pub
 
+
 #compute public key because I have not found a way to import a key in hex format
 sk = 0x7E0016170DB75D19D055912415F5ACA6431B2FADCEA5C5949007332015191654
 pk_iot = generator*sk
@@ -121,8 +140,11 @@ pk_iot = generator*sk
 
 symmetric_key = nike(1, 55555, pk_iot, privKey)
 
-ciphertext = generate_keystream(symmetric_key, 100)
-print("ciphertext: ", hexbytes.b2h(ciphertext))
+psa_key = import_key_file()
+ciphertext = generate_keystream(psa_key, symmetric_key, 100)
+print("ciphertext: ")
+for i in ciphertext:
+    print(i)
 
 psa_encrypt(None, 12, 0)
 

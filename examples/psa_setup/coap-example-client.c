@@ -55,7 +55,7 @@
 #define SERVER_EP "coap://[fd00::1]"
 
 /* Declaired in psa-crypto.c */
-extern uint8_t psa_key_material[PSA_KEY_LEN]; //Allocate 2096 128 bit values
+extern const uint8_t psa_key_material[PSA_KEY_LEN]; //Allocate 2096 128 bit values
 extern uint8_t psa_scratchpad[1000]; //Allocate 2096 128 bit values
 extern uint8_t myPrivateKeyingMaterial[32];
 extern uint8_t myPublicKeyingMaterial[64];
@@ -84,9 +84,10 @@ client_chunk_handler(coap_message_t *response)
     return;
   }
 
-  //int len = coap_get_payload(response, &chunk);
-  coap_get_payload(response, &chunk);
-  
+  int len = coap_get_payload(response, &chunk);
+  if ( len == 0){
+    return;
+  } 
   
   //printf("|%.*s", len, (char *)chunk);
   memcpy(&theirPublicKeyingMaterial, &chunk[1], 64);
@@ -111,7 +112,7 @@ client_chunk_handler(coap_message_t *response)
   //generate 33kb of symmetric data
   //
   generate_keystream(symmetricKeyingMaterial, 16);
-
+  encrypt_psa_key();
 }
 
 
