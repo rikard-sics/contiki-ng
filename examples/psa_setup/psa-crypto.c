@@ -159,12 +159,14 @@ void encrypt_psa_key(){
       //add current number to scratchpad number
       BigUInt128 sum = biguint128_add(&key_number, &sp_number);
       char res_str[42];
-      res_str[biguint128_print_dec(&key_number, res_str, 42)]=0;
-      printf("Adding: %s ", res_str);
-      res_str[biguint128_print_dec(&sp_number, res_str, 42)]=0;
-      printf(" + %s ", res_str);
-      res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
-      printf(" =  %s\n", res_str);
+      //res_str[biguint128_print_dec(&key_number, res_str, 42)]=0;
+      //printf("Adding: %s ", res_str);
+      //res_str[biguint128_print_dec(&sp_number, res_str, 42)]=0;
+      //printf(" + %s ", res_str);
+      if( (i == 0) || (i == (PSA_KEY_LEN-1))){ //just print a few values
+        res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
+        printf("[%d]: %s\n",i, res_str);
+      }
       //export number back
       biguint128_export(&sum, (char*)sp_ptr);
 
@@ -246,7 +248,8 @@ void generate_keystream(uint8_t* symmetric_key, uint16_t keystream_len){
 }
 
 void init_psa_crypto() {
-  printf("PSA key\n");
+
+/*  printf("PSA key\n");
   for( int i = 0; i < PSA_KEY_LEN; i++){
     printf("%02X", psa_key_material[i]);
     if ( (i + 1) % 16 == 0 ){
@@ -254,7 +257,7 @@ void init_psa_crypto() {
     }
   }
   printf("\n");
-
+*/
 
   uint16_t result;
 

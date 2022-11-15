@@ -65,6 +65,7 @@ extern uint8_t symmetricKeyingMaterial[64];
 extern uint16_t my_id;
 
 #define TOGGLE_INTERVAL 10
+static int pk_i = 2;
 
 PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
@@ -86,11 +87,14 @@ client_chunk_handler(coap_message_t *response)
 
   int len = coap_get_payload(response, &chunk);
   if ( len == 0){
-    return;
+    return; //Exit this function
   } 
-  
-  //printf("|%.*s", len, (char *)chunk);
-  memcpy(&theirPublicKeyingMaterial, &chunk[1], 64);
+  //Get ID that arrive MSB-first
+  uint16_t their_id =  (chunk[0]<<8) | (chunk[1]);
+  printf("Their ID %d\n", their_id); 
+
+  //Get public key offset 3, 2 bytes ID + 1 byte public key header
+  memcpy(&theirPublicKeyingMaterial, &chunk[3], 64);
   printf("Before inversion\n");
   for(int i = 0; i < 64; i++){
     printf("%02X", theirPublicKeyingMaterial[i]);
@@ -105,16 +109,15 @@ client_chunk_handler(coap_message_t *response)
   }
   printf("\n");
 
-  uint16_t their_id =  55555;
-  //call NIKE
+  //call NIKE TODO add errors and error handling
   NIKE(my_id, their_id, myPrivateKeyingMaterial, theirPublicKeyingMaterial);
   //get symmetric key
   //generate 33kb of symmetric data
-  //
+  //TODO add errors and handling
   generate_keystream(symmetricKeyingMaterial, 16);
   encrypt_psa_key();
+  pk_i++;
 }
-
 
 
 PROCESS_THREAD(er_example_client, ev, data)
@@ -140,9 +143,11 @@ PROCESS_THREAD(er_example_client, ev, data)
     if(etimer_expired(&et)) {
       printf("--Toggle timer--\n");
 
-
+      char str_buf[8];
+      sprintf(str_buf, "%d", pk_i);
       coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
       coap_set_header_uri_path(request, key_url);
+      coap_set_header_uri_query(request, str_buf);
       COAP_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
       
 

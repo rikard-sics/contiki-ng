@@ -12,7 +12,7 @@
 #define LOG_LEVEL  LOG_LEVEL_APP
 
 
-#define PSA_KEY_LEN 16*10 //2096
+#define PSA_KEY_LEN 16*2096 //2096
 //#define PSA_KEY_LEN 16*2096 //2096
 
 void reverse_endianness(uint8_t *a, unsigned int len);

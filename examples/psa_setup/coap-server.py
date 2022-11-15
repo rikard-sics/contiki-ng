@@ -6,6 +6,7 @@ import asyncio
 import aiocoap.resource as resource
 import aiocoap
 
+from pycoin.ecdsa.Point import Point as ecc_point
 from pycoin.ecdsa import secp256r1 as p256
 from pycoin.encoding import sec, hexbytes
 from pycoin.satoshi import der
@@ -14,8 +15,35 @@ from hashlib import sha256
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 import hashlib
+import csv
+
+class simple_pki():
+
+    def __init__(self):
+        self.keys = {}
+        print("Starting PKI")
+        #id, public key, private key
+        f = open('key-pairs.csv', 'r')
+        for row in csv.reader(f, delimiter=','):
+            pk_bytes = bytes.fromhex(row[1])            
+            sk = int(row[2], 16)
+            pub = sec.sec_to_public_pair(pk_bytes, generator=p256.secp256r1_generator)
+            self.keys[int(row[0])] = (pub, sk)
+
+
+    #return pk as a point object
+    def get_pk(self, index):
+        pk = self.keys[index][0]
+        return ecc_point(pk[0], pk[1], p256.secp256r1_generator)
+    
+    
+    def get_pk_bytes(self, index):
+        pubKey = self.keys[index][0]
+        pk_bytes = sec.public_pair_to_sec(pubKey, compressed=False)
+        return pk_bytes
 
 key = None
+pki = simple_pki()
 
 class BlockResource(resource.Resource):
     """Example resource which supports the GET and PUT methods. It sends large
@@ -23,19 +51,25 @@ class BlockResource(resource.Resource):
 
     def __init__(self):
         super().__init__()
+
         self.set_content(key)
 
     def set_content(self, content):
         self.content = content
 
     async def render_get(self, request):
+        print("Requested Public-Key ", int(request.opt.uri_query[0]))
+        i = int(request.opt.uri_query[0])
+        pubKey = pki.get_pk_bytes(i)
+        id_pubKey = i.to_bytes(2, byteorder='big') 
+        id_pubKey += pubKey
+        self.set_content(id_pubKey)
+        print('id+bubkey', id_pubKey)
         return aiocoap.Message(payload=self.content)
 
     async def render_put(self, request):
-        print('PUT payload: %s' % request.payload)
         self.set_content(request.payload)
         return aiocoap.Message(code=aiocoap.CHANGED, payload=self.content)
-
 
 
 
@@ -70,6 +104,8 @@ def print_like_iot(two_points):
 
 def nike(id1, id2, their_pk, my_sk):
     print("nike")
+    print(type(their_pk))
+    print(type(my_sk))
     shared_secret = their_pk*my_sk
     shared_secret = sec.public_pair_to_sec(shared_secret, compressed=False)
     shared_secret = shared_secret[1:]
@@ -101,8 +137,9 @@ def psa_encrypt(psa_key, label, message):
         
 def generate_keystream(psa_key, symmetric_key, length):
     c = []
+    print("len", len(psa_key))
     crypto = AES.new(symmetric_key, AES.MODE_ECB)
-    for i in range(10):
+    for i in range(len(psa_key)):
         counter = i.to_bytes(16, byteorder='big')
         #print("ctr: ",hexbytes.b2h(counter))
         ciphertext = crypto.encrypt(bytes(counter))
@@ -110,7 +147,8 @@ def generate_keystream(psa_key, symmetric_key, length):
         num = int.from_bytes(ciphertext, "big") 
         #print("interpreted as: ", num)
         c.append((num+psa_key[i])%(2**128))
-        c.append("Adding: {} + {} = {}".format(psa_key[i], num, (num+psa_key[i])%(2**128)))
+        print("p[{}] {}".format( i , (num+psa_key[i])%(2**128)))
+    
     return c
 
 def import_key_file():
@@ -123,10 +161,13 @@ def import_key_file():
     return arr
 
 
+
 generator = p256.secp256r1_generator
 privKey = 0xbd8092a09fab6910483fe6d9baacf77c59532daad8fc1b7c35c806acf7909bed
 #privKey = randbelow(generator.order())
 pubKey = generator * privKey
+print("type pubKey", type(pubKey))
+print(generator)
 sec_pub = sec.public_pair_to_sec(pubKey, compressed=False)
 print("priv: ", hex(privKey))
 print("pub: ", hexbytes.b2h(sec_pub))
@@ -137,14 +178,18 @@ key = sec_pub
 sk = 0x7E0016170DB75D19D055912415F5ACA6431B2FADCEA5C5949007332015191654
 pk_iot = generator*sk
 
+symmetric_key = nike(1, 555, pk_iot, privKey)
 
-symmetric_key = nike(1, 55555, pk_iot, privKey)
 
 psa_key = import_key_file()
-ciphertext = generate_keystream(psa_key, symmetric_key, 100)
-print("ciphertext: ")
-for i in ciphertext:
-    print(i)
+for id_j in range(2,1000):
+    pub_key = pki.get_pk(id_j)
+    symmetric_key = nike(1, id_j, pub_key, privKey)
+    ciphertext = generate_keystream(psa_key, symmetric_key, 100)
+
+#print("ciphertext: ")
+#for i in ciphertext:
+#    print(i)
 
 psa_encrypt(None, 12, 0)
 

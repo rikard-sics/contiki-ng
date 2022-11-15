@@ -1,7 +1,7 @@
 import os
 from pycoin.encoding import hexbytes
 
-psa_key_len = 16*10
+psa_key_len = 16*2096
 
 key_file = open('key.txt', 'w')
 
