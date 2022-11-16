@@ -103,9 +103,7 @@ def print_like_iot(two_points):
     print("two points {}{}".format(x,y))
 
 def nike(id1, id2, their_pk, my_sk):
-    print("nike")
-    print(type(their_pk))
-    print(type(my_sk))
+    print("Nike ID1 {} ID2 {}:".format(id1, id2))
     shared_secret = their_pk*my_sk
     shared_secret = sec.public_pair_to_sec(shared_secret, compressed=False)
     shared_secret = shared_secret[1:]
@@ -114,6 +112,7 @@ def nike(id1, id2, their_pk, my_sk):
     data += id2.to_bytes(2, byteorder='big')
     data += shared_secret
     symmetric_key = sha256(data).digest()
+    print("{}".format(sha256(data).hexdigest())) 
     return symmetric_key
 
 
@@ -135,21 +134,20 @@ def psa_encrypt(psa_key, label, message):
 
 
         
-def generate_keystream(psa_key, symmetric_key, length):
+def encrypt_psa_key_update(scratch_pad, symmetric_key):
     c = []
-    print("len", len(psa_key))
     crypto = AES.new(symmetric_key, AES.MODE_ECB)
-    for i in range(len(psa_key)):
+    for i in range(len(scratch_pad)):
         counter = i.to_bytes(16, byteorder='big')
         #print("ctr: ",hexbytes.b2h(counter))
         ciphertext = crypto.encrypt(bytes(counter))
         #print("{} ciphertext {}".format(i,hexbytes.b2h(ciphertext)))
         num = int.from_bytes(ciphertext, "big") 
         #print("interpreted as: ", num)
-        c.append((num+psa_key[i])%(2**128))
-        print("p[{}] {}".format( i , (num+psa_key[i])%(2**128)))
-    
-    return c
+        if (i == 0) or i == (len(scratchpad) - 1):
+            print("p[{}] {} + {} = {}".format( i ,scratchpad[i], num, (scratchpad[i] + num)%(2**128)))
+        scratch_pad[i] = (num+psa_key[i])%(2**128)
+        
 
 def import_key_file():
     print("reading PSA key from file")
@@ -163,29 +161,29 @@ def import_key_file():
 
 
 generator = p256.secp256r1_generator
-privKey = 0xbd8092a09fab6910483fe6d9baacf77c59532daad8fc1b7c35c806acf7909bed
+#IoT private key
+#privKey = 0xbd8092a09fab6910483fe6d9baacf77c59532daad8fc1b7c35c806acf7909bed
 #privKey = randbelow(generator.order())
-pubKey = generator * privKey
-print("type pubKey", type(pubKey))
-print(generator)
-sec_pub = sec.public_pair_to_sec(pubKey, compressed=False)
-print("priv: ", hex(privKey))
-print("pub: ", hexbytes.b2h(sec_pub))
-key = sec_pub
+#pubKey = generator * privKey
+#sec_pub = sec.public_pair_to_sec(pubKey, compressed=False)
+#print("priv: ", hex(privKey))
+#print("pub: ", hexbytes.b2h(sec_pub))
+#key = sec_pub
 
 
 #compute public key because I have not found a way to import a key in hex format
-sk = 0x7E0016170DB75D19D055912415F5ACA6431B2FADCEA5C5949007332015191654
-pk_iot = generator*sk
-
-symmetric_key = nike(1, 555, pk_iot, privKey)
+sk_iot = 0x7E0016170DB75D19D055912415F5ACA6431B2FADCEA5C5949007332015191654
+pk_iot = generator*sk_iot
 
 
 psa_key = import_key_file()
-for id_j in range(2,1000):
+scratchpad = psa_key
+for id_j in range(2,10):
     pub_key = pki.get_pk(id_j)
-    symmetric_key = nike(1, id_j, pub_key, privKey)
-    ciphertext = generate_keystream(psa_key, symmetric_key, 100)
+    symmetric_key = nike(1, id_j, pub_key, sk_iot)
+    ciphertext = encrypt_psa_key_update(psa_key, symmetric_key)
+    
+    
 
 #print("ciphertext: ")
 #for i in ciphertext:

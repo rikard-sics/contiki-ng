@@ -12,20 +12,21 @@
 #define LOG_LEVEL  LOG_LEVEL_APP
 
 
-#define PSA_KEY_LEN 16*2096 //2096
-//#define PSA_KEY_LEN 16*2096 //2096
+#define PSA_KEY_LEN          2096 //2096
+#define PSA_KEY_LEN_BYTES 16*PSA_KEY_LEN //2096
 
 void reverse_endianness(uint8_t *a, unsigned int len);
 
 void NIKE(uint16_t my_id, uint16_t remote_id, uint8_t* my_sk, uint8_t* remote_pk);
 
-void generate_keystream(uint8_t* symmetric_key, uint16_t keystream_len);
 
 void init_psa_crypto();
 
 void generate_psa_key();
 
-void encrypt_psa_key();
+void encrypt_psa_key_init();
+void encrypt_psa_key_update();
+void encrypt_psa_key_finalize();
 
 void psa_encrypt(uint8_t* psa_key, uint64_t label, uint64_t message);
 

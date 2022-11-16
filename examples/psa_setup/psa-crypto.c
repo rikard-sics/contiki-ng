@@ -21,8 +21,8 @@ uint8_t myPrivateKeyingMaterial[32] = {0x54,0x16,0x19,0x15,0x20,0x33,0x07,0x90,0
                                       0xa5,0xce,0xad,0x2f,0x1b,0x43,0xa6,0xac,0xf5,0x15,
                                       0x24,0x91,0x55,0xd0,0x19,0x5d,0xb7,0x0d,0x17,0x16,0x00,0x7e};
 
-extern const uint8_t psa_key_material[PSA_KEY_LEN]; //Allocate 2096 128 bit values
-uint8_t psa_scratchpad[PSA_KEY_LEN]; //Allocate 2096 128 bit values
+extern const uint8_t psa_key_material[PSA_KEY_LEN_BYTES]; //Allocate 2096 128 bit values
+uint8_t psa_scratchpad[PSA_KEY_LEN_BYTES]; //Allocate 2096 128 bit values
 uint8_t myPublicKeyingMaterial[64] = {0};
 uint8_t theirPublicKeyingMaterial[64] = {0};
 uint8_t sharedSecretKeyingMaterial[64] = {0}; //TODO try reading from this when ECDH is done
@@ -114,13 +114,11 @@ void NIKE(uint16_t my_id, uint16_t remote_id, uint8_t* my_sk, uint8_t* remote_pk
     printf("SHA2 driver could not produce value\n");
   }
   SHA2_close(handle);
-  /*
-  printf("hash:\n");
+  printf("Derrived Nike Key ID1 %d ID2 %d:\n", my_id, remote_id);
   for (int i = 0; i < 32; i++) {
     printf("%02X", symmetricKeyingMaterial[i]);
   }
   printf("\n");
-  */
 }
 
 BigUInt128 b16_to_u128(const uint8_t* bytes) {
@@ -141,12 +139,19 @@ BigUInt128 b16_to_u128(const uint8_t* bytes) {
     return num;
 }
 
-//Encrypt psa_key add it to psa_scratchpad
-void encrypt_psa_key(){
-    printf("Encrypting PSA key\n");
+void encrypt_psa_key_init(){
+  memcpy(psa_scratchpad, psa_key_material, PSA_KEY_LEN_BYTES);
+  for (int i = 0; i < 2096; i++){
+    reverse_endianness(&psa_scratchpad[i*16], 16);
+  }
+} 
 
+//Encrypt psa_key add it to psa_scratchpad
+void encrypt_psa_key_finalize(){
+    printf("Encrypting PSA key\n");
+/*
     //TODO add psa_key_num that is PSA_KEY_LEN/16
-    for ( int i = 0; i < PSA_KEY_LEN/16; i++) {
+    for ( int i = 0; i < PSA_KEY_LEN; i++) {
       //get number from psa_key 
       BigUInt128 key_number = b16_to_u128(&psa_key_material[16*i]);
 
@@ -171,12 +176,12 @@ void encrypt_psa_key(){
       biguint128_export(&sum, (char*)sp_ptr);
 
     } 
-
+*/
 }
 
 //32 byte input key
 //Generate one round of keystream, interpet it as an u128 and add to the scratchpad.
-void generate_keystream(uint8_t* symmetric_key, uint16_t keystream_len){
+void encrypt_psa_key_update(){
   //Run AES-ECB with counter to make AES-CTR that generate one block at the time.
   //IV = '0'
   uint8_t counter[16] = {0}; 
@@ -190,7 +195,7 @@ void generate_keystream(uint8_t* symmetric_key, uint16_t keystream_len){
     printf("Could not open AES handle\n");
   }
  
-  CryptoKeyPlaintext_initKey(&cryptoKey, symmetric_key, 32);
+  CryptoKeyPlaintext_initKey(&cryptoKey, symmetricKeyingMaterial, 32);
   AESECB_Operation operation;
   AESECB_Operation_init(&operation);
   
@@ -200,18 +205,13 @@ void generate_keystream(uint8_t* symmetric_key, uint16_t keystream_len){
   operation.output            = byte_buffer;
   operation.inputLength       = 16;
 
-  // iterate over psa_key_len
-  for( uint16_t i = 0; i < PSA_KEY_LEN/16; i++) {
+  // iterate over psa_key_len 16 bytes at the time
+  for( uint16_t i = 0; i < PSA_KEY_LEN; i++) {
     //Set up counter
     counter[14] = ((0xFF00&i)>>8);  
     counter[15] = 0x00FF&i;  
-   /* printf("IV\n");
-    for (int i = 0; i < 16; i++) {
-      printf("%02X", counter[i]);
-    }
-    printf("\n");
-*/
-   // run aes-ctr get 16 bytes
+   
+    // run aes-ctr get 16 bytes
     encryptionResult = AESECB_oneStepEncrypt(handle, &operation);
     if (encryptionResult != AESECB_STATUS_SUCCESS) {
       printf("AESECB failed!\n");
@@ -235,13 +235,21 @@ void generate_keystream(uint8_t* symmetric_key, uint16_t keystream_len){
     //add current number to scratchpad number
     BigUInt128 sum = biguint128_add(&new_number, &sp_number);
     /*
-    char res_str[42];
     res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
     printf("Sum\n %s\n", res_str);
     */
     //export number back
     biguint128_export(&sum, (char*)sp_ptr);
 
+    char res_str[42];
+    if( (i == 0) || (i == PSA_KEY_LEN-1)){ //just print a few values
+        res_str[biguint128_print_dec(&sp_number, res_str, 42)]=0;
+        printf("[%d]: %s + ",i, res_str);
+        res_str[biguint128_print_dec(&new_number, res_str, 42)]=0;
+        printf("%s = ", res_str);
+        res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
+        printf("%s\n", res_str);
+    }
   }
 
   AESECB_close(handle);

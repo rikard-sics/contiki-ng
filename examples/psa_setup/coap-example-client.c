@@ -95,27 +95,28 @@ client_chunk_handler(coap_message_t *response)
 
   //Get public key offset 3, 2 bytes ID + 1 byte public key header
   memcpy(&theirPublicKeyingMaterial, &chunk[3], 64);
+  /*
   printf("Before inversion\n");
   for(int i = 0; i < 64; i++){
     printf("%02X", theirPublicKeyingMaterial[i]);
   }
   printf("\n");
-
+  */
   reverse_endianness(theirPublicKeyingMaterial, 32);
   reverse_endianness(&theirPublicKeyingMaterial[32], 32);
+  /*
   printf("After inversion\n");
   for(int i = 0; i < 64; i++){
     printf("%02X", theirPublicKeyingMaterial[i]);
   }
   printf("\n");
-
+  */
   //call NIKE TODO add errors and error handling
   NIKE(my_id, their_id, myPrivateKeyingMaterial, theirPublicKeyingMaterial);
   //get symmetric key
   //generate 33kb of symmetric data
   //TODO add errors and handling
-  generate_keystream(symmetricKeyingMaterial, 16);
-  encrypt_psa_key();
+  encrypt_psa_key_update();
   pk_i++;
 }
 
@@ -133,6 +134,8 @@ PROCESS_THREAD(er_example_client, ev, data)
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
 
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
+  //Move psa_key to scratchpad
+  encrypt_psa_key_init();
 
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
 
