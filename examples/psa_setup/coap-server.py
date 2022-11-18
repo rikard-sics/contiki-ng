@@ -117,7 +117,7 @@ def nike(id1, id2, their_pk, my_sk):
 
 
 
-def psa_encrypt(psa_key, label, message):
+def psa_encrypt(psa_key, label, message, num_users):
     print("psa encrypt")
     enc_sum = 0 
     for lamb in range(2096): # start small
@@ -137,8 +137,10 @@ def psa_encrypt(psa_key, label, message):
         #print("{} * {} = {}".format(hash_num, psa_key[lamb], tmp_sum))
 #        print("tmp[{}] + {} = {}".format(lamb, tmp_sum, enc_sum))
 
+    message = message*num_users+1
     enc_sum = (enc_sum*(2**85))%(2**128)
     print(enc_sum)
+    return (enc_sum+message)%(2**128)
 
         
 def encrypt_psa_key_update(scratch_pad, symmetric_key):
@@ -190,8 +192,9 @@ scratchpad = psa_key
 #    symmetric_key = nike(1, id_j, pub_key, sk_iot)
 #    ciphertext = encrypt_psa_key_update(scratchpad, symmetric_key)
     
-    
-psa_encrypt(psa_key, 1, 0)
+
+c = psa_encrypt(psa_key, 1, 0, 1000)
+print("ciphertext", c)
 
 #print("ciphertext: ")
 #for i in ciphertext:

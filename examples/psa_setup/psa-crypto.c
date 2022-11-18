@@ -130,16 +130,35 @@ BigUInt128 b16_to_u128(const uint8_t* bytes) {
     BigUInt128 num;
     biguint128_import(&num, (const char*)buf); 
     
-    /*
-    size_t read = biguint128_import(&num, (const char*)buf); 
-    printf("read %zu bytes\n", read);
-    char res_str[42];
-    res_str[biguint128_print_dec(&num, res_str, 42)]=0;
-    printf("Bytes interpreted as int\n %s\n", res_str);
-    */
     return num;
 }
 
+void u128_to_b16(BigUInt128* num, uint8_t* byte_array){
+  biguint128_export(num, (char*)byte_array);
+  reverse_endianness(byte_array, 16);
+} 
+
+BigUInt128 b64_to_u128(const uint8_t* hash) {
+    //Reverse byteorder. Take 128 least-significant bits and interpret as number
+    uint8_t buf[64];
+    memcpy(buf, hash, 64);
+    BigUInt128 num;
+    reverse_endianness(&buf[48], 16);
+    biguint128_import(&num, (const char*)&buf[48]); 
+    
+    return num;
+}
+
+BigUInt128 b32_to_u128(const uint8_t* hash) {
+    //Reverse byteorder. Take 128 least-significant bits and interpret as number
+    uint8_t buf[32];
+    memcpy(buf, hash, 32);
+    BigUInt128 num;
+    reverse_endianness(&buf[16], 16);
+    biguint128_import(&num, (const char*)&buf[16]); 
+    
+    return num;
+}
 void encrypt_psa_key_init(){
   memcpy(psa_scratchpad, psa_key_material, PSA_KEY_LEN_BYTES);
   for (int i = 0; i < 2096; i++){
@@ -259,16 +278,6 @@ void encrypt_psa_key_update(){
 
 void init_psa_crypto() {
 
-/*  printf("PSA key\n");
-  for( int i = 0; i < PSA_KEY_LEN; i++){
-    printf("%02X", psa_key_material[i]);
-    if ( (i + 1) % 16 == 0 ){
-      printf("\n");
-    }
-  }
-  printf("\n");
-*/
-
   uint16_t result;
 
   TRNG_init();
@@ -335,34 +344,15 @@ void generate_psa_key() {
 */
 #define BUFLEN 42
 
-BigUInt128 b64_to_u128(const uint8_t* hash) {
-    //Reverse byteorder. Take 128 least-significant bits and interpret as number
-    uint8_t buf[64];
-    memcpy(buf, hash, 64);
-    BigUInt128 num;
-    reverse_endianness(&buf[48], 16);
-    biguint128_import(&num, (const char*)&buf[48]); 
-    
-    return num;
-}
-
-BigUInt128 b32_to_u128(const uint8_t* hash) {
-    //Reverse byteorder. Take 128 least-significant bits and interpret as number
-    uint8_t buf[32];
-    memcpy(buf, hash, 32);
-    BigUInt128 num;
-    reverse_endianness(&buf[16], 16);
-    biguint128_import(&num, (const char*)&buf[16]); 
-    
-    return num;
-}
 
 void psa_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* ciphertext_buffer) {
   printf("PSA encrypt\n");
   SHA2_Handle handle;
   uint16_t result;
   uint8_t hash[32] = {0};
-  
+
+  message = message*num_users+1;
+
   BigUInt128 sum = biguint128_value_of_uint(0);
   BigUInt128 user_num = biguint128_value_of_uint(num_users+1);
   BigUInt128 message_num = biguint128_value_of_uint(message);
@@ -408,6 +398,7 @@ void psa_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* 
       sum = biguint128_add(&tmp_sum, &sum);
   }
     
+  SHA2_close(handle);
   char res_str[42];
   //q = 2^128
   //p = 2^85
@@ -416,15 +407,12 @@ void psa_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* 
   //floor(x*p/q)
   sum = biguint128_mul(&p, &sum);
 
-  res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
-  printf("sum: %s \n", res_str);
-  //ciphertext = sum + value
-  res_str[biguint128_print_dec(&message_num, res_str, 42)]=0;
-  printf("msg_num: %s \n", res_str);
+  // c_i = t_i + m_i
   message_num = biguint128_add(&message_num, &sum);
+  
   res_str[biguint128_print_dec(&message_num, res_str, 42)]=0;
   printf("msg_num: %s \n", res_str);
-  biguint128_export(&message_num, (char*)ciphertext_buffer);
-  //print ciphertext
-  SHA2_close(handle);
+
+  u128_to_b16(&message_num, ciphertext_buffer);
+  
 }
