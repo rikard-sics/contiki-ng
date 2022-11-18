@@ -28,6 +28,5 @@ void encrypt_psa_key_init();
 void encrypt_psa_key_update();
 void encrypt_psa_key_finalize();
 
-void psa_encrypt(uint8_t* psa_key, uint64_t label, uint64_t message);
-
+void psa_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* ciphertext_buffer);
 #endif /* PSA_CRYPTO_H */

@@ -119,19 +119,26 @@ def nike(id1, id2, their_pk, my_sk):
 
 def psa_encrypt(psa_key, label, message):
     print("psa encrypt")
-    
-    for lamb in range(1): # start small
+    enc_sum = 0 
+    for lamb in range(2096): # start small
         data = label.to_bytes(8, byteorder='big')
         data += b'\x00'
-        data += lamb.to_bytes(2, byteorder='big')
-        print(hexbytes.b2h(data))
-        s = hashlib.sha3_512()
+        lamb_1 = lamb + 1
+        data += (lamb_1).to_bytes(2, byteorder='big')
+        #print(hexbytes.b2h(data))
+        s = hashlib.sha256()
         s.update(data)
         h = s.digest()
-        i = int.from_bytes(h[-16:], "big")
-        print("hash: ", hexbytes.b2h(h))
-        print("int: ", i)
+        hash_num = int.from_bytes(h[-16:], "big")
+        
+        tmp_sum = (hash_num*psa_key[lamb])%(2**128)
+        enc_sum = (enc_sum + tmp_sum)%(2**128)
+        #print("h_n * k_n = t_n: ")
+        #print("{} * {} = {}".format(hash_num, psa_key[lamb], tmp_sum))
+#        print("tmp[{}] + {} = {}".format(lamb, tmp_sum, enc_sum))
 
+    enc_sum = (enc_sum*(2**85))%(2**128)
+    print(enc_sum)
 
         
 def encrypt_psa_key_update(scratch_pad, symmetric_key):
@@ -145,7 +152,8 @@ def encrypt_psa_key_update(scratch_pad, symmetric_key):
         num = int.from_bytes(ciphertext, "big") 
         #print("interpreted as: ", num)
         if (i == 0) or i == (len(scratchpad) - 1):
-            print("p[{}] {} + {} = {}".format( i ,scratchpad[i], num, (scratchpad[i] + num)%(2**128)))
+            #print("p[{}] {} + {} = {}".format( i ,scratchpad[i], num, (scratchpad[i] + num)%(2**128)))
+            print("p[{}] {}".format( i ,(scratchpad[i] + num)%(2**128)))
         scratch_pad[i] = (num+psa_key[i])%(2**128)
         
 
@@ -175,21 +183,19 @@ generator = p256.secp256r1_generator
 sk_iot = 0x7E0016170DB75D19D055912415F5ACA6431B2FADCEA5C5949007332015191654
 pk_iot = generator*sk_iot
 
-
 psa_key = import_key_file()
 scratchpad = psa_key
-for id_j in range(2,10):
-    pub_key = pki.get_pk(id_j)
-    symmetric_key = nike(1, id_j, pub_key, sk_iot)
-    ciphertext = encrypt_psa_key_update(psa_key, symmetric_key)
+#for id_j in range(2,1000):
+#    pub_key = pki.get_pk(id_j)
+#    symmetric_key = nike(1, id_j, pub_key, sk_iot)
+#    ciphertext = encrypt_psa_key_update(scratchpad, symmetric_key)
     
     
+psa_encrypt(psa_key, 1, 0)
 
 #print("ciphertext: ")
 #for i in ciphertext:
 #    print(i)
-
-psa_encrypt(None, 12, 0)
 
 async def main():
 

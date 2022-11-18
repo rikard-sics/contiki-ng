@@ -9,7 +9,6 @@
 #include "ti/drivers/SHA2.h"
 #include "ti/drivers/AESECB.h"
 #include "psa-crypto.h"
-#include "sha3.h"
 #include "biguint128.h"
 
 /* Log configuration */
@@ -114,11 +113,13 @@ void NIKE(uint16_t my_id, uint16_t remote_id, uint8_t* my_sk, uint8_t* remote_pk
     printf("SHA2 driver could not produce value\n");
   }
   SHA2_close(handle);
+  /*
   printf("Derrived Nike Key ID1 %d ID2 %d:\n", my_id, remote_id);
   for (int i = 0; i < 32; i++) {
     printf("%02X", symmetricKeyingMaterial[i]);
   }
   printf("\n");
+  */
 }
 
 BigUInt128 b16_to_u128(const uint8_t* bytes) {
@@ -243,12 +244,13 @@ void encrypt_psa_key_update(){
 
     char res_str[42];
     if( (i == 0) || (i == PSA_KEY_LEN-1)){ //just print a few values
-        res_str[biguint128_print_dec(&sp_number, res_str, 42)]=0;
-        printf("[%d]: %s + ",i, res_str);
-        res_str[biguint128_print_dec(&new_number, res_str, 42)]=0;
+        res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
+        printf("[%d]: %s \n",i, res_str);
+        /*res_str[biguint128_print_dec(&new_number, res_str, 42)]=0;
         printf("%s = ", res_str);
         res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
         printf("%s\n", res_str);
+        */
     }
   }
 
@@ -339,60 +341,90 @@ BigUInt128 b64_to_u128(const uint8_t* hash) {
     memcpy(buf, hash, 64);
     BigUInt128 num;
     reverse_endianness(&buf[48], 16);
-    size_t read = biguint128_import(&num, (const char*)&buf[48]); 
-    printf("read %zu bytes\n", read);
-    char res_str[BUFLEN];
-    res_str[biguint128_print_dec(&num, res_str, BUFLEN)]=0;
-    printf("Hash interpreted as int\n %s\n", res_str);
- 
-    //UINT128 TEST!!
+    biguint128_import(&num, (const char*)&buf[48]); 
+    
     return num;
 }
 
-void psa_encrypt(uint8_t* psa_key, uint64_t label, uint64_t message) {
+BigUInt128 b32_to_u128(const uint8_t* hash) {
+    //Reverse byteorder. Take 128 least-significant bits and interpret as number
+    uint8_t buf[32];
+    memcpy(buf, hash, 32);
+    BigUInt128 num;
+    reverse_endianness(&buf[16], 16);
+    biguint128_import(&num, (const char*)&buf[16]); 
+    
+    return num;
+}
+
+void psa_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* ciphertext_buffer) {
   printf("PSA encrypt\n");
-  sha3_context c;
-  const uint8_t* hash;
-//just a hash test
+  SHA2_Handle handle;
+  uint16_t result;
+  uint8_t hash[32] = {0};
+  
+  BigUInt128 sum = biguint128_value_of_uint(0);
+  BigUInt128 user_num = biguint128_value_of_uint(num_users+1);
+  BigUInt128 message_num = biguint128_value_of_uint(message);
+  message_num = biguint128_mul(&message_num, &user_num);
 //input is 8 bytes of label||0x00||two bytes of lambda
 //label and lambda is big-endian
 
-  for ( uint16_t lambda = 0; lambda < 1; lambda++) {
-//      hash label||i
-    uint8_t data[11];
-    memset(data, 0, 11);
-    uint64_t* u64_ptr = (uint64_t*)&data[0];
-    *u64_ptr = label;
-    reverse_endianness(&data[0], 8);
+  //Init SHA2 driver
+  handle = SHA2_open(0, NULL);
+  if (!handle) {
+    printf("SHA2 driver could not be opened\n");
+  }
   
-    uint16_t* u16_ptr = (uint16_t*)&data[9];
-    *u16_ptr = lambda;
-    reverse_endianness(&data[9], 2);
- 
+  for ( uint16_t lambda = 0; lambda < PSA_KEY_LEN; lambda++) {
+      // hash label||i
+      uint8_t data[11];
+      memset(data, 0, 11);
+      uint64_t* u64_ptr = (uint64_t*)&data[0];
+      *u64_ptr = label;
+      reverse_endianness(&data[0], 8);
+    
+      uint16_t* u16_ptr = (uint16_t*)&data[9];
+      *u16_ptr = lambda+1;
+      reverse_endianness(&data[9], 2);
 
-    printf("data\n");
-    for ( int i = 0; i < 11; i++) {
-      printf("%02X", data[i]);
-    }
-    printf("\n"); 
-    sha3_Init512(&c);
-    sha3_Update(&c, data, 11);
-    hash = sha3_Finalize(&c);
-    printf("hash\n");
-    for ( int i = 0; i < 64; i++) {
-      printf("%02X", hash[i]);
-    }
-    printf("\n"); 
-    BigUInt128 num;
-    num = b64_to_u128(hash); 
-    char res_str[BUFLEN];
-    res_str[biguint128_print_dec(&num, res_str, BUFLEN)]=0;
-    printf("returned uint\n %s\n", res_str);
+      result = SHA2_hashData(handle, data, 11, hash);
+      if (result != SHA2_STATUS_SUCCESS) {
+        printf("SHA2 driver could not produce value\n");
+      }
+      
+      BigUInt128 hash_num;
+      hash_num = b32_to_u128(hash); 
+  
+  //  convert to integer
+  //  mod 2^128
+      uint8_t* key_ptr = (uint8_t*)&psa_key_material[16*lambda];
+      BigUInt128 key_num  = b16_to_u128(key_ptr);
+      
+      //Multiply hash number with key number
+      BigUInt128 tmp_sum = biguint128_mul(&hash_num, &key_num);
 
-//      convert to integer
-//      mod 2^128
-//      add
-}
+      //Add result of multiplication to sum
+      sum = biguint128_add(&tmp_sum, &sum);
+  }
+    
+  char res_str[42];
+  //q = 2^128
+  //p = 2^85
+  BigUInt128 one = biguint128_value_of_uint(1);
+  BigUInt128 p = biguint128_shl(&one, 85);
+  //floor(x*p/q)
+  sum = biguint128_mul(&p, &sum);
 
-
+  res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
+  printf("sum: %s \n", res_str);
+  //ciphertext = sum + value
+  res_str[biguint128_print_dec(&message_num, res_str, 42)]=0;
+  printf("msg_num: %s \n", res_str);
+  message_num = biguint128_add(&message_num, &sum);
+  res_str[biguint128_print_dec(&message_num, res_str, 42)]=0;
+  printf("msg_num: %s \n", res_str);
+  biguint128_export(&message_num, (char*)ciphertext_buffer);
+  //print ciphertext
+  SHA2_close(handle);
 }

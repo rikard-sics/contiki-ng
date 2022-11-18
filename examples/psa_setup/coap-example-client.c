@@ -73,7 +73,8 @@ AUTOSTART_PROCESSES(&er_example_client);
 static struct etimer et;
 static const char* key_url = "other/block";
 
-
+static uint16_t num_keys = 1000;
+static uint8_t setup_done = 0;
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
 void
 client_chunk_handler(coap_message_t *response)
@@ -91,7 +92,7 @@ client_chunk_handler(coap_message_t *response)
   } 
   //Get ID that arrive MSB-first
   uint16_t their_id =  (chunk[0]<<8) | (chunk[1]);
-  printf("Their ID %d\n", their_id); 
+  //printf("Their ID %d\n", their_id); 
 
   //Get public key offset 3, 2 bytes ID + 1 byte public key header
   memcpy(&theirPublicKeyingMaterial, &chunk[3], 64);
@@ -117,7 +118,12 @@ client_chunk_handler(coap_message_t *response)
   //generate 33kb of symmetric data
   //TODO add errors and handling
   encrypt_psa_key_update();
+  
   pk_i++;
+  if( pk_i >= num_keys){
+    setup_done = 1;
+  }
+
 }
 
 
@@ -128,8 +134,13 @@ PROCESS_THREAD(er_example_client, ev, data)
 
   init_psa_crypto();
   //generate_psa_key(); 
- 
-  psa_encrypt(NULL, 12, 0);
+  uint8_t ciphertext_buf[16] = {0}; 
+  psa_encrypt(1, 0, 1000, ciphertext_buf);
+  printf("Ciphertext\n");
+  for(int i = 0; i < 16; i++) {
+    printf("%02X", ciphertext_buf[i]);
+  }
+  printf("\n");
 
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
 
@@ -137,13 +148,13 @@ PROCESS_THREAD(er_example_client, ev, data)
   //Move psa_key to scratchpad
   encrypt_psa_key_init();
 
-  etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
+  etimer_set(&et, 0.1 * CLOCK_SECOND);
 
   while(1) {
     PROCESS_YIELD();
 
 
-    if(etimer_expired(&et)) {
+    if(etimer_expired(&et) && !setup_done) {
       printf("--Toggle timer--\n");
 
       char str_buf[8];
