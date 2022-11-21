@@ -397,21 +397,24 @@ void psa_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* 
       //Add result of multiplication to sum
       sum = biguint128_add(&tmp_sum, &sum);
   }
+  char res_str[42];
     
   SHA2_close(handle);
-  char res_str[42];
   //q = 2^128
   //p = 2^85
+  //Construct p/q = 2^43 and divide with p/q 
   BigUInt128 one = biguint128_value_of_uint(1);
-  BigUInt128 p = biguint128_shl(&one, 85);
-  //floor(x*p/q)
-  sum = biguint128_mul(&p, &sum);
+  BigUInt128 p_div_q = biguint128_shl(&one, 43);
+  
+ //divide with p/q
+  BigUIntPair128 div = biguint128_div(&sum, &p_div_q);
+  sum = div.first;
 
   // c_i = t_i + m_i
   message_num = biguint128_add(&message_num, &sum);
   
   res_str[biguint128_print_dec(&message_num, res_str, 42)]=0;
-  printf("msg_num: %s \n", res_str);
+  printf("ciphertext: %s \n", res_str);
 
   u128_to_b16(&message_num, ciphertext_buffer);
   

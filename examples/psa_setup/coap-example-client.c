@@ -71,9 +71,11 @@ PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
-static const char* key_url = "other/block";
+//static const char* key_url = "other/block";
+static const char* data_url = "data";
 
 static uint16_t num_keys = 1000;
+static int msg = 0;
 static uint8_t setup_done = 0;
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
 void
@@ -133,23 +135,17 @@ PROCESS_THREAD(er_example_client, ev, data)
   PROCESS_BEGIN();
 
   init_psa_crypto();
+  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
+  
   //generate_psa_key(); 
-  uint8_t ciphertext_buf[16] = {0}; 
-  psa_encrypt(1, 0, 1000, ciphertext_buf);
-  printf("Ciphertext\n");
-  for(int i = 0; i < 16; i++) {
-    printf("%02X", ciphertext_buf[i]);
-  }
-  printf("\n");
 
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
-
-  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
+  
+  
   //Move psa_key to scratchpad
   encrypt_psa_key_init();
 
   etimer_set(&et, 0.1 * CLOCK_SECOND);
-
   while(1) {
     PROCESS_YIELD();
 
@@ -159,9 +155,23 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       char str_buf[8];
       sprintf(str_buf, "%d", pk_i);
-      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
+  /*    coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
       coap_set_header_uri_path(request, key_url);
       coap_set_header_uri_query(request, str_buf);
+      COAP_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
+    */  
+      uint8_t ciphertext_buf[16] = {0}; 
+      psa_encrypt(1, 0, 1000, ciphertext_buf);
+      msg++;
+      printf("Ciphertext\n");
+      for(int i = 0; i < 16; i++) {
+        printf("%02X", ciphertext_buf[i]);
+      }
+      printf("\n");
+      
+      coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
+      coap_set_header_uri_path(request, data_url);
+      coap_set_payload(request, ciphertext_buf, 16);
       COAP_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
       
 

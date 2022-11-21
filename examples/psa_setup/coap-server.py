@@ -45,49 +45,6 @@ class simple_pki():
 key = None
 pki = simple_pki()
 
-class BlockResource(resource.Resource):
-    """Example resource which supports the GET and PUT methods. It sends large
-    responses, which trigger blockwise transfer."""
-
-    def __init__(self):
-        super().__init__()
-
-        self.set_content(key)
-
-    def set_content(self, content):
-        self.content = content
-
-    async def render_get(self, request):
-        print("Requested Public-Key ", int(request.opt.uri_query[0]))
-        i = int(request.opt.uri_query[0])
-        pubKey = pki.get_pk_bytes(i)
-        id_pubKey = i.to_bytes(2, byteorder='big') 
-        id_pubKey += pubKey
-        self.set_content(id_pubKey)
-        print('id+bubkey', id_pubKey)
-        return aiocoap.Message(payload=self.content)
-
-    async def render_put(self, request):
-        self.set_content(request.payload)
-        return aiocoap.Message(code=aiocoap.CHANGED, payload=self.content)
-
-
-
-class WhoAmI(resource.Resource):
-    async def render_get(self, request):
-        text = ["Used protocol: %s." % request.remote.scheme]
-
-        text.append("Request came from %s." % request.remote.hostinfo)
-        text.append("The server address used %s." % request.remote.hostinfo_local)
-
-        claims = list(request.remote.authenticated_claims)
-        if claims:
-            text.append("Authenticated claims of the client: %s." % ", ".join(repr(c) for c in claims))
-        else:
-            text.append("No claims authenticated.")
-
-        return aiocoap.Message(content_format=0,
-                payload="\n".join(text).encode('utf8'))
 
 # logging setup
 logging.basicConfig(level=logging.INFO)
@@ -133,13 +90,10 @@ def psa_encrypt(psa_key, label, message, num_users):
         
         tmp_sum = (hash_num*psa_key[lamb])%(2**128)
         enc_sum = (enc_sum + tmp_sum)%(2**128)
-        #print("h_n * k_n = t_n: ")
-        #print("{} * {} = {}".format(hash_num, psa_key[lamb], tmp_sum))
-#        print("tmp[{}] + {} = {}".format(lamb, tmp_sum, enc_sum))
 
     message = message*num_users+1
-    enc_sum = (enc_sum*(2**85))%(2**128)
-    print(enc_sum)
+    enc_sum = (enc_sum*(2**85))//(2**128)
+    print("ciphertext ", (enc_sum+message)%(2**128))
     return (enc_sum+message)%(2**128)
 
         
@@ -148,14 +102,11 @@ def encrypt_psa_key_update(scratch_pad, symmetric_key):
     crypto = AES.new(symmetric_key, AES.MODE_ECB)
     for i in range(len(scratch_pad)):
         counter = i.to_bytes(16, byteorder='big')
-        #print("ctr: ",hexbytes.b2h(counter))
         ciphertext = crypto.encrypt(bytes(counter))
-        #print("{} ciphertext {}".format(i,hexbytes.b2h(ciphertext)))
         num = int.from_bytes(ciphertext, "big") 
-        #print("interpreted as: ", num)
         if (i == 0) or i == (len(scratchpad) - 1):
-            #print("p[{}] {} + {} = {}".format( i ,scratchpad[i], num, (scratchpad[i] + num)%(2**128)))
             print("p[{}] {}".format( i ,(scratchpad[i] + num)%(2**128)))
+        
         scratch_pad[i] = (num+psa_key[i])%(2**128)
         
 
@@ -200,6 +151,66 @@ print("ciphertext", c)
 #for i in ciphertext:
 #    print(i)
 
+class BlockResource(resource.Resource):
+    """Example resource which supports the GET and PUT methods. It sends large
+    responses, which trigger blockwise transfer."""
+
+    def __init__(self):
+        super().__init__()
+
+        self.set_content(key)
+
+    def set_content(self, content):
+        self.content = content
+
+    async def render_get(self, request):
+        print("Requested Public-Key ", int(request.opt.uri_query[0]))
+        i = int(request.opt.uri_query[0])
+        pubKey = pki.get_pk_bytes(i)
+        id_pubKey = i.to_bytes(2, byteorder='big') 
+        id_pubKey += pubKey
+        self.set_content(id_pubKey)
+        print('id+bubkey', id_pubKey)
+        return aiocoap.Message(payload=self.content)
+
+    async def render_put(self, request):
+        self.set_content(request.payload)
+        return aiocoap.Message(code=aiocoap.CHANGED, payload=self.content)
+
+class DataResource(resource.Resource):
+    """Example resource which supports the GET and PUT methods. It sends large
+    responses, which trigger blockwise transfer."""
+
+    def __init__(self):
+        super().__init__()
+
+        self.set_content(key)
+
+    def set_content(self, content):
+        self.content = b''
+
+    async def render_put(self, request):
+        print("PUT! got message {}".format(request.payload))
+        #TODO aggregate data!
+        return aiocoap.Message(code=aiocoap.CHANGED, payload=self.content)
+
+
+class WhoAmI(resource.Resource):
+    async def render_get(self, request):
+        text = ["Used protocol: %s." % request.remote.scheme]
+
+        text.append("Request came from %s." % request.remote.hostinfo)
+        text.append("The server address used %s." % request.remote.hostinfo_local)
+
+        claims = list(request.remote.authenticated_claims)
+        if claims:
+            text.append("Authenticated claims of the client: %s." % ", ".join(repr(c) for c in claims))
+        else:
+            text.append("No claims authenticated.")
+
+        return aiocoap.Message(content_format=0,
+                payload="\n".join(text).encode('utf8'))
+
 async def main():
 
     # Resource tree creation
@@ -208,6 +219,7 @@ async def main():
     root.add_resource(['.well-known', 'core'],
             resource.WKCResource(root.get_resources_as_linkheader))
     root.add_resource(['other', 'block'], BlockResource())
+    root.add_resource(['data'], DataResource())
     root.add_resource(['whoami'], WhoAmI())
 
     await aiocoap.Context.create_server_context(root)
