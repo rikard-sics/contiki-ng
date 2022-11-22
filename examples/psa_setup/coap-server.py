@@ -120,6 +120,8 @@ def import_key_file():
     return arr
 
 
+received_psa_key = []
+
 
 generator = p256.secp256r1_generator
 #IoT private key
@@ -194,22 +196,23 @@ class DataResource(resource.Resource):
         #TODO aggregate data!
         return aiocoap.Message(code=aiocoap.CHANGED, payload=self.content)
 
+class KeyResource(resource.Resource):
+    """Example resource which supports the GET and PUT methods. It sends large
+    responses, which trigger blockwise transfer."""
 
-class WhoAmI(resource.Resource):
-    async def render_get(self, request):
-        text = ["Used protocol: %s." % request.remote.scheme]
+    def __init__(self):
+        super().__init__()
+        self.content = b''
 
-        text.append("Request came from %s." % request.remote.hostinfo)
-        text.append("The server address used %s." % request.remote.hostinfo_local)
+    def set_content(self, content):
+        self.content = b''
 
-        claims = list(request.remote.authenticated_claims)
-        if claims:
-            text.append("Authenticated claims of the client: %s." % ", ".join(repr(c) for c in claims))
-        else:
-            text.append("No claims authenticated.")
+    async def render_put(self, request):
+        print("message len {}".format(len(request.payload)))
+        #TODO aggregate data!
+        received_psa_key.append(request.payload)
+        return aiocoap.Message(code=aiocoap.CHANGED, payload=self.content)
 
-        return aiocoap.Message(content_format=0,
-                payload="\n".join(text).encode('utf8'))
 
 async def main():
 
@@ -218,9 +221,10 @@ async def main():
 
     root.add_resource(['.well-known', 'core'],
             resource.WKCResource(root.get_resources_as_linkheader))
-    root.add_resource(['other', 'block'], BlockResource())
+    root.add_resource(['pubkey'], BlockResource())
+    root.add_resource(['key'], KeyResource())
     root.add_resource(['data'], DataResource())
-    root.add_resource(['whoami'], WhoAmI())
+    #root.add_resource(['whoami'], WhoAmI())
 
     await aiocoap.Context.create_server_context(root)
 

@@ -42,7 +42,7 @@
 #include "net/ipv6/multicast/uip-mcast6-engines.h"
 
 #define RF_CONF_MODE RF_MODE_2_4_GHZ
-#define REST_MAX_CHUNK_SIZE 150
+#define REST_MAX_CHUNK_SIZE 256
 
 //Disable WDT
 #define WATCHDOG_CONF_DISABLE 1

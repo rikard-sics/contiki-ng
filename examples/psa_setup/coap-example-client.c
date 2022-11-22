@@ -55,8 +55,8 @@
 #define SERVER_EP "coap://[fd00::1]"
 
 /* Declaired in psa-crypto.c */
-extern const uint8_t psa_key_material[PSA_KEY_LEN]; //Allocate 2096 128 bit values
-extern uint8_t psa_scratchpad[1000]; //Allocate 2096 128 bit values
+extern const uint8_t psa_key_material[PSA_KEY_LEN_BYTES]; //Allocate 2096 128 bit values
+extern uint8_t psa_scratchpad[PSA_KEY_LEN_BYTES]; //Allocate 2096 128 bit values
 extern uint8_t myPrivateKeyingMaterial[32];
 extern uint8_t myPublicKeyingMaterial[64];
 extern uint8_t theirPublicKeyingMaterial[64];
@@ -71,15 +71,115 @@ PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
-//static const char* key_url = "other/block";
+//static const char* pk_url = "pubkey";
 static const char* data_url = "data";
+static const char* key_url = "key";
 
-static uint16_t num_keys = 1000;
-static int msg = 0;
-static uint8_t setup_done = 0;
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
-void
-client_chunk_handler(coap_message_t *response)
+
+void get_pk_handler(coap_message_t *response);
+void blockwise_handler(coap_message_t *response);
+void psa_msg_handler(coap_message_t *response);
+
+//TODO create nike handler, Blockwise handler and 
+
+
+static int iteration = 0;
+static uint16_t num_keys = 1000;
+static int i = 0;
+
+static unsigned long long start;
+static unsigned long long end;
+
+PROCESS_THREAD(er_example_client, ev, data)
+{
+  static coap_endpoint_t server_ep;
+  PROCESS_BEGIN();
+
+  static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
+  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
+  
+  init_psa_crypto();
+  //generate_psa_key(); 
+  //Move psa_key to scratchpad
+  encrypt_psa_key_init();
+  
+  etimer_set(&et, 60 * CLOCK_SECOND); // Long delay to let network start
+  while(1) {
+    PROCESS_YIELD();
+
+
+    if(etimer_expired(&et)) {
+    //Get Public keys
+    //compute nike and encrypt psa_key
+    //send aks_i
+    //encrypt values
+      printf("--Get pk_i and encrypt ek_i --\n");
+      start = RTIMER_NOW();
+  /*    while(pk_i <= num_keys+1){
+          char str_buf[8];
+          sprintf(str_buf, "%d", pk_i);
+          coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
+          coap_set_header_uri_path(request, pk_url);
+          coap_set_header_uri_query(request, str_buf);
+          COAP_BLOCKING_REQUEST(&server_ep, request, get_pk_handler);
+      }
+  */    while(i < PSA_KEY_LEN_BYTES/256){
+          coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
+          coap_set_header_uri_path(request, key_url);
+          coap_set_payload(request, &psa_key_material[i*256], 256);
+          if( i == 130){ //We are done, no more messages
+            coap_set_header_block1(request, i, 0, 256);
+          } else {
+            coap_set_header_block1(request, i, 1, 256);
+          }
+          //todo add other handler
+          COAP_BLOCKING_REQUEST(&server_ep, request, blockwise_handler);
+      }
+      end = RTIMER_NOW();
+      printf("s %llu\n", (end - start));
+      printf("-- Sending PSA msg--\n");
+     
+      start = RTIMER_NOW(); 
+      uint8_t ciphertext_buf[16] = {0}; 
+      psa_encrypt(iteration, iteration+num_keys, num_keys, ciphertext_buf);
+      
+      printf("Ciphertext\n");
+      for(int i = 0; i < 16; i++) {
+        printf("%02X", ciphertext_buf[i]);
+      }
+      printf("\n");
+    
+      coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
+      coap_set_header_uri_path(request, data_url);
+      coap_set_payload(request, ciphertext_buf, 16);
+      COAP_BLOCKING_REQUEST(&server_ep, request, psa_msg_handler);
+      end = RTIMER_NOW();
+      printf("e %llu\n", (end - start));
+     
+      //increment iteration and prepare for next round 
+      iteration++;
+      pk_i = 2;
+      i = 0;
+      //we run 10 iterations per number of keys
+      if(iteration >= 10) {
+        iteration = 0;
+        num_keys += 1000;
+        if( num_keys > 10000){
+          printf("End of tests!\n");
+          etimer_set(&et, 200 * CLOCK_SECOND);
+        }
+      }
+      
+      etimer_set(&et, 5 * CLOCK_SECOND);
+          
+    }
+  }
+
+  PROCESS_END();
+}
+
+void get_pk_handler(coap_message_t *response)
 {
   const uint8_t *chunk;
 
@@ -98,22 +198,8 @@ client_chunk_handler(coap_message_t *response)
 
   //Get public key offset 3, 2 bytes ID + 1 byte public key header
   memcpy(&theirPublicKeyingMaterial, &chunk[3], 64);
-  /*
-  printf("Before inversion\n");
-  for(int i = 0; i < 64; i++){
-    printf("%02X", theirPublicKeyingMaterial[i]);
-  }
-  printf("\n");
-  */
   reverse_endianness(theirPublicKeyingMaterial, 32);
   reverse_endianness(&theirPublicKeyingMaterial[32], 32);
-  /*
-  printf("After inversion\n");
-  for(int i = 0; i < 64; i++){
-    printf("%02X", theirPublicKeyingMaterial[i]);
-  }
-  printf("\n");
-  */
   //call NIKE TODO add errors and error handling
   NIKE(my_id, their_id, myPrivateKeyingMaterial, theirPublicKeyingMaterial);
   //get symmetric key
@@ -122,64 +208,26 @@ client_chunk_handler(coap_message_t *response)
   encrypt_psa_key_update();
   
   pk_i++;
-  if( pk_i >= num_keys){
-    setup_done = 1;
+}
+
+void blockwise_handler(coap_message_t *response)
+{
+
+  if(response == NULL) {
+    printf("Request timed out i=%d\n", i);
+    return;
+  } else {
+    i++;
   }
 
 }
 
-
-PROCESS_THREAD(er_example_client, ev, data)
+void psa_msg_handler(coap_message_t *response)
 {
-  static coap_endpoint_t server_ep;
-  PROCESS_BEGIN();
 
-  init_psa_crypto();
-  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
-  
-  //generate_psa_key(); 
-
-  static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
-  
-  
-  //Move psa_key to scratchpad
-  encrypt_psa_key_init();
-
-  etimer_set(&et, 0.1 * CLOCK_SECOND);
-  while(1) {
-    PROCESS_YIELD();
-
-
-    if(etimer_expired(&et) && !setup_done) {
-      printf("--Toggle timer--\n");
-
-      char str_buf[8];
-      sprintf(str_buf, "%d", pk_i);
-  /*    coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
-      coap_set_header_uri_path(request, key_url);
-      coap_set_header_uri_query(request, str_buf);
-      COAP_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
-    */  
-      uint8_t ciphertext_buf[16] = {0}; 
-      psa_encrypt(1, 0, 1000, ciphertext_buf);
-      msg++;
-      printf("Ciphertext\n");
-      for(int i = 0; i < 16; i++) {
-        printf("%02X", ciphertext_buf[i]);
-      }
-      printf("\n");
-      
-      coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
-      coap_set_header_uri_path(request, data_url);
-      coap_set_payload(request, ciphertext_buf, 16);
-      COAP_BLOCKING_REQUEST(&server_ep, request, client_chunk_handler);
-      
-
-      printf("--Done--\n");
-      etimer_reset(&et);
-
-    }
+  if(response == NULL) {
+    puts("Request timed out");
+    return;
   }
 
-  PROCESS_END();
 }
