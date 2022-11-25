@@ -109,8 +109,7 @@ PROCESS_THREAD(er_example_client, ev, data)
     //encrypt values
       printf("--Get pk_i and encrypt ek_i --\n");
       start = RTIMER_NOW();
-      //while(pk_i <= num_keys+1){
-      while(pk_i <= 10+1){
+      while(pk_i <= num_keys+1){
           char str_buf[8];
           sprintf(str_buf, "%d", pk_i);
           coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
@@ -124,8 +123,7 @@ PROCESS_THREAD(er_example_client, ev, data)
      
       start = RTIMER_NOW(); 
       uint8_t ciphertext_buf[16] = {0}; 
-      //lass_encrypt(iteration, iteration+num_keys, num_keys, ciphertext_buf);
-      lass_encrypt(1, 0, 10, ciphertext_buf);
+      lass_encrypt(iteration, iteration+num_keys, num_keys, ciphertext_buf);
        
       coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
       coap_set_header_uri_path(request, data_url);
@@ -188,12 +186,6 @@ void get_pk_handler(coap_message_t *response)
   
   //Store symmetric key in array
   //memcpy(&lass_keys[pk_i-2], symmetricKeyingMaterial, 16);
-  printf("nike key %d\n", their_id);
-  for( int k = 0; k < 16; k++){
-    printf("%02X", symmetricKeyingMaterial[k]);
-  }
-  printf("\n");
-
 
   pk_i++;
 }

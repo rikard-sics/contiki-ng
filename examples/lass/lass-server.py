@@ -87,7 +87,7 @@ pk_iot = generator*sk_iot
 
 lass_keys = []
 
-for id_j in range(2,12):
+for id_j in range(2,1002):
     pub_key = pki.get_pk(id_j)
     pbb = pki.get_pk_bytes(id_j)
     symmetric_key = nike(1, id_j, pub_key, sk_iot)

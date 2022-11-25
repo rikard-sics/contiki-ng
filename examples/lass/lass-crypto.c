@@ -238,16 +238,6 @@ void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t*
     operation.output            = byte_buffer;
     operation.inputLength       = 16;
 
-    printf("Key:\n");
-    for( int j = 0; j<16;j++){
-      printf("%02X", symm_key[j]);
-    }
-    printf("\n");
-    printf("ctr:\n");
-    for( int j = 0; j<16;j++){
-      printf("%02X",counter[j]);
-    }
-    printf("\n");
     // run aes-ctr get 16 bytes
     encryptionResult = AESECB_oneStepEncrypt(handle, &operation);
     if (encryptionResult != AESECB_STATUS_SUCCESS) {
@@ -256,9 +246,6 @@ void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t*
     
     // convert bytes to 128-bit integer
     BigUInt128 new_number = b16_to_u128(byte_buffer);
-    char res_str[42];
-    res_str[biguint128_print_dec(&new_number, res_str, 42)]=0;
-    printf("New num\n %s\n", res_str);
 
     // add number to ciphertext_sum
     ciphertext_sum = biguint128_add(&new_number, &ciphertext_sum);
@@ -279,10 +266,5 @@ void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t*
   
   //export number back
   u128_to_b16(&ciphertext_sum, ciphertext_buffer);
-  printf("LaSS Encrypt %llu, label %llu, with %u users:\n", message, label, num_users);
-  for(int i = 0; i < 16; i++) {
-    printf("%02X", ciphertext_buffer[i]);
-  }
-  printf("\n");
 
 }
