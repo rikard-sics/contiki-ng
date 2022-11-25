@@ -7,7 +7,7 @@ PLATFORMS_EXCLUDE = sky z1
 
 CONTIKI=../..
 
-PROJECT_SOURCEFILES += lass-crypto.c biguint128.c intio.c uint.c
+PROJECT_SOURCEFILES += lass-crypto.c lass-keys.c biguint128.c intio.c uint.c
 
 # Include the CoAP implementation
 include $(CONTIKI)/Makefile.dir-variables

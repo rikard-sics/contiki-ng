@@ -71,7 +71,7 @@ PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
-//static const char* pk_url = "pubkey";
+static const char* pk_url = "pubkey";
 static const char* data_url = "data";
 static const char* key_url = "key";
 
@@ -86,7 +86,7 @@ void psa_msg_handler(coap_message_t *response);
 
 static int iteration = 0;
 static uint16_t num_keys = 1000;
-static int i = 0;
+static int block_index = 0;
 
 static unsigned long long start;
 static unsigned long long end;
@@ -116,7 +116,7 @@ PROCESS_THREAD(er_example_client, ev, data)
     //encrypt values
       printf("--Get pk_i and encrypt ek_i --\n");
       start = RTIMER_NOW();
-  /*    while(pk_i <= num_keys+1){
+      while(pk_i <= num_keys+1){
           char str_buf[8];
           sprintf(str_buf, "%d", pk_i);
           coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
@@ -124,14 +124,14 @@ PROCESS_THREAD(er_example_client, ev, data)
           coap_set_header_uri_query(request, str_buf);
           COAP_BLOCKING_REQUEST(&server_ep, request, get_pk_handler);
       }
-  */    while(i < PSA_KEY_LEN_BYTES/256){
+      while(block_index < PSA_KEY_LEN_BYTES/256){
           coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
           coap_set_header_uri_path(request, key_url);
-          coap_set_payload(request, &psa_key_material[i*256], 256);
-          if( i == 130){ //We are done, no more messages
-            coap_set_header_block1(request, i, 0, 256);
+          coap_set_payload(request, &psa_key_material[block_index*256], 256);
+          if( block_index == 130){ //We are done, no more messages
+            coap_set_header_block1(request, block_index, 0, 256);
           } else {
-            coap_set_header_block1(request, i, 1, 256);
+            coap_set_header_block1(request, block_index, 1, 256);
           }
           //todo add other handler
           COAP_BLOCKING_REQUEST(&server_ep, request, blockwise_handler);
@@ -144,12 +144,12 @@ PROCESS_THREAD(er_example_client, ev, data)
       uint8_t ciphertext_buf[16] = {0}; 
       psa_encrypt(iteration, iteration+num_keys, num_keys, ciphertext_buf);
       
-      printf("Ciphertext\n");
+     /* printf("Ciphertext\n");
       for(int i = 0; i < 16; i++) {
         printf("%02X", ciphertext_buf[i]);
       }
       printf("\n");
-    
+      */
       coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
       coap_set_header_uri_path(request, data_url);
       coap_set_payload(request, ciphertext_buf, 16);
@@ -160,7 +160,7 @@ PROCESS_THREAD(er_example_client, ev, data)
       //increment iteration and prepare for next round 
       iteration++;
       pk_i = 2;
-      i = 0;
+      block_index = 0;
       //we run 10 iterations per number of keys
       if(iteration >= 10) {
         iteration = 0;
@@ -214,10 +214,10 @@ void blockwise_handler(coap_message_t *response)
 {
 
   if(response == NULL) {
-    printf("Request timed out i=%d\n", i);
+    printf("Request timed out i=%d\n", block_index);
     return;
   } else {
-    i++;
+    block_index++;
   }
 
 }

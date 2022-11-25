@@ -20,7 +20,7 @@ uint8_t myPrivateKeyingMaterial[32] = {0x54,0x16,0x19,0x15,0x20,0x33,0x07,0x90,0
                                       0xa5,0xce,0xad,0x2f,0x1b,0x43,0xa6,0xac,0xf5,0x15,
                                       0x24,0x91,0x55,0xd0,0x19,0x5d,0xb7,0x0d,0x17,0x16,0x00,0x7e};
 
-uint8_t lass_keys[LASS_KEY_LEN_BYTES];
+extern const uint8_t lass_keys[LASS_KEY_LEN_BYTES];
 
 uint8_t myPublicKeyingMaterial[64] = {0};
 uint8_t theirPublicKeyingMaterial[64] = {0};
@@ -113,8 +113,8 @@ void NIKE(uint16_t my_id, uint16_t remote_id, uint8_t* my_sk, uint8_t* remote_pk
     printf("SHA2 driver could not produce value\n");
   }
   SHA2_close(handle);
-  /*
-  printf("Derrived Nike Key ID1 %d ID2 %d:\n", my_id, remote_id);
+  
+  /*printf("Derrived Nike Key ID1 %d ID2 %d:\n", my_id, remote_id);
   for (int i = 0; i < 32; i++) {
     printf("%02X", symmetricKeyingMaterial[i]);
   }
@@ -218,7 +218,7 @@ void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t*
   AESECB_Handle handle;
   CryptoKey cryptoKey;
   int_fast16_t encryptionResult;
-  BigUInt128 ciphertext_sum = biguint128_ctor_default();
+  BigUInt128 ciphertext_sum = biguint128_value_of_uint(message);
 
   handle = AESECB_open(0, NULL);
   if (!handle) {
@@ -227,7 +227,8 @@ void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t*
   
   for(int i = 0; i < num_users; i++) {
     //Get new key from key array
-    CryptoKeyPlaintext_initKey(&cryptoKey, &lass_keys[i], 16);
+    uint8_t* symm_key = (uint8_t*)&lass_keys[i*16];
+    CryptoKeyPlaintext_initKey(&cryptoKey, symm_key, 16);
     AESECB_Operation operation;
     AESECB_Operation_init(&operation);
     
@@ -237,6 +238,16 @@ void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t*
     operation.output            = byte_buffer;
     operation.inputLength       = 16;
 
+    printf("Key:\n");
+    for( int j = 0; j<16;j++){
+      printf("%02X", symm_key[j]);
+    }
+    printf("\n");
+    printf("ctr:\n");
+    for( int j = 0; j<16;j++){
+      printf("%02X",counter[j]);
+    }
+    printf("\n");
     // run aes-ctr get 16 bytes
     encryptionResult = AESECB_oneStepEncrypt(handle, &operation);
     if (encryptionResult != AESECB_STATUS_SUCCESS) {
@@ -245,13 +256,12 @@ void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t*
     
     // convert bytes to 128-bit integer
     BigUInt128 new_number = b16_to_u128(byte_buffer);
+    char res_str[42];
+    res_str[biguint128_print_dec(&new_number, res_str, 42)]=0;
+    printf("New num\n %s\n", res_str);
 
     // add number to ciphertext_sum
     ciphertext_sum = biguint128_add(&new_number, &ciphertext_sum);
-    /*
-    res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
-    printf("Sum\n %s\n", res_str);
-    */
     
 
     /*char res_str[42];
@@ -268,7 +278,11 @@ void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t*
   AESECB_close(handle);
   
   //export number back
-  biguint128_export(&ciphertext_sum, (char*)ciphertext_buffer);
-
+  u128_to_b16(&ciphertext_sum, ciphertext_buffer);
+  printf("LaSS Encrypt %llu, label %llu, with %u users:\n", message, label, num_users);
+  for(int i = 0; i < 16; i++) {
+    printf("%02X", ciphertext_buffer[i]);
+  }
+  printf("\n");
 
 }

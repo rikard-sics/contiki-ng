@@ -59,7 +59,6 @@ extern uint8_t lass_keys[LASS_KEY_LEN_BYTES]; //Allocate 2096 128 bit values
 extern uint8_t myPrivateKeyingMaterial[32];
 extern uint8_t myPublicKeyingMaterial[64];
 extern uint8_t theirPublicKeyingMaterial[64];
-extern uint8_t sharedSecretKeyingMaterial[64]; //TODO try reading from this when ECDH is done
 extern uint8_t symmetricKeyingMaterial[64];
 extern uint16_t my_id;
 
@@ -110,7 +109,8 @@ PROCESS_THREAD(er_example_client, ev, data)
     //encrypt values
       printf("--Get pk_i and encrypt ek_i --\n");
       start = RTIMER_NOW();
-      while(pk_i <= num_keys+1){
+      //while(pk_i <= num_keys+1){
+      while(pk_i <= 10+1){
           char str_buf[8];
           sprintf(str_buf, "%d", pk_i);
           coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
@@ -124,8 +124,9 @@ PROCESS_THREAD(er_example_client, ev, data)
      
       start = RTIMER_NOW(); 
       uint8_t ciphertext_buf[16] = {0}; 
-      lass_encrypt(iteration, iteration+num_keys, num_keys, ciphertext_buf);
-      
+      //lass_encrypt(iteration, iteration+num_keys, num_keys, ciphertext_buf);
+      lass_encrypt(1, 0, 10, ciphertext_buf);
+       
       coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
       coap_set_header_uri_path(request, data_url);
       coap_set_payload(request, ciphertext_buf, 16);
@@ -176,16 +177,22 @@ void get_pk_handler(coap_message_t *response)
   memcpy(&theirPublicKeyingMaterial, &chunk[3], 64);
   reverse_endianness(theirPublicKeyingMaterial, 32);
   reverse_endianness(&theirPublicKeyingMaterial[32], 32);
+/*  printf("their pubkey\n");
+  for (int k=0; k < 64; k++){
+    printf("%02X", theirPublicKeyingMaterial[k]);
+  }
+  printf("\n");
+  */
   //call NIKE TODO add errors and error handling
   NIKE(my_id, their_id, myPrivateKeyingMaterial, theirPublicKeyingMaterial);
   
   //Store symmetric key in array
-  printf("nike key\n");
+  //memcpy(&lass_keys[pk_i-2], symmetricKeyingMaterial, 16);
+  printf("nike key %d\n", their_id);
   for( int k = 0; k < 16; k++){
-    printf("%02X", sharedSecretKeyingMaterial[k]);
+    printf("%02X", symmetricKeyingMaterial[k]);
   }
   printf("\n");
-  memcpy(&lass_keys[pk_i], sharedSecretKeyingMaterial, 16);
 
 
   pk_i++;

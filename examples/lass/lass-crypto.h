@@ -13,7 +13,7 @@
 
 
 #define LASS_KEY_LEN      16
-#define LASS_KEY_NUM   10
+#define LASS_KEY_NUM   10000
 #define LASS_KEY_LEN_BYTES LASS_KEY_LEN*LASS_KEY_NUM
 
 void reverse_endianness(uint8_t *a, unsigned int len);

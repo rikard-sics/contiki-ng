@@ -261,16 +261,16 @@ void encrypt_psa_key_update(){
     //export number back
     biguint128_export(&sum, (char*)sp_ptr);
 
-    char res_str[42];
+    /*char res_str[42];
     if( (i == 0) || (i == PSA_KEY_LEN-1)){ //just print a few values
         res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
         printf("[%d]: %s \n",i, res_str);
-        /*res_str[biguint128_print_dec(&new_number, res_str, 42)]=0;
+        res_str[biguint128_print_dec(&new_number, res_str, 42)]=0;
         printf("%s = ", res_str);
         res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
         printf("%s\n", res_str);
-        */
-    }
+        
+    } */
   }
 
   AESECB_close(handle);
@@ -414,7 +414,7 @@ void psa_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* 
   message_num = biguint128_add(&message_num, &sum);
   
   res_str[biguint128_print_dec(&message_num, res_str, 42)]=0;
-  printf("ciphertext: %s \n", res_str);
+  //printf("ciphertext: %s \n", res_str);
 
   u128_to_b16(&message_num, ciphertext_buffer);
   
