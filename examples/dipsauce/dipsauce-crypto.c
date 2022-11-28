@@ -10,6 +10,7 @@
 #include "ti/drivers/AESECB.h"
 #include "dipsauce-crypto.h"
 #include "biguint128.h"
+#include "tprpg.h"
 
 /* Log configuration */
 #include "coap-log.h"
@@ -27,6 +28,7 @@ uint8_t theirPublicKeyingMaterial[64] = {0};
 uint8_t sharedSecretKeyingMaterial[64] = {0}; //TODO try reading from this when ECDH is done
 uint8_t symmetricKeyingMaterial[32] = {0};
 uint16_t my_id = 1;
+uint16_t neighbors[100];
 
 CryptoKey myPrivateKey;
 CryptoKey myPublicKey;
@@ -44,6 +46,32 @@ reverse_endianness(uint8_t *a, unsigned int len) {
 		 a[len - 1 - i] = tmp[i];
 	}
 }
+
+void dipsauce_get_neighbors(uint8_t* key, uint16_t num_users, uint16_t sqrt_num_users){
+  tprpg_ctx ctx;
+  tprpg_setkey(&ctx, key, 256);
+  
+  uint32_t my_id_perm = tprpg(&ctx, my_id, num_users);
+
+  int j = 0;
+  for (int i = num_users; i >= 0; i--) {
+    uint32_t id_perm = tprpg(&ctx, i, num_users);
+    printf("permute %lu\n", id_perm); 
+    if(((id_perm/sqrt_num_users) == (my_id_perm/sqrt_num_users)) || 
+      ((id_perm%sqrt_num_users) == (my_id_perm%sqrt_num_users))){
+      
+      neighbors[j] = id_perm;
+      j++;  
+    }
+  }
+
+  printf("my_id %lu\n", my_id_perm);
+  for(int j = 0; j < sqrt_num_users; j++) {
+    printf("%d\n", neighbors[j]);
+  }
+
+}
+
 
 static void prepare_nike_data(uint16_t my_id, uint16_t remote_id, uint8_t* shared_secret, uint8_t* data) {
   //Set my_id and reverse order to big endian

@@ -16,6 +16,8 @@
 #define LASS_KEY_NUM   10000
 #define LASS_KEY_LEN_BYTES LASS_KEY_LEN*LASS_KEY_NUM
 
+void dipsauce_get_neighbors(uint8_t* key, uint16_t num_users, uint16_t sqrt_num_users);
+
 void reverse_endianness(uint8_t *a, unsigned int len);
 
 void NIKE(uint16_t my_id, uint16_t remote_id, uint8_t* my_sk, uint8_t* remote_pk);

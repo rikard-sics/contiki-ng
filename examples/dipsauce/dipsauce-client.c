@@ -44,6 +44,7 @@
 #include "coap-engine.h"
 #include "coap-blocking-api.h"
 #include "dipsauce-crypto.h"
+#include "tprpg.h"
 
 /* Log configuration */
 #include "coap-log.h"
@@ -96,7 +97,10 @@ PROCESS_THREAD(er_example_client, ev, data)
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
   
   init_lass_crypto();
-  
+  uint8_t key[256];
+  memset(key, 0, sizeof(key));
+  dipsauce_get_neighbors(key, 9, 3);
+
   etimer_set(&et, 60 * CLOCK_SECOND); // Long delay to let network start
   while(1) {
     PROCESS_YIELD();

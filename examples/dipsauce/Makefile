@@ -7,7 +7,7 @@ PLATFORMS_EXCLUDE = sky z1
 
 CONTIKI=../..
 
-PROJECT_SOURCEFILES += dipsauce-crypto.c dipsauce-keys.c biguint128.c intio.c uint.c
+PROJECT_SOURCEFILES += dipsauce-crypto.c dipsauce-keys.c biguint128.c intio.c uint.c tprpg.c
 
 # Include the CoAP implementation
 include $(CONTIKI)/Makefile.dir-variables
