@@ -85,8 +85,11 @@ void psa_msg_handler(coap_message_t *response);
 
 
 static int iteration = 0;
-static uint16_t num_keys = 1000;
+static uint16_t sizes[11] = {1024, 2025, 3025, 4096, 5041, 6084, 7056, 8100, 9025, 10000, 11000};
+static uint8_t size_ctr = 0;
+static uint16_t num_keys = 1024;
 static int block_index = 0;
+static uint16_t retransmissions = 0;
 
 static unsigned long long start;
 static unsigned long long end;
@@ -114,7 +117,6 @@ PROCESS_THREAD(er_example_client, ev, data)
     //compute nike and encrypt psa_key
     //send aks_i
     //encrypt values
-      printf("--Get pk_i and encrypt ek_i --\n");
       start = RTIMER_NOW();
       while(pk_i <= num_keys+1){
           char str_buf[8];
@@ -137,9 +139,10 @@ PROCESS_THREAD(er_example_client, ev, data)
           COAP_BLOCKING_REQUEST(&server_ep, request, blockwise_handler);
       }
       end = RTIMER_NOW();
-      printf("s %llu\n", (end - start));
-      printf("-- Sending PSA msg--\n");
-     
+      //type iter, size, time, retransmissions
+      printf("s,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
+      retransmissions = 0;
+      
       start = RTIMER_NOW(); 
       uint8_t ciphertext_buf[16] = {0}; 
       psa_encrypt(iteration, iteration+num_keys, num_keys, ciphertext_buf);
@@ -155,16 +158,17 @@ PROCESS_THREAD(er_example_client, ev, data)
       coap_set_payload(request, ciphertext_buf, 16);
       COAP_BLOCKING_REQUEST(&server_ep, request, psa_msg_handler);
       end = RTIMER_NOW();
-      printf("e %llu\n", (end - start));
-     
+      printf("e,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
       //increment iteration and prepare for next round 
+      retransmissions = 0;
       iteration++;
       pk_i = 2;
       block_index = 0;
       //we run 10 iterations per number of keys
       if(iteration >= 10) {
         iteration = 0;
-        num_keys += 1000;
+        size_ctr++;
+        num_keys = sizes[size_ctr];
         if( num_keys > 10000){
           printf("End of tests!\n");
           etimer_set(&et, 200 * CLOCK_SECOND);
@@ -184,7 +188,8 @@ void get_pk_handler(coap_message_t *response)
   const uint8_t *chunk;
 
   if(response == NULL) {
-    puts("Request timed out");
+    retransmissions++;
+    //puts("Request timed out");
     return;
   }
 
@@ -214,7 +219,8 @@ void blockwise_handler(coap_message_t *response)
 {
 
   if(response == NULL) {
-    printf("Request timed out i=%d\n", block_index);
+//    printf("Request timed out i=%d\n", block_index);
+    retransmissions++;
     return;
   } else {
     block_index++;
@@ -226,7 +232,9 @@ void psa_msg_handler(coap_message_t *response)
 {
 
   if(response == NULL) {
-    puts("Request timed out");
+    retransmissions++;
+    //
+    //puts("Request timed out");
     return;
   }
 

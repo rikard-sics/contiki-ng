@@ -346,7 +346,7 @@ void generate_psa_key() {
 
 
 void psa_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* ciphertext_buffer) {
-  printf("PSA encrypt\n");
+  //printf("PSA encrypt\n");
   SHA2_Handle handle;
   uint16_t result;
   uint8_t hash[32] = {0};
