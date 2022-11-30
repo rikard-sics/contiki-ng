@@ -205,7 +205,7 @@ void init_lass_crypto() {
 #define BUFLEN 42
 
 void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* ciphertext_buffer) {
-  printf("LASS encrypt\n");
+  //printf("LASS encrypt\n");
   
 
   //Run AES-ECB with counter to make AES-CTR that generate one block at the time.

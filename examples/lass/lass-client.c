@@ -77,12 +77,14 @@ static const char* data_url = "data";
 void get_pk_handler(coap_message_t *response);
 void lass_msg_handler(coap_message_t *response);
 
-//TODO create nike handler, Blockwise handler and 
 
 
 static int iteration = 0;
-static uint16_t num_keys = 1000;
+static uint16_t sizes[11] = {1024, 2025, 3025, 4096, 5041, 6084, 7056, 8100, 9025, 10000, 11000};
+static uint8_t size_ctr = 0;
+static uint16_t num_keys = 1024;
 static int block_index = 0;
+static uint16_t retransmissions = 0;
 
 static unsigned long long start;
 static unsigned long long end;
@@ -107,7 +109,6 @@ PROCESS_THREAD(er_example_client, ev, data)
     //compute nike and throw away the key
     //send aks_i
     //encrypt values
-      printf("--Get pk_i and encrypt ek_i --\n");
       start = RTIMER_NOW();
       while(pk_i <= num_keys+1){
           char str_buf[8];
@@ -118,28 +119,38 @@ PROCESS_THREAD(er_example_client, ev, data)
           COAP_BLOCKING_REQUEST(&server_ep, request, get_pk_handler);
       }
       end = RTIMER_NOW();
-      printf("s %llu\n", (end - start));
-      printf("-- Sending PSA msg--\n");
+      if(RTIMER_CLOCK_LT(end,start)) { //If end < start, the RTIMER counter (32bit) has overflowed. IIt will do this each 24 hours (approx).
+        end += UINT32_MAX;
+      }
+      //type iter, size, time, retransmissions
+      printf("s,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
+      retransmissions = 0;
      
       start = RTIMER_NOW(); 
       uint8_t ciphertext_buf[16] = {0}; 
       lass_encrypt(iteration, iteration+num_keys, num_keys, ciphertext_buf);
+      //does not include sending the encrypted message
+      end = RTIMER_NOW();
+      printf("e,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
+ 
        
       coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
       coap_set_header_uri_path(request, data_url);
       coap_set_payload(request, ciphertext_buf, 16);
       COAP_BLOCKING_REQUEST(&server_ep, request, lass_msg_handler);
-      end = RTIMER_NOW();
-      printf("e %llu\n", (end - start));
-     
+    
+
       //increment iteration and prepare for next round 
+      retransmissions = 0;
       iteration++;
       pk_i = 2;
       block_index = 0;
+     
       //we run 10 iterations per number of keys
       if(iteration >= 10) {
         iteration = 0;
-        num_keys += 1000;
+        size_ctr++;
+        num_keys = sizes[size_ctr];
         if( num_keys > 10000){
           printf("End of tests!\n");
           etimer_set(&et, 200 * CLOCK_SECOND);
@@ -159,7 +170,8 @@ void get_pk_handler(coap_message_t *response)
   const uint8_t *chunk;
 
   if(response == NULL) {
-    puts("Request timed out");
+    retransmissions++;
+    //puts("Request timed out");
     return;
   }
 
@@ -194,7 +206,8 @@ void lass_msg_handler(coap_message_t *response)
 {
 
   if(response == NULL) {
-    puts("Request timed out");
+    //puts("Request timed out");
+    retransmissions++;
     return;
   }
 

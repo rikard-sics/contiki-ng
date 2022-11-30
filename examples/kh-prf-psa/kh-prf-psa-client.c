@@ -116,7 +116,7 @@ PROCESS_THREAD(er_example_client, ev, data)
     //Get Public keys
     //compute nike and encrypt psa_key
     //send aks_i
-    //encrypt values
+    //setup
       start = RTIMER_NOW();
       while(pk_i <= num_keys+1){
           char str_buf[8];
@@ -149,20 +149,16 @@ PROCESS_THREAD(er_example_client, ev, data)
       start = RTIMER_NOW(); 
       uint8_t ciphertext_buf[16] = {0}; 
       psa_encrypt(iteration, iteration+num_keys, num_keys, ciphertext_buf);
-      
-     /* printf("Ciphertext\n");
-      for(int i = 0; i < 16; i++) {
-        printf("%02X", ciphertext_buf[i]);
-      }
-      printf("\n");
-      */
+
+      //does not include sending the encrypted message
+      end = RTIMER_NOW();
+      printf("e,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
+
       coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
       coap_set_header_uri_path(request, data_url);
       coap_set_payload(request, ciphertext_buf, 16);
       COAP_BLOCKING_REQUEST(&server_ep, request, psa_msg_handler);
-      end = RTIMER_NOW();
-      printf("e,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
-      //increment iteration and prepare for next round 
+            //increment iteration and prepare for next round 
       retransmissions = 0;
       iteration++;
       pk_i = 2;
