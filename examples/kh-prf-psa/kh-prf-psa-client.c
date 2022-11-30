@@ -43,7 +43,7 @@
 #include "contiki-net.h"
 #include "coap-engine.h"
 #include "coap-blocking-api.h"
-#include "psa-crypto.h"
+#include "kh-prf-psa-crypto.h"
 
 /* Log configuration */
 #include "coap-log.h"

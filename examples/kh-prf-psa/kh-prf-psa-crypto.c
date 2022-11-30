@@ -8,7 +8,7 @@
 #include "ti/drivers/TRNG.h"
 #include "ti/drivers/SHA2.h"
 #include "ti/drivers/AESECB.h"
-#include "psa-crypto.h"
+#include "kh-prf-psa-crypto.h"
 #include "biguint128.h"
 
 /* Log configuration */

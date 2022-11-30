@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = psa-client
+CONTIKI_PROJECT = kh-prf-psa-client
 # coap-example-observe-client is outdated but will be ported at a later point
 all: $(CONTIKI_PROJECT)
 
@@ -7,7 +7,7 @@ PLATFORMS_EXCLUDE = sky z1
 
 CONTIKI=../..
 
-PROJECT_SOURCEFILES += psa-crypto.c biguint128.c intio.c uint.c psa-key.c
+PROJECT_SOURCEFILES += kh-prf-psa-crypto.c biguint128.c intio.c uint.c psa-key.c
 
 # Include the CoAP implementation
 include $(CONTIKI)/Makefile.dir-variables
