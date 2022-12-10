@@ -21,7 +21,7 @@ uint8_t myPrivateKeyingMaterial[32] = {0x54,0x16,0x19,0x15,0x20,0x33,0x07,0x90,0
                                       0xa5,0xce,0xad,0x2f,0x1b,0x43,0xa6,0xac,0xf5,0x15,
                                       0x24,0x91,0x55,0xd0,0x19,0x5d,0xb7,0x0d,0x17,0x16,0x00,0x7e};
 
-extern const uint8_t lass_keys[LASS_KEY_LEN_BYTES];
+extern const uint8_t dipsauce_keys[DIPSAUCE_KEY_LEN_BYTES];
 
 uint8_t myPublicKeyingMaterial[64] = {0};
 uint8_t theirPublicKeyingMaterial[64] = {0};
@@ -29,6 +29,7 @@ uint8_t sharedSecretKeyingMaterial[64] = {0}; //TODO try reading from this when 
 uint8_t symmetricKeyingMaterial[32] = {0};
 uint16_t my_id = 1;
 uint16_t neighbors[100];
+uint8_t  dipsauce_randomness[32];
 
 CryptoKey myPrivateKey;
 CryptoKey myPublicKey;
@@ -47,31 +48,55 @@ reverse_endianness(uint8_t *a, unsigned int len) {
 	}
 }
 
-void dipsauce_get_neighbors(uint8_t* key, uint16_t num_users, uint16_t sqrt_num_users){
+// Square root of integer - from wikipedia
+unsigned int int_sqrt ( unsigned int s )
+{
+  // Zero yields zero
+  // One yields one
+  if (s <= 1) {
+    return s;
+  }
+  // Initial estimate (must be too high)
+  unsigned int x0 = s / 2;
+
+  // Update
+  unsigned int x1 = ( x0 + s / x0 ) / 2;
+
+  while ( x1 < x0 ) {   // Bound check
+    x0 = x1;
+    x1 = ( x0 + s / x0 ) / 2;
+  }
+
+  return x0;
+}
+
+uint16_t dipsauce_get_neighbors(uint8_t* key, uint16_t num_users){
+  uint16_t sqrt_num_users = int_sqrt(num_users);
+  printf("num users %u, sqrt %u \n", num_users, sqrt_num_users);
   tprpg_ctx ctx;
   tprpg_setkey(&ctx, key, 256);
-  
+
   uint32_t my_id_perm = tprpg(&ctx, my_id, num_users);
 
   int j = 0;
-  for (int i = num_users; i >= 0; i--) {
+  for (int i = 0; i < num_users; i++) {
     uint32_t id_perm = tprpg(&ctx, i, num_users);
-    printf("permute %lu\n", id_perm); 
-    if(((id_perm/sqrt_num_users) == (my_id_perm/sqrt_num_users)) || 
+    //printf("permute %u\n", id_perm); 
+    if(((id_perm/sqrt_num_users) == (my_id_perm/sqrt_num_users)) ||
       ((id_perm%sqrt_num_users) == (my_id_perm%sqrt_num_users))){
-      
-      neighbors[j] = id_perm;
-      j++;  
+      if(i != my_id){
+        neighbors[j] = i;
+        j++;
+      }
     }
   }
 
-  printf("my_id %lu\n", my_id_perm);
-  for(int j = 0; j < sqrt_num_users; j++) {
-    printf("%d\n", neighbors[j]);
+  printf("my permuted id %lu, neighbors:\n", my_id_perm);
+  for(int i = 0; i < j; i++) {
+    printf("%d\n", neighbors[i]);
   }
-
+  return j;
 }
-
 
 static void prepare_nike_data(uint16_t my_id, uint16_t remote_id, uint8_t* shared_secret, uint8_t* data) {
   //Set my_id and reverse order to big endian
@@ -190,7 +215,7 @@ BigUInt128 b32_to_u128(const uint8_t* hash) {
 
 
 
-void init_lass_crypto() {
+void init_dipsauce_crypto() {
 
   uint16_t result;
 
@@ -232,7 +257,7 @@ void init_lass_crypto() {
 
 #define BUFLEN 42
 
-void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* ciphertext_buffer) {
+void dipsauce_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* ciphertext_buffer) {
   printf("LASS encrypt\n");
   
 
@@ -255,7 +280,7 @@ void lass_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t*
   
   for(int i = 0; i < num_users; i++) {
     //Get new key from key array
-    uint8_t* symm_key = (uint8_t*)&lass_keys[i*16];
+    uint8_t* symm_key = (uint8_t*)&dipsauce_keys[i*16];
     CryptoKeyPlaintext_initKey(&cryptoKey, symm_key, 16);
     AESECB_Operation operation;
     AESECB_Operation_init(&operation);

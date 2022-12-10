@@ -13,6 +13,9 @@ from Crypto.Cipher import AES
 from Crypto.Util import Counter
 import hashlib
 import csv
+import requests 
+import subprocess
+import math
 
 class simple_pki():
 
@@ -78,6 +81,24 @@ def lass_encrypt(lass_keys, label, message, num_users):
 
     return enc_sum
 
+def tprpg(key, i, num_users):
+    ret = subprocess.run(["./tprpg", str(num_users), str(i), key])
+    return ret.returncode
+
+def get_neighbors(key, my_id, num_users):
+    my_index_perm = tprpg(key, my_id, num_users)
+    sqrt_num_users =  math.isqrt(num_users)
+    #print("My id {}, permuted id {}, num_users {} sqrt(num_users) {}".format(my_id, my_id_perm, num_users, sqrt_num_users))    
+    neighbors = []
+    for i in range(num_users):
+        index_perm = tprpg(key, i, num_users)
+        #print("permute ", id_perm) 
+        if index_perm//sqrt_num_users == my_index_perm//sqrt_num_users or index_perm%sqrt_num_users == my_index_perm%sqrt_num_users:
+            if index_perm != my_index_perm:
+                neighbors.append(i)
+    
+    #print("ID {}, Index {}, {}".format(my_id, my_index_perm, neighbors))
+    return neighbors
 
 generator = p256.secp256r1_generator
 
@@ -87,19 +108,35 @@ pk_iot = generator*sk_iot
 
 lass_keys = []
 
-for id_j in range(2,1002):
-    pub_key = pki.get_pk(id_j)
-    pbb = pki.get_pk_bytes(id_j)
-    symmetric_key = nike(1, id_j, pub_key, sk_iot)
-    symmetric_key = symmetric_key[:16]
-    print("nike {} key {}".format(id_j, hexbytes.b2h(symmetric_key)))
-    lass_keys.append(symmetric_key) 
+#for id_j in range(2,1002):
+#    pub_key = pki.get_pk(id_j)
+#    pbb = pki.get_pk_bytes(id_j)
+#    symmetric_key = nike(1, id_j, pub_key, sk_iot)
+#    symmetric_key = symmetric_key[:16]
+#    print("nike {} key {}".format(id_j, hexbytes.b2h(symmetric_key)))
+#    lass_keys.append(symmetric_key) 
 
 
-c = lass_encrypt(lass_keys, 1, 0, 10)
-print("ciphertext", hex(c))
+#c = lass_encrypt(lass_keys, 1, 0, 10)
+#print("ciphertext", hex(c))
 
-print("done")
+k = "0000000000000000000000000000000000000000000000000000000000000000"
+#k = "7e0016170db75d19d055912415f5aca6431b2fadcea5c5949007332015191654"
+#print("Perm:")
+#for i in range(9):
+#    print(i, tprpg(k, i, 9))
+
+a = []
+num = 1024
+for i in range(num):
+    print(i)
+    n = get_neighbors(k, i, num)
+    if 1 in n:
+        a.append(i)
+
+print("people that have {} as neighbor".format(1))
+print(a)
+
 class blockresource(resource.Resource):
     """example resource which supports the get and put methods. it sends large
     responses, which trigger blockwise transfer."""
@@ -126,6 +163,29 @@ class blockresource(resource.Resource):
         self.set_content(request.payload)
         return aiocoap.Message(code=aiocoap.changed, payload=self.content)
 
+class randomnessresource(resource.Resource):
+    """example resource which supports the get and put methods. it sends large
+    responses, which trigger blockwise transfer."""
+
+    def __init__(self):
+        super().__init__()
+
+    def set_content(self, content):
+        self.content = content
+
+    async def render_get(self, request):
+        # api-endpoint with default Leauge of Entropy drand group
+        URL = "https://api.drand.sh/8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce/public/latest"
+        # sending get request and saving the response as response object
+        r = requests.get(url = URL)
+        # extracting data in json format
+        data = r.json()
+        randomness = data['randomness']
+        print("Sending randomness: ", randomness)
+        randomness = bytearray.fromhex(randomness)
+        self.set_content(randomness)
+        return aiocoap.Message(payload=self.content)
+
 class dataresource(resource.Resource):
 
     def __init__(self):
@@ -147,6 +207,7 @@ async def main():
 
     root.add_resource(['.well-known', 'core'],
             resource.WKCResource(root.get_resources_as_linkheader))
+    root.add_resource(['random'], randomnessresource())
     root.add_resource(['pubkey'], blockresource())
     root.add_resource(['data'], dataresource())
     #root.add_resource(['whoami'], WhoAmI())

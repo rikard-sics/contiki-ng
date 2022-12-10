@@ -56,34 +56,38 @@
 #define SERVER_EP "coap://[fd00::1]"
 
 /* Declaired in psa-crypto.c */
-extern uint8_t lass_keys[LASS_KEY_LEN_BYTES]; //Allocate 2096 128 bit values
+extern uint8_t dipsauce_keys[DIPSAUCE_KEY_LEN_BYTES]; //Allocate 2096 128 bit values
 extern uint8_t myPrivateKeyingMaterial[32];
 extern uint8_t myPublicKeyingMaterial[64];
 extern uint8_t theirPublicKeyingMaterial[64];
 extern uint8_t symmetricKeyingMaterial[64];
 extern uint16_t my_id;
+extern uint8_t dipsauce_randomness[32];
+extern uint16_t neighbors[100];
 
 #define TOGGLE_INTERVAL 10
-static int pk_i = 2;
+static int pk_i = 0;
 
 PROCESS(er_example_client, "Erbium Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
 
 static struct etimer et;
+static const char* random_url = "random";
 static const char* pk_url = "pubkey";
 static const char* data_url = "data";
 
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
-
+void randomness_handler(coap_message_t *response);
 void get_pk_handler(coap_message_t *response);
-void lass_msg_handler(coap_message_t *response);
-
-//TODO create nike handler, Blockwise handler and 
-
+void dipsauce_msg_handler(coap_message_t *response);
 
 static int iteration = 0;
-static uint16_t num_keys = 1000;
+static uint16_t sizes[11] = {1024, 2025, 3025, 4096, 5041, 6084, 7056, 8100, 9025, 10000, 11000};
+static uint8_t size_ctr = 0;
+static uint16_t num_keys = 1024;
 static int block_index = 0;
+static uint16_t retransmissions = 0;
+static uint16_t num_neighbors = 0;
 
 static unsigned long long start;
 static unsigned long long end;
@@ -96,10 +100,7 @@ PROCESS_THREAD(er_example_client, ev, data)
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
   
-  init_lass_crypto();
-  uint8_t key[256];
-  memset(key, 0, sizeof(key));
-  dipsauce_get_neighbors(key, 9, 3);
+  init_dipsauce_crypto();
 
   etimer_set(&et, 60 * CLOCK_SECOND); // Long delay to let network start
   while(1) {
@@ -111,45 +112,56 @@ PROCESS_THREAD(er_example_client, ev, data)
     //compute nike and throw away the key
     //send aks_i
     //encrypt values
-      printf("--Get pk_i and encrypt ek_i --\n");
       start = RTIMER_NOW();
-      while(pk_i <= num_keys+1){
+      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
+      coap_set_header_uri_path(request, random_url);
+      COAP_BLOCKING_REQUEST(&server_ep, request, randomness_handler);
+      num_neighbors = dipsauce_get_neighbors(dipsauce_randomness, num_keys);
+      
+      while(pk_i < num_neighbors){
           char str_buf[8];
-          sprintf(str_buf, "%d", pk_i);
+          sprintf(str_buf, "%d", neighbors[pk_i]);
           coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
           coap_set_header_uri_path(request, pk_url);
           coap_set_header_uri_query(request, str_buf);
           COAP_BLOCKING_REQUEST(&server_ep, request, get_pk_handler);
       }
       end = RTIMER_NOW();
-      printf("s %llu\n", (end - start));
-      printf("-- Sending PSA msg--\n");
-     
+      if(RTIMER_CLOCK_LT(end,start)) { //If end < start, the RTIMER counter (32bit) has overflowed. IIt will do this each 24 hours (approx).
+        end += UINT32_MAX;
+      }
+      //type iter, size, time, retransmissions
+      printf("s,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
+      retransmissions = 0;
+
       start = RTIMER_NOW(); 
       uint8_t ciphertext_buf[16] = {0}; 
-      lass_encrypt(iteration, iteration+num_keys, num_keys, ciphertext_buf);
-       
+      dipsauce_encrypt(iteration, iteration+num_keys, num_neighbors, ciphertext_buf);
+      end = RTIMER_NOW();
+      printf("e,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
+ 
       coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
       coap_set_header_uri_path(request, data_url);
       coap_set_payload(request, ciphertext_buf, 16);
-      COAP_BLOCKING_REQUEST(&server_ep, request, lass_msg_handler);
-      end = RTIMER_NOW();
-      printf("e %llu\n", (end - start));
+      COAP_BLOCKING_REQUEST(&server_ep, request, dipsauce_msg_handler);
      
       //increment iteration and prepare for next round 
+      retransmissions = 0;
       iteration++;
-      pk_i = 2;
+      pk_i = 0;
       block_index = 0;
+
       //we run 10 iterations per number of keys
       if(iteration >= 10) {
         iteration = 0;
-        num_keys += 1000;
+        size_ctr++;
+        num_keys = sizes[size_ctr];
         if( num_keys > 10000){
           printf("End of tests!\n");
           etimer_set(&et, 200 * CLOCK_SECOND);
         }
       }
-      
+ 
       etimer_set(&et, 5 * CLOCK_SECOND);
           
     }
@@ -194,7 +206,7 @@ void get_pk_handler(coap_message_t *response)
   pk_i++;
 }
 
-void lass_msg_handler(coap_message_t *response)
+void dipsauce_msg_handler(coap_message_t *response)
 {
 
   if(response == NULL) {
@@ -203,3 +215,21 @@ void lass_msg_handler(coap_message_t *response)
   }
 
 }
+
+void randomness_handler(coap_message_t *response)
+{
+  const uint8_t *chunk;
+
+  if(response == NULL) {
+    puts("Request timed out");
+    return;
+  }
+
+  int len = coap_get_payload(response, &chunk);
+  for(int i = 0; i < len; i++){
+    printf("%02X", chunk[i]);
+  }
+  printf("\n");
+  memcpy(dipsauce_randomness, chunk, 32);
+}
+
