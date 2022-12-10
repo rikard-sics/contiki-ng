@@ -139,9 +139,10 @@ PROCESS_THREAD(er_example_client, ev, data)
           COAP_BLOCKING_REQUEST(&server_ep, request, blockwise_handler);
       }
       end = RTIMER_NOW();
-      if(RTIMER_CLOCK_LT(end,start)) { //If end < start, the RTIMER counter (32bit) has overflowed. IIt will do this each 24 hours (approx).
+      if(end < start) { //If end < start, the RTIMER counter (32bit) has overflowed. IIt will do this each 24 hours (approx).
         end += UINT32_MAX;
       }
+ 
       //type iter, size, time, retransmissions
       printf("s,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
       retransmissions = 0;
@@ -152,6 +153,10 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       //does not include sending the encrypted message
       end = RTIMER_NOW();
+      if(end < start) { //If end < start, the RTIMER counter (32bit) has overflowed. IIt will do this each 24 hours (approx).
+        end += UINT32_MAX;
+      }
+ 
       printf("e,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
 
       coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
