@@ -120,22 +120,22 @@ lass_keys = []
 #c = lass_encrypt(lass_keys, 1, 0, 10)
 #print("ciphertext", hex(c))
 
-k = "0000000000000000000000000000000000000000000000000000000000000000"
+#k = "0000000000000000000000000000000000000000000000000000000000000000"
 #k = "7e0016170db75d19d055912415f5aca6431b2fadcea5c5949007332015191654"
 #print("Perm:")
 #for i in range(9):
 #    print(i, tprpg(k, i, 9))
 
-a = []
-num = 1024
-for i in range(num):
-    print(i)
-    n = get_neighbors(k, i, num)
-    if 1 in n:
-        a.append(i)
+#a = []
+#num = 1024
+#for i in range(num):
+#    print(i)
+#    n = get_neighbors(k, i, num)
+#    if 1 in n:
+#        a.append(i)
 
-print("people that have {} as neighbor".format(1))
-print(a)
+#print("people that have {} as neighbor".format(1))
+#print(a)
 
 class blockresource(resource.Resource):
     """example resource which supports the get and put methods. it sends large
@@ -198,7 +198,7 @@ class dataresource(resource.Resource):
     async def render_put(self, request):
         print("put! got message {}".format(request.payload))
         #todo aggregate data!
-        return aiocoap.Message(code=aiocoap.changed, payload=self.content)
+        return aiocoap.Message(code=aiocoap.CHANGED, payload=self.content)
 
 async def main():
 

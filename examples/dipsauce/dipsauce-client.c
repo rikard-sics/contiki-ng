@@ -1,40 +1,3 @@
-/*
- * Copyright (c) 2013, Institute for Pervasive Computing, ETH Zurich
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the Institute nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * This file is part of the Contiki operating system.
- */
-
-/**
- * \file
- *      Erbium (Er) CoAP client example.
- * \author
- *      Matthias Kovatsch <kovatsch@inf.ethz.ch>
- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,8 +14,10 @@
 #define LOG_MODULE "App"
 #define LOG_LEVEL  LOG_LEVEL_APP
 
+//For GPIO
+#include <Board.h>
+#include "dev/gpio-hal.h"
 
-/* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 #define SERVER_EP "coap://[fd00::1]"
 
 /* Declaired in psa-crypto.c */
@@ -63,7 +28,7 @@ extern uint8_t theirPublicKeyingMaterial[64];
 extern uint8_t symmetricKeyingMaterial[64];
 extern uint16_t my_id;
 extern uint8_t dipsauce_randomness[32];
-extern uint16_t neighbors[100];
+extern uint16_t neighbors[200];
 
 #define TOGGLE_INTERVAL 10
 static int pk_i = 0;
@@ -96,6 +61,9 @@ PROCESS_THREAD(er_example_client, ev, data)
 {
   static coap_endpoint_t server_ep;
   PROCESS_BEGIN();
+  gpio_hal_arch_init();
+  gpio_hal_arch_pin_set_output(GPIO_PORT, GPIO_TOGGLE_PIN);
+  gpio_hal_arch_write_pin(GPIO_PORT, GPIO_TOGGLE_PIN, 0); 
 
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
@@ -113,6 +81,7 @@ PROCESS_THREAD(er_example_client, ev, data)
     //send aks_i
     //encrypt values
       start = RTIMER_NOW();
+      gpio_hal_arch_write_pin(GPIO_PORT, GPIO_TOGGLE_PIN, 1);
       coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
       coap_set_header_uri_path(request, random_url);
       COAP_BLOCKING_REQUEST(&server_ep, request, randomness_handler);
@@ -127,6 +96,7 @@ PROCESS_THREAD(er_example_client, ev, data)
           COAP_BLOCKING_REQUEST(&server_ep, request, get_pk_handler);
       }
       end = RTIMER_NOW();
+      gpio_hal_arch_write_pin(GPIO_PORT, GPIO_TOGGLE_PIN, 0);
       if(end < start) { //If end < start, the RTIMER counter (32bit) has overflowed. IIt will do this each 24 hours (approx).
         end += UINT32_MAX;
       }
@@ -135,9 +105,14 @@ PROCESS_THREAD(er_example_client, ev, data)
       retransmissions = 0;
 
       start = RTIMER_NOW(); 
+      gpio_hal_arch_write_pin(GPIO_PORT, GPIO_TOGGLE_PIN, 1);
       uint8_t ciphertext_buf[16] = {0}; 
       dipsauce_encrypt(iteration, iteration+num_keys, num_neighbors, ciphertext_buf);
+      gpio_hal_arch_write_pin(GPIO_PORT, GPIO_TOGGLE_PIN, 0);
       end = RTIMER_NOW();
+      if(end < start) { //If end < start, the RTIMER counter (32bit) has overflowed. IIt will do this each 24 hours (approx).
+        end += UINT32_MAX;
+      }
       printf("e,%d,%d, %llu, %d\n", iteration, num_keys, (end - start), retransmissions);
  
       coap_init_message(request, COAP_TYPE_CON, COAP_PUT, 0);
@@ -175,7 +150,7 @@ void get_pk_handler(coap_message_t *response)
   const uint8_t *chunk;
 
   if(response == NULL) {
-    puts("Request timed out");
+    retransmissions++;
     return;
   }
 
@@ -191,17 +166,9 @@ void get_pk_handler(coap_message_t *response)
   memcpy(&theirPublicKeyingMaterial, &chunk[3], 64);
   reverse_endianness(theirPublicKeyingMaterial, 32);
   reverse_endianness(&theirPublicKeyingMaterial[32], 32);
-/*  printf("their pubkey\n");
-  for (int k=0; k < 64; k++){
-    printf("%02X", theirPublicKeyingMaterial[k]);
-  }
-  printf("\n");
-  */
+  
   //call NIKE TODO add errors and error handling
   NIKE(my_id, their_id, myPrivateKeyingMaterial, theirPublicKeyingMaterial);
-  
-  //Store symmetric key in array
-  //memcpy(&lass_keys[pk_i-2], symmetricKeyingMaterial, 16);
 
   pk_i++;
 }
@@ -210,7 +177,7 @@ void dipsauce_msg_handler(coap_message_t *response)
 {
 
   if(response == NULL) {
-    puts("Request timed out");
+    retransmissions++;
     return;
   }
 
@@ -221,15 +188,11 @@ void randomness_handler(coap_message_t *response)
   const uint8_t *chunk;
 
   if(response == NULL) {
-    puts("Request timed out");
+    retransmissions++;
     return;
   }
 
-  int len = coap_get_payload(response, &chunk);
-  for(int i = 0; i < len; i++){
-    printf("%02X", chunk[i]);
-  }
-  printf("\n");
+  coap_get_payload(response, &chunk);
   memcpy(dipsauce_randomness, chunk, 32);
 }
 

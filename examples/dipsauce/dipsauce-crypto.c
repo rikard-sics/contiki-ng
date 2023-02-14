@@ -28,7 +28,7 @@ uint8_t theirPublicKeyingMaterial[64] = {0};
 uint8_t sharedSecretKeyingMaterial[64] = {0}; //TODO try reading from this when ECDH is done
 uint8_t symmetricKeyingMaterial[32] = {0};
 uint16_t my_id = 1;
-uint16_t neighbors[100];
+uint16_t neighbors[200];
 uint8_t  dipsauce_randomness[32];
 
 CryptoKey myPrivateKey;
@@ -72,7 +72,7 @@ unsigned int int_sqrt ( unsigned int s )
 
 uint16_t dipsauce_get_neighbors(uint8_t* key, uint16_t num_users){
   uint16_t sqrt_num_users = int_sqrt(num_users);
-  printf("num users %u, sqrt %u \n", num_users, sqrt_num_users);
+  //printf("num users %u, sqrt %u \n", num_users, sqrt_num_users);
   tprpg_ctx ctx;
   tprpg_setkey(&ctx, key, 256);
 
@@ -91,10 +91,6 @@ uint16_t dipsauce_get_neighbors(uint8_t* key, uint16_t num_users){
     }
   }
 
-  printf("my permuted id %lu, neighbors:\n", my_id_perm);
-  for(int i = 0; i < j; i++) {
-    printf("%d\n", neighbors[i]);
-  }
   return j;
 }
 
@@ -119,7 +115,6 @@ void NIKE(uint16_t my_id, uint16_t remote_id, uint8_t* my_sk, uint8_t* remote_pk
 
   CryptoKey theirPublicKey;
   CryptoKey sharedSecret;
-  //CryptoKey symmetricKey;
   SHA2_Handle handle;
   uint16_t result;
   CryptoKeyPlaintext_initKey(&theirPublicKey, theirPublicKeyingMaterial, sizeof(theirPublicKeyingMaterial));
@@ -141,38 +136,18 @@ void NIKE(uint16_t my_id, uint16_t remote_id, uint8_t* my_sk, uint8_t* remote_pk
   if (!handle) {
     printf("SHA2 driver could not be opened\n");
   }
-  /*
-  printf("ECDH secret\n");
-  for (int i = 0; i < 64; i++) {
-    printf("%02X", sharedSecretKeyingMaterial[i]);
-  }
-  printf("\n");
-  */
    
   //data is our_id||their_id||shared_secret
   //We do this with the mysterious magic of C pointers
   uint8_t data[2+2+64];
 
   prepare_nike_data(my_id, remote_id, sharedSecretKeyingMaterial, data);
-  /*
-  printf("nike data\n");
-  for (int i = 0; i < 68; i++) {
-    printf("%02X", data[i]);
-  }
-  printf("\n");
-  */
   result = SHA2_hashData(handle, data, 2+2+64, symmetricKeyingMaterial);
   if (result != SHA2_STATUS_SUCCESS) {
     printf("SHA2 driver could not produce value\n");
   }
   SHA2_close(handle);
   
-  /*printf("Derrived Nike Key ID1 %d ID2 %d:\n", my_id, remote_id);
-  for (int i = 0; i < 32; i++) {
-    printf("%02X", symmetricKeyingMaterial[i]);
-  }
-  printf("\n");
-  */
 }
 
 BigUInt128 b16_to_u128(const uint8_t* bytes) {
@@ -258,9 +233,6 @@ void init_dipsauce_crypto() {
 #define BUFLEN 42
 
 void dipsauce_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint8_t* ciphertext_buffer) {
-  printf("LASS encrypt\n");
-  
-
   //Run AES-ECB with counter to make AES-CTR that generate one block at the time.
   uint8_t counter[16] = {0}; 
   counter[12] = ((0xFF000000&label)>>32);  
@@ -303,17 +275,6 @@ void dipsauce_encrypt(uint64_t label, uint64_t message, uint16_t num_users, uint
     // add number to ciphertext_sum
     ciphertext_sum = biguint128_add(&new_number, &ciphertext_sum);
     
-
-    /*char res_str[42];
-    if( (i == 0) || (i == PSA_KEY_LEN-1)){ //just print a few values
-        res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
-        printf("[%d]: %s \n",i, res_str);
-        res_str[biguint128_print_dec(&new_number, res_str, 42)]=0;
-        printf("%s = ", res_str);
-        res_str[biguint128_print_dec(&sum, res_str, 42)]=0;
-        printf("%s\n", res_str);
-        
-    } */
   }
   AESECB_close(handle);
   
