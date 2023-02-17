@@ -2,10 +2,10 @@
 
 ## Materials needed:
 Two cc1352 simplelink boards.
-Contiki-NG
+Contiki-NG 
 Uniflash 5.2 or higher
 
-
+**NOTE:** All the files relevant for PSA are in contiki-ng/examples/psa
 **NOTE:** If you are unfamiliar with Contiki-NG, the documentation can be found here: [Contiki-NG documentation](https://docs.contiki-ng.org/en/develop/).
 **NOTE:** Before flashing one device, turn of all other devices to make sure the correct device is being flashed.
 **NOTE:** After flashing a Simplelink device it will only boot partialy. You need to Click the "Reset Button" (white component, next to the USB connector on the board).
