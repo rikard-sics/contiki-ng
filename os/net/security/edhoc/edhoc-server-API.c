@@ -294,19 +294,16 @@ PROCESS_THREAD(edhoc_server, ev, data){
     response->payload = (uint8_t *)edhoc_ctx->msg_tx;
     response->payload_len = edhoc_ctx->tx_sz;
     coap_set_status_code(response, CHANGED_2_04);
+    memset(&(response->options), 0, 8);
     if(response->payload_len == 0) {
-      memset(&(response->options), 0, 8);
       memset(&(request->options), 0, 8);
     } else {
-      memset(&(response->options), 0, 8);
       coap_set_header_block2(response, 0, edhoc_ctx->tx_sz > COAP_MAX_CHUNK_SIZE ? 1 : 0, COAP_MAX_CHUNK_SIZE);
     }
     if(serv->state == TX_MSG_ERR) {
       serv->state = NON_MSG;
-      coap_set_status_code(response, CHANGED_2_04);
-    } else {
-      coap_set_status_code(response, CHANGED_2_04);
     }
+    coap_set_status_code(response, CHANGED_2_04);
     LOG_DBG("Blockwise: block 1 response: Num: %" PRIu32
             ", More: %u, Size: %u, Offset: %" PRIu32 "\n",
             response->block1_num,
