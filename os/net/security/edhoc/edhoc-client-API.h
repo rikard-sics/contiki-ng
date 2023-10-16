@@ -105,11 +105,6 @@ typedef struct edhoc_data_even_t {
 }edhoc_data_even_t;
 
 /**
- * \brief EDHOC context struct used by the EDHOC protocol
- */
-edhoc_context_t *ctx;
-
-/**
  * \brief Run the EDHOC Initiator part
  *
  *  This function must be called from the EDHOC Initiator program to start the EDHOC protocol

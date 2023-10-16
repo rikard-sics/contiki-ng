@@ -102,7 +102,7 @@ PROCESS_THREAD(edhoc_example_client, ev, data)
     int8_t re = edhoc_client_callback(ev, &data);
     if(re > 0) {
       LOG_INFO("EDHOC protocol finished success, export here your security context\n");
-      if(edhoc_exporter_oscore(&osc, ctx) < 0) {
+      if(edhoc_exporter_oscore(&osc, edhoc_ctx) < 0) {
         LOG_ERR("ERROR IN EXPORT CTX\n");
       } else {
         LOG_INFO("Export OSCORE CTX success\n");

@@ -117,14 +117,14 @@ edhoc_server_restart()
   serv->rx_msg3 = false;
   serv->state = NON_MSG;
   memset(&server, 0, sizeof(edhoc_server_t));
-  edhoc_init(ctx);
-  return edhoc_get_authentication_key(ctx);
+  edhoc_init(edhoc_ctx);
+  return edhoc_get_authentication_key(edhoc_ctx);
 }
 uint8_t
 edhoc_server_start()
 {
   LOG_INFO("SERVER: Edhoc new\n");
-  ctx = edhoc_new();
+  edhoc_ctx = edhoc_new();
   memset(&server, 0, sizeof(edhoc_server_t));
   serv = &server;
   return edhoc_server_restart();
@@ -139,7 +139,7 @@ edhoc_server_init()
 void
 edhoc_server_close()
 {
-  edhoc_finalize(ctx);
+  edhoc_finalize(edhoc_ctx);
 }
 void
 edhoc_server_process(coap_message_t *req, coap_message_t *res, edhoc_server_t *ser, uint8_t *msg, uint8_t len)
@@ -181,7 +181,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
 
       time_total = RTIMER_NOW();
       time = RTIMER_NOW();
-      er = edhoc_handler_msg_1(ctx, msg_rx, msg_rx_len, (uint8_t *)new_ecc.ad.ad_1);
+      er = edhoc_handler_msg_1(edhoc_ctx, msg_rx, msg_rx_len, (uint8_t *)new_ecc.ad.ad_1);
       time = RTIMER_NOW() - time;
       LOG_INFO("Server time to handler MSG1: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
 
@@ -194,7 +194,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         process_post(PROCESS_BROADCAST, new_ecc_event, &new_ecc);
       } else if(er < RX_ERR_MSG) {
         LOG_WARN("Send MSG error with code (%d)\n", er);
-        ctx->tx_sz = edhoc_gen_msg_error(ctx->msg_tx, ctx, er);
+        edhoc_ctx->tx_sz = edhoc_gen_msg_error(edhoc_ctx->msg_tx, edhoc_ctx, er);
         serv->state = TX_MSG_ERR;
         if(er != ERR_NEW_SUIT_PROPOSE){
           coap_timer_stop(&timer);
@@ -214,11 +214,11 @@ PROCESS_THREAD(edhoc_server, ev, data){
         /*Generate MSG2 */
         time = RTIMER_NOW();
         LOG_DBG("---------------------------------generate message_2-----------------------------\n");
-        edhoc_gen_msg_2(ctx, (uint8_t *)new_ecc.ad.ad_2, new_ecc.ad.ad_2_sz);
+        edhoc_gen_msg_2(edhoc_ctx, (uint8_t *)new_ecc.ad.ad_2, new_ecc.ad.ad_2_sz);
         time = RTIMER_NOW() - time;
         LOG_INFO("Server time to gen MSG2: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
-        LOG_DBG("message_2 (CBOR Sequence) (%d bytes):", ctx->tx_sz);
-        print_buff_8_dbg(ctx->msg_tx, ctx->tx_sz);
+        LOG_DBG("message_2 (CBOR Sequence) (%d bytes):", edhoc_ctx->tx_sz);
+        print_buff_8_dbg(edhoc_ctx->msg_tx, edhoc_ctx->tx_sz);
         serv->state = RX_MSG3;
       }
       break;
@@ -227,15 +227,15 @@ PROCESS_THREAD(edhoc_server, ev, data){
       LOG_DBG("RX message_3 (%d bytes):", (int)msg_rx_len);
       print_buff_8_dbg(msg_rx, msg_rx_len);
       time = RTIMER_NOW();
-      er = edhoc_handler_msg_3(&msg3, ctx, msg_rx, msg_rx_len);
+      er = edhoc_handler_msg_3(&msg3, edhoc_ctx, msg_rx, msg_rx_len);
       time = RTIMER_NOW() - time;
       LOG_INFO("Server time to handler MSG3: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
       time = RTIMER_NOW();
       if(er > 0) {
-        er = edhoc_get_auth_key(ctx, &pt, &key);
+        er = edhoc_get_auth_key(edhoc_ctx, &pt, &key);
       }
       if(er > 0) {
-        er = edhoc_authenticate_msg(ctx, &pt, msg3.cipher.len, (uint8_t *)new_ecc.ad.ad_3, &key);
+        er = edhoc_authenticate_msg(edhoc_ctx, &pt, msg3.cipher.len, (uint8_t *)new_ecc.ad.ad_3, &key);
         time = RTIMER_NOW() - time;
         LOG_INFO("Server time to authenticate: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
       }
@@ -248,7 +248,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         process_post(PROCESS_BROADCAST, new_ecc_event, &new_ecc);
         break;
       } else if(er < RX_ERR_MSG) {
-        ctx->tx_sz = edhoc_gen_msg_error(ctx->msg_tx, ctx, er);
+        edhoc_ctx->tx_sz = edhoc_gen_msg_error(edhoc_ctx->msg_tx, edhoc_ctx, er);
         coap_timer_stop(&timer);
         edhoc_server_close();
         new_ecc.val = SERV_RESTART;
@@ -269,7 +269,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
     case EXP_READY:
       if(serv->rx_msg1 && serv->rx_msg3) {
         LOG_DBG("--------------EXPORTER------------------------\n");
-        ctx->tx_sz = 0;
+        edhoc_ctx->tx_sz = 0;
         new_ecc.val = SERV_FINISHED;
         time_total = RTIMER_NOW() - time_total;
         LOG_INFO("Server time to finish: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)(time_total * 1000 / RTIMER_SECOND), (uint32_t)time_total);
@@ -290,15 +290,15 @@ PROCESS_THREAD(edhoc_server, ev, data){
     coap_set_payload(response, NULL, 0);
     coap_set_status_code(response, DELETED_2_02);
   } else {
-    response->payload = (uint8_t *)ctx->msg_tx;
-    response->payload_len = ctx->tx_sz;
+    response->payload = (uint8_t *)edhoc_ctx->msg_tx;
+    response->payload_len = edhoc_ctx->tx_sz;
     coap_set_status_code(response, CHANGED_2_04);
     if(response->payload_len == 0) {
       memset(&(response->options), 0, 8);
       memset(&(request->options), 0, 8);
     } else {
       memset(&(response->options), 0, 8);
-      coap_set_header_block2(response, 0, ctx->tx_sz > COAP_MAX_CHUNK_SIZE ? 1 : 0, COAP_MAX_CHUNK_SIZE);
+      coap_set_header_block2(response, 0, edhoc_ctx->tx_sz > COAP_MAX_CHUNK_SIZE ? 1 : 0, COAP_MAX_CHUNK_SIZE);
     }
     if(serv->state == TX_MSG_ERR) {
       serv->state = NON_MSG;
