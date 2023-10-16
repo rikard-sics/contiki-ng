@@ -117,17 +117,17 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
   t = RTIMER_NOW();
 #if TEST == TEST_VECTOR
   LOG_INFO("Using test vector\n");
-  memcpy(ctx->ephimeral_key.public.x, eph_pub_x_r, ECC_KEY_BYTE_LENGHT);
-  memcpy(ctx->ephimeral_key.public.y, eph_pub_y_r, ECC_KEY_BYTE_LENGHT);
-  memcpy(ctx->ephimeral_key.private_key, eph_private_r, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephimeral_key.public.x, eph_pub_x_r, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephimeral_key.public.y, eph_pub_y_r, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephimeral_key.private_key, eph_private_r, ECC_KEY_BYTE_LENGHT);
 #if ECC == UECC_ECC
   LOG_INFO("set curve of uecc\n");
-  ctx->curve.curve = uECC_secp256r1();
+  edhoc_ctx->curve.curve = uECC_secp256r1();
 #endif
 #elif ECC == UECC_ECC
   LOG_INFO("generate key with uecc\n");
-  ctx->curve.curve = uECC_secp256r1();
-  uecc_generate_key(&ctx->ephimeral_key, ctx->curve);
+  edhoc_ctx->curve.curve = uECC_secp256r1();
+  uecc_generate_key(&edhoc_ctx->ephimeral_key, edhoc_ctx->curve);
 #elif ECC == CC2538_ECC
   LOG_INFO("generate key with CC2538 hw modules\n");
   static key_gen_t key = {
@@ -135,25 +135,25 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
     .curve_info = &nist_p_256,
   };
   PT_SPAWN(&edhoc_example_server.pt, &key.pt, generate_key_hw(&key));
-  memcpy(ctx->ephimeral_key.public.x, key.x, ECC_KEY_BYTE_LENGHT);
-  memcpy(ctx->ephimeral_key.public.y, key.y, ECC_KEY_BYTE_LENGHT);
-  memcpy(ctx->ephimeral_key.private_key, key.private, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephimeral_key.public.x, key.x, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephimeral_key.public.y, key.y, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephimeral_key.private_key, key.private, ECC_KEY_BYTE_LENGHT);
 
 #endif
   t = RTIMER_NOW() - t;
   LOG_INFO("Server time to generate new key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
 
   LOG_DBG("Gy (%d bytes):", ECC_KEY_BYTE_LENGHT);
-  print_buff_8_dbg(ctx->ephimeral_key.public.x, ECC_KEY_BYTE_LENGHT);
+  print_buff_8_dbg(edhoc_ctx->ephimeral_key.public.x, ECC_KEY_BYTE_LENGHT);
   LOG_DBG("Y (%d bytes):", ECC_KEY_BYTE_LENGHT);
-  print_buff_8_dbg(ctx->ephimeral_key.private_key, ECC_KEY_BYTE_LENGHT);
+  print_buff_8_dbg(edhoc_ctx->ephimeral_key.private_key, ECC_KEY_BYTE_LENGHT);
   while(1) {
     PROCESS_WAIT_EVENT();
     uint8_t res = edhoc_server_callback(ev, &data);
     if(res == SERV_FINISHED) {
       LOG_DBG("New EDHOC client finished export here the security context\n");
       t = RTIMER_NOW();
-      if(edhoc_exporter_oscore(&osc, ctx) < 0) {
+      if(edhoc_exporter_oscore(&osc, edhoc_ctx) < 0) {
         LOG_ERR("ERROR IN EXPORT CTX\n");
       } else {
         t = RTIMER_NOW() - t;
@@ -177,8 +177,8 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 
 #elif ECC == UECC_ECC
       LOG_INFO("generate key with uecc\n");
-      ctx->curve.curve = uECC_secp256r1();
-      uecc_generate_key(&ctx->ephimeral_key, ctx->curve);
+      edhoc_ctx->curve.curve = uECC_secp256r1();
+      uecc_generate_key(&edhoc_ctx->ephimeral_key, edhoc_ctx->curve);
 #elif ECC == CC2538_ECC
       LOG_INFO("generate key with CC2538 hw modules\n");
       static key_gen_t key = {
@@ -187,18 +187,18 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
       };
       PT_SPAWN(&edhoc_example_server.pt, &key.pt, generate_key_hw(&key));
 
-      memcpy(ctx->ephimeral_key.public.x, key.x, ECC_KEY_BYTE_LENGHT);
-      memcpy(ctx->ephimeral_key.public.y, key.y, ECC_KEY_BYTE_LENGHT);
-      memcpy(ctx->ephimeral_key.private_key, key.private, ECC_KEY_BYTE_LENGHT);
+      memcpy(edhoc_ctx->ephimeral_key.public.x, key.x, ECC_KEY_BYTE_LENGHT);
+      memcpy(edhoc_ctx->ephimeral_key.public.y, key.y, ECC_KEY_BYTE_LENGHT);
+      memcpy(edhoc_ctx->ephimeral_key.private_key, key.private, ECC_KEY_BYTE_LENGHT);
 
 #endif
       t = RTIMER_NOW() - t;
       LOG_INFO("Server time to generate new key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
       LOG_INFO("\n");
       LOG_INFO("G_y (%d bytes):", ECC_KEY_BYTE_LENGHT);
-      print_buff_8_info(ctx->ephimeral_key.public.x, ECC_KEY_BYTE_LENGHT);
+      print_buff_8_info(edhoc_ctx->ephimeral_key.public.x, ECC_KEY_BYTE_LENGHT);
       LOG_INFO("Y (%d bytes):", ECC_KEY_BYTE_LENGHT);
-      print_buff_8_info(ctx->ephimeral_key.private_key, ECC_KEY_BYTE_LENGHT);
+      print_buff_8_info(edhoc_ctx->ephimeral_key.private_key, ECC_KEY_BYTE_LENGHT);
     }
   }
   PROCESS_END();

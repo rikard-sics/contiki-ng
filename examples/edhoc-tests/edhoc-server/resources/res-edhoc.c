@@ -32,9 +32,9 @@ res_edhoc_post_handler(coap_message_t *request, coap_message_t *response, uint8_
         print_buff_8_dbg(msg_rx, msg_rx_len);
         edhoc_server_process(request,response, &servidor,msg_rx,msg_rx_len);    
     }        
-    response->payload = (uint8_t *)ctx->msg_tx;
-    response->payload_len = ctx->tx_sz;
-    big_msg_len = ctx->tx_sz;
+    response->payload = (uint8_t *)edhoc_ctx->msg_tx;
+    response->payload_len = edhoc_ctx->tx_sz;
+    big_msg_len = edhoc_ctx->tx_sz;
     coap_set_header_block1(response, request->block1_num, 0, request->block1_size);
 
     if( response->payload_len  > 64) {
@@ -45,9 +45,9 @@ res_edhoc_post_handler(coap_message_t *request, coap_message_t *response, uint8_
   } else {
    
     coap_set_status_code(response, CHANGED_2_04);
-    memcpy(buffer, ctx->msg_tx + *offset, 64);
-    if(ctx->tx_sz - *offset < preferred_size) {
-      preferred_size = ctx->tx_sz - *offset;
+    memcpy(buffer, edhoc_ctx->msg_tx + *offset, 64);
+    if(edhoc_ctx->tx_sz - *offset < preferred_size) {
+      preferred_size = edhoc_ctx->tx_sz - *offset;
       *offset = -1;
     } else {
       *offset += preferred_size;
