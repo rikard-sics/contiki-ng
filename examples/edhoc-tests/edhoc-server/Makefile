@@ -2,8 +2,6 @@ CONTIKI_PROJECT = edhoc-test-server
 
 all: $(CONTIKI_PROJECT)
 
-MODULES += /os/net/security/edhoc
-
 # Include CoAP resources
 MODULES_REL += ./resources
 
@@ -17,6 +15,9 @@ MODULES += $(CONTIKI_NG_SERVICES_DIR)/rpl-border-router
 # Include webserver module
 # FIXME: should not include cross-examples.
 MODULES_REL += ../../rpl-border-router/webserver
+
+MODULES += $(CONTIKI_NG_SECURITY_DIR)/edhoc
+MODULES += $(CONTIKI_NG_SECURITY_DIR)/edhoc/server
 
 # Include optional target-specific module
 include $(CONTIKI)/Makefile.identify-target
