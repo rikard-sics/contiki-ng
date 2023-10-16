@@ -103,7 +103,8 @@ typedef struct serv_data_t {
   coap_message_t *response;
   edhoc_server_t *serv;
 } serv_data_t;
-struct serv_data_t *dat_ptr;
+
+extern struct serv_data_t *dat_ptr;
 
 /**
  * \brief Activate the EDHOC CoAp Resource
