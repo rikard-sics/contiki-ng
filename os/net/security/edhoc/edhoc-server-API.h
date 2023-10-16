@@ -63,11 +63,6 @@
 #define SERV_RESTART 2
 
 /**
- * \brief EDHOC context struct used in the EDHOC protocol
- */
-edhoc_context_t *ctx;
-
-/**
  * \brief CoAp resource
  */
 extern coap_resource_t res_edhoc;

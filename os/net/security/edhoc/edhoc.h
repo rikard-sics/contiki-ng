@@ -113,6 +113,11 @@ typedef struct edhoc_context_t {
 } edhoc_context_t;
 
 /**
+ * \brief EDHOC context struct used in the EDHOC protocol
+ */
+extern edhoc_context_t *edhoc_ctx;
+
+/**
  * \brief Reserve memory for the edhoc context struct
  *
  * Used by both Initiator and Responder EDHOC parts to reserve memory

@@ -43,6 +43,8 @@
 #define MAC_2 2
 #define MAC_3 3
 
+edhoc_context_t *edhoc_ctx;
+
 /*static rtimer_clock_t time; */
 
 static uint8_t buf[MAX_BUFFER];
