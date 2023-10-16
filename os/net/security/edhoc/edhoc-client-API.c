@@ -381,6 +381,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
       pro = process_post(&edhoc_client, edhoc_event, &edhoc_state);
       break;
     }
+    /* FIXME: missing break? */
   case EXP_READY:
     LOG_DBG("-------------------EXPORTER-----------------------\n");
     edhoc_state.val = CL_FINISHED;
