@@ -12,12 +12,11 @@ CFLAGS += -DuECC_OPTIMIZATION_LEVEL=4
 CFLAGS += -DuECC_SQUARE_FUNC=1 
 
 CONTIKI = ../../..
+include $(CONTIKI)/Makefile.dir-variables
 MODULES += $(CONTIKI_NG_SERVICES_DIR)/rpl-border-router
 # Include webserver module
-MODULES_REL += webserver
-MODULES_REL +=  ../../rpl-border-router/webserver
-
-
+# FIXME: should not include cross-examples.
+MODULES_REL += ../../rpl-border-router/webserver
 
 # Include optional target-specific module
 include $(CONTIKI)/Makefile.identify-target
