@@ -47,6 +47,8 @@
 #define EXP_READY 4
 #define RESTART 5
 
+struct serv_data_t *dat_ptr;
+
 static rtimer_clock_t time;
 static rtimer_clock_t time_total;
 
