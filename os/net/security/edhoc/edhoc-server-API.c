@@ -272,7 +272,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         ctx->tx_sz = 0;
         new_ecc.val = SERV_FINISHED;
         time_total = RTIMER_NOW() - time_total;
-        LOG_INFO("Server time to finish: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)time_total * 1000 / RTIMER_SECOND, (uint32_t)time_total);
+        LOG_INFO("Server time to finish: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)(time_total * 1000 / RTIMER_SECOND), (uint32_t)time_total);
         time_total = RTIMER_NOW();
         coap_timer_stop(&timer);
         process_post(PROCESS_BROADCAST, new_ecc_event, &new_ecc);
