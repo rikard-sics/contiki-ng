@@ -65,7 +65,6 @@ static ecc_data_even_t new_ecc;
 static coap_message_t *request;
 static coap_message_t *response;
 static int er = 0;
-uint8_t more = 0;
 static cose_key_t key;
 static uint8_t *pt = NULL;
 static edhoc_msg_3 msg3;
