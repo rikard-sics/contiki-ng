@@ -174,7 +174,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
     case NON_MSG:
       coap_timer_set_callback(&timer, server_timeout_callback);
       coap_timer_set(&timer, SERV_TIMEOUT_VAL);
-
+      /* FIXME: missing break? */
     case RX_MSG1:
       LOG_DBG("----------------------------------Handler message_1-----------------------------\n");
       LOG_DBG("RX message_1 (CBOR Sequence) (%d bytes):\n", (int)msg_rx_len);
@@ -267,6 +267,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         serv->state = EXP_READY;
         serv->rx_msg3 = true;
       }
+      /* FIXME: missing break? */
     case EXP_READY:
       if(serv->rx_msg1 && serv->rx_msg3) {
         LOG_DBG("--------------EXPORTER------------------------\n");
