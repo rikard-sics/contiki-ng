@@ -1,6 +1,10 @@
 An EDHOC Client and Server that demonstrate the EDHOC module based on IETF[draft-ietf-lake-edhoc-05] draft, running as RPL node and RPL border router respectively on both Zolertia REMote hardware platform and Cooja
 Simulator(`edhoc-tests-cooja.css `).
 
+# EDHOC Cooja test
+
+Run the test with `cooja --args="--no-gui edhoc-tests-cooja.csc"` in the contiker/contiki-ng Docker container.
+
 #EDHOC Client Example
 An EDHOC Client Example is provided at `examples/edhoc-tests/edhoc-test-client.c `.
 For the specific example the EDHOC Server IP must be selected on the project-conf file, its own Node Key Identity and, the EDHOC part as Initiator:
@@ -26,6 +30,3 @@ The Server Identity must be selected at:
 ```c
 #define AUTH_SUBJECT_NAME "Server_key_identity"
 ```
-
-When the example runs on Cooja simulator the following cmd must be executed at the linux side of the border router:
-- `tunslip6 -a 127.0.0.1 -p 60002 fd01::1/64`

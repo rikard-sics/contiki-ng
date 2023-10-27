@@ -19,7 +19,8 @@
       org.contikios.cooja.contikimote.ContikiMoteType
       <description>Client</description>
       <source>[CONFIG_DIR]/edhoc-client/edhoc-test-client.c</source>
-      <commands>$(MAKE) -j$(CPUS) edhoc-test-client.cooja TARGET=cooja</commands>
+      <commands>$(MAKE) TARGET=cooja clean
+      $(MAKE) -j$(CPUS) edhoc-test-client.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Battery</moteinterface>
       <moteinterface>org.contikios.cooja.contikimote.interfaces.ContikiVib</moteinterface>
@@ -51,7 +52,8 @@
       org.contikios.cooja.contikimote.ContikiMoteType
       <description>Server</description>
       <source>[CONFIG_DIR]/edhoc-server/edhoc-test-server.c</source>
-      <commands>$(MAKE) -j$(CPUS) edhoc-test-server.cooja TARGET=cooja</commands>
+      <commands>$(MAKE) TARGET=cooja clean
+      $(MAKE) -j$(CPUS) edhoc-test-server.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Battery</moteinterface>
       <moteinterface>org.contikios.cooja.contikimote.interfaces.ContikiVib</moteinterface>
@@ -90,7 +92,7 @@
       <skin>org.contikios.cooja.plugins.skins.UDGMVisualizerSkin</skin>
       <viewport>1.696847649207872 0.0 0.0 1.696847649207872 238.2029835403895 36.46408356383216</viewport>
     </plugin_config>
-    <bounds x="1" y="1" height="400" width="400" z="4" />
+    <bounds x="1" y="1" height="400" width="400" z="5" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.LogListener
@@ -99,7 +101,7 @@
       <formatted_time />
       <coloring />
     </plugin_config>
-    <bounds x="400" y="160" height="478" width="681" z="3" />
+    <bounds x="400" y="160" height="478" width="681" z="2" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.TimeLine
@@ -111,7 +113,7 @@
       <showLEDs />
       <zoomfactor>500.0</zoomfactor>
     </plugin_config>
-    <bounds x="0" y="829" height="166" width="1081" z="2" />
+    <bounds x="0" y="829" height="166" width="1081" z="4" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.Notes
@@ -119,7 +121,7 @@
       <notes>Enter notes here</notes>
       <decorations>true</decorations>
     </plugin_config>
-    <bounds x="680" y="0" height="160" width="401" z="1" />
+    <bounds x="680" y="0" height="160" width="401" z="3" />
   </plugin>
   <plugin>
     org.contikios.cooja.serialsocket.SerialSocketServer
@@ -127,7 +129,23 @@
     <plugin_config>
       <port>60002</port>
       <bound>true</bound>
+      <commands>[CONFIG_DIR]/test-edhoc.sh [CONTIKI_DIR] 45</commands>
     </plugin_config>
     <bounds x="28" y="423" height="116" width="362" />
+  </plugin>
+  <plugin>
+    org.contikios.cooja.plugins.ScriptRunner
+    <plugin_config>
+      <script>TIMEOUT(10000000000);
+sim.setSpeedLimit(1.0); // Real time simulation speed.
+while (true) {
+  if (msg.contains("EDHOC protocol finished success, ")) {
+    log.testOK();
+  }
+  YIELD();
+}</script>
+      <active>true</active>
+    </plugin_config>
+    <bounds x="1037" y="40" height="700" width="600" z="1" />
   </plugin>
 </simconf>
