@@ -25,7 +25,7 @@
       <identifier>mtype567</identifier>
       <description>Client</description>
       <source>[CONTIKI_DIR]/examples/edhoc-tests/edhoc-client/edhoc-test-client.c</source>
-      <commands>make edhoc-test-client.cooja TARGET=cooja</commands>
+      <commands>$(MAKE) -j$(CPUS) edhoc-test-client.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Battery</moteinterface>
       <moteinterface>org.contikios.cooja.contikimote.interfaces.ContikiVib</moteinterface>
@@ -50,7 +50,7 @@
       <identifier>mtype883</identifier>
       <description>Server</description>
       <source>[CONTIKI_DIR]/examples/edhoc-tests/edhoc-server/edhoc-test-server.c</source>
-      <commands>make edhoc-test-server.cooja TARGET=cooja</commands>
+      <commands>$(MAKE) -j$(CPUS) edhoc-test-server.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Battery</moteinterface>
       <moteinterface>org.contikios.cooja.contikimote.interfaces.ContikiVib</moteinterface>
