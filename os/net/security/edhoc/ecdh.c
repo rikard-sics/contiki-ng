@@ -69,17 +69,26 @@ generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_c
 #endif
   return er;
 }
-static void
-hmac_sha256_init(hmac_context_t **ctx, const uint8_t *key, uint8_t key_sz)
+static hmac_context_t *
+hmac_sha256_init(const uint8_t *key, uint8_t key_sz)
 {
-  hmac_storage_init();
-  (*ctx) = hmac_new(key, key_sz);
+  // hmac_storage_init();
+  return hmac_new(key, key_sz);
 }
-static void
+static int
 hmac_sha256_create(hmac_context_t **ctx, const uint8_t *key, uint8_t key_sz, const uint8_t *data, uint8_t data_sz, uint8_t *hmac)
 {
-  hmac_update(*ctx, data, data_sz);
-  hmac_finalize(*ctx, hmac);
+  int er = hmac_update(*ctx, data, data_sz);
+  if(er != 0) {
+    LOG_ERR("hmac_update failed (%d)\n", er);
+    return er;
+  }
+  er = hmac_finalize(*ctx, hmac);
+  if(er <= 0) {
+    LOG_ERR("hmac_finalize failed (%d)\n", er);
+    return er;
+  }
+  return 0;
 }
 static void
 hmac_sha256_reset(hmac_context_t **ctx, const unsigned char *key, size_t k_sz)
@@ -97,11 +106,14 @@ compute_TH(uint8_t *in, uint8_t in_sz, uint8_t *hash, uint8_t hash_sz)
   int er = sha256(in, in_sz, hash);
   return er;
 }
-uint8_t
+int8_t
 hkdf_extrac(uint8_t *salt, uint8_t salt_sz, uint8_t *ikm, uint8_t ikm_sz, uint8_t *hmac)
 {
-  hmac_context_t *ctx = NULL;
-  hmac_sha256_init(&ctx, salt, salt_sz);
+  hmac_context_t *ctx = hmac_sha256_init(salt, salt_sz);
+  if(!ctx) {
+    LOG_ERR("No context from hmac_sha256_init\n");
+    return ERR_INFO_SIZE;
+  }
   hmac_sha256_create(&ctx, salt, salt_sz, ikm, ikm_sz, hmac);
   hmac_sha256_free(ctx);
   return 1;
@@ -126,9 +138,16 @@ hkdf_expand(uint8_t *prk, uint16_t prk_sz, uint8_t *info, uint16_t info_sz, uint
   memcpy(aggregate_buffer, info, info_sz);
   aggregate_buffer[info_sz] = 0x01;
 
-  hmac_context_t *ctx = NULL;
-  hmac_sha256_init(&ctx, prk, prk_sz);
-  hmac_sha256_create(&ctx, prk, prk_sz, aggregate_buffer, info_sz + 1, &(out_buffer[0]));
+  hmac_context_t *ctx = hmac_sha256_init(prk, prk_sz);
+  if(!ctx) {
+    LOG_ERR("No context from hmac_sha256_init\n");
+    return ERR_INFO_SIZE;
+  }
+  int er = hmac_sha256_create(&ctx, prk, prk_sz, aggregate_buffer, info_sz + 1, &(out_buffer[0]));
+  if(er != 0) {
+    LOG_ERR("hmac_sha256_create error code (%d)\n", er);
+    return ERR_INFO_SIZE; // FIXME: make unique error code
+  }
 
   /*Compose T(2) ... T(N) */
   memcpy(aggregate_buffer, &(out_buffer[0]), 32);
@@ -136,12 +155,16 @@ hkdf_expand(uint8_t *prk, uint16_t prk_sz, uint8_t *info, uint16_t info_sz, uint
     hmac_sha256_reset(&ctx, prk, prk_sz);
     memcpy(&(aggregate_buffer[32]), info, info_sz);
     aggregate_buffer[32 + info_sz] = i + 1;
-    hmac_sha256_create(&ctx, prk, prk_sz, aggregate_buffer, 32 + info_sz + 1, &(out_buffer[i * 32]));
+    er = hmac_sha256_create(&ctx, prk, prk_sz, aggregate_buffer, 32 + info_sz + 1, &(out_buffer[i * 32]));
+    if(er != 0) {
+      LOG_ERR("hmac_sha256_create error code (%d)\n", er);
+      return ERR_INFO_SIZE; // FIXME: make unique error code
+    }
     memcpy(aggregate_buffer, &(out_buffer[i * 32]), 32);
   }
 
+  memcpy(okm, aggregate_buffer, okm_sz);
   hmac_sha256_free(ctx);
-  memcpy(okm, out_buffer, okm_sz);
   return 1;
 }
 void

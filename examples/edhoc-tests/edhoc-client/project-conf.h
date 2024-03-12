@@ -9,10 +9,10 @@
 /* Mandatory EDHOC definitions on Client*/
 /* Define one kind of the following kind of identifiaction for the authentication key*/
 //#define AUTH_SUBJECT_NAME "Node_101"
-#define AUTH_KID 0x24
+#define AUTH_KID 0x2b
 
 /* Definde a value for the Conection Identifier*/
-#define EDHOC_CID 0x16
+#define EDHOC_CID -24
 
 /*Define the coap server to conect with*/
 //#define EDHOC_CONF_SERVER_EP "coap://[fe80::212:4b00:615:9fec]"
@@ -25,7 +25,7 @@
 #define EDHOC_CONF_CORR EXTERNAL_CORR_U 
 
 /*To run with the test vector DH ephimeral keys used on the edhoc-v02 interoperability sesion*/
-//#define EDHOC_TEST TEST_VECTOR
+#define EDHOC_TEST TEST_VECTOR
 #define EDHOC_CONF_VERSION EDHOC_04
 
 /*Define the authentication method*/
@@ -33,8 +33,8 @@
 #define EDHOC_CONF_AUTHENT_TYPE PRK_ID
 
 /*Define the libray for SHA operations*/
-//#define EDHOC_CONF_SH256 DECC_SH2
-#define EDHOC_CONF_SH256 CC2538_SH2
+// #define EDHOC_CONF_SH256 DECC_SH2
+// #define EDHOC_CONF_SH256 CC2538_SH2
 
 
 /*Define the libray for ECDH operations*/
@@ -44,13 +44,21 @@
 /*To run EDHOC client as RPL node*/
 #define EDHOC_CONF_RPL_NODE 1
 
+// FIXME: should be reverse SUIT, but no error handling implemented
+#if 0
+#define EDHOC_CONF_SUIT 2
+#define EDHOC_CONF_SUIT_1 6
+#else
+#define EDHOC_CONF_SUIT 6
+#define EDHOC_CONF_SUIT_1 2
+#endif
 
 /*May be necesary to defind one of the following macros when the UECC_ECC library is used and 
 the target is an embedded device*/ 
 //#define WATCHDOG_CONF_ENABLE 0x00000000
 //#define SYS_CTRL_CONF_SYS_DIV SYS_CTRL_CLOCK_CTRL_SYS_DIV_32MHZ
 
-#define LOG_CONF_LEVEL_EDHOC LOG_LEVEL_INFO
+#define LOG_CONF_LEVEL_EDHOC LOG_LEVEL_DBG
 //#define LOG_CONF_LEVEL_RPL LOG_LEVEL_INFO 
 //#define LOG_CONF_LEVEL_COAP LOG_LEVEL_INFO
 /*#define LOG_CONF_LEVEL_TCPIP LOG_LEVEL_DBG */

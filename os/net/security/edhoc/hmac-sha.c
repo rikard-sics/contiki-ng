@@ -45,11 +45,13 @@
 
 MEMB(hmac_context_storage, hmac_context_t, HASH_MAX);
 
-static inline
-hmac_context_t *
-hmac_context_new()
+void encrypt0_storage_init(void);
+static void sha_storage_init(void);
+
+static inline hmac_context_t *
+hmac_context_new(void)
 {
-  return (hmac_context_t *)memb_alloc(&hmac_context_storage);
+  return memb_alloc(&hmac_context_storage);
 }
 static inline void
 hmac_context_free(hmac_context_t *ctx)
@@ -60,6 +62,8 @@ void
 hmac_storage_init(void)
 {
   memb_init(&hmac_context_storage);
+  sha_storage_init();
+  encrypt0_storage_init();
 }
 hmac_context_t *
 hmac_new(const unsigned char *key, size_t klen)
@@ -67,7 +71,12 @@ hmac_new(const unsigned char *key, size_t klen)
   hmac_context_t *ctx;
   ctx = hmac_context_new();
   if(ctx) {
-    hmac_init(ctx, key, klen);
+    int er = hmac_init(ctx, key, klen);
+    if(er != 0) {
+      LOG_ERR("hmac_init failed: %d\n", er);
+      hmac_context_free(ctx);
+      return NULL;
+    }
   }
 #ifdef CC2538_SH2
   crypto_init();
@@ -77,9 +86,9 @@ hmac_new(const unsigned char *key, size_t klen)
 MEMB(sha_context_storage, sha_context_t, HASH_MAX);
 
 static inline sha_context_t *
-sha_context_new()
+sha_context_new(void)
 {
-  return (sha_context_t *)memb_alloc(&sha_context_storage);
+  return memb_alloc(&sha_context_storage);
 }
 static inline void
 sha_context_free(sha_context_t *ctx)
@@ -91,10 +100,10 @@ sha_storage_init(void)
 {
   memb_init(&sha_context_storage);
 }
-static uint8_t
+static int
 sha_reset(sha_context_t *ctx)
 {
-  uint8_t er = 0;
+  int er = 0;
 #ifdef ECC_SH2
   er = SHA256Reset(&ctx->data);
 #endif
@@ -104,7 +113,7 @@ sha_reset(sha_context_t *ctx)
   return er;
 }
 static sha_context_t *
-sha_new()
+sha_new(void)
 {
   sha_context_t *ctx;
   ctx = sha_context_new();
@@ -114,41 +123,41 @@ sha_new()
 #endif
   if(ctx) {
     sha_reset(ctx);
+  } else {
+    LOG_ERR("Failed to allocate new sha context\n");
   }
   return ctx;
 }
-static uint8_t
+static int
 sha_input(sha_context_t *ctx, uint8_t *input, uint8_t input_sz)
 {
-  uint8_t er = 0;
 #ifdef ECC_SH2
-  er = SHA256Input(&ctx->data, input, input_sz);
+  int er = SHA256Input(&ctx->data, input, input_sz);
   if(er != 0) {
     LOG_ERR("SHA error code (%d)\n", er);
   }
 #endif
 
 #ifdef CC2538_SH2
-  er = sha256_process(&ctx->data, (const void *)input, (uint32_t)input_sz);
+  int er = sha256_process(&ctx->data, (const void *)input, (uint32_t)input_sz);
   if(er != 0) {
     LOG_ERR("SHA error code (%d)\n", er);
   }
 #endif
   return er;
 }
-static uint8_t
+static int
 sha_finalize(sha_context_t *ctx, uint8_t *hash)
 {
-  uint8_t er = 0;
 #ifdef ECC_SH2
-  er = SHA256Result(&ctx->data, hash);
+  int er = SHA256Result(&ctx->data, hash);
   if(er != 0) {
     LOG_ERR("SHA error code (%d)\n", er);
     return er;
   }
 #endif
 #ifdef CC2538_SH2
-  er = sha256_done(&ctx->data, hash);
+  int er = sha256_done(&ctx->data, hash);
   if(er != 0) {
     LOG_ERR("SHA error code (%d)\n", er);
     return er;
@@ -166,11 +175,10 @@ sha_free(sha_context_t *ctx)
   crypto_disable();
 #endif
 }
-uint8_t
+int
 sha256(uint8_t *input, uint8_t input_sz, uint8_t *output)
 {
   sha_context_t *ctx;
-  sha_storage_init();
   ctx = sha_new();
   int er = 0;
   if(ctx) {
@@ -190,12 +198,15 @@ sha256(uint8_t *input, uint8_t input_sz, uint8_t *output)
   sha_free(ctx);
   return 0;
 }
-uint8_t
+int
 hmac_init(hmac_context_t *ctx, const unsigned char *key, size_t k_sz)
 {
   memset(ctx, 0, sizeof(hmac_context_t));
-  sha_reset(&ctx->sha);
-  uint8_t er = 0;
+  int er = sha_reset(&ctx->sha);
+  if(er != 0) {
+    LOG_ERR("sha_reset failed (%d)\n", er);
+    return er;
+  };
   if(k_sz > HMAC_BLOCKSIZE) {
     er = sha_input(&ctx->sha, (uint8_t *)key, k_sz);
     if(er != 0) {
@@ -226,7 +237,7 @@ hmac_init(hmac_context_t *ctx, const unsigned char *key, size_t k_sz)
   }
   return 0;
 }
-uint8_t
+int
 hmac_update(hmac_context_t *ctx, const unsigned char *input, size_t input_sz)
 {
   int er = 0;
