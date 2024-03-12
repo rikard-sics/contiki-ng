@@ -168,26 +168,11 @@ cbor_put_negative(uint8_t **buffer, int64_t value)
 int 
 cbor_put_bytes_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len)
 {
-  int64_t num = 0;
-  int8_t ret = 0;
-  if(len == 1){
-
-    if(bytes[0] <= 0x2f){
-      num = bytes[0] - 24;
-      if(num > 0){
-
-        ret = cbor_put_unsigned(buffer,num);
-      }
-      else{
-  
-        ret = cbor_put_negative(buffer,num*(-1));
-      }
-    }
+  if(len == 1 && (bytes[0] <= 23 || bytes[0] >= (uint8_t)-24)) {
+    (**buffer) = bytes[0] <= 23 ? bytes[0] : 0x37 - (bytes[0] - ((uint8_t)-24));
+    (*buffer)++;
+    return 1;
   }
-  else{
-
-    ret = cbor_put_bytes(buffer,bytes,len);  
-  }
-  return ret;
+  return cbor_put_bytes(buffer, bytes, len);
 }
 

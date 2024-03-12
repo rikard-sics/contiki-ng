@@ -57,7 +57,7 @@ typedef struct cose_key_t {
   struct  key *next;
   uint8_t kid[4];
   uint8_t kid_sz;
-  char identity[16];
+  char identity[32];
   uint8_t identity_sz;
   uint8_t kty;
   uint8_t crv;

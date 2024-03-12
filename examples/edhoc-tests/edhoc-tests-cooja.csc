@@ -20,7 +20,7 @@
       <description>Client</description>
       <source>[CONFIG_DIR]/edhoc-client/edhoc-test-client.c</source>
       <commands>$(MAKE) TARGET=cooja clean
-      $(MAKE) -j$(CPUS) edhoc-test-client.cooja TARGET=cooja</commands>
+      $(MAKE) -j$(CPUS) DEBUG=1 COOJA_CONSOLE_OUTPUT=1 edhoc-test-client.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Battery</moteinterface>
       <moteinterface>org.contikios.cooja.contikimote.interfaces.ContikiVib</moteinterface>
@@ -53,7 +53,7 @@
       <description>Server</description>
       <source>[CONFIG_DIR]/edhoc-server/edhoc-test-server.c</source>
       <commands>$(MAKE) TARGET=cooja clean
-      $(MAKE) -j$(CPUS) edhoc-test-server.cooja TARGET=cooja</commands>
+      $(MAKE) -j$(CPUS) DEBUG=1 COOJA_CONSOLE_OUTPUT=1 edhoc-test-server.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
       <moteinterface>org.contikios.cooja.interfaces.Battery</moteinterface>
       <moteinterface>org.contikios.cooja.contikimote.interfaces.ContikiVib</moteinterface>

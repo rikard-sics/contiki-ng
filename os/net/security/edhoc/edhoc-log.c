@@ -38,7 +38,7 @@
 #include "edhoc-log.h"
 
 void
-print_buff(uint8_t *buff, size_t len)
+print_buff(const uint8_t *buff, size_t len)
 {
 
   for(int i = 0; i < len; i++) {
@@ -47,7 +47,7 @@ print_buff(uint8_t *buff, size_t len)
   LOG_OUTPUT("\n");
 }
 void
-print_char(char *buff, size_t len)
+print_char(const char *buff, size_t len)
 {
 
   for(int i = 0; i < len; i++) {

@@ -75,7 +75,7 @@ The EDHOC module use SHA-256 (Secure Hash Algorithm) in HMAC-SHA256 (Hash-based 
 ### CBOR(Concise Binary Object Representation)
 The EDHOC module uses CBOR to encode the EDHOC exchanging messages. The `cbor` Contiki-NG implementation has been added from `group-oscore` in `lib/cbor` folder.
 - Author:Martin Gunnarsson
-- Link:[group-oscore] (https:/*github.com/Gunzter/contiki-ng/tree/group_oscore/os/net/app-layer/coap/oscore-support) 
+- Link:[group-oscore] (https://github.com/Gunzter/contiki-ng/tree/group_oscore/os/net/app-layer/coap/oscore-support)
 
 A `cbor_put_bytes_identifier()` function has been added in order to cover the EDHOC protocol requirements.
 

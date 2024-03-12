@@ -53,7 +53,7 @@ encrypt0_free(cose_encrypt0 *enc)
 {
   memb_free(&encrypt0_storage, enc);
 }
-static void
+void
 encrypt0_storage_init(void)
 {
   memb_init(&encrypt0_storage);
@@ -61,7 +61,6 @@ encrypt0_storage_init(void)
 cose_encrypt0 *
 cose_encrypt0_new()
 {
-  encrypt0_storage_init();
   cose_encrypt0 *enc;
   enc = encrypt0_storage_new();
   return enc;
@@ -145,7 +144,7 @@ uint8_t
 cose_decrypt(cose_encrypt0 *enc)
 {
   enc_structure str = {
-    .str_id = (sstr_cose){ enc_rec, sizeof(enc_rec) }, /*Encrypt0 */
+    .str_id = { enc_rec, sizeof(enc_rec) }, /*Encrypt0 */
     .protected = (bstr_cose){ enc->protected_header, enc->protected_header_sz }, /*empty */
     .external_aad = (bstr_cose){ enc->external_aad, enc->external_aad_sz }, /* OLD REF TH@ */
   }; /* the enc estructure have tha autetification data */
@@ -173,7 +172,7 @@ cose_encrypt(cose_encrypt0 *enc)
 {
 
   enc_structure str = {
-    .str_id = (sstr_cose){ enc_rec, sizeof(enc_rec) }, /*Encrypt0 */
+    .str_id = { enc_rec, sizeof(enc_rec) }, /*Encrypt0 */
     .protected = (bstr_cose){ enc->protected_header, enc->protected_header_sz }, /*empty */
     .external_aad = (bstr_cose){ enc->external_aad, enc->external_aad_sz }, /* OLD REF TH@ */
   }; /* the enc estructure have tha autetification data */
