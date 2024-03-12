@@ -63,60 +63,52 @@
 #define ERR_RESEND_MSG_1 -15
 
 /*NEW RFC */
-typedef struct edhoc_msg_1 {
-  uint8_t method;   /* method correlation */
-  //uint8_t suit_U[5];
 
-  bstr suit_I;
-  //uint8_t suit_U;   /*cipher suit. uniq value for us. generally an array of possible suits */
-  bstr Gx;   /*x cordinato of ephemeral key of party U */
-  bstr Ci;   /*random number for connection id CU */
-  bstr uad;   /*? unprotected aplication data */
+typedef struct ead_data {
+  uint8_t ead_label;
+  bstr ead_value;
+} ead_data;
+
+
+typedef struct edhoc_msg_1 {
+  uint8_t method;
+  bstr suites_i; /* FIXME: array of int, or int */
+  bstr g_x;
+  bstr c_i; /* FIXME: alternatively -24..23 */
+  ead_data uad; /* FIXME: optional */
 } edhoc_msg_1;
 
-typedef struct edhoc_data_2 {
-  bstr Ci;   /*random number for connection id CU */
-  bstr Gy;   /*x cordinato of ephemeral key of party V */
-  bstr Cr;   /*random number for connection id CV */
-} edhoc_data_2;
-
-typedef struct edhoc_data_3 {
-  bstr Cr;   /* the cv received from msg1 */
-} edhoc_data_3;
-
 typedef struct edhoc_msg_2 {
-  edhoc_data_2 data;
-  bstr cipher;
-  bstr data_2;
+  bstr g_y_ciphertext_2;
 } edhoc_msg_2;
 
 typedef struct edhoc_msg_3 {
-  edhoc_data_3 data;
-  bstr cipher;
-  bstr data_3;
+  bstr ciphertext_3;
 } edhoc_msg_3;
 
 typedef struct edhoc_msg_error {
-  bstr Cx;   /*? */
-  sstr err;   /* text byte with the error mesagge */
-  bstr suit;
-  //uint8_t suit_;
+  uint8_t err_code;
+  sstr err_info;
 } edhoc_msg_error;
 
 void print_msg_1(edhoc_msg_1 *msg);
 void print_msg_2(edhoc_msg_2 *msg);
 void print_msg_3(edhoc_msg_3 *msg);
 
+size_t edhoc_serialize_suites(unsigned char **buffer, const bstr *suites);
+
 size_t edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suit_array);
+#if 0
 size_t edhoc_serialize_data_2(edhoc_data_2 *msg, unsigned char *buffer);
 size_t edhoc_serialize_data_3(edhoc_data_3 *msg, unsigned char *buffer);
+#endif
 size_t edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer);
 
 int8_t edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz);
 int8_t edhoc_deserialize_msg_2(edhoc_msg_2 *msg, unsigned char *buffer, size_t buff_sz);
 int8_t edhoc_deserialize_msg_3(edhoc_msg_3 *msg, unsigned char *buffer, size_t buff_sz);
 int8_t edhoc_deserialize_err(edhoc_msg_error *msg, unsigned char *buffer, uint8_t buff_sz);
-uint8_t edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key);
+int8_t edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key);
 uint8_t edhoc_get_cred_x_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key);
 uint8_t edhoc_get_sign(uint8_t **p, uint8_t **sign);
 uint8_t edhoc_get_ad(uint8_t **p, uint8_t *ad);

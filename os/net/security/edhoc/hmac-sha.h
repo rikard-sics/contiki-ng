@@ -76,11 +76,11 @@ typedef struct {
 
 void hmac_storage_init(void);
 hmac_context_t *hmac_new(const unsigned char *key, size_t klen);
-uint8_t hmac_init(hmac_context_t *ctx, const unsigned char *key, size_t klen);
-uint8_t hmac_update(hmac_context_t *ctx, const unsigned char *input, size_t ilen);
+int hmac_init(hmac_context_t *ctx, const unsigned char *key, size_t klen);
+int hmac_update(hmac_context_t *ctx, const unsigned char *input, size_t ilen);
 int hmac_finalize(hmac_context_t *ctx, unsigned char *result);
 void hmac_free(hmac_context_t *ctx);
 
-uint8_t sha256(uint8_t *input, uint8_t input_sz, uint8_t *output);
+int sha256(uint8_t *input, uint8_t input_sz, uint8_t *output);
 
 #endif
