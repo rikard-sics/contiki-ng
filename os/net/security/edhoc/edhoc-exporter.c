@@ -34,6 +34,9 @@
  *
  * \author
  *         Lidia Pocero <pocero@isi.gr>
+ *         Peter Jonsson
+ *         Rikard Höglund
+ *         Marco Tiloca
  */
 
 #include "edhoc-exporter.h"
@@ -50,7 +53,7 @@ edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc)
   print_buff_8_print(osc->master_salt, OSCORE_SALT_SZ);
 }
 static int8_t
-gen_th4(edhoc_context_t *ctx)
+gen_th4_old(edhoc_context_t *ctx)
 {
   uint8_t h4[MAX_BUFFER];
   uint8_t *ptr = h4;

@@ -33,6 +33,9 @@
  *         EDHOC, an implementation of Ephimeral Diffie-Hellman Over COSE (EDHOC) (IETF draft-ietf-lake-edhoc-01)
  * \author
  *         Lidia Pocero <pocero@isi.gr>
+ *         Peter Jonsson
+ *         Rikard Höglund
+ *         Marco Tiloca
  */
 #include "edhoc.h"
 #include "contiki-lib.h"
@@ -362,6 +365,35 @@ gen_th3(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
   return 0;
 }
+static uint8_t
+gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz)
+{
+  uint8_t h[MAX_BUFFER];
+  uint8_t *ptr = h;
+  uint16_t h_sz = cbor_put_bytes(&ptr, ctx->session.th.buf, ctx->session.th.len);
+  LOG_DBG("TH_3 (%zu): ", ctx->session.th.len);
+  print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
+  memcpy(h + h_sz, ciphertext, ciphertext_sz);
+  h_sz += ciphertext_sz;
+  LOG_DBG("PLAINTEXT_3 (%d): ", ciphertext_sz);
+  print_buff_8_dbg(ciphertext, ciphertext_sz);
+  memcpy(h + h_sz, data, data_sz);
+  h_sz += data_sz;
+  LOG_DBG("CRED_R (%d): ", data_sz);
+  print_buff_8_dbg(data, data_sz);
+  LOG_DBG("input to calculate TH_4 (CBOR Sequence) (%d bytes):", (int)h_sz);
+  print_buff_8_dbg(h, h_sz);
+
+  /*Compute TH */
+  uint8_t er = compute_TH(h, h_sz, ctx->session.th.buf, ctx->session.th.len);
+  if(er != 0) {
+    LOG_ERR("ERR COMPUTED TH4\n ");
+    return ERR_CODE;
+  }
+  LOG_DBG("TH4 (%d bytes):", (int)ctx->session.th.len);
+  print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
+  return 0;
+}
 int16_t
 edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz, uint16_t lenght)
 {
@@ -376,6 +408,21 @@ edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz
   }
   return lenght;
 }
+int16_t
+edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz, uint16_t lenght)
+{
+  /* generate info for K */
+  uint16_t info_sz = generate_info(inf, th.buf, th.len, label, label_sz, lenght, strncmp(label, "K_3ae", label_sz) == 0 ? 3 : strncmp(label, "IV_3ae", label_sz) == 0 ? 4: 0);
+  LOG_DBG("info KEYSTREAM_2/3 (%d bytes): ", info_sz);
+  print_buff_8_dbg(inf, info_sz);
+  int16_t er = hkdf_expand(key, ECC_KEY_BYTE_LENGHT, inf, info_sz, result, lenght);
+  if(er < 0) {
+    LOG_ERR("Error calculating KEYSTREAM_2/3 (%d)\n", er);
+    return er;
+  }
+  return lenght;
+}
+
 static uint8_t
 set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac_2)
 {
@@ -392,13 +439,18 @@ set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, 
 
   if(mac_num == MAC_2) {
     // FIXME: add ead_2 here too.
-    size_t mac_2_info_sz = ctx->session.id_cred_x.len + ctx->session.th.len + ctx->session.cred_x.len + 6;
+    size_t mac_2_info_sz = ctx->session.id_cred_x.len + ctx->session.th.len + ctx->session.cred_x.len + 7;
     uint8_t mac_2_info[mac_2_info_sz];
     uint8_t *mac_2_info_ptr = mac_2_info;
     cbor_put_unsigned(&mac_2_info_ptr, 2);
     mac_2_info_ptr[0] = 0x58;
-    mac_2_info_ptr[1] = 0x85;
+    mac_2_info_ptr[1] = 0x86;
     mac_2_info_ptr += 2;
+    
+    // Add C_R
+    mac_2_info_ptr[0] = 0x27;
+    mac_2_info_ptr += 1;
+    
     memcpy(mac_2_info_ptr, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
     mac_2_info_ptr += ctx->session.id_cred_x.len;
     cbor_put_bytes(&mac_2_info_ptr, ctx->session.th.buf, ctx->session.th.len);
@@ -973,7 +1025,12 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   LOG_DBG("CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertex_3.len);
   print_buff_8_dbg(ctx->session.ciphertex_3.buf, ctx->session.ciphertex_3.len);
   LOG_INFO("MSG3 sz: %d \n", (int)ctx->tx_sz);
+  
+  /* Compute TH4 */
+  gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertex_3.buf, ctx->session.ciphertex_3.len);
+  //RH WIP
 }
+
 uint8_t
 edhoc_gen_msg_error(uint8_t *msg_er, edhoc_context_t *ctx, int8_t err)
 {
@@ -1247,6 +1304,11 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   LOG_DBG("PLAINTEXT_3 (%d):", (int)plaintext_sz);
   print_buff_8_dbg(buf, plaintext_sz);
   ctx->session.id_cred_x.buf = buf;
+  
+  /* Compute TH4 */
+  gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, buf, plaintext_sz);
+  // RH WIP xxx
+  
   return 1;
 }
 int
