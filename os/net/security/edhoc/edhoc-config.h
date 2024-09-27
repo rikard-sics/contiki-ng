@@ -221,7 +221,7 @@
 #endif
 
 /**
- * \brief The max lenght of the EDHOC msg, as CoAP payload
+ * \brief The max length of the EDHOC msg, as CoAP payload
  */
 #ifdef EDHOC_CONF_MAX_PAYLOAD
 #define MAX_DATA_LEN EDHOC_CONF_MAX_PAYLOAD
@@ -230,7 +230,7 @@
 #endif
 
 /**
- * \brief The max lenght of the Aplication Data
+ * \brief The max length of the Aplication Data
  */
 #ifdef EDHOC_CONF_MAX_AD_SZ
 #define MAX_AD_SZ EDHOC_CONF_MAX_AD_SZ

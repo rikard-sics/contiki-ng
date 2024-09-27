@@ -449,9 +449,9 @@ PROCESS_THREAD(edhoc_client, ev, data)
   time = RTIMER_NOW();
 #if TEST == TEST_VECTOR
   LOG_DBG("Using test vector\n");
-  memcpy(edhoc_ctx->ephimeral_key.public.x, eph_pub_x_i, ECC_KEY_BYTE_LENGHT);
-  memcpy(edhoc_ctx->ephimeral_key.public.y, eph_pub_y_i, ECC_KEY_BYTE_LENGHT);
-  memcpy(edhoc_ctx->ephimeral_key.private_key, eph_private_i, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephemeral_key.public.x, eph_pub_x_i, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephemeral_key.public.y, eph_pub_y_i, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephemeral_key.private_key, eph_private_i, ECC_KEY_BYTE_LENGHT);
 #if ECC == UECC_ECC
   LOG_DBG("setr curve of uecc\n");
   edhoc_ctx->curve.curve = uECC_secp256r1();
@@ -459,7 +459,7 @@ PROCESS_THREAD(edhoc_client, ev, data)
 #elif ECC == UECC_ECC
   LOG_DBG("generate key with uecc\n");
   edhoc_ctx->curve.curve = uECC_secp256r1();
-  uecc_generate_key(&edhoc_ctx->ephimeral_key, edhoc_ctx->curve);
+  uecc_generate_key(&edhoc_ctx->ephemeral_key, edhoc_ctx->curve);
 #elif ECC == CC2538_ECC
   LOG_DBG("generate key with CC2538\n");
   static key_gen_t key = {
@@ -468,17 +468,17 @@ PROCESS_THREAD(edhoc_client, ev, data)
   };
   PT_SPAWN(&edhoc_client.pt, &key.pt, generate_key_hw(&key));
 
-  memcpy(edhoc_ctx->ephimeral_key.public.x, key.x, ECC_KEY_BYTE_LENGHT);
-  memcpy(edhoc_ctx->ephimeral_key.public.y, key.y, ECC_KEY_BYTE_LENGHT);
-  memcpy(edhoc_ctx->ephimeral_key.private_key, key.private, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephemeral_key.public.x, key.x, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephemeral_key.public.y, key.y, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephemeral_key.private_key, key.private, ECC_KEY_BYTE_LENGHT);
 #endif
 
   LOG_DBG("X (%d bytes):", ECC_KEY_BYTE_LENGHT);
-  print_buff_8_dbg(edhoc_ctx->ephimeral_key.private_key, ECC_KEY_BYTE_LENGHT);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.private_key, ECC_KEY_BYTE_LENGHT);
   LOG_DBG("G_X x (%d bytes):", ECC_KEY_BYTE_LENGHT);
-  print_buff_8_dbg(edhoc_ctx->ephimeral_key.public.x, ECC_KEY_BYTE_LENGHT);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.x, ECC_KEY_BYTE_LENGHT);
   LOG_DBG("y:");
-  print_buff_8_dbg(edhoc_ctx->ephimeral_key.public.y, ECC_KEY_BYTE_LENGHT);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.y, ECC_KEY_BYTE_LENGHT);
 
   time_total = RTIMER_NOW();
   time = RTIMER_NOW() - time;

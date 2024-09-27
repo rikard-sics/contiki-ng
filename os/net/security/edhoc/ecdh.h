@@ -85,7 +85,7 @@ typedef struct session_key {
   uint8_t k2_e[MAX_KEY];
   uint8_t prk_2e[ECC_KEY_BYTE_LENGHT];
   uint8_t prk_3e2m[ECC_KEY_BYTE_LENGHT];
-  uint8_t prk_4x3m[ECC_KEY_BYTE_LENGHT];
+  uint8_t prk_4e3m[ECC_KEY_BYTE_LENGHT];
   uint8_t gx[ECC_KEY_BYTE_LENGHT];
   uint8_t gy[ECC_KEY_BYTE_LENGHT];
   uint8_t th[ECC_KEY_BYTE_LENGHT];

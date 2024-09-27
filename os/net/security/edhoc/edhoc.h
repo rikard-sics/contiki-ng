@@ -93,8 +93,8 @@ typedef struct edhoc_session {
   bstr id_cred_x;
   bstr cred_x;
   bstr th;
-  bstr ciphertex_2;
-  bstr ciphertex_3;
+  bstr ciphertext_2;
+  bstr ciphertext_3;
 } edhoc_session;
 
 /**
@@ -102,7 +102,7 @@ typedef struct edhoc_session {
  */
 typedef struct edhoc_context_t {
   ecc_key authen_key;
-  ecc_key ephimeral_key;
+  ecc_key ephemeral_key;
   session_key eph_key;
   edhoc_session session;
   ecc_curve_t curve;
@@ -157,7 +157,7 @@ void edhoc_finalize(edhoc_context_t *ctx);
  * \brief Generate the EDHOC Message 1 and set it on the EDHOC context
  * \param ctx EDHOC Context struct
  * \param ad Application data to include in MSG1
- * \param ad_sz Application data lenght
+ * \param ad_sz Application data length
  * \param suit_array If true the msg1 include an array of suits if have more than one suit if 0 msg1 inclue an 
  * unique unsigned suit independently of the number of suits supported by the initiator 
  *
@@ -176,7 +176,7 @@ void edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz,bool suit_a
  * \brief Generate the EDHOC Message 2 and set it on the EDHOC ctx
  * \param ctx EDHOC Context struct
  * \param ad Aplication data to include in MSG2
- * \param ad_sz Aplication data lenght
+ * \param ad_sz Aplication data length
  *
  * It is used by EDHOC Responder part to processing the message 2
  * Generate an ephemeral ECDH key pair
@@ -196,7 +196,7 @@ void edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz);
  * \brief Generate the EDHOC Message 3 and set it on the EDHOC ctx
  * \param ctx EDHOC Context struct
  * \param ad Aplication data to include in MSG3
- * \param ad_sz Aplication data lenght
+ * \param ad_sz Aplication data length
  *
  * It is used by EDHOC Initiator part to processing the message 3.
  * Compute the transcript hash 3 TH3 = H(TH_2, CIPHERTEXT_2, data_3)
@@ -227,7 +227,7 @@ void edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz);
 uint8_t edhoc_gen_msg_error(uint8_t *msg_er, edhoc_context_t *ctx, int8_t err);
 
 /**
- * \brief Get the authnetication key from the rx msg
+ * \brief Get the authentication key from the rx msg
  * \param ctx EDHOC Context struct
  * \param pt A pointer to the ID_CRED_X on the Rx msg buffer.
  * \param key A pointer to a cose key struct
@@ -244,7 +244,7 @@ int edhoc_get_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key);
  * \brief Authneticate the rx message
  * \param ctx EDHOC Context struct
  * \param pt A pointer to the SIGN on the Rx msg buffer.
- * \param cipher_len Lenght of the cipher msg
+ * \param cipher_len Length of the cipher msg
  * \param ad A pointer to a buffer to copy the Application Data of the rx message
  * \param key The other party authentication key, used for authentication
  * \retval ERR_CODE when an EDHOC ERROR is detected return a negative number correspondig to the specific error code
@@ -319,15 +319,15 @@ int edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer
  * \param th Transcription Hash to generate the CBOR info input of hmac_expand
  * \param label Label to generate the CBOR info input of hmac_expand
  * \param label_sz Label length to generate the info input of hmac_expand
- * \param lenght of OKM in bites
+ * \param length of OKM in bites
  * \return 1 if HKDF-expand finish successfully
  *
  * Used by both Initiator and Responder EDHOC parts to generate the info parameter
  * of the HKDF-Expand function and the HKDF-Expand function as well.
- *  - OKM = HKDF-Expand(PRK, info, lenght)
+ *  - OKM = HKDF-Expand(PRK, info, length)
  *  - where info: info = [ALGORITHM_ID:unsigned, th:bstr, label:tstr, length:uint]
  */
-int16_t edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz, uint16_t lenght);
+int16_t edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz, uint16_t length);
 
 /**
  * \brief Get the SH-Static authentication pair key from the storage and set in the EDHOC context

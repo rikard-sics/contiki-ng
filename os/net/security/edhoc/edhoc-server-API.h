@@ -161,7 +161,7 @@ void edhoc_server_close();
  * \param res The response CoAp message to send back
  * \param ser The EDHOC server struct
  * \param msg A pointer to the buffer with the RX message
- * \param len The RX message lenght
+ * \param len The RX message length
  *
  *  This function must be called from a CoAP response POST handler to run the EDHOC protocol Responder
  *  part. The EDHOC messages 1 and message 3 are transferred in POST requests and the EDHOC message 2

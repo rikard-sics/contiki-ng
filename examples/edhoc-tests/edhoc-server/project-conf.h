@@ -10,7 +10,7 @@
 //#define AUTH_SUBJECT_NAME "Serv_A"
 #define AUTH_KID 0x32
 
-/* Definde a value for the Conection Identifier*/
+/* Definde a value for the Connection Identifier*/
 // #define EDHOC_CID 0x20
 #define EDHOC_CID -8
 
@@ -18,7 +18,7 @@
 #define EDHOC_CONF_PART PART_R /*Server */
 #define EDHOC_CONF_CORR EXTERNAL_CORR_U 
 
-/*To run with the test vector DH ephimeral keys used on the edhoc-v02 interoperability sesion*/
+/*To run with the test vector DH ephemeral keys used on the edhoc-v02 interoperability sesion*/
 #define EDHOC_TEST TEST_VECTOR
 #define EDHOC_CONF_VERSION EDHOC_04
 
