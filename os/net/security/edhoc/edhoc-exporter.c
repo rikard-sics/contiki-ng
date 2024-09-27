@@ -79,7 +79,7 @@ edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, char *label, uint8_t label
 int8_t
 edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
 {
-  if(gen_th4(ctx) < 0) {
+  if(gen_th4_old(ctx) < 0) {
     LOG_ERR("error code at exporter(%d) \n ", ERR_CODE);
     return ERR_CODE;
   }
@@ -105,7 +105,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
 int8_t
 edhoc_exporter_psk_chaining(psk_ctx_t *psk, edhoc_context_t *ctx)
 {
-  gen_th4(ctx);
+  gen_th4_old(ctx);
   int er1 = edhoc_exporter(psk->PSK, ctx, "EDHOC Chaining PSK", strlen("EDHOC Chaining PSK"), PSK_KEY_SZ);
   if(er1 < 0) {
     return er1;
