@@ -104,14 +104,4 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   er1 = edhoc_exporter(osc->master_salt, ctx, "OSCORE Master Salt", strlen("OSCORE Master Salt"), OSCORE_SALT_SZ);
   return er1;
 }
-int8_t
-edhoc_exporter_psk_chaining(psk_ctx_t *psk, edhoc_context_t *ctx)
-{
-  // gen_th4_old(ctx);
-  int er1 = edhoc_exporter(psk->PSK, ctx, "EDHOC Chaining PSK", strlen("EDHOC Chaining PSK"), PSK_KEY_SZ);
-  if(er1 < 0) {
-    return er1;
-  }
-  er1 = edhoc_exporter(psk->kid_PSK, ctx, "EDHOC Chaining kid_psk", strlen("EDHOC Chaining kid_psk"), PSK_KEY_ID_SZ);
-  return er1;
-}
+

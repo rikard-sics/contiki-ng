@@ -768,7 +768,6 @@ gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, 
 
   return size;
 }
-static uint8_t buffer_plaintext[500]; //FIXME RH
 static uint16_t
 gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac, uint16_t mac_sz, uint8_t *ciphertext)
 {
@@ -784,8 +783,8 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   print_buff_8_dbg(cose->plaintext, cose->plaintext_sz);
 
   //RH Modified to store plaintext 3 XXX
-  memcpy(buffer_plaintext, cose->plaintext, cose->plaintext_sz);
-  ctx->session.ciphertext_3.buf = buffer_plaintext;
+  memcpy(buf, cose->plaintext, cose->plaintext_sz);
+  ctx->session.ciphertext_3.buf = buf;
   ctx->session.ciphertext_3.len = cose->plaintext_sz;
   
   //RH
@@ -970,11 +969,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   /*Set the pointer to th2 */
   ctx->session.th.buf = ctx->eph_key.th;
   ctx->session.th.len = ECC_KEY_BYTE_LENGHT;
-  
-  // FIXME: Remove: Here CRED_X seems to be CRED_R //RH
-  LOG_INFO("CRED_X early in edhoc_gen_msg_3 (%d bytes):", (int)ctx->session.cred_x.len);
-  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
-  
+
   gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);
   /*Generate cose authentication key */
   cose_key cose;
@@ -1020,10 +1015,6 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   /*Gen ciphertext_3 */
   uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac, MAC_LEN, ctx->msg_tx);
   ctx->tx_sz = ciphertext_sz;
-  
-  //RH
-  LOG_DBG("CIPHERTEXT_3 ???? (%d bytes):", (int)ctx->session.ciphertext_3.len);
-  print_buff_8_dbg(ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
 
   /*Point ciphertext_3 for the exporter */
   /*uint8_t *ptr_c = ctx->msg_tx;
@@ -1032,56 +1023,8 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   print_buff_8_dbg(ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
   LOG_INFO("MSG3 sz: %d \n", (int)ctx->tx_sz);*/
   
-  
-  
-  // FIXME: Remove //RH
-  LOG_INFO("CRED_I CHECK? in edhoc_gen_msg_3 (%d bytes):", (int)ctx->session.cred_x.len);
-  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
-  
-  
-  /* Compute TH4 */
-  // Note: This function never prints its output to terminal in Cooja
-  // WIP BELOW
-  cose_key cose2;
-  generate_cose_key(&ctx->authen_key, &cose2, ctx->authen_key.identity, ctx->authen_key.identity_size);
-   
-  bstr cred_r;
-  uint8_t buffer[300];
-  cred_r.buf = buffer;
-  cred_r.len = 300;
-  int size = generate_cred_x(&cose, cred_r.buf);
-  cred_r.len = size;
-  
-  LOG_INFO("CRED_R ??? in edhoc_gen_msg_3 (%d bytes):", (int)cred_r.len);
-  print_buff_8_dbg(cred_r.buf, cred_r.len);
-  
-  
-  // Get the cose_key_t version of the auth cred  
-  uint8_t *auth_key_buffer = NULL;
-  cose_key_t auth_cose_key;
-  edhoc_get_auth_key(ctx, &auth_key_buffer, &auth_cose_key);
-
-  // Create a normal cose_key from it
-  cose_key auth_cose_key_final;
-  ecc_key ecc_auth_key;
-  set_cose_key(&ecc_auth_key, &auth_cose_key_final, &auth_cose_key, ctx->curve);
-
-  // Prepare a buffer for CRED_I
-  bstr cred_i;
-  uint8_t cred_i_raw_data[300]; //Fix size
-  cred_i.buf = cred_i_raw_data;
-  cred_i.len = sizeof(cred_i_raw_data);
-
-  // Build the CRED_I value
-  int cred_i_size = generate_cred_x(&auth_cose_key_final, cred_i.buf);
-  cred_i.len = cred_i_size;
-
-  // Print CRED_I
-  LOG_INFO("CRED_I in edhoc_gen_msg_3 (%d bytes):", (int)cred_i.len);
-  print_buff_8_dbg(cred_i.buf, cred_i.len);
-  
+  /* Compute TH4 WIP */
   gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
-  //RH WIP
 }
 
 uint8_t
@@ -1282,7 +1225,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer, si
   ctx->session.ciphertext_2.buf = msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGHT;
   ctx->session.ciphertext_2.len = ciphertext2_sz;
 
-  /*Decripted cipher text */
+  /*Decrypted cipher text */
   memcpy(buf, msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGHT, ciphertext2_sz);
   LOG_DBG("CIPHERTEXT_2 (%d bytes):", ciphertext2_sz);
   print_buff_8_dbg(buf, ciphertext2_sz);
@@ -1339,10 +1282,6 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
     return er;
   }
   print_msg_3(msg3);
-  
-  // FIXME: Remove //RH
-  LOG_INFO("CRED_X early in edhoc_handler_msg_3 (%d bytes):", (int)ctx->session.cred_x.len);
-  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
 
   /*Set the ciphertext_3 for the key exporter */
   ctx->session.ciphertext_3.buf = msg3->ciphertext_3.buf;
@@ -1362,58 +1301,8 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   print_buff_8_dbg(buf, plaintext_sz);
   ctx->session.id_cred_x.buf = buf;
   
+  /* Compute TH4 WIP */
   
-  // FIXME: Remove //RH
-  LOG_INFO("CRED_X in edhoc_handler_msg_3 (%d bytes):", (int)ctx->session.cred_x.len);
-  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
-  
-  /* Compute TH4 */
-  
-  // WIP below
-  
-  // Generate cred_
- /* cose_key cose2;
-  generate_cose_key(&ctx->authen_key, &cose2, ctx->authen_key.identity, ctx->authen_key.identity_size);
-  
-  
-  bstr cred_r;
-  uint8_t buffer2[300];
-  cred_r.buf = buffer2;
-  cred_r.len = 300;
-  int size2 = generate_cred_x(&cose2, cred_r.buf);
-  cred_r.len = size2;
-  
-  LOG_INFO("********* CRED_R (%d bytes):", (int)cred_r.len);
-  print_buff_8_dbg(cred_r.buf, cred_r.len);
-  LOG_INFO("********* CRED_X (%d bytes):", (int)ctx->session.cred_x.len);
-  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
-  // gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
-  //RH WIP
-  
-  
-  // Works from here
-  uint8_t *pt2 = NULL;
-  cose_key_t cose3;
-  edhoc_get_auth_key(ctx, &pt2, &cose3);
-
-  
-  cose_key cose4;
-  ecc_key authenticate2;
-  set_cose_key(&authenticate2, &cose4, &cose3, ctx->curve);
-  cose_print_key(&cose4);
-  
-  size2 = generate_cred_x(&cose4, cred_r.buf);
-  cred_r.len = size2;
-  LOG_INFO("********* CRED_I TEST2 (%d bytes):", (int)cred_r.len);
-  print_buff_8_dbg(cred_r.buf, cred_r.len);
-  
-  //gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, buf, plaintext_sz);*/
-  // RH WIP xxx
-
-
-
-  
-  // Use instead edhoc_get_cred_x_from_kid?  
   // Get the cose_key_t version of the auth cred  
   uint8_t *auth_key_buffer = NULL;
   cose_key_t auth_cose_key;
@@ -1424,11 +1313,10 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   ecc_key ecc_auth_key;
   set_cose_key(&ecc_auth_key, &auth_cose_key_final, &auth_cose_key, ctx->curve);
 
-  // Prepare a buffer for CRED_I
+  // Use inf buffer for CRED_I
   bstr cred_i;
-  uint8_t cred_i_raw_data[300]; //Fix size
-  cred_i.buf = cred_i_raw_data;
-  cred_i.len = sizeof(cred_i_raw_data);
+  cred_i.buf = inf;
+  cred_i.len = sizeof(inf);
 
   // Build the CRED_I value
   int cred_i_size = generate_cred_x(&auth_cose_key_final, cred_i.buf);
@@ -1439,6 +1327,7 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   print_buff_8_dbg(cred_i.buf, cred_i.len);
 
   // We are overwriting TH here, which means that TH3 is lost and it is needed for the info for SALT_4e3m
+  // Problems happen in edhoc_authenticate_msg and gen_prk_4e3m
   gen_th4(ctx, cred_i.buf, cred_i.len, buf, plaintext_sz);
   
   return 1;
@@ -1450,11 +1339,11 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   LOG_DBG("msg (%d bytes):", cipher_len);
   print_buff_8_dbg(in_ptr, cipher_len);
   uint8_t *sign_r = NULL;
-  /*Get MAC from the decript msg*/
+  /*Get MAC from the decrypt msg*/
   uint16_t sign_r_sz = edhoc_get_sign(ptr, &sign_r);
   uint16_t rest_sz = cipher_len - (*ptr - buf);
 
-  /*Get the ad from the decript msg*/
+  /*Get the ad from the decrypt msg*/
   if(rest_sz) {
     rest_sz = edhoc_get_ad(ptr, ad);
   } else {
@@ -1487,7 +1376,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 #endif
 #if ((METHOD == METH1) || (METHOD == METH3))
   if(check_mac_dh(ctx, ad, rest_sz, sign_r, sign_r_sz, mac) == 0) {
-    LOG_ERR("error code in handeler (%d)\n ", ERR_AUTHENTICATION);
+    LOG_ERR("error code in handler (%d)\n ", ERR_AUTHENTICATION);
     return ERR_AUTHENTICATION;
   }
 #endif
