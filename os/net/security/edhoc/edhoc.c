@@ -366,7 +366,6 @@ gen_th3(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
   return 0;
 }
-# if 0
 static uint8_t
 gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz)
 {
@@ -396,7 +395,6 @@ gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
   return 0;
 }
-#endif
 int16_t
 edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz, uint16_t lenght)
 {
@@ -527,6 +525,7 @@ gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac)
   cose_encrypt0_finalize(cose);
   return mac_sz;
 }
+//TODO: Actually check the mac
 static uint16_t
 check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher, uint16_t cipher_sz, uint8_t *mac)
 {
@@ -769,6 +768,7 @@ gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, 
 
   return size;
 }
+static uint8_t buffer_plaintext[500]; //FIXME RH
 static uint16_t
 gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac, uint16_t mac_sz, uint8_t *ciphertext)
 {
@@ -782,6 +782,15 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   cose->plaintext_sz = gen_plaintext(cose->plaintext, ctx, ad, ad_sz, false);
   LOG_DBG("PLAINTEXT_3 (%d bytes):", (int)cose->plaintext_sz);
   print_buff_8_dbg(cose->plaintext, cose->plaintext_sz);
+
+  //RH Modified to store plaintext 3 XXX
+  memcpy(buffer_plaintext, cose->plaintext, cose->plaintext_sz);
+  ctx->session.ciphertex_3.buf = buffer_plaintext;
+  ctx->session.ciphertex_3.len = cose->plaintext_sz;
+  
+  //RH
+  LOG_DBG("CIPHERTEXT_3 right after (%d bytes):", (int)ctx->session.ciphertex_3.len);
+  print_buff_8_dbg(ctx->session.ciphertex_3.buf, ctx->session.ciphertex_3.len);
 
   /* generate  K */
   er = edhoc_kdf(cose->key, ctx->eph_key.prk_3e2m, ctx->session.th, "K_3ae", strlen("K_3ae"), KEY_DATA_LENGHT);
@@ -961,6 +970,11 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   /*Set the pointer to th2 */
   ctx->session.th.buf = ctx->eph_key.th;
   ctx->session.th.len = ECC_KEY_BYTE_LENGHT;
+  
+  // FIXME: Remove: Here CRED_X seems to be CRED_R //RH
+  LOG_INFO("CRED_X early in edhoc_gen_msg_3 (%d bytes):", (int)ctx->session.cred_x.len);
+  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
+  
   gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertex_2.buf, ctx->session.ciphertex_2.len);
   /*Generate cose authentication key */
   cose_key cose;
@@ -1006,35 +1020,67 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   /*Gen ciphertex_3 */
   uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac, MAC_LEN, ctx->msg_tx);
   ctx->tx_sz = ciphertext_sz;
+  
+  //RH
+  LOG_DBG("CIPHERTEXT_3 ???? (%d bytes):", (int)ctx->session.ciphertex_3.len);
+  print_buff_8_dbg(ctx->session.ciphertex_3.buf, ctx->session.ciphertex_3.len);
 
   /*Point ciphertext_3 for the exporter */
-  uint8_t *ptr_c = ctx->msg_tx;
+  /*uint8_t *ptr_c = ctx->msg_tx;
   ctx->session.ciphertex_3.len = edhoc_get_bytes(&ptr_c, &ctx->session.ciphertex_3.buf);
-  LOG_DBG("TEST123 CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertex_3.len);
+  LOG_DBG("CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertex_3.len);
   print_buff_8_dbg(ctx->session.ciphertex_3.buf, ctx->session.ciphertex_3.len);
-  LOG_INFO("MSG3 sz: %d \n", (int)ctx->tx_sz);
+  LOG_INFO("MSG3 sz: %d \n", (int)ctx->tx_sz);*/
   
   
+  
+  // FIXME: Remove //RH
+  LOG_INFO("CRED_I CHECK? in edhoc_gen_msg_3 (%d bytes):", (int)ctx->session.cred_x.len);
+  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
   
   
   /* Compute TH4 */
   // Note: This function never prints its output to terminal in Cooja
   // WIP BELOW
-  // Generate cred_I from the Initiator's authentication credential
   cose_key cose2;
   generate_cose_key(&ctx->authen_key, &cose2, ctx->authen_key.identity, ctx->authen_key.identity_size);
-  
-  
-  bstr cred_i;
+   
+  bstr cred_r;
   uint8_t buffer[300];
-  cred_i.buf = buffer;
-  cred_i.len = 300;
-  int size = generate_cred_x(&cose, cred_i.buf);
-  cred_i.len = size;
+  cred_r.buf = buffer;
+  cred_r.len = 300;
+  int size = generate_cred_x(&cose, cred_r.buf);
+  cred_r.len = size;
   
-  LOG_INFO("CRED_I (%d bytes):", (int)cred_i.len);
+  LOG_INFO("CRED_R ??? in edhoc_gen_msg_3 (%d bytes):", (int)cred_r.len);
+  print_buff_8_dbg(cred_r.buf, cred_r.len);
+  
+  
+  // Get the cose_key_t version of the auth cred  
+  uint8_t *auth_key_buffer = NULL;
+  cose_key_t auth_cose_key;
+  edhoc_get_auth_key(ctx, &auth_key_buffer, &auth_cose_key);
+
+  // Create a normal cose_key from it
+  cose_key auth_cose_key_final;
+  ecc_key ecc_auth_key;
+  set_cose_key(&ecc_auth_key, &auth_cose_key_final, &auth_cose_key, ctx->curve);
+
+  // Prepare a buffer for CRED_I
+  bstr cred_i;
+  uint8_t cred_i_raw_data[300]; //Fix size
+  cred_i.buf = cred_i_raw_data;
+  cred_i.len = sizeof(cred_i_raw_data);
+
+  // Build the CRED_I value
+  int cred_i_size = generate_cred_x(&auth_cose_key_final, cred_i.buf);
+  cred_i.len = cred_i_size;
+
+  // Print CRED_I
+  LOG_INFO("CRED_I in edhoc_gen_msg_3 (%d bytes):", (int)cred_i.len);
   print_buff_8_dbg(cred_i.buf, cred_i.len);
-  // gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertex_3.buf, ctx->session.ciphertex_3.len);
+  
+  gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertex_3.buf, ctx->session.ciphertex_3.len);
   //RH WIP
 }
 
@@ -1293,11 +1339,15 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
     return er;
   }
   print_msg_3(msg3);
+  
+  // FIXME: Remove //RH
+  LOG_INFO("CRED_X early in edhoc_handler_msg_3 (%d bytes):", (int)ctx->session.cred_x.len);
+  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
 
   /*Set the ciphertex_3 for the key exporter */
   ctx->session.ciphertex_3.buf = msg3->ciphertext_3.buf;
   ctx->session.ciphertex_3.len = msg3->ciphertext_3.len;
-  LOG_DBG("TEST1234 CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertex_3.len);
+  LOG_DBG("CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertex_3.len);
   print_buff_8_dbg(ctx->session.ciphertex_3.buf, ctx->session.ciphertex_3.len);
   /*generate TH3 */
   gen_ciphertext_2(ctx, ctx->session.ciphertex_2.buf, ctx->session.ciphertex_2.len);
@@ -1311,6 +1361,11 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   LOG_DBG("PLAINTEXT_3 (%d):", (int)plaintext_sz);
   print_buff_8_dbg(buf, plaintext_sz);
   ctx->session.id_cred_x.buf = buf;
+  
+  
+  // FIXME: Remove //RH
+  LOG_INFO("CRED_X in edhoc_handler_msg_3 (%d bytes):", (int)ctx->session.cred_x.len);
+  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
   
   /* Compute TH4 */
   
@@ -1357,32 +1412,33 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
 
 
 
-// Use instead edhoc_get_cred_x_from_kid?  
+  
+  // Use instead edhoc_get_cred_x_from_kid?  
+  // Get the cose_key_t version of the auth cred  
+  uint8_t *auth_key_buffer = NULL;
+  cose_key_t auth_cose_key;
+  edhoc_get_auth_key(ctx, &auth_key_buffer, &auth_cose_key);
 
-// Get the cose_key_t version of the auth cred  
-uint8_t *auth_key_buffer = NULL;
-cose_key_t auth_cose_key;
-edhoc_get_auth_key(ctx, &auth_key_buffer, &auth_cose_key);
+  // Create a normal cose_key from it
+  cose_key auth_cose_key_final;
+  ecc_key ecc_auth_key;
+  set_cose_key(&ecc_auth_key, &auth_cose_key_final, &auth_cose_key, ctx->curve);
 
-// Create a normal cose_key from it
-cose_key auth_cose_key_final;
-ecc_key ecc_auth_key;
-set_cose_key(&ecc_auth_key, &auth_cose_key_final, &auth_cose_key, ctx->curve);
+  // Prepare a buffer for CRED_I
+  bstr cred_i;
+  uint8_t cred_i_raw_data[300]; //Fix size
+  cred_i.buf = cred_i_raw_data;
+  cred_i.len = sizeof(cred_i_raw_data);
 
-// Prepare a buffer for CRED_I
-bstr cred_i;
-uint8_t cred_i_raw_data[300];
-cred_i.buf = cred_i_raw_data;
-cred_i.len = sizeof(cred_i_raw_data);
+  // Build the CRED_I value
+  int cred_i_size = generate_cred_x(&auth_cose_key_final, cred_i.buf);
+  cred_i.len = cred_i_size;
 
-// Build the CRED_I value
-int cred_i_size = generate_cred_x(&auth_cose_key_final, cred_i.buf);
-cred_i.len = cred_i_size;
+  // Print CRED_I
+  LOG_INFO("CRED_I in edhoc_handler_msg_3 (%d bytes):", (int)cred_i.len);
+  print_buff_8_dbg(cred_i.buf, cred_i.len);
 
-// Print CRED_I
-LOG_INFO("********* CRED_I TEST2 (%d bytes):", (int)cred_i.len);
-print_buff_8_dbg(cred_i.buf, cred_i.len);
-
+  gen_th4(ctx, cred_i.buf, cred_i.len, buf, plaintext_sz);
   
   return 1;
 }
