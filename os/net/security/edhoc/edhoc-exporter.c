@@ -59,7 +59,7 @@ gen_th4_old(edhoc_context_t *ctx)
   uint8_t h4[MAX_BUFFER];
   uint8_t *ptr = h4;
   uint8_t h4_sz = cbor_put_bytes(&ptr, ctx->session.th.buf, ctx->session.th.len);
-  h4_sz += cbor_put_bytes(&ptr, ctx->session.ciphertex_3.buf, ctx->session.ciphertex_3.len);
+  h4_sz += cbor_put_bytes(&ptr, ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
   LOG_DBG("Input to calculate TH_4 (CBOR Sequence) (%d bytes)",(int)h4_sz);
   print_buff_8_dbg(h4, h4_sz);
   uint8_t er = compute_TH(h4, h4_sz, ctx->session.th.buf, ctx->session.th.len);
@@ -73,9 +73,9 @@ gen_th4_old(edhoc_context_t *ctx)
 }
 #endif
 int8_t
-edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, char *label, uint8_t label_sz, uint8_t lenght)
+edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, char *label, uint8_t label_sz, uint8_t length)
 {
-  int8_t er = edhoc_kdf(result, ctx->eph_key.prk_4x3m, ctx->session.th, label, label_sz, lenght);
+  int8_t er = edhoc_kdf(result, ctx->eph_key.prk_4e3m, ctx->session.th, label, label_sz, length);
   return er;
 }
 int8_t

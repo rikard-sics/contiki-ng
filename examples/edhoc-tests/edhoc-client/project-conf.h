@@ -11,7 +11,7 @@
 //#define AUTH_SUBJECT_NAME "Node_101"
 #define AUTH_KID 0x2b
 
-/* Definde a value for the Conection Identifier*/
+/* Definde a value for the Connection Identifier*/
 #define EDHOC_CID -24
 
 /*Define the coap server to conect with*/
@@ -24,7 +24,7 @@
 #define EDHOC_CONF_PART PART_I
 #define EDHOC_CONF_CORR EXTERNAL_CORR_U 
 
-/*To run with the test vector DH ephimeral keys used on the edhoc-v02 interoperability sesion*/
+/*To run with the test vector DH ephemeral keys used on the edhoc-v02 interoperability sesion*/
 #define EDHOC_TEST TEST_VECTOR
 #define EDHOC_CONF_VERSION EDHOC_04
 

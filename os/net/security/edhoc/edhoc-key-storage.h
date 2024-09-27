@@ -45,7 +45,7 @@
 #include <stdio.h>
 
 /**
- * \brief KEY lenght in bytes
+ * \brief KEY length in bytes
  *
  */
 #ifndef ECC_KEY_BYTE_LENGHT
@@ -84,7 +84,7 @@ void edhoc_add_key(cose_key_t *key);
 /**
  * \brief Check in the keys repository for the key with the specific kid
  * \param kid input Key Identification
- * \param kid_sz input Key Identification lenght
+ * \param kid_sz input Key Identification length
  * \param auth_key output cose_key_t key that corresponds to the kid
  * \return 1 if a key with the specific kid exists in the repository 0 otherwise
  *
@@ -96,7 +96,7 @@ uint8_t edhoc_check_key_list_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **auth
 /**
  * \brief Check in the keys repository for the key with the specific identity
  * \param identity input key identity
- * \param identity_sz input key identity lenght
+ * \param identity_sz input key identity length
  * \param auth_key output cose_key_t key that corresponds to the identity
  * \return 1 if a key with the specific identity exists in the repository 0 otherwise
  *
@@ -108,7 +108,7 @@ uint8_t edhoc_check_key_list_identity(char *identity, uint8_t identity_sz, cose_
 /**
  * \brief Remove from the keys repository the key with the specific kid
  * \param kid input Key Identification
- * \param kid_sz input Key Identification lenght
+ * \param kid_sz input Key Identification length
  * \return 1 if a key with the specific kid existed in the repository 0 otherwise
  *
  *  This function delete from the repository the DH cose_key_t key
@@ -119,7 +119,7 @@ uint8_t edhoc_remove_key_kid(uint8_t *kid, uint8_t kid_sz);
 /**
  * \brief Remove from the keys repository the key with the specific identity
  * \param identity input key identity
- * \param identity_sz input key identity lenght
+ * \param identity_sz input key identity length
  * \return 1 if a key with the specific identity existed in the repository 0 otherwise
  *
  *  This function delete from the repository the DH cose_key_t key
