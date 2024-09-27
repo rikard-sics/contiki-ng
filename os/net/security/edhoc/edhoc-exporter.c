@@ -52,6 +52,7 @@ edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc)
   LOG_PRINT("OSCORE Master Salt (%d bytes):", OSCORE_SALT_SZ);
   print_buff_8_print(osc->master_salt, OSCORE_SALT_SZ);
 }
+# if 0
 static int8_t
 gen_th4_old(edhoc_context_t *ctx)
 {
@@ -70,6 +71,7 @@ gen_th4_old(edhoc_context_t *ctx)
   print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
   return er;
 }
+#endif
 int8_t
 edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, char *label, uint8_t label_sz, uint8_t lenght)
 {
@@ -79,10 +81,10 @@ edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, char *label, uint8_t label
 int8_t
 edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
 {
-  if(gen_th4_old(ctx) < 0) {
+  /*if(gen_th4_old(ctx) < 0) {
     LOG_ERR("error code at exporter(%d) \n ", ERR_CODE);
     return ERR_CODE;
-  }
+  }*/
 
   /*The oscore client is the initiator */
   if(PART == PART_I) {
@@ -105,7 +107,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
 int8_t
 edhoc_exporter_psk_chaining(psk_ctx_t *psk, edhoc_context_t *ctx)
 {
-  gen_th4_old(ctx);
+  // gen_th4_old(ctx);
   int er1 = edhoc_exporter(psk->PSK, ctx, "EDHOC Chaining PSK", strlen("EDHOC Chaining PSK"), PSK_KEY_SZ);
   if(er1 < 0) {
     return er1;
