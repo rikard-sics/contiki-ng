@@ -89,18 +89,6 @@ typedef struct psk_ctx_t {
 int8_t edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx);
 
 /**
- * \brief Derive a new PSK Chaining
- * \param psk output PSK Context struct
- * \param ctx input EDHOC Context struct
- * \return negative number HKDF ERROR code when an ERROR happens in the key derivation
- *
- *  This function is used to derive new PSKs to use for authentication in future EDHOC exchanges.
- *  This can be run from both EDHOC Initiator and Responder once the EDHOC protocol has finished
- *  successfully.
- */
-int8_t edhoc_exporter_psk_chaining(psk_ctx_t *psk, edhoc_context_t *ctx);
-
-/**
  * \brief Print an OSCORE Context for debugging
  * \param osc input OSCORE Context struct
  *

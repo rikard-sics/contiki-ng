@@ -29,7 +29,7 @@
  */
 /**
  * \file
- *      EDHOC server example [draft-ietf-lake-edhoc-01] with CoAP Block-Wise Transfer [RFC7959]
+ *      EDHOC server example [RFC9528] with CoAP Block-Wise Transfer [RFC7959]
  * \author
  *      Lidia Pocero <pocero@isi.gr>
  */
