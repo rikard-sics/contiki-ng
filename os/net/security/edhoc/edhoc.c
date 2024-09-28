@@ -410,7 +410,7 @@ edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz
   return length;
 }
 static uint8_t
-set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac_2)
+set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac)
 {
   /*CBOR The TH2 */
   // cose_encrypt0_set_content(cose, NULL, 0, NULL, 0);
@@ -425,17 +425,17 @@ set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, 
 
   if(mac_num == MAC_2) {
     // FIXME: add ead_2 here too.
-    size_t mac_2_info_sz = ctx->session.id_cred_x.len + ctx->session.th.len + ctx->session.cred_x.len + 7;
-    uint8_t mac_2_info[mac_2_info_sz];
-    uint8_t *mac_2_info_ptr = mac_2_info;
-    cbor_put_unsigned(&mac_2_info_ptr, 2);
-    mac_2_info_ptr[0] = 0x58;
-    mac_2_info_ptr[1] = 0x86;
-    mac_2_info_ptr += 2;
+    size_t mac_info_sz = ctx->session.id_cred_x.len + ctx->session.th.len + ctx->session.cred_x.len + 7;
+    uint8_t mac_info[mac_info_sz];
+    uint8_t *mac_info_ptr = mac_info;
+    cbor_put_unsigned(&mac_info_ptr, 2);
+    mac_info_ptr[0] = 0x58;
+    mac_info_ptr[1] = 0x86;
+    mac_info_ptr += 2;
     
     // Add C_R
-    mac_2_info_ptr[0] = 0x27;
-    mac_2_info_ptr += 1;
+    mac_info_ptr[0] = 0x27;
+    mac_info_ptr += 1;
     
     memcpy(mac_info_ptr, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
     mac_info_ptr += ctx->session.id_cred_x.len;
@@ -450,15 +450,6 @@ set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, 
       LOG_ERR("Failed to expand MAC_2\n");
       return 0;
     }
-#if 0
-    // FIXME: duplicate computation
-    edhoc_kdf(cose->key, ctx->eph_key.prk_3e2m, ctx->session.th, "K_2m", strlen("K_2m"), KEY_DATA_LENGHT);
-    LOG_DBG("K_2m (%d bytes):", KEY_DATA_LENGHT);
-    print_buff_8_dbg(cose->key, KEY_DATA_LENGHT);
-    edhoc_kdf(cose->nonce, ctx->eph_key.prk_3e2m, ctx->session.th, "IV_2m", strlen("IV_2m"), IV_LENGHT);
-    LOG_DBG("IV_2m (%d bytes):", IV_LENGHT);
-    print_buff_8_dbg(cose->nonce, IV_LENGHT);
-#endif
   } else if(mac_num == MAC_3) {
     // FIXME: add ead_3 here too.
     size_t mac_info_sz = ctx->session.id_cred_x.len + ctx->session.th.len + ctx->session.cred_x.len + 6;
@@ -476,7 +467,7 @@ set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, 
     cbor_put_unsigned(&mac_info_ptr, 8);
     LOG_DBG("info MAC_3 (%zu bytes): ", mac_info_sz);
     print_buff_8_dbg((uint8_t *)&mac_info, mac_info_sz);
-    int8_t er = hkdf_expand(ctx->eph_key.prk_4e3m, ECC_KEY_BYTE_LENGTH, mac_info, mac_info_sz, mac, MAC_LEN);
+    int8_t er = hkdf_expand(ctx->eph_key.prk_4e3m, ECC_KEY_BYTE_LENGHT, mac_info, mac_info_sz, mac, MAC_LEN);
     if(er < 0) {
       LOG_ERR("Failed to expand MAC_3\n");
       return 0;
