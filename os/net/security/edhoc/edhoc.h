@@ -41,7 +41,7 @@
  * \defgroup EDHOC An EDHOC implementation (RFC9528)
  * @{
  *
- * This is an implementation of the  Ephemeral Diffie-Hellman Over COSE (EDHOC)
+ * This is an implementation of the Ephemeral Diffie-Hellman Over COSE (EDHOC)
  * a very compact, and lightweight authenticated Diffie-Hellman key exchange with
  * ephemeral keys that provide mutual authentication, perfect forward secrecy,
  * and identity protection as described in (RFC9528)
