@@ -467,7 +467,7 @@ set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, 
     cbor_put_unsigned(&mac_info_ptr, 8);
     LOG_DBG("info MAC_3 (%zu bytes): ", mac_info_sz);
     print_buff_8_dbg((uint8_t *)&mac_info, mac_info_sz);
-    int8_t er = hkdf_expand(ctx->eph_key.prk_4e3m, ECC_KEY_BYTE_LENGHT, mac_info, mac_info_sz, mac, MAC_LEN);
+    int8_t er = hkdf_expand(ctx->eph_key.prk_4e3m, ECC_KEY_BYTE_LENGTH, mac_info, mac_info_sz, mac, MAC_LEN);
     if(er < 0) {
       LOG_ERR("Failed to expand MAC_3\n");
       return 0;
