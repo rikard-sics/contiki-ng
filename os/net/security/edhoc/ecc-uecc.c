@@ -32,7 +32,7 @@
  * \file
  *         ecc-uecc interface the uecc SW library
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 
 #include "ecc-uecc.h"
@@ -74,23 +74,23 @@ uecc_generate_key(ecc_key *key, ecc_curve_t curve)
 void
 uecc_uncompress(uint8_t *compressed, uint8_t *gx, uint8_t *gy, ecc_curve_t *curve)
 {
-  uint8_t pub[2 * ECC_KEY_BYTE_LENGHT];
+  uint8_t pub[2 * ECC_KEY_BYTE_LENGTH];
   uECC_decompress(compressed, pub, curve->curve);
-  memcpy(gx, compressed + 1, ECC_KEY_BYTE_LENGHT);
-  memcpy(gy, pub + ECC_KEY_BYTE_LENGHT, ECC_KEY_BYTE_LENGHT);
+  memcpy(gx, compressed + 1, ECC_KEY_BYTE_LENGTH);
+  memcpy(gy, pub + ECC_KEY_BYTE_LENGTH, ECC_KEY_BYTE_LENGTH);
 }
 uint8_t
 uecc_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve)
 {
   int er = 0;
-  uint8_t compressed[ECC_KEY_BYTE_LENGHT + 1];
+  uint8_t compressed[ECC_KEY_BYTE_LENGTH + 1];
   compressed[0] = 0x03;
-  memcpy(compressed + 1, gx, ECC_KEY_BYTE_LENGHT);
+  memcpy(compressed + 1, gx, ECC_KEY_BYTE_LENGTH);
   uecc_uncompress(compressed, gx, gy, &curve);
   
-  uint8_t public[2 * ECC_KEY_BYTE_LENGHT];
-  memcpy(public, gx, ECC_KEY_BYTE_LENGHT);
-  memcpy(public + ECC_KEY_BYTE_LENGHT, gy, ECC_KEY_BYTE_LENGHT);
+  uint8_t public[2 * ECC_KEY_BYTE_LENGTH];
+  memcpy(public, gx, ECC_KEY_BYTE_LENGTH);
+  memcpy(public + ECC_KEY_BYTE_LENGTH, gy, ECC_KEY_BYTE_LENGTH);
 
   watchdog_periodic();
   er = uECC_shared_secret(public, private_key, ikm, curve.curve);

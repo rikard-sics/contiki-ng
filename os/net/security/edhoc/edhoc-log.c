@@ -33,7 +33,7 @@
  *         edhoc-log declarations
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 #include "edhoc-log.h"
 

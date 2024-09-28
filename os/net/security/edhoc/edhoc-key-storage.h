@@ -35,7 +35,7 @@
  *         the DH-static authentication public key of the other EDHOC parts.
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  *         Christos Koulamas <cklm@isi.gr>
  */
 #ifndef _EDHOC_KEY_STORAGE_H_
@@ -48,8 +48,8 @@
  * \brief KEY length in bytes
  *
  */
-#ifndef ECC_KEY_BYTE_LENGHT
-#define ECC_KEY_BYTE_LENGHT 32
+#ifndef ECC_KEY_BYTE_LENGTH
+#define ECC_KEY_BYTE_LENGTH 32
 #endif
 
 /* COSE KEY struct */
@@ -61,9 +61,9 @@ typedef struct cose_key_t {
   uint8_t identity_sz;
   uint8_t kty;
   uint8_t crv;
-  uint8_t x[ECC_KEY_BYTE_LENGHT];
-  uint8_t y[ECC_KEY_BYTE_LENGHT];
-  uint8_t private[ECC_KEY_BYTE_LENGHT];
+  uint8_t x[ECC_KEY_BYTE_LENGTH];
+  uint8_t y[ECC_KEY_BYTE_LENGTH];
+  uint8_t private[ECC_KEY_BYTE_LENGTH];
 }cose_key_t;
 
 /**

@@ -30,9 +30,9 @@
 
 /**
  * \file
- *      EDHOC client API [draft-ietf-lake-edhoc-01] with CoAP Block-Wise Transfer [RFC7959]
+ *      EDHOC client API [RFC9528] with CoAP Block-Wise Transfer [RFC7959]
  * \author
- *      Lidia Pocero <pocero@isi.gr>
+ *      Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 
 #include "edhoc-client-API.h"
@@ -77,29 +77,29 @@ static int er = 0;
 static cose_key_t key;
 static uint8_t *pt = NULL;
 static edhoc_msg_2 msg2;
-PROCESS(edhoc_client, "Edhoc Client");
-PROCESS(edhoc_client_protocol, "Edhoc Client Protocol");
+PROCESS(edhoc_client, "EDHOC Client");
+PROCESS(edhoc_client_protocol, "EDHOC Client Protocol");
 
 #if TEST == TEST_VECTOR
 #if 0
-uint8_t eph_pub_x_i[ECC_KEY_BYTE_LENGHT] = { 0x47, 0x57, 0x76, 0xf8, 0x44, 0x97, 0x9a, 0xd0, 0xb4, 0x63, 0xc5, 0xa6, 0xa4, 0x34, 0x3a, 0x66, 0x3d, 0x17, 0xa3, 0xa8, 0x0e, 0x38, 0xa8, 0x1d,
+uint8_t eph_pub_x_i[ECC_KEY_BYTE_LENGTH] = { 0x47, 0x57, 0x76, 0xf8, 0x44, 0x97, 0x9a, 0xd0, 0xb4, 0x63, 0xc5, 0xa6, 0xa4, 0x34, 0x3a, 0x66, 0x3d, 0x17, 0xa3, 0xa8, 0x0e, 0x38, 0xa8, 0x1d,
                                              0x3e, 0x34, 0x96, 0xf6, 0x06, 0x1f, 0xd7, 0x16 };
 #else
-uint8_t eph_pub_x_i[ECC_KEY_BYTE_LENGHT] = { 0x8a, 0xf6, 0xf4, 0x30, 0xeb, 0xe1, 0x8d, 0x34, 0x18, 0x40, 0x17, 0xa9, 0xa1, 0x1b, 0xf5, 0x11, 0xc8, 0xdf, 0xf8, 0xf8, 0x34, 0x73, 0x0b,
+uint8_t eph_pub_x_i[ECC_KEY_BYTE_LENGTH] = { 0x8a, 0xf6, 0xf4, 0x30, 0xeb, 0xe1, 0x8d, 0x34, 0x18, 0x40, 0x17, 0xa9, 0xa1, 0x1b, 0xf5, 0x11, 0xc8, 0xdf, 0xf8, 0xf8, 0x34, 0x73, 0x0b,
                                              0x96, 0xc1, 0xb7, 0xc8, 0xdb, 0xca, 0x2f, 0xc3, 0xb6 };
 #endif
 #if 0
-uint8_t eph_pub_y_i[ECC_KEY_BYTE_LENGHT] = { 0x7b, 0x21, 0x4f, 0x54, 0xa2, 0x3e, 0xd2, 0x05, 0x39, 0x5b, 0x6a, 0xe3, 0xb6, 0xa7, 0x4f, 0xcf, 0xe9, 0xb3, 0xe4, 0x0a, 0xcf, 0x89, 0xf5, 0x24,
+uint8_t eph_pub_y_i[ECC_KEY_BYTE_LENGTH] = { 0x7b, 0x21, 0x4f, 0x54, 0xa2, 0x3e, 0xd2, 0x05, 0x39, 0x5b, 0x6a, 0xe3, 0xb6, 0xa7, 0x4f, 0xcf, 0xe9, 0xb3, 0xe4, 0x0a, 0xcf, 0x89, 0xf5, 0x24,
                                              0xd4, 0xa0, 0x6e, 0x0c, 0x8d, 0x91, 0xfb, 0x69 };
 #else
-uint8_t eph_pub_y_i[ECC_KEY_BYTE_LENGHT] = { 0x51, 0xe8, 0xaf, 0x6c, 0x6e, 0xdb, 0x78, 0x16, 0x01, 0xad, 0x1d, 0x9c, 0x5f, 0xa8, 0xbf, 0x7a, 0xa1, 0x57, 0x16, 0xc7, 0xc0, 0x6a, 0x5d,
+uint8_t eph_pub_y_i[ECC_KEY_BYTE_LENGTH] = { 0x51, 0xe8, 0xaf, 0x6c, 0x6e, 0xdb, 0x78, 0x16, 0x01, 0xad, 0x1d, 0x9c, 0x5f, 0xa8, 0xbf, 0x7a, 0xa1, 0x57, 0x16, 0xc7, 0xc0, 0x6a, 0x5d,
                                              0x03, 0x85, 0x03, 0xc6, 0x14, 0xff, 0x80, 0xc9, 0xb3 };
 #endif
 #if 0
-uint8_t eph_private_i[ECC_KEY_BYTE_LENGHT] = { 0x0a, 0xe7, 0x99, 0x77, 0x5c, 0xb1, 0x51, 0xbf, 0xc2, 0x54, 0x87, 0x35, 0xf4, 0x4a, 0xcf, 0x1d, 0x94, 0x29, 0xcf, 0x9a, 0x95, 0xdd, 0xcd, 0x2a,
+uint8_t eph_private_i[ECC_KEY_BYTE_LENGTH] = { 0x0a, 0xe7, 0x99, 0x77, 0x5c, 0xb1, 0x51, 0xbf, 0xc2, 0x54, 0x87, 0x35, 0xf4, 0x4a, 0xcf, 0x1d, 0x94, 0x29, 0xcf, 0x9a, 0x95, 0xdd, 0xcd, 0x2a,
                                                0x13, 0x9e, 0x3a, 0x28, 0xd8, 0x63, 0xa0, 0x81 };
 #else
-uint8_t eph_private_i[ECC_KEY_BYTE_LENGHT] = { 0x36, 0x8e, 0xc1, 0xf6, 0x9a, 0xeb, 0x65, 0x9b, 0xa3, 0x7d, 0x5a, 0x8d, 0x45, 0xb2, 0x1b, 0xdc, 0x02, 0x99, 0xdc, 0xea, 0xa8, 0xef, 0x23,
+uint8_t eph_private_i[ECC_KEY_BYTE_LENGTH] = { 0x36, 0x8e, 0xc1, 0xf6, 0x9a, 0xeb, 0x65, 0x9b, 0xa3, 0x7d, 0x5a, 0x8d, 0x45, 0xb2, 0x1b, 0xdc, 0x02, 0x99, 0xdc, 0xea, 0xa8, 0xef, 0x23,
                                                0x5f, 0x3c, 0xa4, 0x2c, 0xe3, 0x53, 0x0f, 0x95, 0x25 };
 #endif
 #endif
@@ -203,7 +203,7 @@ client_response_handler(coap_callback_request_state_t *callback_state)
     pro = process_post(&edhoc_client, edhoc_event, &edhoc_state);
     return;
   }
-  /*Check that the response are comming from the correct server */
+  /*Check that the response are coming from the correct server */
   if(memcmp(&cli->server_ep.ipaddr, &callback_state->state.remote_endpoint->ipaddr, sizeof(uip_ipaddr_t)) != 0) {
     LOG_ERR("rx response from an error server\n");
     edhoc_state.val = CL_RESTART;
@@ -247,7 +247,7 @@ client_chunk_handler(coap_callback_request_state_t *callback_state)
     LOG_WARN("Request timed out chunk\n");
     return;
   }
-  /*Check the 5-tuple information before retrive the state protocol*/
+  /*Check the 5-tuple information before retrieve the state protocol*/
 
   LOG_DBG("Blockwise: block 2 response: Num: %" PRIu32
           ", More: %u, Size: %u, Offset: %" PRIu32 "\n",
@@ -337,11 +337,11 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
     if(er > 0) {
       // FIXME: hardcoded lengths.
       // int c_r_len = 1;
-      int cipher_sz = msg2.g_y_ciphertext_2.len - ECC_KEY_BYTE_LENGHT;
+      int cipher_sz = msg2.g_y_ciphertext_2.len - ECC_KEY_BYTE_LENGTH;
       er = edhoc_authenticate_msg(edhoc_ctx, &pt, cipher_sz, (uint8_t *)edhoc_state.ad.ad_2, &key);
     }
     time = RTIMER_NOW() - time;
-    LOG_DBG("Client time to authneticate MSG2: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
+    LOG_DBG("Client time to authenticate MSG2: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
 
     if(er == RX_ERR_MSG) {
       LOG_ERR("error code (%d)\n", er);
@@ -352,7 +352,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
       edhoc_client_post();
       edhoc_client_post_blocks();
     } else {
-      /*TODO: Include a way to pass aplictaion msgs. */
+      /*TODO: Include a way to pass application msgs. */
       edhoc_state.ad.ad_2_sz = er;
       if(edhoc_state.ad.ad_2_sz > 0 && edhoc_state.ad.ad_2) {
         LOG_DBG("Ap_2 (%d bytes):", edhoc_state.ad.ad_2_sz);
@@ -393,7 +393,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
     if(cli->tx_msg1 && cli->rx_msg2) {
       cli->rx_msg3_response = true;
     } else {
-      LOG_ERR("The edhoc process scape steps\n");
+      LOG_ERR("The EDHOC process escape steps\n");
       edhoc_state.val = CL_RESTART;
       coap_timer_stop(&timer);
       pro = process_post(&edhoc_client, edhoc_event, &edhoc_state);
@@ -449,15 +449,15 @@ PROCESS_THREAD(edhoc_client, ev, data)
   time = RTIMER_NOW();
 #if TEST == TEST_VECTOR
   LOG_DBG("Using test vector\n");
-  memcpy(edhoc_ctx->ephemeral_key.public.x, eph_pub_x_i, ECC_KEY_BYTE_LENGHT);
-  memcpy(edhoc_ctx->ephemeral_key.public.y, eph_pub_y_i, ECC_KEY_BYTE_LENGHT);
-  memcpy(edhoc_ctx->ephemeral_key.private_key, eph_private_i, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephemeral_key.public.x, eph_pub_x_i, ECC_KEY_BYTE_LENGTH);
+  memcpy(edhoc_ctx->ephemeral_key.public.y, eph_pub_y_i, ECC_KEY_BYTE_LENGTH);
+  memcpy(edhoc_ctx->ephemeral_key.private_key, eph_private_i, ECC_KEY_BYTE_LENGTH);
 #if ECC == UECC_ECC
-  LOG_DBG("setr curve of uecc\n");
+  LOG_DBG("set curve of uEcc\n");
   edhoc_ctx->curve.curve = uECC_secp256r1();
 #endif
 #elif ECC == UECC_ECC
-  LOG_DBG("generate key with uecc\n");
+  LOG_DBG("generate key with uEcc\n");
   edhoc_ctx->curve.curve = uECC_secp256r1();
   uecc_generate_key(&edhoc_ctx->ephemeral_key, edhoc_ctx->curve);
 #elif ECC == CC2538_ECC
@@ -468,17 +468,17 @@ PROCESS_THREAD(edhoc_client, ev, data)
   };
   PT_SPAWN(&edhoc_client.pt, &key.pt, generate_key_hw(&key));
 
-  memcpy(edhoc_ctx->ephemeral_key.public.x, key.x, ECC_KEY_BYTE_LENGHT);
-  memcpy(edhoc_ctx->ephemeral_key.public.y, key.y, ECC_KEY_BYTE_LENGHT);
-  memcpy(edhoc_ctx->ephemeral_key.private_key, key.private, ECC_KEY_BYTE_LENGHT);
+  memcpy(edhoc_ctx->ephemeral_key.public.x, key.x, ECC_KEY_BYTE_LENGTH);
+  memcpy(edhoc_ctx->ephemeral_key.public.y, key.y, ECC_KEY_BYTE_LENGTH);
+  memcpy(edhoc_ctx->ephemeral_key.private_key, key.private, ECC_KEY_BYTE_LENGTH);
 #endif
 
-  LOG_DBG("X (%d bytes):", ECC_KEY_BYTE_LENGHT);
-  print_buff_8_dbg(edhoc_ctx->ephemeral_key.private_key, ECC_KEY_BYTE_LENGHT);
-  LOG_DBG("G_X x (%d bytes):", ECC_KEY_BYTE_LENGHT);
-  print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.x, ECC_KEY_BYTE_LENGHT);
+  LOG_DBG("X (%d bytes):", ECC_KEY_BYTE_LENGTH);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.private_key, ECC_KEY_BYTE_LENGTH);
+  LOG_DBG("G_X x (%d bytes):", ECC_KEY_BYTE_LENGTH);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.x, ECC_KEY_BYTE_LENGTH);
   LOG_DBG("y:");
-  print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.y, ECC_KEY_BYTE_LENGHT);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.y, ECC_KEY_BYTE_LENGTH);
 
   time_total = RTIMER_NOW();
   time = RTIMER_NOW() - time;
@@ -504,7 +504,7 @@ PROCESS_THREAD(edhoc_client, ev, data)
           edhoc_client_start((uint8_t *)edhoc_state.ad.ad_1, edhoc_state.ad.ad_1_sz);
           attempt++;
         } else {
-          LOG_ERR("Expire edhoc client attempts\n");
+          LOG_ERR("Expire EDHOC client attempts\n");
           edhoc_state.val = CL_TRIES_EXPIRE;
           pro = process_post(PROCESS_BROADCAST, edhoc_event, &edhoc_state);
           break;
@@ -525,7 +525,7 @@ PROCESS_THREAD(edhoc_client, ev, data)
           edhoc_client_start((uint8_t *)edhoc_state.ad.ad_1, edhoc_state.ad.ad_1_sz);
           attempt++;
         } else {
-          LOG_ERR("Expire edhoc client attempts\n");
+          LOG_ERR("Expire EDHOC client attempts\n");
           edhoc_state.val = CL_TRIES_EXPIRE;
           pro = process_post(PROCESS_BROADCAST, edhoc_event, &edhoc_state);
           break;

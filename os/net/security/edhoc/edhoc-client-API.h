@@ -30,9 +30,9 @@
 
 /**
  * \file
- *      EDHOC client API [draft-ietf-lake-edhoc-01] with CoAP Block-Wise Transfer [RFC7959]
+ *      EDHOC client API [RFC9528] with CoAP Block-Wise Transfer [RFC7959]
  * \author
- *      Lidia Pocero <pocero@isi.gr>
+ *      Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  *      Christos Koulamas <cklm@isi.gr>
  */
 
@@ -52,7 +52,7 @@
 #include "coap-blocking-api.h"
 
 /**
- * \brief The CoAp Server IP where run the EDHOC Responder
+ * \brief The CoAP Server IP where run the EDHOC Responder
  */
 #ifdef EDHOC_CONF_SERVER_EP
 #define SERVER_EP EDHOC_CONF_SERVER_EP
@@ -61,7 +61,7 @@
 #endif
 
 /**
- * \brief Limite time value to EDHOC protocol finished
+ * \brief Time limit value to EDHOC protocol finished
  */
 #ifdef EDHOC_CONF_TIMEOUT
 #define CL_TIMEOUT_VAL EDHOC_CONF_TIMEOUT
@@ -124,7 +124,7 @@ void edhoc_client_run();
  * \retval 0 if the event is not from EDHOC Client process or the EDHOC client process has not finished yet
  *
  *  This function checks the events trigger from the EDHOC client process looking for the
- *  CL_FINSHED or CL_TRIES_EXPIRE events.
+ *  CL_FINISHED or CL_TRIES_EXPIRE events.
  */
 int8_t edhoc_client_callback(process_event_t ev, void *data);
 

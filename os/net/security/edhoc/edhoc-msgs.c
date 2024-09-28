@@ -30,10 +30,10 @@
 
 /**
  * \file
- *         edhoc-msg serialize and desirialize the edhoc msgs ussing the cbor library
+ *         edhoc-msg serialize and deserialize the EDHOC msgs using the CBOR library
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 #include "contiki-lib.h"
 #include "edhoc-msgs.h"
@@ -323,7 +323,7 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
       msg->c_i.len = 1;
     }
   }
-  /* Get the uncripted msg */
+  /* Get the decrypted msg */
   if(buffer < buff_f) {
     out_sz = edhoc_get_bytes(&buffer, &p_out);
     if(out_sz == 0) {
@@ -365,7 +365,7 @@ edhoc_get_cred_x_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
     return ERR_NOT_ALLOWED_IDENTITY;
   }
   *key = auth_key;
-  return ECC_KEY_BYTE_LENGHT;
+  return ECC_KEY_BYTE_LENGTH;
 }
 int8_t
 edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
@@ -406,11 +406,11 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
     }
     break;
 
-  /*TODO: include cases for each different support authtication case */
+  /*TODO: include cases for each different support authentication case */
   /*case 32:
 
      key_sz = edhoc_get_bytes(p, &ptr);
-     memcpy(key->x, ptr, ECC_KEY_BYTE_LENGHT);
+     memcpy(key->x, ptr, ECC_KEY_BYTE_LENGTH);
      get_text(p, &sn);
      key->kid_sz = 0;
      if(memcmp(sn, "subject name", strlen("subject name")) == 0) {
@@ -449,14 +449,14 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
       break;
     }
     key_sz = edhoc_get_bytes(p, &ptr);
-    memcpy(key->x, ptr, ECC_KEY_BYTE_LENGHT);
+    memcpy(key->x, ptr, ECC_KEY_BYTE_LENGTH);
 
     param = get_negative(p);
     if(param != 3) {
       break;
     }
     key_sz = edhoc_get_bytes(p, &ptr);
-    memcpy(key->y, ptr, ECC_KEY_BYTE_LENGHT);
+    memcpy(key->y, ptr, ECC_KEY_BYTE_LENGTH);
 
     //char *ch = key->identity;
     key->identity_sz = get_text(p, &ch);
@@ -474,7 +474,7 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
     }
     break;
   }
-  if(key_sz != ECC_KEY_BYTE_LENGHT) {
+  if(key_sz != ECC_KEY_BYTE_LENGTH) {
     LOG_ERR("wrong key size\n ");
     return 0;
   }

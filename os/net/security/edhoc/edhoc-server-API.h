@@ -30,9 +30,9 @@
 
 /**
  * \file
- *      EDHOC server API [draft-ietf-lake-edhoc-01] with CoAP Block-Wise Transfer [RFC7959]
+ *      EDHOC server API [RFC9528] with CoAP Block-Wise Transfer [RFC7959]
  * \author
- *      Lidia Pocero <pocero@isi.gr>
+ *      Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  *      Christos Koulamas <cklm@isi.gr>
  */
 
@@ -50,7 +50,7 @@
 #include "edhoc-exporter.h"
 
 /**
- * \brief Limite time value to EDHOC protocol finished
+ * \brief Time limit value to EDHOC protocol finished
  */
 #ifdef EDHOC_CONF_TIMEOUT
 #define SERV_TIMEOUT_VAL EDHOC_CONF_TIMEOUT
@@ -63,7 +63,7 @@
 #define SERV_RESTART 2
 
 /**
- * \brief CoAp resource
+ * \brief CoAP resource
  */
 extern coap_resource_t res_edhoc;
 
@@ -107,7 +107,7 @@ typedef struct serv_data_t {
 extern struct serv_data_t *dat_ptr;
 
 /**
- * \brief Activate the EDHOC CoAp Resource
+ * \brief Activate the EDHOC CoAP Resource
  *
  *  Activate the EDHOC well know CoAP Resource at the uri-path defined
  *  on the WELL_KNOW macro.
@@ -116,7 +116,7 @@ void edhoc_server_init();
 
 /**
  * \brief Create a new EDHOC context for a new EDHOC protocol session
- * \retval non-zero if the authenticaton credentials for the EDHOC server exist on the key-storage
+ * \retval non-zero if the authentication credentials for the EDHOC server exist on the key-storage
  *  and the EDHOC server start correctly.
  *
  *  This function gets the DH-static authentication pair keys of the Server from the edhoc-key-storage.
@@ -128,11 +128,11 @@ uint8_t edhoc_server_start();
 
 /**
  * \brief Reset the EDHOC context for a new EDHOC protocol session with a new client
- * \retval non-zero if the authenticaton credentials for the EDHOC server exist on the key-storage
+ * \retval non-zero if the authentication credentials for the EDHOC server exist on the key-storage
  *  and the EDHOC server start correctly.
  *
  * Rest the EDHOC context to initiate a new EDHOC protocol session with a new client
- * Before of ussing the export security contex of the before EDHOC context must be keep it
+ * Before of using the export security contex of the before EDHOC context must be keep it
  */
 uint8_t edhoc_server_restart();
 
@@ -157,8 +157,8 @@ void edhoc_server_close();
 
 /**
  * \brief run the EDHOC Responder party process
- * \param req The request CoAp message received
- * \param res The response CoAp message to send back
+ * \param req The request CoAP message received
+ * \param res The response CoAP message to send back
  * \param ser The EDHOC server struct
  * \param msg A pointer to the buffer with the RX message
  * \param len The RX message length

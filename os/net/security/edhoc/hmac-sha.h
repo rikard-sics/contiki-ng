@@ -33,7 +33,7 @@
  *         hmac-sha header
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 #ifndef _HMAC_SHA_H_
 #define _HMAC_SHA_H_

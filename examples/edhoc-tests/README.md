@@ -1,4 +1,4 @@
-An EDHOC Client and Server that demonstrate the EDHOC module based on IETF[draft-ietf-lake-edhoc-05] draft, running as RPL node and RPL border router respectively on both Zolertia REMote hardware platform and Cooja
+An EDHOC Client and Server that demonstrate the EDHOC module based on IETF[RFC9528], running as RPL node and RPL border router respectively on both Zolertia REMote hardware platform and Cooja
 Simulator(`edhoc-tests-cooja.css `).
 
 # EDHOC Cooja test

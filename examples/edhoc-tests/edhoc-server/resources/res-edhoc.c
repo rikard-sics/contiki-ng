@@ -1,8 +1,8 @@
 /**
  * \file
- *      EDHOC plugtest resource [draft-selander-lake-edhoc-01] with CoAP Block-Wise Transfer [RFC7959]
+ *      EDHOC plugtest resource [RFC9528] with CoAP Block-Wise Transfer [RFC7959]
  * \author
- *      Lidia Pocero <pocero@isi.gr>
+ *      Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 
 #include <stdio.h>
@@ -20,10 +20,10 @@ static size_t big_msg_len = 0;
 static void
 res_edhoc_post_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  // Example allows only one request on time. There are no checks for multiply access !!! 
+  // Example allows only one request on time. There are no checks for multiple access !!! 
   if(*offset == 0) {
     if(coap_block1_handler(request, response, msg_rx, &msg_rx_len, MAX_DATA_LEN)) {
-     LOG_DBG("handeler (%d)\n", (int)msg_rx_len);
+     LOG_DBG("handler (%d)\n", (int)msg_rx_len);
       print_buff_8_dbg(msg_rx, msg_rx_len);
       return;
     }
