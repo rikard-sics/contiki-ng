@@ -30,9 +30,9 @@
 
 /**
  * \file
- *      EDHOC server API [draft-ietf-lake-edhoc-01] with CoAP Block-Wise Transfer [RFC7959]
+ *      EDHOC server API [RFC9528] with CoAP Block-Wise Transfer [RFC7959]
  * \author
- *      Lidia Pocero <pocero@isi.gr>
+ *      Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 
 #include "edhoc-server-API.h"
@@ -68,7 +68,7 @@ static int er = 0;
 static cose_key_t key;
 static uint8_t *pt = NULL;
 static edhoc_msg_3 msg3;
-PROCESS(edhoc_server, "Edhoc Server");
+PROCESS(edhoc_server, "EDHOC Server");
 
 int8_t
 edhoc_server_callback(process_event_t ev, void *data)
@@ -124,7 +124,7 @@ edhoc_server_restart()
 uint8_t
 edhoc_server_start()
 {
-  LOG_INFO("SERVER: Edhoc new\n");
+  LOG_INFO("SERVER: EDHOC new\n");
   edhoc_ctx = edhoc_new();
   memset(&server, 0, sizeof(edhoc_server_t));
   serv = &server;
@@ -133,7 +133,7 @@ edhoc_server_start()
 void
 edhoc_server_init()
 {
-  LOG_INFO("SERVER: Coap active resource\n");
+  LOG_INFO("SERVER: CoAP active resource\n");
   coap_activate_resource(&res_edhoc, WELL_KNOWN);
   new_ecc_event = process_alloc_event();
 }
@@ -163,7 +163,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
   if(serv->state == EXP_READY) {
     LOG_DBG("process exit\n");
   }
-  /*Check the 5-tuple information before retrive the state protocol */
+  /*Check the 5-tuple information before retrieve the state protocol */
   if((serv->state != NON_MSG) && (memcmp(&serv->con_ipaddr, &request->src_ep->ipaddr, sizeof(uip_ipaddr_t)) != 0)) {
     LOG_ERR("rx request from an error ipaddr\n");
     coap_set_payload(response, NULL, 0);
@@ -204,7 +204,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
           process_post(PROCESS_BROADCAST, new_ecc_event, &new_ecc);
         }
       } else {
-        /* Set the 5-tuple ipaddres to identify the connection */
+        /* Set the 5-tuple to identify the connection */
         memcpy(&serv->con_ipaddr, &request->src_ep->ipaddr, sizeof(uip_ipaddr_t));
         new_ecc.ad.ad_1_sz = er;
         if(new_ecc.ad.ad_1_sz > 0 && new_ecc.ad.ad_1) {
@@ -257,7 +257,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         serv->state = TX_MSG_ERR;
         break;
       } else {
-        /*TODO: Include a way to pass aplictaion msgs. */
+        /*TODO: Include a way to pass application msgs. */
         new_ecc.ad.ad_3_sz = er;
         if(new_ecc.ad.ad_3_sz > 0 && new_ecc.ad.ad_3) {
           LOG_DBG("AP_3 (%d bytes):", new_ecc.ad.ad_3_sz);
@@ -281,7 +281,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         coap_timer_stop(&timer);
         break;
       } else {
-        LOG_ERR("Protocol steap missed\n");
+        LOG_ERR("Protocol step missed\n");
         serv->state = NON_MSG;
       }
     }

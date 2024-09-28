@@ -31,7 +31,7 @@
  * \file
  *      EDHOC configuration file
  * \author
- *      Lidia Pocero <pocero@isi.gr>
+ *      Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 
 /**
@@ -54,7 +54,7 @@
 
 /*SHA256 types*/
 #define DECC_SH2 0       /*Macro to declare the use of SH2 Software library from Oriol Pinol*/
-#define DCC2538_SH2 1    /*Macro to declare the use of SH2 Harware of the CC2538 module */
+#define DCC2538_SH2 1    /*Macro to declare the use of SH2 Hardware of the CC2538 module */
 
 /**
  * \brief Set the SH2 library
@@ -81,8 +81,8 @@
 #endif
 
 /* Part definition */
-#define PART_R 0   /*The Responder of the edhoc protocol*/
-#define PART_I 1   /*The Initiator of the edhoc protocol*/
+#define PART_R 0   /*The Responder of the EDHOC protocol*/
+#define PART_I 1   /*The Initiator of the EDHOC protocol*/
 
 /**
  * \brief Set the EDHOC Protocol part
@@ -94,16 +94,16 @@
 #endif
 
 /*COSE_key parameters */
-#define OKP 1  /*no implemented yet */
+#define OKP 1  /*not implemented yet */
 #define EC2 2
-#define SYMETRIC 3  /*no implemented yet */
+#define SYMMETRIC 3  /*not implemented yet */
 
 /*EDHOC Authentication Method Types: Initiator (I) | Responder (R) */
-#define METH0 0                  /* Signature Key  | Signature Key   //no implemented yet */
-#define METH1 1                  /* Signature Key  | Static DH Key   //no implemented yet */
-#define METH2 2                  /* Static DH Key  | Signature Key   //no implemented yet */
+#define METH0 0                  /* Signature Key  | Signature Key   //not implemented yet */
+#define METH1 1                  /* Signature Key  | Static DH Key   //not implemented yet */
+#define METH2 2                  /* Static DH Key  | Signature Key   //not implemented yet */
 #define METH3 3                  /* Static DH Key  | Static DH Key */
-#define METH4 4                  /* PSK            | PSK             //no implemented yet */
+#define METH4 4                  /* PSK            | PSK             //not implemented yet */
 
 /**
  * \brief Set the Authentication method
@@ -131,7 +131,7 @@
 /*#define AUTHENTICATION_KEY_LEN 32 //For Signature key, not yet implemented*/
 
 /*cipher suit */
-#define X25519 0 /*AES-CCM-16-64-128, (HMAC 256/256) SHA-256, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256  //no implemented yet * / */
+#define X25519 0 /*AES-CCM-16-64-128, (HMAC 256/256) SHA-256, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256  //not implemented yet * / */
 #define X25519_2 1  /*AES-CCM-16-128-128,(HMAC 256/256) SHA-256, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
 #define P256 2    /*AES-CCM-16-64-128, (HMAC 256/256) SHA-256, P-256, ES256, P-256, AES-CCM-16-64-128, SHA-256 */
 #define P256_2 3    /*AES-CCM-16-64-128, (HMAC 256/256) SHA-256, P-256, ES256, P-256, AES-CCM-16-64-128, SHA-256 */
@@ -198,14 +198,14 @@
 
 /* Selected Algorithm Parameters*/
 #if ALGORITHM_ID == COSE_Algorithm_AES_CCM_16_64_128
-#define ECC_KEY_BYTE_LENGHT 32
-#define HAS_LENGHT 32
-#define KEY_DATA_LENGHT COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
-#define IV_LENGHT COSE_algorithm_AES_CCM_16_64_128_IV_LEN
+#define ECC_KEY_BYTE_LENGTH 32
+#define HAS_LENGTH 32
+#define KEY_DATA_LENGTH COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
+#define IV_LENGTH COSE_algorithm_AES_CCM_16_64_128_IV_LEN
 #endif
 
 /**
- * \brief Set the Edhoc part as RPL node. By default deselected
+ * \brief Set the EDHOC part as RPL node. By default deselected
  */
 #ifdef EDHOC_CONF_RPL_NODE
 #define RPL_NODE EDHOC_CONF_RPL_NODE
@@ -230,7 +230,7 @@
 #endif
 
 /**
- * \brief The max length of the Aplication Data
+ * \brief The max length of the Application Data
  */
 #ifdef EDHOC_CONF_MAX_AD_SZ
 #define MAX_AD_SZ EDHOC_CONF_MAX_AD_SZ
@@ -239,7 +239,7 @@
 #endif
 
 /**
- * \brief EDHOC resource urti-path
+ * \brief EDHOC resource uri-path
  */
 #define WELL_KNOWN ".well-known/edhoc"
 

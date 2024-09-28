@@ -33,7 +33,7 @@
  *         edhoc-log header
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 #ifndef _EDHOC_LOG_H_
 #define _EDHOC_LOG_H_

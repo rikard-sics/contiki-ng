@@ -33,7 +33,7 @@
  *         ecdh-msg header
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 #ifndef _EDHOC_MSGS_H__
 #define _EDHOC_MSGS_H__

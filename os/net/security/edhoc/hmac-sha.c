@@ -30,13 +30,13 @@
 
 /**
  * \file
- *         hmac-sha, an hmac implamentation and an interface between the secure Hash Algorithms (SH256S) libraries with the edhoc implementation.
- *         Interface the SHA library with the edhoc implementation. New SHA libraries can be include it here.
- *         The EDHOC_CONFIG_SHA macro can be definded at config file to specify the used library for SH256
+ *         hmac-sha, an hmac implementation and an interface between the secure Hash Algorithms (SH256S) libraries with the EDHOC implementation.
+ *         Interface the SHA library with the EDHOC implementation. New SHA libraries can be include it here.
+ *         The EDHOC_CONFIG_SHA macro can be defined at config file to specify the used library for SH256
  *         Choose between: SHA software library from Oriol Pinol and, SHA HW for CC2538_SH2 modules.
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 
 #include "hmac-sha.h"
@@ -124,7 +124,7 @@ sha_new(void)
   if(ctx) {
     sha_reset(ctx);
   } else {
-    LOG_ERR("Failed to allocate new sha context\n");
+    LOG_ERR("Failed to allocate new SHA context\n");
   }
   return ctx;
 }

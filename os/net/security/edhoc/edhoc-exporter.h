@@ -30,11 +30,11 @@
 
 /**
  * \file
- *         edhoc-exporter This is an interface to derivate application security context
+ *         edhoc-exporter This is an interface to derive application security context
  *         from the EDHOC shared secret
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  *         Christos Koulamas <cklm@isi.gr>
  */
 
@@ -52,7 +52,7 @@
 
 /* OSCORE KEY and SALT size */
 #define OSCORE_SALT_SZ 8
-#define OSCORE_KEY_SZ 16 /*Key leght of the APP AEAD in bytes */
+#define OSCORE_KEY_SZ 16 /*Key length of the APP AEAD in bytes */
 
 /* PSK KEY and SALT sizes */
 #define PSK_KEY_SZ 16

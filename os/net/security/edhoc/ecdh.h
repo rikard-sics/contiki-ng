@@ -33,7 +33,7 @@
  *         ecdh header
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 #ifndef _ECDH_H_
 #define _ECDH_H_
@@ -83,12 +83,12 @@
 
 typedef struct session_key {
   uint8_t k2_e[MAX_KEY];
-  uint8_t prk_2e[ECC_KEY_BYTE_LENGHT];
-  uint8_t prk_3e2m[ECC_KEY_BYTE_LENGHT];
-  uint8_t prk_4e3m[ECC_KEY_BYTE_LENGHT];
-  uint8_t gx[ECC_KEY_BYTE_LENGHT];
-  uint8_t gy[ECC_KEY_BYTE_LENGHT];
-  uint8_t th[ECC_KEY_BYTE_LENGHT];
+  uint8_t prk_2e[ECC_KEY_BYTE_LENGTH];
+  uint8_t prk_3e2m[ECC_KEY_BYTE_LENGTH];
+  uint8_t prk_4e3m[ECC_KEY_BYTE_LENGTH];
+  uint8_t gx[ECC_KEY_BYTE_LENGTH];
+  uint8_t gy[ECC_KEY_BYTE_LENGTH];
+  uint8_t th[ECC_KEY_BYTE_LENGTH];
 } session_key;
 
 uint8_t generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve);

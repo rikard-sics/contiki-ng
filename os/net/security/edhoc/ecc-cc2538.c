@@ -34,7 +34,7 @@
  *         of cc2538 HW module
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 
 #include "ecc-cc2538.h"
@@ -134,12 +134,12 @@ PT_THREAD(generate_key_hw(key_gen_t * key)) {
   }
   ecc_mul_get_result(&side_a.point_out, side_a.rv);
 
-  uint8_t public[ECC_KEY_BYTE_LENGHT * 2];
-  eccnativeToBytes(public, ECC_KEY_BYTE_LENGHT, side_a.point_out.x);
-  eccnativeToBytes(public + ECC_KEY_BYTE_LENGHT, ECC_KEY_BYTE_LENGHT, side_a.point_out.y);
-  eccnativeToBytes(key->y, ECC_KEY_BYTE_LENGHT, side_a.point_out.y);
-  eccnativeToBytes(key->private, ECC_KEY_BYTE_LENGHT, secret_a);
-  eccnativeToBytes(key->x, ECC_KEY_BYTE_LENGHT, side_a.point_out.x);
+  uint8_t public[ECC_KEY_BYTE_LENGTH * 2];
+  eccnativeToBytes(public, ECC_KEY_BYTE_LENGTH, side_a.point_out.x);
+  eccnativeToBytes(public + ECC_KEY_BYTE_LENGTH, ECC_KEY_BYTE_LENGTH, side_a.point_out.y);
+  eccnativeToBytes(key->y, ECC_KEY_BYTE_LENGTH, side_a.point_out.y);
+  eccnativeToBytes(key->private, ECC_KEY_BYTE_LENGTH, secret_a);
+  eccnativeToBytes(key->x, ECC_KEY_BYTE_LENGTH, side_a.point_out.x);
   pka_disable();
   PT_END(&key->pt);
 }
@@ -264,9 +264,9 @@ cc2538_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm
   if(gy[0] == 0) {
     gy[0] = 0x01;
   }
-  eccbytesToNative(shared.point_in.x, gx, ECC_KEY_BYTE_LENGHT);
-  eccbytesToNative(shared.point_in.y, gy, ECC_KEY_BYTE_LENGHT);
-  eccbytesToNative(shared.secret, private_key, ECC_KEY_BYTE_LENGHT);
+  eccbytesToNative(shared.point_in.x, gx, ECC_KEY_BYTE_LENGTH);
+  eccbytesToNative(shared.point_in.y, gy, ECC_KEY_BYTE_LENGTH);
+  eccbytesToNative(shared.secret, private_key, ECC_KEY_BYTE_LENGTH);
   watchdog_periodic();
   ecc_mul_start(shared.secret, &shared.point_in, shared.curve_info, &shared.rv, shared.process);
   watchdog_periodic();
@@ -276,7 +276,7 @@ cc2538_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm
   ecc_mul_get_result(&shared.point_out, shared.rv);
   watchdog_periodic();
 
-  eccnativeToBytes(ikm, ECC_KEY_BYTE_LENGHT, shared.point_out.x);
+  eccnativeToBytes(ikm, ECC_KEY_BYTE_LENGTH, shared.point_out.x);
 
   pka_disable();
   er = 1;
