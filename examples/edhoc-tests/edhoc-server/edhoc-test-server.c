@@ -229,6 +229,7 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 #endif
       t = RTIMER_NOW() - t;
       LOG_INFO("Server time to generate new key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
+      LOG_INFO("Compile time: %s %s\n", __DATE__, __TIME__);
       LOG_INFO("\n");
       LOG_INFO("G_y (%d bytes):", ECC_KEY_BYTE_LENGTH);
       print_buff_8_info(edhoc_ctx->ephemeral_key.public.x, ECC_KEY_BYTE_LENGTH);
