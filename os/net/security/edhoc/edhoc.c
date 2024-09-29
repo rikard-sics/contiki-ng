@@ -1372,14 +1372,14 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 int //RH WIP
 cbor_bstr_size(uint32_t len) {
     if (len <= 23) {
-        return 1;  // 1 byte total for encoding
+        return 1 + len;  // 1 byte total for encoding
     } else if (len <= 255) {
-        return 2;  // 1 byte for 0x18 + 1 byte for the length
+        return 2 + len;  // 1 byte for 0x18 + 1 byte for the length
     } else if (len <= 65535) {
-        return 3;  // 1 byte for 0x19 + 2 bytes for the length
+        return 3 + len;  // 1 byte for 0x19 + 2 bytes for the length
     } else if (len <= 4294967295) {
-        return 5;  // 1 byte for 0x1A + 4 bytes for the length
+        return 5 + len;  // 1 byte for 0x1A + 4 bytes for the length
     } else {
-        return 9;  // 1 byte for 0x1B + 8 bytes for the length
+        return 9 + len;  // 1 byte for 0x1B + 8 bytes for the length
     }
 }
