@@ -107,7 +107,7 @@ compute_TH(uint8_t *in, uint8_t in_sz, uint8_t *hash, uint8_t hash_sz)
   return er;
 }
 int8_t
-hkdf_extrac(uint8_t *salt, uint8_t salt_sz, uint8_t *ikm, uint8_t ikm_sz, uint8_t *hmac)
+hkdf_extract(uint8_t *salt, uint8_t salt_sz, uint8_t *ikm, uint8_t ikm_sz, uint8_t *hmac)
 {
   hmac_context_t *ctx = hmac_sha256_init(salt, salt_sz);
   if(!ctx) {

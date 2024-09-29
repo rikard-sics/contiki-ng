@@ -568,7 +568,7 @@ gen_prk_2e(edhoc_context_t *ctx)
   if(er == 0) {
     return 0;
   }
-  er = hkdf_extrac(ctx->session.th.buf, ctx->session.th.len, buf, ECC_KEY_BYTE_LENGTH, ctx->eph_key.prk_2e);
+  er = hkdf_extract(ctx->session.th.buf, ctx->session.th.len, buf, ECC_KEY_BYTE_LENGTH, ctx->eph_key.prk_2e);
   if(er < 1) {
     LOG_ERR("Error in extract prk_2e\n");
     return 0;
@@ -622,7 +622,7 @@ gen_prk_3e2m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
   }
   LOG_DBG("SALT_3e2m (32 bytes):");
   print_buff_8_dbg(salt, 32);
-  er = hkdf_extrac(salt, 32, grx, ECC_KEY_BYTE_LENGTH, ctx->eph_key.prk_3e2m);
+  er = hkdf_extract(salt, 32, grx, ECC_KEY_BYTE_LENGTH, ctx->eph_key.prk_3e2m);
   if(er < 1) {
     LOG_ERR("error in extract for prk_3e2m\n");
     return 0;
@@ -664,7 +664,7 @@ gen_prk_4e3m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
   }
   LOG_DBG("SALT_4e3m (32 bytes):");
   print_buff_8_dbg(salt, 32);
-  er = hkdf_extrac(salt, 32, giy, ECC_KEY_BYTE_LENGTH, ctx->eph_key.prk_4e3m);
+  er = hkdf_extract(salt, 32, giy, ECC_KEY_BYTE_LENGTH, ctx->eph_key.prk_4e3m);
   if(er < 1) {
     LOG_ERR("error in extract for prk_4e3m\n");
     return 0;
