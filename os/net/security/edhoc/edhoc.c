@@ -433,7 +433,7 @@ set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, 
     mac_info_ptr[1] = 0x86;
     mac_info_ptr += 2;
     
-    // Add C_R
+    // RH: Add C_R
     mac_info_ptr[0] = 0x27;
     mac_info_ptr += 1;
     
@@ -773,15 +773,11 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   LOG_DBG("PLAINTEXT_3 (%d bytes):", (int)cose->plaintext_sz);
   print_buff_8_dbg(cose->plaintext, cose->plaintext_sz);
 
-  //RH Modified to store plaintext 3 XXX
+  // RH Modified to store plaintext 3 WIP
   memcpy(buf, cose->plaintext, cose->plaintext_sz);
   ctx->session.ciphertext_3.buf = buf;
   ctx->session.ciphertext_3.len = cose->plaintext_sz;
   
-  //RH
-  LOG_DBG("CIPHERTEXT_3 right after (%d bytes):", (int)ctx->session.ciphertext_3.len);
-  print_buff_8_dbg(ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
-
   /* generate  K */
   er = edhoc_kdf(cose->key, ctx->eph_key.prk_3e2m, ctx->session.th, "K_3ae", strlen("K_3ae"), KEY_DATA_LENGTH);
   if(er < 1) {
@@ -1373,3 +1369,18 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 #endif
   return rest_sz;
 }
+int //RH WIP
+cbor_bstr_overhead(uint32_t len) {
+    if (len <= 23) {
+        return 1;  // 1 byte total for encoding
+    } else if (len <= 255) {
+        return 2;  // 1 byte for 0x18 + 1 byte for the length
+    } else if (len <= 65535) {
+        return 3;  // 1 byte for 0x19 + 2 bytes for the length
+    } else if (len <= 4294967295) {
+        return 5;  // 1 byte for 0x1A + 4 bytes for the length
+    } else {
+        return 9;  // 1 byte for 0x1B + 8 bytes for the length
+    }
+}
+
