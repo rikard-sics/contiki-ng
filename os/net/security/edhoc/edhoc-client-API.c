@@ -511,6 +511,7 @@ PROCESS_THREAD(edhoc_client, ev, data)
         }
       }
       if(edhoc_state.val == CL_FINISHED) {
+        LOG_INFO("Compile time: %s %s\n", __DATE__, __TIME__);
         time_total = RTIMER_NOW() - time_total;
         LOG_INFO("Client time to finish: %" PRIu32 " ms (%" PRIu32 " CPU cycles).\n", (uint32_t)((uint64_t)time_total * 1000 / RTIMER_SECOND), (uint32_t)time_total);
         break;

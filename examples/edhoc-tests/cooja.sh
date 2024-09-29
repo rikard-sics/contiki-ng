@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# Remove old test log
+rm COOJA.testlog
+
+# Clean old build files
+rm -r edhoc-client/build
+rm -r edhoc-server/build
+
 # Run Cooja with the specified arguments in no-GUI mode
 cooja --args="--no-gui edhoc-tests-cooja.csc" && \
 # After Cooja finishes, process the log file COOJA.testlog

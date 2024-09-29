@@ -1370,7 +1370,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   return rest_sz;
 }
 int //RH WIP
-cbor_bstr_overhead(uint32_t len) {
+cbor_bstr_size(uint32_t len) {
     if (len <= 23) {
         return 1;  // 1 byte total for encoding
     } else if (len <= 255) {
@@ -1383,4 +1383,3 @@ cbor_bstr_overhead(uint32_t len) {
         return 9;  // 1 byte for 0x1B + 8 bytes for the length
     }
 }
-

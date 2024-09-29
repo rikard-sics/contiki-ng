@@ -339,5 +339,14 @@ int16_t edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t 
  */
 uint8_t edhoc_get_authentication_key(edhoc_context_t *ctx);
 
+/**
+ * \brief Predict the size of a CBOR byte string wrapping an array with a specific length
+ * \param len The length of the byte array to be wrapped
+ *
+ * Get the size of the resulting CBOR byte string which would be produced by wrapping
+ * a byte array of len as a CBOR byte string.
+ */
+int cbor_bstr_size(uint32_t len);
+
 #endif /* _EDHOC_H_ */
 /** @} */
