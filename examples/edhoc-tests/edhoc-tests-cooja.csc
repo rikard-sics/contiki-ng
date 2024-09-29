@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <simconf version="2023090101">
   <simulation>
-    <title>My simulation</title>
-    <speedlimit>1.0</speedlimit>
+    <title>EDHOC simulation</title>
     <randomseed>123456</randomseed>
     <motedelay_us>1000000</motedelay_us>
     <radiomedium>
@@ -136,14 +135,62 @@
   <plugin>
     org.contikios.cooja.plugins.ScriptRunner
     <plugin_config>
-      <script>TIMEOUT(10000000000);
-sim.setSpeedLimit(1.0); // Real time simulation speed.
+      <script>
+TIMEOUT(10000000000);
+sim.setSpeedLimit(100000.0);  // Simulation speed.
+
 while (true) {
-  if (msg.contains("EDHOC protocol finished success, ")) {
+  log.log(id + " " + msg + "\n");  // Write all output to COOJA.testlog
+
+  // Define the device type using a ternary operator
+  var device = (id == 1) ? "Client" : (id == 2) ? "Server" : "Unknown";
+  device = "[MSG : EDHOC     ] " + device;
+
+  // Check if the OSCORE master secret is correct
+  if (msg.contains("OSCORE Master Secret")) {
+    if (msg.contains("OSCORE Master Secret (16 bytes):f9 86 8f 6a 3a ca 78 a0 5d 14 85 b3 50 30 b1 62")) {
+      log.log("C " + device + ": Correct master secret!\n");
+    } else {
+      log.log("I " + device + ": Incorrect master secret!\n");
+    }
+  }
+
+  // Check if PRK_4e3m is correct
+  if (msg.contains("PRK_4e3m")) {
+    if (msg.contains("PRK_4e3m (32 bytes): 81 cc 8a 29 8e 35 70 44 e3 c4 66 bb 5c 0a 1e 50 7e 01 d4 92 38 ae ba 13 8d f9 46 35 40 7c 0f f7")) {
+      log.log("C " + device + ": Correct PRK_4e3m!\n");
+    } else {
+      log.log("I " + device + ": Incorrect PRK_4e3m!\n");
+    }
+  }
+
+  // Check if info for SALT_4e3m is correct
+  if (msg.contains("info SALT_4e3m")) {
+    if (msg.contains("info SALT_4e3m (37 bytes):05 58 20 ad af 67 a7 8a 4b cc 91 e0 18 f8 88 27 62 a7 22 00 0b 25 07 03 9d f0 bc 1b bf 0c 16 1b b3 15 5c 18 20")) {
+      log.log("C " + device + ": Correct info for SALT_4e3m!\n");
+    } else {
+      log.log("I " + device + ": Incorrect info for SALT_4e3m!\n");
+    }
+  }
+
+  // Check if SALT_4e3m is correct
+  if (msg.contains("SALT_4e3m")) {
+    if (!msg.contains("info SALT_4e3m")) {
+      if (msg.contains("SALT_4e3m (32 bytes):cf dd f9 51 5a 7e 46 e7 b4 db ff 31 cb d5 6c d0 4b a3 32 25 0d e9 ea 5d e1 ca f9 f6 d1 39 14 a7")) {
+        log.log("C " + device + ": Correct SALT_4e3m!\n");
+      } else {
+        log.log("I " + device + ": Incorrect SALT_4e3m!\n");
+      }
+    }
+  }
+
+  // Check for finish condition
+  if (msg.contains("Client time to finish")) {
     log.testOK();
   }
   YIELD();
-}</script>
+}
+</script>
       <active>true</active>
     </plugin_config>
     <bounds x="1037" y="40" height="700" width="600" z="1" />
