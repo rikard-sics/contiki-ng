@@ -114,7 +114,7 @@
 #define METHOD METH3
 #endif
 
-/* Credential  Types*/
+/* Credential Types*/
 #define PRKI 1
 #define PRK_ID 2
 #define PRKI_2 3

@@ -409,7 +409,7 @@ edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz
   }
   return length;
 }
-static uint8_t
+static uint8_t //RH: Why not use edhoc_kdf in this function?
 set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac)
 {
   /*CBOR The TH2 */
@@ -573,7 +573,7 @@ gen_prk_2e(edhoc_context_t *ctx)
     LOG_ERR("Error in extract prk_2e\n");
     return 0;
   }
-  LOG_DBG("PRK_2e (%d  bytes): ", ECC_KEY_BYTE_LENGTH);
+  LOG_DBG("PRK_2e (%d bytes): ", ECC_KEY_BYTE_LENGTH);
   print_buff_8_dbg(ctx->eph_key.prk_2e, ECC_KEY_BYTE_LENGTH);
   return 1;
 }
@@ -590,6 +590,7 @@ gen_k_2e(edhoc_context_t *ctx, uint16_t length)
   return 1;
 }
 /*TODO: change the gen with the PART: Initiator U: gen = 0; Responder V: gen = 1; */
+//RH: Why not use edhoc_kdf for SALT_3e2m / SALT_4e3m?
 static uint8_t
 gen_prk_3e2m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
 {
@@ -778,7 +779,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   ctx->session.ciphertext_3.buf = buf;
   ctx->session.ciphertext_3.len = cose->plaintext_sz;
   
-  /* generate  K */
+  /* generate K */
   er = edhoc_kdf(cose->key, ctx->eph_key.prk_3e2m, ctx->session.th, "K_3ae", strlen("K_3ae"), KEY_DATA_LENGTH);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
@@ -788,7 +789,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   LOG_DBG("K_3ae (%d bytes):", (int)cose->key_sz);
   print_buff_8_dbg(cose->key, cose->key_sz);
 
-  /* generate  IV */
+  /* generate IV */
   er = edhoc_kdf(cose->nonce, ctx->eph_key.prk_3e2m, ctx->session.th, "IV_3ae", strlen("IV_3ae"), IV_LENGTH);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
@@ -1273,7 +1274,7 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   /*Set the ciphertext_3 for the key exporter */
   ctx->session.ciphertext_3.buf = msg3->ciphertext_3.buf;
   ctx->session.ciphertext_3.len = msg3->ciphertext_3.len;
-  LOG_DBG("CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertext_3.len);
+  LOG_DBG("CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertext_3.len); //RH FIXME: Should be plaintext
   print_buff_8_dbg(ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
   /*generate TH3 */
   gen_ciphertext_2(ctx, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, Industrial Systems  Institute (ISI), Patras, Greece
+ * Copyright (c) 2020, Industrial Systems Institute (ISI), Patras, Greece
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
