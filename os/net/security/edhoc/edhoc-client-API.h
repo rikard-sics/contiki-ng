@@ -143,7 +143,7 @@ void edhoc_client_close();
  *
  * This function copy on the buff the Application data from the EDHOC message 2 received
  */
-uint8_t  edhoc_server_get_ad_2(char *buff);
+uint8_t edhoc_server_get_ad_2(char *buff);
 
 /**
  * \brief Set the Application Data to be carried on EDHOC message 1
@@ -162,6 +162,18 @@ void edhoc_server_set_ad_1(const void *buff, uint8_t buff_sz);
  * This function set the Application data to be carried on EDHOC message 3
  */
 void edhoc_server_set_ad_3(const void *buff, uint8_t buff_sz);
+
+
+// static int edhoc_send_msg1(uint8_t *ad, uint8_t ad_sz, bool suit_array);
+// static int client_block2_handler(coap_message_t *response, uint8_t *target, size_t *len, size_t max_len);
+// static int edhoc_client_post_blocks();
+// static int edhoc_client_start(uint8_t *ad, uint8_t ad_sz);
+// static void client_chunk_handler(coap_callback_request_state_t *callback_state);
+// static void client_context_free(edhoc_client_t *ctx);
+// static void client_response_handler(coap_callback_request_state_t *callback_state);
+// static void client_timeout_callback(coap_timer_t *timer);
+// static void edhoc_client_init();
+// static void edhoc_client_post();
 
 #endif /* _EDHOC_CLIENT_API_H_ */
 /** @} */

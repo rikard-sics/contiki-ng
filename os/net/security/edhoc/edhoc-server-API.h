@@ -195,5 +195,9 @@ uint8_t edhoc_server_get_ad_1(char *buff);
  * This function copy on the buff the Application data from the EDHOC message 3 received
  */
 uint8_t edhoc_server_get_ad_3(char *buff);
+
+
+// static void server_timeout_callback(coap_timer_t *timer);
+
 #endif /* _EDHOC_SERVER_API_H_ */
 /** @} */

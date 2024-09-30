@@ -134,4 +134,15 @@ uint8_t edhoc_remove_key_identity(char *identity, uint8_t identity_sz);
  *  This function deletes from the repository the DH cose_key_t key pointed by the auth_key parameter
  */
 void edhoc_remove_key(cose_key_t *auth_key);
+
+/**
+ * \brief Copy a COSE key from one structure to another
+ * \param k The destination where the COSE key will be copied
+ * \param key The source COSE key to be copied
+ *
+ * This function copies the contents of the COSE key structure from the source (key)
+ * to the destination (k). The entire structure is copied using memcpy.
+ */
+void edhoc_copy_key(cose_key_t *k, cose_key_t *key);
+
 #endif

@@ -100,8 +100,39 @@ typedef struct ecc_curve_t {
   ecc_curve_info_t *curve;
 }ecc_curve_t;
 
+/**
+ * \brief Generate IKM using ECC point multiplication
+ * \param gx The x-coordinate of the ECC public point
+ * \param gy The y-coordinate of the ECC public point
+ * \param private_key The private key used for ECC point multiplication
+ * \param ikm Output buffer where the generated IKM will be stored
+ * \param curve The ECC curve being used for the operation
+ * \return A status code indicating success (1) or failure (0)
+ *
+ * This function performs ECC point multiplication using the provided public point coordinates (gx, gy)
+ * and the private key. The result is used to generate the IKM, which is stored in the output buffer.
+ * The function uses the CC2538 hardware for ECC operations and relies on the NIST P-256 curve for the calculations.
+ */
 uint8_t cc2538_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve);
+
+/**
+ * \brief Compress an ECC public key using hardware-specific operations
+ * \param compressed Output buffer where the compressed key will be stored
+ * \param public The uncompressed ECC public key
+ * \param curve The ECC curve information, including key size
+ *
+ * This function compresses a given ECC public key by copying the x-coordinate of the key and
+ * determining the parity of the y-coordinate. The compressed key is stored in the provided buffer.
+ * The compression method depends on whether the system uses a little-endian or big-endian
+ * representation. The compressed key format follows standard ECC key compression where the first byte
+ * indicates the parity of the y-coordinate.
+ */
 void compress_key_hw(uint8_t *compressed, uint8_t *public, ecc_curve_info_t *curve);
+
+
+void ecc_set_random_key(uint32_t *secret);
+void eccbytesToNative(uint32_t *native, const uint8_t *bytes, int num_bytes);
+void eccnativeToBytes(uint8_t *bytes, int num_bytes, const uint32_t *native);
 
 #endif
 #endif /* _ECDH_H_ */

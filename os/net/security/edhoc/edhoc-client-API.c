@@ -168,8 +168,7 @@ client_new()
   return cli;
 }
 static int
-client_block2_handler(coap_message_t *response,
-                      uint8_t *target, size_t *len, size_t max_len)
+client_block2_handler(coap_message_t *response, uint8_t *target, size_t *len, size_t max_len)
 {
   const uint8_t *payload = 0;
   int pay_len = coap_get_payload(response, &payload);
@@ -300,7 +299,7 @@ edhoc_client_post_blocks()
     return 1;
   }
 }
-static int 
+static int
 edhoc_send_msg1(uint8_t *ad, uint8_t ad_sz, bool suit_array){
   LOG_DBG("--------------Generate message_1------------------\n");
   time = RTIMER_NOW();
