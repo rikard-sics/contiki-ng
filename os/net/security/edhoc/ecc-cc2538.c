@@ -62,9 +62,7 @@ static uint32_t p10[8] = { 0x10000000, 0x00000000, 0x00000000, 0x00000000,
                            0x00000000, 0x00000000, 0x00000000, 0x00000000 };
 
 void
-eccnativeToBytes(uint8_t *bytes,
-                 int num_bytes,
-                 const uint32_t *native)
+eccnativeToBytes(uint8_t *bytes, int num_bytes, const uint32_t *native)
 {
   int8_t i;
   for(i = 0; i < num_bytes; ++i) {
@@ -73,9 +71,7 @@ eccnativeToBytes(uint8_t *bytes,
   }
 }
 void
-eccbytesToNative(uint32_t *native,
-                 const uint8_t *bytes,
-                 int num_bytes)
+eccbytesToNative(uint32_t *native, const uint8_t *bytes, int num_bytes)
 {
   int8_t i;
   memset(native, 0, sizeof(uint32_t) * 8);

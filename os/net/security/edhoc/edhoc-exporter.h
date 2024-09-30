@@ -94,5 +94,24 @@ int8_t edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx);
  *
  */
 void edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc);
+
+/**
+ * \brief Derive an application-specific key from EDHOC
+ * \param result Output buffer where the derived key will be stored
+ * \param ctx Input EDHOC context containing the necessary state and keys
+ * \param label Label used to differentiate different key derivation outputs
+ * \param label_sz Size of the label string
+ * \param length Length of the key to be derived
+ * \return Negative number indicating an error code if key derivation fails, 0 on success
+ *
+ * This function derives a key for application-specific use from the EDHOC shared secret using the EDHOC KDF.
+ * The key derivation is based on the provided label and length. This can be used for exporting keys
+ * after the successful completion of the EDHOC protocol.
+ */
+int8_t edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, char *label, uint8_t label_sz, uint8_t length);
+
+//RH: TODO Remove this
+int8_t gen_th4_old(edhoc_context_t *ctx);
+
 #endif /* _EDHOC_EXPORTER_H_ */
 /** @} */
