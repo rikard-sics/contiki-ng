@@ -53,7 +53,7 @@
   }
 
 static uint32_t _3[1] = { 3 };
-uint32_t exp[8];
+uint32_t expn[8];
 static uint32_t d4[8] = { 0x40000000, 0x00000000, 0x00000000, 0x00000000,
                           0x00000000, 0x00000000, 0x00000000, 0x00000000 };
 static uint32_t p1[8] = { 0x00000001, 0x00000000, 0x00000000, 0x00000000,
@@ -205,30 +205,30 @@ PT_THREAD(ecc_decompress_key(ecc_key_uncompress_t * state)){
   CHECK_RESULT(bignum_mod_get_result(l_result, num_words, state->rv));
 
   watchdog_periodic();
-  uint32_t exp[8];
+  uint32_t expn[8];
 
-  memset(exp, 0, sizeof(uint32_t) * 8);
+  memset(expn, 0, sizeof(uint32_t) * 8);
 
   CHECK_RESULT(bignum_add_start(state->curve_info->prime, state->curve_info->size, p1, 1, &state->rv, state->process));
   PT_WAIT_UNTIL(&state->pt, pka_check_status());
   state->len = state->curve_info->size + 1;
-  memset(exp, 0, sizeof(uint32_t) * 8);
-  CHECK_RESULT(bignum_add_get_result(exp, &state->len, state->rv));
+  memset(expn, 0, sizeof(uint32_t) * 8);
+  CHECK_RESULT(bignum_add_get_result(expn, &state->len, state->rv));
 
-  CHECK_RESULT(bignum_divide_start(exp, 8, d4, 8, &state->rv, state->process));
+  CHECK_RESULT(bignum_divide_start(expn, 8, d4, 8, &state->rv, state->process));
   PT_WAIT_UNTIL(&state->pt, pka_check_status());
   state->len = state->curve_info->size;
-  memset(exp, 0, sizeof(uint32_t) * 8);
-  CHECK_RESULT(bignum_divide_get_result(exp, &state->len, state->rv));
+  memset(expn, 0, sizeof(uint32_t) * 8);
+  CHECK_RESULT(bignum_divide_get_result(expn, &state->len, state->rv));
 
 
-  CHECK_RESULT(bignum_mul_start(exp, 8, p10, 8, &state->rv, state->process));
+  CHECK_RESULT(bignum_mul_start(expn, 8, p10, 8, &state->rv, state->process));
   PT_WAIT_UNTIL(&state->pt, pka_check_status());
   state->len = state->curve_info->size;
-  memset(exp, 0, sizeof(uint32_t) * 8);
-  CHECK_RESULT(bignum_divide_get_result(exp, &state->len, state->rv));
+  memset(expn, 0, sizeof(uint32_t) * 8);
+  CHECK_RESULT(bignum_divide_get_result(expn, &state->len, state->rv));
 
-  CHECK_RESULT(bignum_exp_mod_start(exp, 8, state->curve_info->prime, num_words, l_result, num_words, &state->rv, state->process));
+  CHECK_RESULT(bignum_exp_mod_start(expn, 8, state->curve_info->prime, num_words, l_result, num_words, &state->rv, state->process));
   PT_WAIT_UNTIL(&state->pt, pka_check_status());
   memset(y, 0, sizeof(uint32_t) * 8);
   CHECK_RESULT(bignum_exp_mod_get_result(y, num_words, state->rv));
