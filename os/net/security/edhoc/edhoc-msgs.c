@@ -116,7 +116,7 @@ size_t
 edhoc_get_bytes(uint8_t **in, uint8_t **out)
 {
   uint8_t byte = get_byte(in);
-  size_t size = 0;
+  size_t size;
   if(byte == 0x58) {
     size = get_byte(in);
     *out = *in;
@@ -136,9 +136,8 @@ uint8_t
 edhoc_get_maps_num(uint8_t **in)
 {
   uint8_t byte = get_byte(in);
-  uint8_t num = 0;
   if((byte >= 0xa0) && (byte <= 0xaf)) { /*max of 15 maps */
-    num = byte ^ 0xa0;
+    uint8_t num = byte ^ 0xa0;
     return num;
   } else {
     (*in)--;
@@ -149,9 +148,8 @@ uint8_t
 edhoc_get_array_num(uint8_t **in)
 {
   uint8_t byte = get_byte(in);
-  uint8_t num = 0;
   if((byte >= 0x80) && (byte <= 0x8f)) { /*max of 15 maps */
-    num = byte ^ 0x80;
+    uint8_t num = byte ^ 0x80;
     return num;
   } else {
     (*in)--;
@@ -162,7 +160,7 @@ static int16_t
 get_text(uint8_t **in, char **out)
 {
   uint8_t byte = get_byte(in);
-  size_t size = 0;
+  size_t size;
   if(byte == 0x78) {
     size = get_byte(in);
     *out = (char *)*in;
@@ -292,13 +290,12 @@ int8_t
 edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
 {
   /*Get the METHOD */
-  int8_t unint = 0;
   uint8_t *p_out = NULL;
-  size_t out_sz = 0;
+  size_t out_sz;
   uint8_t *buff_f = buffer + buff_sz;
 
   if(buffer < buff_f) {
-    unint = (int8_t)edhoc_get_unsigned(&buffer);
+    int8_t unint = (int8_t)edhoc_get_unsigned(&buffer);
     msg->method = unint;
   }
   /* Get the suit */
@@ -373,7 +370,7 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
   *id_cred_x = *p;
   uint8_t num = edhoc_get_maps_num(p);
   uint8_t label;
-  uint8_t key_sz = 0;
+  int8_t key_sz = 0;
   uint8_t key_id_sz = 0;
   uint8_t *ptr = NULL;
   char* ch = NULL;

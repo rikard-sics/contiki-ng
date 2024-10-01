@@ -737,9 +737,9 @@ gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, 
   uint8_t *buf_ptr = &(buffer[0]);
   size_t size = msg2 ? cbor_put_bytes_identifier(&buf_ptr, (uint8_t *)&ctx->session.cid, int_sz(ctx->session.cid)) : 0;
   if(num == 1) {
-    num = (uint8_t)edhoc_get_unsigned(&pint);
+    num = (uint8_t)edhoc_get_unsigned(&pint); //RH: num is never used
     size_t sz = edhoc_get_bytes(&pint, &pout);
-    if(sz == 0) {
+    if(sz == 0 || num < 0) {
       LOG_ERR("error to get bytes\n");
       return 0;
     }
@@ -774,7 +774,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   LOG_DBG("PLAINTEXT_3 (%d bytes):", (int)cose->plaintext_sz);
   print_buff_8_dbg(cose->plaintext, cose->plaintext_sz);
 
-  // RH Modified to store plaintext 3 WIP
+  /* RH Modified to store plaintext 3 WIP */
   memcpy(buf, cose->plaintext, cose->plaintext_sz);
   ctx->session.ciphertext_3.buf = buf;
   ctx->session.ciphertext_3.len = cose->plaintext_sz;
@@ -1290,7 +1290,7 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   ctx->session.id_cred_x.buf = buf;
   
   /* Compute TH4 WIP */
-  
+
   // Get the cose_key_t version of the auth cred  
   uint8_t *auth_key_buffer = NULL;
   cose_key_t auth_cose_key;

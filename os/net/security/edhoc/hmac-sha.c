@@ -180,9 +180,8 @@ sha256(uint8_t *input, uint8_t input_sz, uint8_t *output)
 {
   sha_context_t *ctx;
   ctx = sha_new();
-  int er = 0;
   if(ctx) {
-    er = sha_input(ctx, input, input_sz);
+    int er = sha_input(ctx, input, input_sz);
     if(er != 0) {
       LOG_ERR("SHA error code (%d)\n", er);
       sha_free(ctx);
