@@ -381,6 +381,7 @@ void set_rx_gx(edhoc_context_t *ctx, uint8_t *gx);
 // static void gen_ciphertext_2(edhoc_context_t *ctx, uint8_t *plaintext, uint16_t plaintext_sz);
 // static void print_connection(edhoc_session *con);
 // static void set_rx_msg(edhoc_context_t *ctx, uint8_t *msg, uint8_t msg_sz);
+// retrieve_cred_i(edhoc_context_t *ctx, uint8_t *inf, bstr *cred_i);
 
 #endif /* _EDHOC_H_ */
 /** @} */

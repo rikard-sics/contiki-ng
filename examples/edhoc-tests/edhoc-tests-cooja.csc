@@ -154,6 +154,15 @@ while (true) {
       log.log("I " + device + ": Incorrect master secret!\n");
     }
   }
+  
+  // Check if the OSCORE master salt is correct
+  if (msg.contains("OSCORE Master Salt")) {
+    if (msg.contains("OSCORE Master Salt (8 bytes):ad a2 4c 7d bf c8 5e eb")) {
+      log.log("C " + device + ": Correct master salt!\n");
+    } else {
+      log.log("I " + device + ": Incorrect master salt!\n");
+    }
+  }
 
   // Check if PRK_4e3m is correct
   if (msg.contains("PRK_4e3m")) {
@@ -190,6 +199,24 @@ while (true) {
       log.log("C " + device + ": Correct TH_4!\n");
     } else {
       log.log("I " + device + ": Incorrect TH_4!\n");
+    }
+  }
+  
+  // Check if PRK_out is correct
+  if (msg.contains("PRK_out")) {
+    if (msg.contains("PRK_out (32 bytes): 2c 71 af c1 a9 33 8a 94 0b b3 52 9c a7 34 b8 86 f3 0d 1a ba 0b 4d c5 1b ee ae ab df ea 9e cb f8")) {
+      log.log("C " + device + ": Correct PRK_out!\n");
+    } else {
+      log.log("I " + device + ": Incorrect PRK_out!\n");
+    }
+  }
+  
+  // Check if PRK_exporter is correct
+  if (msg.contains("PRK_exporter")) {
+    if (msg.contains("PRK_exporter (32 bytes): e1 4d 06 69 9c ee 24 8c 5a 04 bf 92 27 bb cd 4c e3 94 de 7d cb 56 db 43 55 54 74 17 1e 64 46 db")) {
+      log.log("C " + device + ": Correct PRK_exporter!\n");
+    } else {
+      log.log("I " + device + ": Incorrect PRK_exporter!\n");
     }
   }
 
