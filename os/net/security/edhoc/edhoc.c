@@ -395,11 +395,29 @@ gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
   return 0;
 }
-int16_t
+int16_t// RH: TODO? Rename to edhoc_expand?
 edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz, uint16_t length)
 {
   /* generate info for K */
-  uint16_t info_sz = generate_info(inf, th.buf, th.len, label, label_sz, length, strncmp(label, "K_3ae", label_sz) == 0 ? 3 : strncmp(label, "IV_3ae", label_sz) == 0 ? 4: 0);
+  // uint16_t info_sz = generate_info(inf, th.buf, th.len, label, label_sz, length, strncmp(label, "K_3ae", label_sz) == 0 ? 3 : strncmp(label, "IV_3ae", label_sz) == 0 ? 4: 0);
+    
+  // RH: FIXME take the int label straight away
+  // RH: FIXME: Multiple labels are missing also (since for some key derivations hkdf_expand is used directlys)
+  int int_label;
+  if (strncmp(label, "K_3ae", label_sz) == 0) {
+      int_label = 3;
+  } else if (strncmp(label, "IV_3ae", label_sz) == 0) {
+      int_label = 4;
+  } else if (strncmp(label, "PRK_out", label_sz) == 0) {
+      int_label = 7;
+  } else if (strncmp(label, "PRK_exporter", label_sz) == 0) {
+      int_label = 10;
+  } else {
+      int_label = 0;
+  }
+
+  uint16_t info_sz = generate_info(inf, th.buf, th.len, label, label_sz, length, int_label);
+  
   LOG_DBG("info KEYSTREAM_2/3 (%d bytes): ", info_sz);
   print_buff_8_dbg(inf, info_sz);
   int16_t er = hkdf_expand(key, ECC_KEY_BYTE_LENGTH, inf, info_sz, result, length);
@@ -414,14 +432,14 @@ set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, 
 {
   /*CBOR The TH2 */
   // cose_encrypt0_set_content(cose, NULL, 0, NULL, 0);
-  uint8_t th_cbor[ECC_KEY_BYTE_LENGTH + 2];
-  uint8_t *th_ptr = th_cbor;
-  size_t th_cbor_sz = cbor_put_bytes(&th_ptr, ctx->session.th.buf, ctx->session.th.len);
-  /*COSE encrypt0 set external AAD */
-  cose->external_aad_sz = th_cbor_sz + ctx->session.cred_x.len + ad_sz;
-  memcpy(cose->external_aad, th_cbor, th_cbor_sz);
-  memcpy((cose->external_aad + th_cbor_sz), ctx->session.cred_x.buf, ctx->session.cred_x.len);
-  memcpy((cose->external_aad + th_cbor_sz + ctx->session.cred_x.len), ad, ad_sz);
+  //uint8_t th_cbor[ECC_KEY_BYTE_LENGTH + 2];
+  //uint8_t *th_ptr = th_cbor;
+  //size_t th_cbor_sz = cbor_put_bytes(&th_ptr, ctx->session.th.buf, ctx->session.th.len);
+  /*COSE encrypt0 set external AAD RH: TODO Check this in more detail*/
+ // cose->external_aad_sz = th_cbor_sz + ctx->session.cred_x.len + ad_sz;
+  //memcpy(cose->external_aad, th_cbor, th_cbor_sz);
+  //memcpy((cose->external_aad + th_cbor_sz), ctx->session.cred_x.buf, ctx->session.cred_x.len);
+  //memcpy((cose->external_aad + th_cbor_sz + ctx->session.cred_x.len), ad, ad_sz);
 
   if(mac_num == MAC_2) {
     // FIXME: add ead_2 here too.
@@ -468,7 +486,7 @@ set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, 
     LOG_DBG("info MAC_3 (%zu bytes): ", mac_info_sz);
     print_buff_8_dbg((uint8_t *)&mac_info, mac_info_sz);
     int8_t er = hkdf_expand(ctx->eph_key.prk_4e3m, ECC_KEY_BYTE_LENGTH, mac_info, mac_info_sz, mac, MAC_LEN);
-    if(er < 0) {
+     if(er < 0) {
       LOG_ERR("Failed to expand MAC_3\n");
       return 0;
     }
@@ -486,11 +504,11 @@ set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, 
     return 0;
   }
 
-  cose->key_sz = KEY_DATA_LENGTH;
-  cose->nonce_sz = IV_LENGTH;
+ // cose->key_sz = KEY_DATA_LENGTH;
+ // cose->nonce_sz = IV_LENGTH;
 
   /* COSE encrypt0 set header */
-  cose_encrypt0_set_header(cose, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len, NULL, 0);
+ // cose_encrypt0_set_header(cose, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len, NULL, 0);
   return 1;
 }
 static uint8_t
@@ -502,19 +520,19 @@ gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac)
   } else if(PART == PART_R) {
     mac_num = MAC_2;
   }
-  cose_encrypt0 *cose = cose_encrypt0_new();
-  if(!set_mac(cose, ctx, ad, ad_sz, mac_num, mac)) {
+  //cose_encrypt0 *cose = cose_encrypt0_new();
+  if(!set_mac(NULL, ctx, ad, ad_sz, mac_num, mac)) {
     LOG_ERR("Set MAC error\n");
     return 0;
   }
-  uint8_t mac_sz = cose_encrypt(cose);
+  //uint8_t mac_sz = cose_encrypt(cose);
 #if 0
   for(int i = 0; i < mac_sz; i++) {
     mac[i] = cose->ciphertext[i];
   }
 #endif
-  cose_encrypt0_finalize(cose);
-  return mac_sz;
+  //cose_encrypt0_finalize(cose);
+  return MAC_LEN;
 }
 //TODO: Actually check the mac
 static uint16_t
@@ -527,23 +545,40 @@ check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher,
     mac_num = MAC_3;
   }
 
-  cose_encrypt0 *cose = cose_encrypt0_new();
-  if(!set_mac(cose, ctx, ad, ad_sz, mac_num, mac)) {
+  //cose_encrypt0 *cose = cose_encrypt0_new();
+  if(!set_mac(NULL, ctx, ad, ad_sz, mac_num, mac)) {
     LOG_ERR("Set MAC error\n");
     return 0;
   }
-  LOG_DBG("check mac dh (%d):", (int)cipher_sz);
+
+  LOG_DBG("Recalculated MAC (%d):", (int)cipher_sz);
+  print_buff_8_dbg(mac, cipher_sz);
+  
+  LOG_DBG("Received MAC (%d):", (int)cipher_sz);
   print_buff_8_dbg(cipher, cipher_sz);
-  cose_encrypt0_set_ciphertext(cose, cipher, cipher_sz);
+  
+  /* RH: Verify the MAC value */
+  uint16_t mac_sz = MAC_LEN;
+  uint8_t diff = 0;
+  for(int i = 0 ; i < MAC_LEN ; i++) {
+    diff |= (mac[i] ^ cipher[i]);
+  } 
+  
+  if(diff != 0) {
+    LOG_ERR("error code in check mac (%d)\n ", ERR_AUTHENTICATION);
+    return 0;
+  }
+  
+  //cose_encrypt0_set_ciphertext(cose, cipher, cipher_sz);
   // FIXME: configure key/nonce so cose can do the MAC comparison.
-  // uint16_t mac_sz = cose_decrypt(cose);
-  uint16_t mac_sz = 8;
+  //uint16_t mac_sz = cose_decrypt(cose);
+  //uint16_t mac_sz = 8;
   // FIXME: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
   if(mac_sz == 0) {
     LOG_ERR("error code in check mac (%d)\n ", ERR_AUTHENTICATION);
     return 0;
   }
-  cose_encrypt0_finalize(cose);
+ // cose_encrypt0_finalize(cose);
   return mac_sz;
 }
 static uint8_t
@@ -737,7 +772,7 @@ gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, 
   uint8_t *buf_ptr = &(buffer[0]);
   size_t size = msg2 ? cbor_put_bytes_identifier(&buf_ptr, (uint8_t *)&ctx->session.cid, int_sz(ctx->session.cid)) : 0;
   if(num == 1) {
-    num = (uint8_t)edhoc_get_unsigned(&pint); //RH: num is never used
+    num = (uint8_t)edhoc_get_unsigned(&pint);
     size_t sz = edhoc_get_bytes(&pint, &pout);
     if(sz == 0 || num < 0) {
       LOG_ERR("error to get bytes\n");
@@ -1274,7 +1309,7 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   /*Set the ciphertext_3 for the key exporter */
   ctx->session.ciphertext_3.buf = msg3->ciphertext_3.buf;
   ctx->session.ciphertext_3.len = msg3->ciphertext_3.len;
-  LOG_DBG("CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertext_3.len); //RH FIXME: Should be plaintext
+  LOG_DBG("CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertext_3.len); //RH FIXME: Should be plaintext?
   print_buff_8_dbg(ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
   /*generate TH3 */
   gen_ciphertext_2(ctx, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);
@@ -1289,36 +1324,40 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   print_buff_8_dbg(buf, plaintext_sz);
   ctx->session.id_cred_x.buf = buf;
   
-  /* Compute TH4 WIP */
+  /* RH Save the plaintext in the ctx object WIP */
+  // Note: TH_4 used to be calculated here in our previous code
+  ctx->session.ciphertext_3.buf = buf;
+  ctx->session.ciphertext_3.len = plaintext_sz;
 
-  // Get the cose_key_t version of the auth cred  
-  uint8_t *auth_key_buffer = NULL;
-  cose_key_t auth_cose_key;
-  edhoc_get_auth_key(ctx, &auth_key_buffer, &auth_cose_key);
-
-  // Create a normal cose_key from it
-  cose_key auth_cose_key_final;
-  ecc_key ecc_auth_key;
-  set_cose_key(&ecc_auth_key, &auth_cose_key_final, &auth_cose_key, ctx->curve);
-
-  // Use inf buffer for CRED_I
-  bstr cred_i;
-  cred_i.buf = inf;
-  cred_i.len = sizeof(inf);
-
-  // Build the CRED_I value
-  int cred_i_size = generate_cred_x(&auth_cose_key_final, cred_i.buf);
-  cred_i.len = cred_i_size;
-
-  // Print CRED_I
-  LOG_INFO("CRED_I in edhoc_handler_msg_3 (%d bytes):", (int)cred_i.len);
-  print_buff_8_dbg(cred_i.buf, cred_i.len);
-
-  // We are overwriting TH here, which means that TH3 is lost and it is needed for the info for SALT_4e3m
-  // Problems happen in edhoc_authenticate_msg and gen_prk_4e3m
-  gen_th4(ctx, cred_i.buf, cred_i.len, buf, plaintext_sz);
-  
   return 1;
+}
+static int //RH: Added this
+retrieve_cred_i(edhoc_context_t *ctx, uint8_t *inf, bstr *cred_i) {
+    // Get the cose_key_t version of the auth cred  
+    uint8_t *auth_key_buffer = NULL;
+    cose_key_t auth_cose_key;
+    int8_t er = edhoc_get_auth_key(ctx, &auth_key_buffer, &auth_cose_key);
+    if(er != 1) {
+      return er;
+    }
+
+    // Create a normal cose_key from it
+    cose_key auth_cose_key_final;
+    ecc_key ecc_auth_key;
+    set_cose_key(&ecc_auth_key, &auth_cose_key_final, &auth_cose_key, ctx->curve);
+
+    // Use inf buffer for CRED_I
+    cred_i->buf = inf;
+    cred_i->len = sizeof(inf);
+
+    // Build the CRED_I value
+    int cred_i_size = generate_cred_x(&auth_cose_key_final, cred_i->buf);
+    if(cred_i_size <= 0) {
+      return ERR_ID_CRED_X_MALFORMED;
+    }
+    cred_i->len = cred_i_size;
+
+    return 1;
 }
 int
 edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, uint8_t *ad, cose_key_t *key)
@@ -1367,6 +1406,25 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
     LOG_ERR("error code in handler (%d)\n ", ERR_AUTHENTICATION);
     return ERR_AUTHENTICATION;
   }
+ 
+  /* RH Compute TH4 WIP */
+  if(PART == PART_R) { 
+    // Start by retreiving CRED_I
+    bstr cred_i;
+    int8_t er = retrieve_cred_i(ctx, inf, &cred_i);
+    if(er != 1) {
+      return ERR_AUTHENTICATION;
+    }
+
+    // Print CRED_I
+    LOG_INFO("CRED_I in edhoc_authenticate_msg (%d bytes):", (int)cred_i.len);
+    print_buff_8_dbg(cred_i.buf, cred_i.len);
+
+    // Actually calculate TH_4
+    gen_th4(ctx, cred_i.buf, cred_i.len, ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
+  }
+  
+  
 #endif
   return rest_sz;
 }
@@ -1384,3 +1442,4 @@ cbor_bstr_size(uint32_t len) {
         return 9 + len;  // 1 byte for 0x1B + 8 bytes for the length
     }
 }
+

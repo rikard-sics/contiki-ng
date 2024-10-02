@@ -184,7 +184,7 @@ client_block2_handler(coap_message_t *response, uint8_t *target, size_t *len, si
     memcpy(target + response->block2_offset, payload, pay_len);
     *len = response->block2_offset + pay_len;
     print_buff_8_dbg((uint8_t *)payload, (unsigned long)pay_len);
-    target = target + pay_len;
+    target = target + pay_len; //RH: FIXME: Pointless assignment. Are things wrong?
   }
   return 0;
 }
