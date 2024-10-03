@@ -52,11 +52,10 @@ edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc)
   LOG_PRINT("OSCORE Master Salt (%d bytes):", OSCORE_SALT_SZ);
   print_buff_8_print(osc->master_salt, OSCORE_SALT_SZ);
 }
-// RH: This function needs to call an actual edhoc_kdf, and not what is practically edhoc_expand
 int8_t
-edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, char *label, uint8_t label_sz, uint8_t length)
+edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, uint8_t info_label, uint8_t length)
 {
-  int8_t er = edhoc_kdf(result, ctx->eph_key.prk_4e3m, ctx->session.th, label, label_sz, length);
+  int8_t er = edhoc_kdf(result, ctx->eph_key.prk_4e3m, info_label, ctx->session.th, length);
   return er;
 }
 // RH: Actually store PRK_out and PRK_exporter. Then use them in edhoc_exporter above.
@@ -71,9 +70,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   /* RH: WIP Derive prk_out */
   int prk_out_sz = ECC_KEY_BYTE_LENGTH;
   uint8_t prk_out[prk_out_sz];
-  char* label = "PRK_out";
-  int label_sz = strlen(label);
-  int8_t er = edhoc_kdf(prk_out, ctx->eph_key.prk_4e3m, ctx->session.th, label, label_sz, prk_out_sz);
+  int8_t er = edhoc_kdf(prk_out, ctx->eph_key.prk_4e3m, PRK_OUT_LABEL, ctx->session.th, prk_out_sz);
   if(er < 0) {
     return er;
   }
@@ -83,12 +80,10 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   /* RH: WIP Derive prk_exporter */
   int prk_exporter_sz = ECC_KEY_BYTE_LENGTH;
   uint8_t prk_exporter[prk_exporter_sz];
-  label = "PRK_exporter";
-  label_sz = strlen(label);
   bstr empty; // Empty CBOR bstr
   empty.len = 0;
   empty.buf = NULL;
-  er = edhoc_kdf(prk_exporter, prk_out, empty, label, label_sz, prk_exporter_sz);
+  er = edhoc_kdf(prk_exporter, prk_out, PRK_EXPORTER_LABEL, empty, prk_exporter_sz);
   if(er < 0) {
     return er;
   }
@@ -98,7 +93,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   /* RH: WIP Derive OSCORE Master Secret */
 
   /*The oscore client is the initiator */
-  if(PART == PART_I) {
+  /*if(PART == PART_I) {
     osc->client_ID = ctx->session.cid;
     osc->server_ID = ctx->session.cid_rx;
   }
@@ -112,7 +107,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
     return er;
   }
   LOG_DBG("Info for OSCORE master salt:\n");
-  er = edhoc_exporter(osc->master_salt, ctx, "OSCORE Master Salt", strlen("OSCORE Master Salt"), OSCORE_SALT_SZ);
+  er = edhoc_exporter(osc->master_salt, ctx, "OSCORE Master Salt", strlen("OSCORE Master Salt"), OSCORE_SALT_SZ);*/
   return er;
 }
 

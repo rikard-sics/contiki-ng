@@ -198,10 +198,10 @@ reconstruct_id_cred_x(uint8_t *cred_in, size_t cred_in_sz)
   return size;
 }
 static size_t
-generate_info(uint8_t *info, uint8_t *th, uint8_t th_sz, char *label, uint8_t label_sz, uint8_t length, uint8_t value)
+generate_info(uint8_t *info, uint8_t *context, uint8_t context_sz, uint8_t length, uint8_t value)
 {
   size_t size = cbor_put_num(&info, value);
-  size += cbor_put_bytes(&info, th, th_sz);
+  size += cbor_put_bytes(&info, context, context_sz);
   size += cbor_put_unsigned(&info, length);
   return size;
 }
@@ -395,32 +395,19 @@ gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
   return 0;
 }
-int16_t// RH: TODO? Rename to edhoc_expand?
-edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz, uint16_t length)
+int16_t
+edhoc_kdf(uint8_t *result, uint8_t *key, uint8_t info_label, bstr context, uint16_t length)
 {
-  /* generate info for K */
-  // uint16_t info_sz = generate_info(inf, th.buf, th.len, label, label_sz, length, strncmp(label, "K_3ae", label_sz) == 0 ? 3 : strncmp(label, "IV_3ae", label_sz) == 0 ? 4: 0);
-    
-  // RH: FIXME take the int label straight away
-  // RH: FIXME: Multiple labels are missing also (since for some key derivations hkdf_expand is used directlys)
-  int int_label;
-  if (strncmp(label, "K_3ae", label_sz) == 0) {
-      int_label = 3;
-  } else if (strncmp(label, "IV_3ae", label_sz) == 0) {
-      int_label = 4;
-  } else if (strncmp(label, "PRK_out", label_sz) == 0) {
-      int_label = 7;
-  } else if (strncmp(label, "PRK_exporter", label_sz) == 0) {
-      int_label = 10;
-  } else {
-      int_label = 0;
-  }
-
-  uint16_t info_sz = generate_info(inf, th.buf, th.len, label, label_sz, length, int_label);
+  uint16_t info_sz = generate_info(inf, context.buf, context.len, length, info_label);
   
+  return edhoc_expand(result, key, inf, info_sz, length);
+}
+int16_t
+edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info_sz, uint16_t length)
+{
   LOG_DBG("info KEYSTREAM_2/3 (%d bytes): ", info_sz);
   print_buff_8_dbg(inf, info_sz);
-  int16_t er = hkdf_expand(key, ECC_KEY_BYTE_LENGTH, inf, info_sz, result, length);
+  int16_t er = hkdf_expand(key, ECC_KEY_BYTE_LENGTH, info, info_sz, result, length);
   if(er < 0) {
     LOG_ERR("Error calculating KEYSTREAM_2/3 (%d)\n", er);
     return er;
@@ -495,18 +482,12 @@ gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac)
   } else if(PART == PART_R) {
     mac_num = MAC_2;
   }
-  //cose_encrypt0 *cose = cose_encrypt0_new();
+
   if(!set_mac(ctx, ad, ad_sz, mac_num, mac)) {
     LOG_ERR("Set MAC error\n");
     return 0;
   }
-  //uint8_t mac_sz = cose_encrypt(cose);
-#if 0
-  for(int i = 0; i < mac_sz; i++) {
-    mac[i] = cose->ciphertext[i];
-  }
-#endif
-  //cose_encrypt0_finalize(cose);
+
   return MAC_LEN;
 }
 static uint16_t
@@ -579,7 +560,7 @@ gen_prk_2e(edhoc_context_t *ctx)
 static int16_t
 gen_k_2e(edhoc_context_t *ctx, uint16_t length)
 {
-  int er = edhoc_kdf(ctx->eph_key.k2_e, ctx->eph_key.prk_2e, ctx->session.th, "KEYSTREAM_2", strlen("KEYSTREAM_2"), length);
+  int er = edhoc_kdf(ctx->eph_key.k2_e, ctx->eph_key.prk_2e, KEYSTREAM_2_LABEL, ctx->session.th, length);
   if(er < 0) {
     return er;
   }
@@ -693,7 +674,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphert
   /* COSE encrypt0 set header */
   cose_encrypt0_set_header(cose, NULL, 0, NULL, 0);
   /* generate K3_ae */
-  int8_t er = edhoc_kdf(cose->key, ctx->eph_key.prk_3e2m, ctx->session.th, "K_3ae", strlen("K_3ae"), KEY_DATA_LENGTH);
+  int8_t er = edhoc_kdf(cose->key, ctx->eph_key.prk_3e2m, K_3_LABEL, ctx->session.th, KEY_DATA_LENGTH);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
@@ -703,7 +684,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphert
   print_buff_8_dbg(cose->key, cose->key_sz);
 
   /* generate IV */
-  er = edhoc_kdf(cose->nonce, ctx->eph_key.prk_3e2m, ctx->session.th, "IV_3ae", strlen("IV_3ae"), IV_LENGTH);
+  er = edhoc_kdf(cose->nonce, ctx->eph_key.prk_3e2m, IV_3_LABEL, ctx->session.th, IV_LENGTH);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
@@ -778,7 +759,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   ctx->session.ciphertext_3.len = cose->plaintext_sz;
   
   /* generate K */
-  er = edhoc_kdf(cose->key, ctx->eph_key.prk_3e2m, ctx->session.th, "K_3ae", strlen("K_3ae"), KEY_DATA_LENGTH);
+  er = edhoc_kdf(cose->key, ctx->eph_key.prk_3e2m, K_3_LABEL, ctx->session.th, KEY_DATA_LENGTH);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
@@ -788,7 +769,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   print_buff_8_dbg(cose->key, cose->key_sz);
 
   /* generate IV */
-  er = edhoc_kdf(cose->nonce, ctx->eph_key.prk_3e2m, ctx->session.th, "IV_3ae", strlen("IV_3ae"), IV_LENGTH);
+  er = edhoc_kdf(cose->nonce, ctx->eph_key.prk_3e2m, IV_3_LABEL, ctx->session.th, IV_LENGTH);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
