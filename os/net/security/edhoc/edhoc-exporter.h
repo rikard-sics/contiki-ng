@@ -110,8 +110,5 @@ void edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc);
  */
 int8_t edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, char *label, uint8_t label_sz, uint8_t length);
 
-//RH: TODO Remove this
-int8_t gen_th4_old(edhoc_context_t *ctx);
-
 #endif /* _EDHOC_EXPORTER_H_ */
 /** @} */
