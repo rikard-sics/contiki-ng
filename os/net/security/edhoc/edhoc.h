@@ -78,9 +78,7 @@
  */
 #define MAC_LEN 8
 
-/**
- * \brief EDHOC_KDF label values
- */
+/* EDHOC_KDF label values */
 #define KEYSTREAM_2_LABEL    0
 #define SALT_3E2M_LABEL      1
 #define MAC_2_LABEL          2

@@ -58,6 +58,11 @@
 #define PSK_KEY_SZ 16
 #define PSK_KEY_ID_SZ 4
 
+/* EDHOC Exporter Labels */
+#define OSCORE_MASTER_SECRET_LABEL 0
+#define OSCORE_MASTER_SALT_LABEL   1
+
+
 /**
  * \brief OSCORE context struct
  */
@@ -98,7 +103,7 @@ void edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc);
 /**
  * \brief Derive an application-specific key from EDHOC
  * \param result Output buffer where the derived key will be stored
- * \param ctx Input EDHOC context containing the necessary state and keys
+ * \param in_key PRK_Exporter key to use
  * \param info_label Label used to differentiate different key derivation outputs
  * \param length Length of the key to be derived
  * \return Negative number indicating an error code if key derivation fails, 0 on success
@@ -107,7 +112,7 @@ void edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc);
  * The key derivation is based on the provided label and length. This can be used for exporting keys
  * after the successful completion of the EDHOC protocol.
  */
-int8_t edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, uint8_t length, uint8_t info_label);
+int8_t edhoc_exporter(uint8_t *result, uint8_t *in_key, uint8_t exporter_label, bstr context, uint16_t length);
 
 #endif /* _EDHOC_EXPORTER_H_ */
 /** @} */
