@@ -53,20 +53,15 @@ edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc)
   print_buff_8_print(osc->master_salt, OSCORE_SALT_SZ);
 }
 int8_t
-edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, uint8_t info_label, uint8_t length)
+edhoc_exporter(uint8_t *result, uint8_t *in_key, uint8_t exporter_label, bstr context, uint16_t length)
 {
-  int8_t er = edhoc_kdf(result, ctx->eph_key.prk_4e3m, info_label, ctx->session.th, length);
+  int8_t er = edhoc_kdf(result, in_key, exporter_label, context, length);
   return er;
 }
 // RH: Actually store PRK_out and PRK_exporter. Then use them in edhoc_exporter above.
 int8_t
 edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
 {
-  /*if(gen_th4_old(ctx) < 0) {
-    LOG_ERR("error code at exporter(%d) \n ", ERR_CODE);
-    return ERR_CODE;
-  }*/
-  
   /* RH: WIP Derive prk_out */
   int prk_out_sz = ECC_KEY_BYTE_LENGTH;
   uint8_t prk_out[prk_out_sz];
@@ -80,7 +75,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   /* RH: WIP Derive prk_exporter */
   int prk_exporter_sz = ECC_KEY_BYTE_LENGTH;
   uint8_t prk_exporter[prk_exporter_sz];
-  bstr empty; // Empty CBOR bstr
+  bstr empty;
   empty.len = 0;
   empty.buf = NULL;
   er = edhoc_kdf(prk_exporter, prk_out, PRK_EXPORTER_LABEL, empty, prk_exporter_sz);
@@ -90,10 +85,8 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   LOG_DBG("PRK_exporter (%d bytes): ", prk_exporter_sz);
   print_buff_8_dbg(prk_exporter, prk_exporter_sz);
 
-  /* RH: WIP Derive OSCORE Master Secret */
-
-  /*The oscore client is the initiator */
-  /*if(PART == PART_I) {
+  /* The oscore client is the initiator */
+  if(PART == PART_I) {
     osc->client_ID = ctx->session.cid;
     osc->server_ID = ctx->session.cid_rx;
   }
@@ -101,13 +94,14 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
     osc->client_ID = ctx->session.cid_rx;
     osc->server_ID = ctx->session.cid;
   }
-  LOG_DBG("Info for OSCORE master secret:\n");
-  er = edhoc_exporter(osc->master_secret, ctx, "OSCORE Master Secret", strlen("OSCORE Master Secret"), OSCORE_KEY_SZ);
+  
+  /* RH: WIP Derive OSCORE Master Secret */
+  er = edhoc_exporter(osc->master_secret, prk_exporter, OSCORE_MASTER_SECRET_LABEL, empty, OSCORE_KEY_SZ);
   if(er < 0) {
     return er;
   }
-  LOG_DBG("Info for OSCORE master salt:\n");
-  er = edhoc_exporter(osc->master_salt, ctx, "OSCORE Master Salt", strlen("OSCORE Master Salt"), OSCORE_SALT_SZ);*/
+  
+  er = edhoc_exporter(osc->master_salt, prk_exporter, OSCORE_MASTER_SALT_LABEL, empty, OSCORE_SALT_SZ);
   return er;
 }
 
