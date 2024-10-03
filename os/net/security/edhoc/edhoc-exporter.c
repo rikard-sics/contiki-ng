@@ -52,26 +52,6 @@ edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc)
   LOG_PRINT("OSCORE Master Salt (%d bytes):", OSCORE_SALT_SZ);
   print_buff_8_print(osc->master_salt, OSCORE_SALT_SZ);
 }
-# if 0
-static int8_t
-gen_th4_old(edhoc_context_t *ctx)
-{
-  uint8_t h4[MAX_BUFFER];
-  uint8_t *ptr = h4;
-  uint8_t h4_sz = cbor_put_bytes(&ptr, ctx->session.th.buf, ctx->session.th.len);
-  h4_sz += cbor_put_bytes(&ptr, ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
-  LOG_DBG("Input to calculate TH_4 (CBOR Sequence) (%d bytes)",(int)h4_sz);
-  print_buff_8_dbg(h4, h4_sz);
-  uint8_t er = compute_TH(h4, h4_sz, ctx->session.th.buf, ctx->session.th.len);
-  if(er != 0) {
-    LOG_ERR("ERR COMPUTED TH4\n ");
-    return ERR_CODE;
-  }
-  LOG_DBG("TH4 (%d bytes):",(int)ctx->session.th.len);
-  print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
-  return er;
-}
-#endif
 // RH: This function needs to call an actual edhoc_kdf, and not what is practically edhoc_expand
 int8_t
 edhoc_exporter(uint8_t *result, edhoc_context_t *ctx, char *label, uint8_t label_sz, uint8_t length)

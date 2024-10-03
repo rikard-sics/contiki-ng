@@ -220,6 +220,15 @@ while (true) {
     }
   }
 
+  // Check if message_3 is correct (on reception)
+  if (msg.contains("RX message_3")) {
+    if (msg.contains("RX message_3 (19 bytes):52 e5 62 09 7b c4 17 dd 59 19 48 5a c7 89 1f fd 90 a9 fc")) {
+      log.log("C " + device + ": Correct message_3!\n");
+    } else {
+      log.log("I " + device + ": Incorrect message_3!\n");
+    }
+  }
+
   // Check for finish condition
   if (msg.contains("Client time to finish")) {
     log.testOK();
