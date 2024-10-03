@@ -428,7 +428,7 @@ edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz
   return length;
 }
 static uint8_t //RH: Why not use edhoc_kdf in this function?
-set_mac(cose_encrypt0 *cose, edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac)
+set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac)
 {
   if(mac_num == MAC_2) {
     // FIXME: add ead_2 here too.
@@ -496,7 +496,7 @@ gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac)
     mac_num = MAC_2;
   }
   //cose_encrypt0 *cose = cose_encrypt0_new();
-  if(!set_mac(NULL, ctx, ad, ad_sz, mac_num, mac)) {
+  if(!set_mac(ctx, ad, ad_sz, mac_num, mac)) {
     LOG_ERR("Set MAC error\n");
     return 0;
   }
@@ -519,7 +519,7 @@ check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher,
     mac_num = MAC_3;
   }
 
-  if(!set_mac(NULL, ctx, ad, ad_sz, mac_num, mac)) {
+  if(!set_mac(ctx, ad, ad_sz, mac_num, mac)) {
     LOG_ERR("Set MAC error\n");
     return 0;
   }
