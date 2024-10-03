@@ -79,6 +79,21 @@
 #define MAC_LEN 8
 
 /**
+ * \brief EDHOC_KDF label values
+ */
+#define KEYSTREAM_2_LABEL    0
+#define SALT_3E2M_LABEL      1
+#define MAC_2_LABEL          2
+#define K_3_LABEL            3
+#define IV_3_LABEL           4
+#define SALT_4E3M_LABEL      5
+#define MAC_3_LABEL          6
+#define PRK_OUT_LABEL        7
+#define K_4_LABEL            8
+#define IV_4_LABEL           9
+#define PRK_EXPORTER_LABEL   10
+
+/**
  * \brief EDHOC session struct
  */
 typedef struct edhoc_session {
@@ -313,21 +328,50 @@ int edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer
 int edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz);
 
 /**
- * \brief HMAC-based Expand Key derivation function (RFC 5869) on the EDHOC context
- * \param result OKM (Output Keying Material)
- * \param key PRK A pseudorandom key of at least HAS_LENGTH bits
- * \param th Transcription Hash to generate the CBOR info input of hmac_expand
- * \param label Label to generate the CBOR info input of hmac_expand
- * \param label_sz Label length to generate the info input of hmac_expand
- * \param length of OKM in bits
- * \return 1 if HKDF-expand finish successfully
+ * \brief EDHOC Key Derivation Function (KDF) based on HMAC-based Expand (RFC 5869)
+ * \param result OKM (Output Keying Material) - the buffer where the derived key will be stored.
+ * \param key PRK (Pseudorandom Key) - a pseudorandom key used as input to the key derivation, should be at least `HAS_LENGTH` bits.
+ * \param info_label Label used to generate the CBOR-based info input for key derivation.
+ * \param context Context data (in bstr format) used to generate the info input for key derivation.
+ * \param length Desired length of the output key material (OKM) in bits.
+ * \return 1 if key derivation is successful, or a negative error code on failure.
  *
- * Used by both Initiator and Responder EDHOC parts to generate the info parameter
- * of the HKDF-Expand function and the HKDF-Expand function as well.
- *  - OKM = HKDF-Expand(PRK, info, length)
- *  - where info: info = [ALGORITHM_ID:unsigned, th:bstr, label:tstr, length:uint]
+ * This function combines the PRK, info_label, and context to generate an input info
+ * parameter that is used for HKDF-Expand as defined in RFC 5869. It is used by both 
+ * the Initiator and Responder in the EDHOC protocol to generate keying material. 
+ * Internally, this function calls `edhoc_expand` to compute the final OKM.
+ * 
+ * The function performs the following steps:
+ *  - Calls `generate_info` to prepare the `info` input.
+ *  - Passes the PRK, generated `info`, and length to `edhoc_expand`.
+ * 
+ * Example usage:
+ *  - OKM = EDHOC_Expand(PRK, info, length)
  */
-int16_t edhoc_kdf(uint8_t *result, uint8_t *key, bstr th, char *label, uint16_t label_sz, uint16_t length);
+int16_t edhoc_kdf(uint8_t *result, uint8_t *key, uint8_t info_label, bstr context, uint16_t length);
+
+/**
+ * \brief HMAC-based Key Expansion Function for EDHOC context using HKDF (RFC 5869)
+ * \param result OKM (Output Keying Material) - the buffer where the derived key will be stored.
+ * \param key PRK (Pseudorandom Key) - a pseudorandom key used as input for the HMAC-based key derivation.
+ * \param info Additional context information used in the key derivation, which is generated from the info_label and context.
+ * \param info_sz The size of the info parameter in bytes.
+ * \param length The desired length of the output key material (OKM) in bits.
+ * \return 1 if key derivation is successful, or a negative error code on failure.
+ *
+ * This function implements the HKDF-Expand function as described in RFC 5869. 
+ * It takes the PRK, context info, and the desired length to produce the final key material.
+ * It calls hkdf_expand internally to perform the HMAC-based key expansion using SHA-256.
+ *
+ * The steps include:
+ *  - Verifying the size of the info and output key material (OKM).
+ *  - Using HMAC-Expand to expand the PRK and info into OKM.
+ *  - Returning the length of the derived key or an error code in case of failure.
+ *
+ * Example usage:
+ *  - OKM = HKDF-Expand(PRK, info, length)
+ */
+int16_t edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info_sz, uint16_t length);
 
 /**
  * \brief Get the SH-Static authentication pair key from the storage and set in the EDHOC context
@@ -363,7 +407,7 @@ void set_rx_gx(edhoc_context_t *ctx, uint8_t *gx);
 // static int8_t set_rx_method(edhoc_context_t *ctx, uint8_t method);
 // static size_t generate_cred_x(cose_key *cose, uint8_t *cred);
 // static size_t generate_id_cred_x(cose_key *cose, uint8_t *cred);
-// static size_t generate_info(uint8_t *info, uint8_t *th, uint8_t th_sz, char *label, uint8_t label_sz, uint8_t length, uint8_t value);
+// static size_t generate_info(uint8_t *info, uint8_t *th, uint8_t th_sz, uint8_t length, uint8_t value);
 // static size_t reconstruct_id_cred_x(uint8_t *cred_in, size_t cred_in_sz);
 // static uint16_t check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher, uint16_t cipher_sz, uint8_t *mac);
 // static uint16_t decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphertext_sz, uint8_t *plaintext);
