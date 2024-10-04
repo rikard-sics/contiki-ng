@@ -32,7 +32,7 @@
  * \file
  *         edhoc-msgs header an implementation of key storage to keep the
  *         DH-static authentication pair keys to work with. Can be used to keep also
- *         the DH-static authentication public key of the other EDHOC parts.
+ *         the DH-static authentication public key of the other EDHOC peers.
  *
  * \author
  *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
@@ -89,7 +89,7 @@ void edhoc_add_key(cose_key_t *key);
  * \return 1 if a key with the specific kid exists in the repository 0 otherwise
  *
  *  This function checks the repository and return a DH cose_key_t key
- *  that is associated with the requested kid if exist.
+ *  that is associated with the requested kid if it exists.
  */
 uint8_t edhoc_check_key_list_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **auth_key);
 
@@ -101,7 +101,7 @@ uint8_t edhoc_check_key_list_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **auth
  * \return 1 if a key with the specific identity exists in the repository 0 otherwise
  *
  *  This function checks the repository and return a DH cose_key_t key
- *  that is associated with the requested kid if exist.
+ *  that is associated with the requested kid if it exists.
  */
 uint8_t edhoc_check_key_list_identity(char *identity, uint8_t identity_sz, cose_key_t **auth_key);
 
@@ -111,8 +111,8 @@ uint8_t edhoc_check_key_list_identity(char *identity, uint8_t identity_sz, cose_
  * \param kid_sz input Key Identification length
  * \return 1 if a key with the specific kid existed in the repository 0 otherwise
  *
- *  This function delete from the repository the DH cose_key_t key
- *  that is associated with the kid if exist.
+ *  This function deletes from the repository the DH cose_key_t key
+ *  that is associated with the kid if it exists.
  */
 uint8_t edhoc_remove_key_kid(uint8_t *kid, uint8_t kid_sz);
 
@@ -123,7 +123,7 @@ uint8_t edhoc_remove_key_kid(uint8_t *kid, uint8_t kid_sz);
  * \return 1 if a key with the specific identity existed in the repository 0 otherwise
  *
  *  This function delete from the repository the DH cose_key_t key
- *  that is associated with the kid if exist.
+ *  that is associated with the kid if it exists.
  */
 uint8_t edhoc_remove_key_identity(char *identity, uint8_t identity_sz);
 

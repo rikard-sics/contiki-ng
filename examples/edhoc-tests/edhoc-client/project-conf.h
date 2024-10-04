@@ -22,7 +22,7 @@
 
 
 /* Define the party role on the EDHOC protocol as Initiator and the correlation method */
-#define EDHOC_CONF_PART PART_I
+#define EDHOC_CONF_ROLE INITIATOR
 #define EDHOC_CONF_CORR EXTERNAL_CORR_U
 
 /* To run with the test vector DH ephemeral keys used on the EDHOC interoperability session */

@@ -54,15 +54,15 @@
 
 static uint32_t _3[1] = { 3 };
 uint32_t expn[8];
-static uint32_t d4[8] = { 0x40000000, 0x00000000, 0x00000000, 0x00000000,
-                          0x00000000, 0x00000000, 0x00000000, 0x00000000 };
-static uint32_t p1[8] = { 0x00000001, 0x00000000, 0x00000000, 0x00000000,
-                          0x00000000, 0x00000000, 0x00000000, 0x00000000 };
+static uint32_t d4[8] =  { 0x40000000, 0x00000000, 0x00000000, 0x00000000,
+                           0x00000000, 0x00000000, 0x00000000, 0x00000000 };
+static uint32_t p1[8] =  { 0x00000001, 0x00000000, 0x00000000, 0x00000000,
+                           0x00000000, 0x00000000, 0x00000000, 0x00000000 };
 static uint32_t p10[8] = { 0x10000000, 0x00000000, 0x00000000, 0x00000000,
                            0x00000000, 0x00000000, 0x00000000, 0x00000000 };
 
 void
-eccnativeToBytes(uint8_t *bytes, int num_bytes, const uint32_t *native)
+eccNative_to_bytes(uint8_t *bytes, int num_bytes, const uint32_t *native)
 {
   int8_t i;
   for(i = 0; i < num_bytes; ++i) {
@@ -71,7 +71,7 @@ eccnativeToBytes(uint8_t *bytes, int num_bytes, const uint32_t *native)
   }
 }
 void
-eccbytesToNative(uint32_t *native, const uint8_t *bytes, int num_bytes)
+eccBytes_to_native(uint32_t *native, const uint8_t *bytes, int num_bytes)
 {
   int8_t i;
   memset(native, 0, sizeof(uint32_t) * 8);
@@ -131,11 +131,11 @@ PT_THREAD(generate_key_hw(key_gen_t * key)) {
   ecc_mul_get_result(&side_a.point_out, side_a.rv);
 
   uint8_t public[ECC_KEY_BYTE_LENGTH * 2];
-  eccnativeToBytes(public, ECC_KEY_BYTE_LENGTH, side_a.point_out.x);
-  eccnativeToBytes(public + ECC_KEY_BYTE_LENGTH, ECC_KEY_BYTE_LENGTH, side_a.point_out.y);
-  eccnativeToBytes(key->y, ECC_KEY_BYTE_LENGTH, side_a.point_out.y);
-  eccnativeToBytes(key->private, ECC_KEY_BYTE_LENGTH, secret_a);
-  eccnativeToBytes(key->x, ECC_KEY_BYTE_LENGTH, side_a.point_out.x);
+  eccNative_to_bytes(public, ECC_KEY_BYTE_LENGTH, side_a.point_out.x);
+  eccNative_to_bytes(public + ECC_KEY_BYTE_LENGTH, ECC_KEY_BYTE_LENGTH, side_a.point_out.y);
+  eccNative_to_bytes(key->y, ECC_KEY_BYTE_LENGTH, side_a.point_out.y);
+  eccNative_to_bytes(key->private, ECC_KEY_BYTE_LENGTH, secret_a);
+  eccNative_to_bytes(key->x, ECC_KEY_BYTE_LENGTH, side_a.point_out.x);
   pka_disable();
   PT_END(&key->pt);
 }
@@ -147,7 +147,7 @@ PT_THREAD(ecc_decompress_key(ecc_key_uncompress_t * state)){
   uint32_t *y = point + state->curve_info->size;
 
   memset(point, 0, sizeof(uint32_t) * 16);
-  eccbytesToNative(point, state->compressed + 1, 32);
+  eccBytes_to_native(point, state->compressed + 1, 32);
 
   int8_t num_words = state->curve_info->size;
 
@@ -230,7 +230,7 @@ PT_THREAD(ecc_decompress_key(ecc_key_uncompress_t * state)){
   CHECK_RESULT(bignum_exp_mod_get_result(y, num_words, state->rv));
 
   memset(result, 0, 32);
-  eccnativeToBytes(result, 32, y);
+  eccNative_to_bytes(result, 32, y);
 
 
   if((result[state->curve_info->size * 4 - 1] & 0x01) != (state->compressed[0] & 0x01)) {
@@ -241,7 +241,7 @@ PT_THREAD(ecc_decompress_key(ecc_key_uncompress_t * state)){
     state->len = state->curve_info->size;
     CHECK_RESULT(bignum_subtract_get_result(y, &state->len, state->rv));
     memset(result, 0, 32);
-    eccnativeToBytes(result, 32, y);
+    eccNative_to_bytes(result, 32, y);
   
   }
   memcpy(state->public, state->compressed + 1, sizeof(uint32_t) * state->curve_info->size);
@@ -260,9 +260,9 @@ cc2538_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm
   if(gy[0] == 0) {
     gy[0] = 0x01;
   }
-  eccbytesToNative(shared.point_in.x, gx, ECC_KEY_BYTE_LENGTH);
-  eccbytesToNative(shared.point_in.y, gy, ECC_KEY_BYTE_LENGTH);
-  eccbytesToNative(shared.secret, private_key, ECC_KEY_BYTE_LENGTH);
+  eccBytes_to_native(shared.point_in.x, gx, ECC_KEY_BYTE_LENGTH);
+  eccBytes_to_native(shared.point_in.y, gy, ECC_KEY_BYTE_LENGTH);
+  eccBytes_to_native(shared.secret, private_key, ECC_KEY_BYTE_LENGTH);
   watchdog_periodic();
   ecc_mul_start(shared.secret, &shared.point_in, shared.curve_info, &shared.rv, shared.process);
   watchdog_periodic();
@@ -272,7 +272,7 @@ cc2538_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm
   ecc_mul_get_result(&shared.point_out, shared.rv);
   watchdog_periodic();
 
-  eccnativeToBytes(ikm, ECC_KEY_BYTE_LENGTH, shared.point_out.x);
+  eccNative_to_bytes(ikm, ECC_KEY_BYTE_LENGTH, shared.point_out.x);
 
   pka_disable();
   er = 1;

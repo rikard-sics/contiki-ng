@@ -58,11 +58,9 @@
 #define ERR_NOT_ALLOWED_IDENTITY -11
 #define RX_ERR_MSG -1
 #define ERR_TIMEOUT -12
-#define ERR_CORELLATION -13
+#define ERR_CORRELATION -13
 #define ERR_NEW_SUIT_PROPOSE -14
 #define ERR_RESEND_MSG_1 -15
-
-/*NEW RFC */
 
 typedef struct ead_data {
   uint8_t ead_label;

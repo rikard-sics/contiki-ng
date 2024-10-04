@@ -52,7 +52,7 @@
 
 /* OSCORE KEY and SALT size */
 #define OSCORE_SALT_SZ 8
-#define OSCORE_KEY_SZ 16 /*Key length of the APP AEAD in bytes */
+#define OSCORE_KEY_SZ 16 /* Key length of the APP AEAD algorithm in bytes */
 
 /* PSK KEY and SALT sizes */
 #define PSK_KEY_SZ 16
@@ -69,9 +69,9 @@
 typedef struct oscore_ctx_t {
   uint8_t master_secret[OSCORE_KEY_SZ];
   uint8_t master_salt[OSCORE_SALT_SZ];
-  int client_ID;   /* coap client is the Initiator */
-  int server_ID;   /* coap server is the Responder */
-}oscore_ctx_t;
+  int client_ID;   /* CoAP client is the Initiator */
+  int server_ID;   /* CoAP server is the Responder */
+} oscore_ctx_t;
 
 /**
  * \brief PSK context struct
@@ -79,7 +79,7 @@ typedef struct oscore_ctx_t {
 typedef struct psk_ctx_t {
   uint8_t PSK[PSK_KEY_SZ];
   uint8_t kid_PSK[PSK_KEY_ID_SZ];
-}psk_ctx_t;
+} psk_ctx_t;
 
 /**
  * \brief Derive an OSCORE Context from EDHOC
@@ -94,7 +94,7 @@ typedef struct psk_ctx_t {
 int8_t edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx);
 
 /**
- * \brief Print an OSCORE Context for debugging
+ * \brief Print an OSCORE Security Context contents for debugging
  * \param osc input OSCORE Context struct
  *
  */

@@ -70,12 +70,12 @@ typedef struct  {
   struct process *process;
 
   /* Input Variables */
-  ecc_curve_info_t *curve_info; /**< Curve defining the CyclicGroup */
+  ecc_curve_info_t *curve_info; /** Curve defining the CyclicGroup */
 
-  uint32_t rv;                  /**< Address of Next Result in PKA SRAM */
+  uint32_t rv;                  /** Address of Next Result in PKA SRAM */
   uint32_t len;
   /* Output Variables */
-  uint8_t result;            /**< Result Code */
+  uint8_t result;            /** Result Code */
   uint8_t public[64];
   uint8_t compressed[33];
 } ecc_key_uncompress_t;
@@ -87,9 +87,9 @@ typedef struct  {
   struct pt pt;
   struct process *process;
 
-  ecc_curve_info_t *curve_info; /**< Curve defining the CyclicGroup */
+  ecc_curve_info_t *curve_info; /** Curve defining the CyclicGroup */
   /* Output Variables */
-  uint8_t x[32];           /**< Result Code */
+  uint8_t x[32];           /** Result Code */
   uint8_t y[32];
   uint8_t private[32];
 } key_gen_t;
@@ -130,8 +130,8 @@ uint8_t cc2538_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint
 void compress_key_hw(uint8_t *compressed, uint8_t *public, ecc_curve_info_t *curve);
 
 
-void eccbytesToNative(uint32_t *native, const uint8_t *bytes, int num_bytes);
-void eccnativeToBytes(uint8_t *bytes, int num_bytes, const uint32_t *native);
+void eccBytes_to_native(uint32_t *native, const uint8_t *bytes, int num_bytes);
+void eccNative_to_bytes(uint8_t *bytes, int num_bytes, const uint32_t *native);
 // static void ecc_set_random_key(uint32_t *secret);
 
 #endif

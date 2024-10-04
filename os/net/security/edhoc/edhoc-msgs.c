@@ -30,7 +30,7 @@
 
 /**
  * \file
- *         edhoc-msg serialize and deserialize the EDHOC msgs using the CBOR library
+ *         edhoc-msg serialize and deserialize the EDHOC messages using the CBOR library
  *
  * \author
  *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
@@ -136,7 +136,7 @@ uint8_t
 edhoc_get_maps_num(uint8_t **in)
 {
   uint8_t byte = get_byte(in);
-  if((byte >= 0xa0) && (byte <= 0xaf)) { /*max of 15 maps */
+  if((byte >= 0xa0) && (byte <= 0xaf)) { /* max of 15 maps */
     uint8_t num = byte ^ 0xa0;
     return num;
   } else {
@@ -148,7 +148,7 @@ uint8_t
 edhoc_get_array_num(uint8_t **in)
 {
   uint8_t byte = get_byte(in);
-  if((byte >= 0x80) && (byte <= 0x8f)) { /*max of 15 maps */
+  if((byte >= 0x80) && (byte <= 0x8f)) { /* max of 15 maps */
     uint8_t num = byte ^ 0x80;
     return num;
   } else {
@@ -188,7 +188,7 @@ edhoc_get_byte_identifier(uint8_t **in)
     return input_byte;
   }
 
-  // Else: FIXME: handle CBOR byte string CIDs
+  // Else: TODO: handle CBOR byte string CIDs
   // int out_sz = cbor_get_bytes(in, out);
   return 0;
 }
@@ -230,7 +230,7 @@ edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suit_array)
   size += edhoc_serialize_suites(&buffer, &msg->suites_i);
   size += cbor_put_bytes(&buffer, msg->g_x.buf, msg->g_x.len);
   size += edhoc_put_byte_identifier(&buffer, msg->c_i.buf, msg->c_i.len);
-  // FIXME: send full ead if sending ead.
+  // FIXME: send full EAD if sending EAD
   if(msg->uad.ead_value.len > 0) {
     size += cbor_put_bytes(&buffer, msg->uad.ead_value.buf, msg->uad.ead_value.len);
   }
@@ -292,7 +292,7 @@ edhoc_deserialize_err(edhoc_msg_error *msg, unsigned char *buffer, uint8_t buff_
 int8_t
 edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
 {
-  /*Get the METHOD */
+  /* Get the METHOD */
   uint8_t *p_out = NULL;
   size_t out_sz;
   uint8_t *buff_f = buffer + buff_sz;
@@ -305,7 +305,7 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
   if(buffer < buff_f) {
     edhoc_deserialize_suites(&buffer, &msg->suites_i);
   }
-  /*Get Gx */
+  /* Get Gx */
   if(buffer < buff_f) {
     out_sz = edhoc_get_bytes(&buffer, &p_out);
     if(out_sz == 0) {
@@ -475,7 +475,7 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
     break;
   }
   if(key_sz != ECC_KEY_BYTE_LENGTH) {
-    LOG_ERR("wrong key size\n ");
+    LOG_ERR("incorrect key size\n ");
     return 0;
   }
   uint8_t id_cred_x_sz = *p - *id_cred_x;

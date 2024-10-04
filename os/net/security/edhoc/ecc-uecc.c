@@ -51,7 +51,7 @@ RNG(uint8_t *dest, unsigned size)
     ++dest;
     --size;
   }
-  /* NOTE: it would be a good idea to hash the resulting random data using SHA-256 or similar. */
+  /* TODO: it would be a good idea to hash the resulting random data using SHA-256 or similar. */
   return 1;
 }
 #endif

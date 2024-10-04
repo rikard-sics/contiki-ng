@@ -58,7 +58,7 @@
 #define CL_BLOCKING 7
 
 
-/*For use of block-wise post and answer */
+/* For use of block-wise post and answer */
 static coap_callback_request_state_t state;
 static uint8_t msg_num;
 static uint8_t send_sz;
@@ -184,7 +184,7 @@ client_block2_handler(coap_message_t *response, uint8_t *target, size_t *len, si
     memcpy(target + response->block2_offset, payload, pay_len);
     *len = response->block2_offset + pay_len;
     print_buff_8_dbg((uint8_t *)payload, (unsigned long)pay_len);
-    target = target + pay_len; //RH: FIXME: Pointless assignment. Are things wrong?
+    target = target + pay_len; //RH: FIXME: Pointless assignment. Are things wrong here?
   }
   return 0;
 }
@@ -202,7 +202,7 @@ client_response_handler(coap_callback_request_state_t *callback_state)
     pro = process_post(&edhoc_client, edhoc_event, &edhoc_state);
     return;
   }
-  /*Check that the response are coming from the correct server */
+  /* Check that the response are coming from the correct server */
   if(memcmp(&cli->server_ep.ipaddr, &callback_state->state.remote_endpoint->ipaddr, sizeof(uip_ipaddr_t)) != 0) {
     LOG_ERR("rx response from an error server\n");
     edhoc_state.val = CL_RESTART;
@@ -246,7 +246,7 @@ client_chunk_handler(coap_callback_request_state_t *callback_state)
     LOG_WARN("Request timed out chunk\n");
     return;
   }
-  /*Check the 5-tuple information before retrieve the state protocol*/
+  /* Check the 5-tuple information before retrieving the protocol state */
 
   LOG_DBG("Blockwise: block 2 response: Num: %" PRIu32
           ", More: %u, Size: %u, Offset: %" PRIu32 "\n",
@@ -334,8 +334,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
     }
 
     if(er > 0) {
-      // FIXME: hardcoded lengths.
-      // int c_r_len = 1;
+      // FIXME: hardcoded lengths?
       int cipher_sz = msg2.g_y_ciphertext_2.len - ECC_KEY_BYTE_LENGTH;
       er = edhoc_authenticate_msg(edhoc_ctx, &pt, cipher_sz, (uint8_t *)edhoc_state.ad.ad_2, &key);
     }
@@ -351,14 +350,14 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
       edhoc_client_post();
       edhoc_client_post_blocks();
     } else {
-      /*TODO: Include a way to pass application msgs. */
+      /* TODO: Include a way to pass application msgs. */
       edhoc_state.ad.ad_2_sz = er;
       if(edhoc_state.ad.ad_2_sz > 0 && edhoc_state.ad.ad_2) {
         LOG_DBG("Ap_2 (%d bytes):", edhoc_state.ad.ad_2_sz);
         print_char_8_dbg((char *)edhoc_state.ad.ad_2, edhoc_state.ad.ad_2_sz);
       }
       LOG_DBG("-----------------gen MSG3---------------------\n");
-      /*Generate MSG3 */
+      /* Generate MSG3 */
       time = RTIMER_NOW();
       edhoc_gen_msg_3(edhoc_ctx, (uint8_t *)edhoc_state.ad.ad_3, edhoc_state.ad.ad_3_sz);
       time = RTIMER_NOW() - time;
@@ -387,7 +386,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
         break;
       }
     }
-    /*Check every protocol step successfully */
+    /* Check every protocol step successfully */
     cli->state = EXP_READY;
     if(cli->tx_msg1 && cli->rx_msg2) {
       cli->rx_msg3_response = true;
@@ -493,7 +492,7 @@ PROCESS_THREAD(edhoc_client, ev, data)
     if((ev == edhoc_event) && (data == &edhoc_state)) {
       if(edhoc_state.val == CL_RESTART) {
         LOG_ERR("Error\n");
-        /*When timeout will restart */
+        /* When timeout will restart */
         if(attempt < EDHOC_CONF_ATTEMPTS) {
           LOG_INFO("Attempt %d\n", attempt);
           etimer_set(&wait_timer, CLOCK_SECOND * (CL_TIMEOUT_VAL / 1000));

@@ -105,10 +105,10 @@ typedef struct edhoc_data_even_t {
 }edhoc_data_even_t;
 
 /**
- * \brief Run the EDHOC Initiator part
+ * \brief Run the EDHOC Initiator role
  *
  *  This function must be called from the EDHOC Initiator program to start the EDHOC protocol
- *  as Initiator. Run a new process that implements all the EDHOC protocol and exit
+ *  as Initiator. Runs a new process that implements all the EDHOC protocol and exits
  *  when the EDHOC protocol finishes successfully or expire the EDHOC_CONF_ATTEMPTS.
  *  - When the EDHOC protocol finishes successfully a CL_FINISHED event is triggered.
  *  - When the EDHOC protocol expires the EDHOC_CONF_ATTEMPTS attempts a CL_TRIES_EXPIRE event is triggered
@@ -131,7 +131,7 @@ int8_t edhoc_client_callback(process_event_t ev, void *data);
 /**
  * \brief Close the EDHOC context
  *
- * This function must be called after the Security Context is exported to liberate the
+ * This function must be called after the Security Context is exported to free the
  * allocated memory.
  */
 void edhoc_client_close();
@@ -146,7 +146,7 @@ void edhoc_client_close();
 uint8_t edhoc_server_get_ad_2(char *buff);
 
 /**
- * \brief Set the Application Data to be carried on EDHOC message 1
+ * \brief Set the Application Data to be carried in EDHOC message 1
  * \param buff A pointer to a buffer that contains the Application data to be copied
  * \param buff_sz The Application data length
  *
@@ -155,7 +155,7 @@ uint8_t edhoc_server_get_ad_2(char *buff);
 void edhoc_server_set_ad_1(const void *buff, uint8_t buff_sz);
 
 /**
- * \brief Set the Application Data to be carried on EDHOC message 3
+ * \brief Set the Application Data to be carried in EDHOC message 3
  * \param buff A pointer to a buffer that contains the Application data to be copied
  * \param buff_sz The Application data length
  *
