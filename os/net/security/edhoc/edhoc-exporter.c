@@ -47,9 +47,9 @@ edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc)
 {
   LOG_PRINT("Initiator client CID: 0x%02x\n", osc->client_ID);
   LOG_PRINT("Responder server CID: 0x%02x\n", osc->server_ID);
-  LOG_PRINT("OSCORE Master Secret (%d bytes):", OSCORE_KEY_SZ);
+  LOG_PRINT("OSCORE Master Secret (%d bytes): ", OSCORE_KEY_SZ);
   print_buff_8_print(osc->master_secret, OSCORE_KEY_SZ);
-  LOG_PRINT("OSCORE Master Salt (%d bytes):", OSCORE_SALT_SZ);
+  LOG_PRINT("OSCORE Master Salt (%d bytes): ", OSCORE_SALT_SZ);
   print_buff_8_print(osc->master_salt, OSCORE_SALT_SZ);
 }
 int8_t

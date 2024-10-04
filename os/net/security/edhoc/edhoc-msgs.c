@@ -43,7 +43,7 @@ void
 print_msg_1(edhoc_msg_1 *msg)
 {
   LOG_DBG("Type: %d\n", msg->method);
-  LOG_DBG("Suit I:");
+  LOG_DBG("Suit I: ");
   print_buff_8_dbg(msg->suites_i.buf,msg->suites_i.len);
   LOG_DBG("Gx: ");
   print_buff_8_dbg(msg->g_x.buf, msg->g_x.len);
