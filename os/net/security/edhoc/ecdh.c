@@ -44,7 +44,7 @@
 #include <dev/watchdog.h>
 #include "sys/rtimer.h"
 #include "sys/process.h"
-/*static rtimer_clock_t time; */
+/* static rtimer_clock_t time; */
 
 #ifndef HKDF_INFO_MAXLEN
 #define HKDF_INFO_MAXLEN 255
@@ -54,14 +54,14 @@
 #define HKDF_OUTPUT_MAXLEN 255
 #endif
 
-static uint8_t aggregate_buffer[HAS_LENGTH + HKDF_INFO_MAXLEN + 1];
-static uint8_t out_buffer[HKDF_OUTPUT_MAXLEN + HAS_LENGTH];
+static uint8_t aggregate_buffer[HASH_LENGTH + HKDF_INFO_MAXLEN + 1];
+static uint8_t out_buffer[HKDF_OUTPUT_MAXLEN + HASH_LENGTH];
 
 uint8_t
 generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve)
 {
   int er = 0;
-#if ECC == UECC_ECC     /*use GX and Gy */
+#if ECC == UECC_ECC     /* use GX and Gy */
   er = uecc_generate_IKM(gx, gy, private_key, ikm, curve);
 #endif
 #if ECC == CC2538_ECC
@@ -129,7 +129,7 @@ hkdf_expand(uint8_t *prk, uint16_t prk_sz, uint8_t *info, uint16_t info_sz, uint
     LOG_ERR("error code (%d)\n ", ERR_OKM_SIZE);
     return ERR_OKM_SIZE;
   }
-  int hash_sz = HAS_LENGTH;
+  int hash_sz = HASH_LENGTH;
 
   /*ceil */
   int N = (okm_sz + hash_sz - 1) / hash_sz;

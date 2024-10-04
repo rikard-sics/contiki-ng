@@ -78,7 +78,7 @@ edhoc_storage_init(void)
 void
 edhoc_init(edhoc_context_t *ctx)
 {
-  /*TODO : check that the key belongs to the curve */
+  /* TODO : check that the key belongs to the curve */
   ctx->session.cid = (uint8_t)EDHOC_CID;
   ctx->session.suit[0] = SUIT;
   ctx->session.suit_num = 1;
@@ -91,7 +91,7 @@ edhoc_init(edhoc_context_t *ctx)
   ctx->session.suit[4] = SUIT_4;
   if(SUIT_4 > -1) ctx->session.suit_num++;
   
-  ctx->session.part = PART;  /*initiator I (U) or responder (V) */
+  ctx->session.role = ROLE;  /* initiator I (U) or responder (V) */
   ctx->session.method = METHOD;
   ctx->session.suit_rx = 0xff;
 }
@@ -145,7 +145,7 @@ static size_t
 generate_id_cred_x(cose_key *cose, uint8_t *cred)
 {
   size_t size = 0;
-  /*TODO: PRKI Include a reduce form of the credentials*/
+  /* TODO: PRKI Include a reduce form of the credentials */
   /*if(AUTHENT_TYPE == PRKI) {
      size += cbor_put_map(&cred, 2);
      size += cbor_put_unsigned(&cred, 32);
@@ -155,13 +155,13 @@ generate_id_cred_x(cose_key *cose, uint8_t *cred)
      }*/
   LOG_DBG("kid (%zu bytes):", cose->kid.len);
   print_buff_8_dbg(cose->kid.buf, cose->kid.len);
-  /*PRK_ID Include KID*/
+  /* PRK_ID Include KID */
   if(AUTHENT_TYPE == PRK_ID) {
     size += cbor_put_map(&cred, 1);
     size += cbor_put_unsigned(&cred, 4);
     size += cbor_put_bytes(&cred, cose->kid.buf, cose->kid.len);
   }
-  /*PRK_2 Include directly the credential used for authentication ID_CRED_X = CRED_X*/
+  /* PRK_2 Include directly the credential used for authentication ID_CRED_X = CRED_X */
   if(AUTHENT_TYPE == PRKI_2) {
     size = generate_cred_x(cose, cred);
   }
@@ -177,7 +177,6 @@ reconstruct_id_cred_x(uint8_t *cred_in, size_t cred_in_sz)
     cred_in--;
     memcpy(id_cred_x, cred_in, cred_in_sz);
     size = cred_in_sz;
-    /*print_buff_8_dbg(cred_in,cred_in_sz); */
   } else {
     if(cred_in_sz == 1) {
       uint8_t byte = *cred_in;
@@ -208,7 +207,7 @@ generate_info(uint8_t *info, uint8_t *context, uint8_t context_sz, uint8_t lengt
 static int8_t
 set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz)
 {
-  /* set connector id from rx */
+  /* set connection id from rx */
   if(cidrx_sz == 1) {
     ctx->session.cid_rx = (uint8_t)edhoc_get_byte_identifier(&cidrx);
   }
@@ -277,19 +276,19 @@ static void
 print_connection(edhoc_session *con)
 {
   LOG_DBG("Connection print\n");
-  LOG_DBG("connection part: %d\n", (int)con->part);
+  LOG_DBG("connection role: %d\n", (int)con->role);
   LOG_DBG("connection method: %d\n", (int)con->method);
   LOG_DBG("My suit: %d\n", con->suit[0]);
-  LOG_DBG("Other part suit: %d\n", (int)con->suit_rx);
+  LOG_DBG("Other peer suit: %d\n", (int)con->suit_rx);
   LOG_DBG("My cID: %x\n", (uint8_t)con->cid);
-  LOG_DBG("Other part cID: %x\n", (uint8_t)con->cid_rx);
+  LOG_DBG("Other peer cID: %x\n", (uint8_t)con->cid_rx);
   LOG_DBG("Gx:");
   print_buff_8_dbg(con->Gx.buf, con->Gx.len);
 }
 static int8_t
 gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
 {
-  /*Create the input for TH2 = H(msg1), msg1 is in msg_rx */
+  /* Create the input for TH2 = H(msg1), msg1 is in msg_rx */
   uint8_t h2_sz = msg_sz + ECC_KEY_BYTE_LENGTH + 2 + 2;
   uint8_t h2[h2_sz];
   memcpy(h2 + 2, data, ECC_KEY_BYTE_LENGTH);
@@ -300,8 +299,8 @@ gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
   h2[ECC_KEY_BYTE_LENGTH + 2 + 1] = 0x20;
   LOG_DBG("Input to calculate H(msg1) (%d bytes):", (int)msg_sz);
   print_buff_8_dbg(msg, msg_sz);
-  /*Compute TH */
-  // FIXME: hardcoded value 32.
+  /* Compute TH */
+  // FIXME: hardcoded value 32
   uint8_t er = compute_TH(msg, msg_sz, h2 + ECC_KEY_BYTE_LENGTH + 2 + 2, 32);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED H(msg1)\n");
@@ -341,7 +340,7 @@ gen_th3(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   LOG_DBG("input to calculate TH_3 (CBOR Sequence) (%d bytes):", (int)h_sz);
   print_buff_8_dbg(h, h_sz);
 
-  /*Compute TH */
+  /* Compute TH */
   uint8_t er = compute_TH(h, h_sz, ctx->session.th.buf, ctx->session.th.len);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED TH3\n ");
@@ -370,7 +369,7 @@ gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   LOG_DBG("input to calculate TH_4 (CBOR Sequence) (%d bytes):", (int)h_sz);
   print_buff_8_dbg(h, h_sz);
 
-  /*Compute TH */
+  /* Compute TH */
   uint8_t er = compute_TH(h, h_sz, ctx->session.th.buf, ctx->session.th.len);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED TH4\n ");
@@ -462,9 +461,9 @@ static uint8_t
 gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac)
 {
   uint8_t mac_num = 0;
-  if(PART == PART_I) {
+  if(ROLE == INITIATOR) {
     mac_num = MAC_3;
-  } else if(PART == PART_R) {
+  } else if(ROLE == RESPONDER) {
     mac_num = MAC_2;
   }
 
@@ -479,9 +478,9 @@ static uint16_t
 check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher, uint16_t cipher_sz, uint8_t *mac)
 {
   uint8_t mac_num = 0;
-  if(PART == PART_I) {
+  if(ROLE == INITIATOR) {
     mac_num = MAC_2;
-  } else if(PART == PART_R) {
+  } else if(ROLE == RESPONDER) {
     mac_num = MAC_3;
   }
 
@@ -541,7 +540,7 @@ gen_prk_2e(edhoc_context_t *ctx)
   print_buff_8_dbg(ctx->eph_key.prk_2e, ECC_KEY_BYTE_LENGTH);
   return 1;
 }
-/*use PRK_2e */
+/* Derive PRK_2e */
 static int16_t
 gen_k_2e(edhoc_context_t *ctx, uint16_t length)
 {
@@ -553,8 +552,8 @@ gen_k_2e(edhoc_context_t *ctx, uint16_t length)
   print_buff_8_dbg(ctx->eph_key.k2_e, length);
   return 1;
 }
-/*TODO: change the gen with the PART: Initiator U: gen = 0; Responder V: gen = 1; */
-//RH: Why not use edhoc_kdf for SALT_3e2m / SALT_4e3m?
+/* TODO: change the gen with the ROLE: Initiator U: gen = 0; Responder V: gen = 1; */
+// RH: Why not use edhoc_kdf for SALT_3e2m / SALT_4e3m?
 static uint8_t
 gen_prk_3e2m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
 {
@@ -604,7 +603,7 @@ gen_prk_4e3m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
   if(gen) {
     er = generate_IKM(key_authenticate->public.x, key_authenticate->public.y, ctx->ephemeral_key.private_key, giy, ctx->curve);
   } else {
-    er = generate_IKM(ctx->eph_key.gx, ctx->eph_key.gy, key_authenticate->private_key, giy, ctx->curve); /*G_IY = G_Y and I //Initiator (U):  //Initiator U */
+    er = generate_IKM(ctx->eph_key.gx, ctx->eph_key.gy, key_authenticate->private_key, giy, ctx->curve); /* G_IY = G_Y and I //Initiator (U):  //Initiator U */
   }
   LOG_DBG("G_IY (ECDH shared secret) (%d bytes):", ECC_KEY_BYTE_LENGTH);
   print_buff_8_dbg(giy, ECC_KEY_BYTE_LENGTH);
@@ -649,7 +648,7 @@ static uint16_t
 decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphertext_sz, uint8_t *plaintext)
 {
   cose_encrypt0 *cose = cose_encrypt0_new();
-  /*set external AAD in cose */
+  /* set external AAD in cose */
   cose_encrypt0_set_content(cose, NULL, 0, NULL, 0);
   uint8_t *th3_ptr = cose->external_aad;
   memcpy(th3_ptr, ctx->session.th.buf, ctx->session.th.len);
@@ -678,7 +677,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphert
   LOG_DBG("IV_3 (%d bytes):", cose->nonce_sz);
   print_buff_8_dbg(cose->nonce, cose->nonce_sz);
 
-  /*Encrypt cose */
+  /* Decrypt COSE */
   if(!cose_decrypt(cose)) {
     LOG_ERR("ciphertext 3 decrypt error \n");
     return 0;
@@ -688,7 +687,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphert
     plaintext[i] = cose->plaintext[i];
   }
 
-  /*Empty memory */
+  /* Free memory */
   cose_encrypt0_finalize(cose);
   return cose->plaintext_sz;
 }
@@ -736,7 +735,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
 {
   int8_t er = 0;
   cose_encrypt0 *cose = cose_encrypt0_new();
-  /*set external AAD in cose */
+  /* set external AAD in cose */
   uint8_t *th3_ptr = cose->external_aad;
   cose->external_aad_sz = ctx->session.th.len;
   memcpy(th3_ptr, ctx->session.th.buf, ctx->session.th.len);
@@ -745,12 +744,12 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   LOG_DBG("PLAINTEXT_3 (%d bytes):", (int)cose->plaintext_sz);
   print_buff_8_dbg(cose->plaintext, cose->plaintext_sz);
 
-  /* RH Modified to store plaintext 3 WIP */
+  /* RH: Modified to store plaintext 3 WIP */
   memcpy(buf, cose->plaintext, cose->plaintext_sz);
   ctx->session.ciphertext_3.buf = buf;
   ctx->session.ciphertext_3.len = cose->plaintext_sz;
   
-  /* generate K */
+  /* generate K_3 */
   er = edhoc_kdf(cose->key, ctx->eph_key.prk_3e2m, K_3_LABEL, ctx->session.th, KEY_DATA_LENGTH);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
@@ -760,7 +759,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   LOG_DBG("K_3ae (%d bytes):", (int)cose->key_sz);
   print_buff_8_dbg(cose->key, cose->key_sz);
 
-  /* generate IV */
+  /* generate IV_3 */
   er = edhoc_kdf(cose->nonce, ctx->eph_key.prk_3e2m, IV_3_LABEL, ctx->session.th, IV_LENGTH);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
@@ -773,13 +772,13 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   /* COSE encrypt0 set header */
   cose_encrypt0_set_header(cose, NULL, 0, NULL, 0);
 
-  /*Encrypt cose */
+  /* Encrypt COSE */
   cose_encrypt(cose);
 
   uint8_t *ptr = ciphertext;
   uint16_t ext = cbor_put_bytes(&ptr, cose->ciphertext, cose->ciphertext_sz);
 
-  /*Empty memory */
+  /* Free memory */
   cose_encrypt0_finalize(cose);
   return ext;
 }
@@ -835,7 +834,7 @@ edhoc_get_authentication_key(edhoc_context_t *ctx)
 void
 edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suit_array)
 {
-  /*Generate message 1 */
+  /* Generate message 1 */
   edhoc_msg_1 msg1 = {
     .method = ctx->session.method,
     .suites_i = { .buf = ctx->session.suit, .len = ctx->session.suit_num},
@@ -844,7 +843,7 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suit_array
     .uad = (ead_data){ .ead_label = 0, .ead_value = (bstr){ ad, ad_sz }},
   };
 
-  /*CBOR encode message on the buffer */
+  /* CBOR encode message in the buffer */
   size_t size = edhoc_serialize_msg_1(&msg1, ctx->msg_tx, suit_array);
   ctx->tx_sz = size;
 
@@ -872,9 +871,9 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
     // FIXME: return error.
     return;
   }
-  /*Generate MAC */
-  /*generate id_cred_x and cred_x */
-  /*The cose key include the authentication key */
+  /* Generate MAC */
+  /* generate id_cred_x and cred_x */
+  /* The COSE key include the authentication key */
   cose_key cose;
   generate_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_size);
 
@@ -890,7 +889,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 
   gen_prk_2e(ctx);
 
-  /*generate prk_3e2m */
+  /* generate prk_3e2m */
   gen_prk_3e2m(ctx, &ctx->authen_key, 1);
 #if ((METHOD == METH0) || (METHOD == METH2))
 
@@ -911,7 +910,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 
   LOG_DBG("CIPHERTEXT_2 (%d bytes):", (int)p_sz);
   print_buff_8_dbg(buf, p_sz);
-  /*set ciphertext on msg tx */
+  /* set ciphertext in msg tx */
   uint8_t *ptr = &(ctx->msg_tx[0]);
   int sz = cbor_put_bytes(&ptr, ctx->ephemeral_key.public.x, ECC_KEY_BYTE_LENGTH);
   ctx->session.ciphertext_2.buf = ptr;
@@ -924,13 +923,13 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 void
 edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 {
-  /*gen TH3 */
-  /*Set the pointer to th2 */
+  /* gen TH3 */
+  /* Set the pointer to th2 */
   ctx->session.th.buf = ctx->eph_key.th;
   ctx->session.th.len = ECC_KEY_BYTE_LENGTH;
 
   gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);
-  /*Generate cose authentication key */
+  /* Generate COSE authentication key */
   cose_key cose;
   generate_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_size);
 
@@ -944,43 +943,36 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   LOG_DBG("(y) (Initiator's public authentication key) (%d bytes):", ECC_KEY_BYTE_LENGTH);
   print_buff_8_dbg(ctx->authen_key.public.y, ECC_KEY_BYTE_LENGTH);
 
-  /*generate cred_x */
+  /* generate cred_x */
   ctx->session.cred_x.buf = cred_x;
   ctx->session.cred_x.len = generate_cred_x(&cose, ctx->session.cred_x.buf);
   LOG_DBG("CRED_I (%d bytes):", (int)ctx->session.cred_x.len);
   print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
 
-  /*generate id_cred_x */
+  /* generate id_cred_x */
   ctx->session.id_cred_x.buf = id_cred_x;
   ctx->session.id_cred_x.len = generate_id_cred_x(&cose, ctx->session.id_cred_x.buf);
   LOG_DBG("ID_CRED_I (%d bytes):", (int)ctx->session.id_cred_x.len);
   print_buff_8_dbg(ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
 
-  /*Generate prk_4e3m */
+  /* Generate prk_4e3m */
   gen_prk_4e3m(ctx, &ctx->authen_key, 0);
 
 #if ((METHOD == METH0) || (METHOD == METH2))
 
 #endif
 
-  /*Generate Authentication MAC */
+  /* Generate Authentication MAC */
 #if ((METHOD == METH1) || (METHOD == METH3))
   gen_mac_dh(ctx, ad, ad_sz, mac);
   LOG_DBG("MAC 3 (%d bytes):", MAC_LEN);
   print_buff_8_dbg(mac, MAC_LEN);
 #endif
 
-  /*time = RTIMER_NOW(); */
-  /*Gen ciphertext_3 */
+  /* time = RTIMER_NOW(); */
+  /* Gen ciphertext_3 */
   uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac, MAC_LEN, ctx->msg_tx);
   ctx->tx_sz = ciphertext_sz;
-
-  /*Point ciphertext_3 for the exporter */
-  /*uint8_t *ptr_c = ctx->msg_tx;
-  ctx->session.ciphertext_3.len = edhoc_get_bytes(&ptr_c, &ctx->session.ciphertext_3.buf);
-  LOG_DBG("CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertext_3.len);
-  print_buff_8_dbg(ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
-  LOG_INFO("MSG3 sz: %d \n", (int)ctx->tx_sz);*/
   
   /* Compute TH4 WIP */
   gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
@@ -1031,7 +1023,7 @@ edhoc_gen_msg_error(uint8_t *msg_er, edhoc_context_t *ctx, int8_t err)
   case (ERR_TIMEOUT * (-1)):
     msg.err_info = (sstr){ "ERR_TIMEOUT", strlen("ERR_TIMEOUT") };
     break;
-  case (ERR_CORELLATION * (-1)):
+  case (ERR_CORRELATION * (-1)):
     msg.err_info = (sstr){ "ERR_CORRELATION", strlen("ERR_CORRELATION") };
     break;
   case (ERR_NEW_SUIT_PROPOSE * (-1)): {
@@ -1061,7 +1053,7 @@ edhoc_gen_msg_error(uint8_t *msg_er, edhoc_context_t *ctx, int8_t err)
 int8_t
 edhoc_check_rx_msg(uint8_t *buffer, uint8_t buff_sz)
 {
-  /*Check if the rx msg is an msg_err */
+  /* Check if the rx msg is an msg_err */
   uint8_t *msg_err = buffer;
   edhoc_msg_error err;
   int8_t msg_err_sz = 0;
@@ -1081,7 +1073,7 @@ edhoc_check_rx_msg(uint8_t *buffer, uint8_t buff_sz)
 int8_t
 edhoc_check_rx_msg_2(uint8_t *buffer, uint8_t buff_sz,edhoc_context_t* ctx)
 {
-  /*Check if the rx msg is an msg_err */
+  /* Check if the rx msg is an msg_err */
   uint8_t *msg_err = buffer;
   edhoc_msg_error err = { 0 };
 
@@ -1099,10 +1091,10 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz, uint8
 
   edhoc_msg_1 msg1 = { 0 };
   int er = 0;
-  /*Decode MSG1 */
+  /* Decode MSG1 */
   set_rx_msg(ctx, buffer, buff_sz);
 
-  /*Check if the rx msg is an msg_err */
+  /* Check if the rx msg is an msg_err */
   er = edhoc_check_rx_msg(buffer, buff_sz);
   if(er < 0) {
     return RX_ERR_MSG;
@@ -1119,32 +1111,32 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz, uint8
   }
   print_msg_1(&msg1);
 
-  /*check rx suit and set id connection of the other part */
+  /* check rx suit and set id connection of the other party */
   er = check_rx_suit_I(ctx, msg1.suites_i);
   if(er < 0) {
     LOG_ERR("Rx Suit not supported\n");
     return er;
   }
 
-  /*Check to not have the same cid */
+  /* Check to not have the same cid */
   er = set_rx_cid(ctx, msg1.c_i.buf, msg1.c_i.len);
   if(er < 0) {
     LOG_ERR("Not support cid rx\n");
     return er;
   }
 
-  /*Set EDHOC method */
+  /* Set EDHOC method */
   er = set_rx_method(ctx, msg1.method);
   if(er < 0) {
     LOG_ERR("Rx Method not supported\n");
     return er;
   }
 
-  /*Set GX */
+  /* Set GX */
   set_rx_gx(ctx, msg1.g_x.buf);
   print_connection(&ctx->session);
 
-  LOG_DBG("MSG UAD (%d)", (int)msg1.uad.ead_value.len);
+  LOG_DBG("MSG EAD (%d)", (int)msg1.uad.ead_value.len);
   print_char_8_dbg((char *)msg1.uad.ead_value.buf, msg1.uad.ead_value.len);
 
   if(msg1.uad.ead_value.len != 0) {
@@ -1176,15 +1168,15 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer, si
   ctx->session.th.len = ECC_KEY_BYTE_LENGTH;
   gen_th2(ctx, msg2->g_y_ciphertext_2.buf, ctx->msg_tx, ctx->tx_sz);
   gen_prk_2e(ctx);
-  /*Gen K_2e */
+  /* Gen K_2e */
   int ciphertext2_sz = msg2->g_y_ciphertext_2.len - ECC_KEY_BYTE_LENGTH;
   gen_k_2e(ctx, ciphertext2_sz);
 
-  /*Set ciphertext */
+  /* Set ciphertext */
   ctx->session.ciphertext_2.buf = msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGTH;
   ctx->session.ciphertext_2.len = ciphertext2_sz;
 
-  /*Decrypted cipher text */
+  /* Decrypted cipher text */
   memcpy(buf, msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGTH, ciphertext2_sz);
   LOG_DBG("CIPHERTEXT_2 (%d bytes):", ciphertext2_sz);
   print_buff_8_dbg(buf, ciphertext2_sz);
@@ -1192,7 +1184,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer, si
   memcpy(msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGTH, buf, ciphertext2_sz);
   LOG_DBG("PLAINTEXT_2 (%d bytes):", ciphertext2_sz);
   print_buff_8_dbg(msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGTH, ciphertext2_sz);
-  // FIXME: C_R can be more than 1 byte.
+
   int cr_sz = CID_LEN;
   er = set_rx_cid(ctx, buf, cr_sz);
   if(er < 0) {
@@ -1227,10 +1219,10 @@ edhoc_get_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key)
 int
 edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz)
 {
-  /*Decode MSG3 */
+  /* Decode MSG3 */
   set_rx_msg(ctx, buffer, buff_sz);
 
-  /*Check if the rx msg is an msg_err */
+  /* Check if the rx msg is an msg_err */
   if(edhoc_check_rx_msg(buffer, buff_sz) < 0) {
     return RX_ERR_MSG;
   }
@@ -1242,15 +1234,15 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   }
   print_msg_3(msg3);
 
-  /*Set the ciphertext_3 for the key exporter */
+  /* Set the ciphertext_3 for the key exporter */
   ctx->session.ciphertext_3.buf = msg3->ciphertext_3.buf;
   ctx->session.ciphertext_3.len = msg3->ciphertext_3.len;
   LOG_DBG("CIPHERTEXT_3 (%d bytes):", (int)ctx->session.ciphertext_3.len); //RH FIXME: Should be plaintext?
   print_buff_8_dbg(ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
-  /*generate TH3 */
+  /* generate TH3 */
   gen_ciphertext_2(ctx, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);
   gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);
-  /*decrypt msg3 and check the TAG for verify the outer */
+  /* decrypt msg3 and check the TAG for verify the outer */
   uint16_t plaintext_sz = decrypt_ciphertext_3(ctx, msg3->ciphertext_3.buf, msg3->ciphertext_3.len, buf);
   if(plaintext_sz == 0) {
     LOG_ERR("Error in decrypt ciphertext 3\n");
@@ -1260,7 +1252,7 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   print_buff_8_dbg(buf, plaintext_sz);
   ctx->session.id_cred_x.buf = buf;
   
-  /* RH Save the plaintext in the ctx object WIP */
+  /* RH: Save the plaintext in the ctx object WIP */
   ctx->session.ciphertext_3.buf = buf;
   ctx->session.ciphertext_3.len = plaintext_sz;
 
@@ -1301,11 +1293,11 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   LOG_DBG("msg (%d bytes):", cipher_len);
   print_buff_8_dbg(in_ptr, cipher_len);
   uint8_t *sign_r = NULL;
-  /*Get MAC from the decrypt msg*/
+  /* Get MAC from the decrypt msg*/
   uint16_t sign_r_sz = edhoc_get_sign(ptr, &sign_r);
   uint16_t rest_sz = cipher_len - (*ptr - buf);
 
-  /*Get the ad from the decrypt msg*/
+  /* Get the ad from the decrypt msg*/
   if(rest_sz) {
     rest_sz = edhoc_get_ad(ptr, ad);
   } else {
@@ -1315,7 +1307,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   cose_key cose;
   ecc_key authenticate;
 
-  /*ecc_key authenticate_R; */
+  /* ecc_key authenticate_R; */
   set_cose_key(&authenticate, &cose, key, ctx->curve);
   cose_print_key(&cose);
 
@@ -1324,9 +1316,9 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   LOG_DBG("CRED_R auth (%zu): ", ctx->session.cred_x.len);
   print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
 
-  if(PART == PART_I) {
+  if(ROLE == INITIATOR) {
     gen_prk_3e2m(ctx, &authenticate, 0);
-  } else if(PART == PART_R) {
+  } else if(ROLE == RESPONDER) {
     gen_prk_4e3m(ctx, &authenticate, 1);
   }
 
@@ -1342,9 +1334,9 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
     return ERR_AUTHENTICATION;
   }
  
-  /* RH Compute TH4 WIP (after verifying MAC_3) */
-  if(PART == PART_R) { 
-    // Start by retreiving CRED_I
+  /* RH: Compute TH4 WIP (after verifying MAC_3) */
+  if(ROLE == RESPONDER) { 
+    // Start by retrieving CRED_I
     bstr cred_i;
     int8_t er = retrieve_cred_i(ctx, inf, &cred_i);
     if(er != 1) {
@@ -1358,7 +1350,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 #endif
   return rest_sz;
 }
-int //RH WIP
+int //RH: WIP
 cbor_bstr_size(uint32_t len) {
     if (len <= 23) {
         return 1 + len;  // 1 byte total for encoding

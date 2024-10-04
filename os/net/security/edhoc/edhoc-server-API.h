@@ -109,14 +109,14 @@ extern struct serv_data_t *dat_ptr;
 /**
  * \brief Activate the EDHOC CoAP Resource
  *
- *  Activate the EDHOC well know CoAP Resource at the uri-path defined
- *  on the WELL_KNOW macro.
+ *  Activate the EDHOC well-known CoAP Resource at the Uri-Path defined
+ *  in the WELL_KNOW macro.
  */
 void edhoc_server_init();
 
 /**
  * \brief Create a new EDHOC context for a new EDHOC protocol session
- * \retval non-zero if the authentication credentials for the EDHOC server exist on the key-storage
+ * \retval non-zero if the authentication credentials for the EDHOC server exist in the key-storage
  *  and the EDHOC server start correctly.
  *
  *  This function gets the DH-static authentication pair keys of the Server from the edhoc-key-storage.
@@ -132,12 +132,12 @@ uint8_t edhoc_server_start();
  *  and the EDHOC server start correctly.
  *
  * Rest the EDHOC context to initiate a new EDHOC protocol session with a new client
- * Before of using the export security contex of the before EDHOC context must be keep it
+ * Before of using the export security context of the before EDHOC context must be keep it
  */
 uint8_t edhoc_server_restart();
 
 /**
- * \brief Check if an EDHOC server session have finished
+ * \brief Check if an EDHOC server session has finished
  * \param ev process event
  * \param data process data
  * \retval non-zero if EDHOC session finished success with a EDHOC client
@@ -150,13 +150,13 @@ int8_t edhoc_server_callback(process_event_t ev, void *data);
 /**
  * \brief Close the EDHOC context
  *
- * This function must be called after the Security Context is exported to liberate the
+ * This function must be called after the Security Context is exported to free the
  * allocated memory.
  */
 void edhoc_server_close();
 
 /**
- * \brief run the EDHOC Responder party process
+ * \brief run the EDHOC Responder role process
  * \param req The request CoAP message received
  * \param res The response CoAP message to send back
  * \param ser The EDHOC server struct
@@ -164,7 +164,7 @@ void edhoc_server_close();
  * \param len The RX message length
  *
  *  This function must be called from a CoAP response POST handler to run the EDHOC protocol Responder
- *  part. The EDHOC messages 1 and message 3 are transferred in POST requests and the EDHOC message 2
+ *  role. The EDHOC messages 1 and message 3 are transferred in POST requests and the EDHOC message 2
  *  is transferred in 2.04 (Changed) responses.
  */
 void edhoc_server_process(coap_message_t *req, coap_message_t *res, edhoc_server_t *ser, uint8_t *msg, uint8_t len);

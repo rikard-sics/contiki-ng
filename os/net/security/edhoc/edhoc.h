@@ -64,21 +64,17 @@
 
 /**
  * \brief The length of connection identifiers
- * FIXME: Support other than 1 byte CIDs
+ * TODO: Support other than 1 byte CIDs
  */
 #define CID_LEN 1
 
 /**
- * \brief The max size of the EDHOC msg, as CoAP payload
+ * \brief Set EDHOC connection identifier
  */
-/*#ifdef EDHOC_CONF_MAX_PAYLOAD
- #define MAX_PAYLOAD EDHOC_CONF_MAX_PAYLOAD
- #else
- #define MAX_PAYLOAD 64
- #endif*/
 #ifndef EDHOC_CID
 #define EDHOC_CID 0x1
 #endif
+
 /**
  * \brief MAC length
  */
@@ -101,7 +97,7 @@
  * \brief EDHOC session struct
  */
 typedef struct edhoc_session {
-  uint8_t part;
+  uint8_t role;
   uint8_t method;
   uint8_t suit[5];
   uint8_t suit_num;
@@ -139,7 +135,7 @@ extern edhoc_context_t *edhoc_ctx;
 /**
  * \brief Reserve memory for the EDHOC context struct
  *
- * Used by both Initiator and Responder EDHOC parts to reserve memory
+ * Used by both Initiator and Responder EDHOC roles to reserve memory
  */
 void edhoc_storage_init(void);
 
@@ -148,7 +144,7 @@ void edhoc_storage_init(void);
  * \relates edhoc_storage_init
  * \return edhoc_ctx_t EDHOC context struct
  *
- * Used by both Initiator and Responder EDHOC parts to create a new EDHOC context
+ * Used by both Initiator and Responder EDHOC roles to create a new EDHOC context
  * and allocate at the memory reserved before with the edhoc_storage_init function
  */
 edhoc_context_t *edhoc_new();
@@ -158,7 +154,7 @@ edhoc_context_t *edhoc_new();
  * \return edhoc_ctx_t EDHOC context struct
  *
  * Used in the edho_new to set the default protocol definitions and in the Responder to
- * reset the initial values to prepare for a newd EDHOC connection
+ * reset the initial values to prepare for a new EDHOC connection
  */
 
 void edhoc_init(edhoc_context_t *ctx);
@@ -167,13 +163,13 @@ void edhoc_init(edhoc_context_t *ctx);
  * \brief Close the EDHOC context
  * \param ctx EDHOC context struct
  *
- * Used by both Initiator and Responder EDHOC parts to de-allocate the memory reserved
+ * Used by both Initiator and Responder EDHOC roles to de-allocate the memory reserved
  * for the EDHOC context when EDHOC protocol finalize.
  */
 void edhoc_finalize(edhoc_context_t *ctx);
 
 /**
- * \brief Generate the EDHOC Message 1 and set it on the EDHOC context
+ * \brief Generate the EDHOC Message 1 and set it in the EDHOC context
  * \param ctx EDHOC Context struct
  * \param ad Application data to include in MSG1
  * \param ad_sz Application data length
@@ -181,10 +177,10 @@ void edhoc_finalize(edhoc_context_t *ctx);
  * unique unsigned suit independently of the number of suits supported by the initiator 
  *
  * Generate an ephemeral ECDH key pair, determinate the cipher suite to use and the
- * connection identifier. Compose the EDHOC Message 1 as describe the (RFC9528) reference
+ * connection identifier. Compose the EDHOC Message 1 as described in the (RFC9528) reference
  * for EHDOC Authentication with Asymmetric Keys and encoded as a CBOR sequence in the MSG1 element of the
  * ctx struct.
- * It is used by Initiator EDHOC part.
+ * It is used by Initiator EDHOC role.
  *
  * - ctx->MSG1 = (METHOD_CORR:unsigned, SUITES_I:unsigned, G_X:bstr, C_I:bstr_identifier)
  *
@@ -192,18 +188,18 @@ void edhoc_finalize(edhoc_context_t *ctx);
 void edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suit_array);
 
 /**
- * \brief Generate the EDHOC Message 2 and set it on the EDHOC ctx
+ * \brief Generate the EDHOC Message 2 and set it in the EDHOC ctx
  * \param ctx EDHOC Context struct
  * \param ad Application data to include in MSG2
  * \param ad_sz Application data length
  *
- * It is used by EDHOC Responder part to processing the message 2
+ * It is used by EDHOC Responder role to processing the message 2
  * Generate an ephemeral ECDH key pair
  * Choose a connection identifier,
  * Compute the transcript hash 2 TH2 = H(ctx->MSG1, data_2)
  * Compute MAC_2 (Message Authentication Code)
  * Compute CIPHERTEXT_2
- * Compose the EDHOC Message 2 as describe the (RFC9528) reference
+ * Compose the EDHOC Message 2 as described in the (RFC9528) reference
  * for EHDOC Authentication with Asymmetric Keys and encoded as a CBOR sequence in the MSG2 element of the
  * ctx struct.
  * - ctx->MSG2 = (data_2, CIPHERTEXT_2:bstr)
@@ -212,16 +208,16 @@ void edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suit_
 void edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz);
 
 /**
- * \brief Generate the EDHOC Message 3 and set it on the EDHOC ctx
+ * \brief Generate the EDHOC Message 3 and set it in the EDHOC ctx
  * \param ctx EDHOC Context struct
  * \param ad Application data to include in MSG3
  * \param ad_sz Application data length
  *
- * It is used by EDHOC Initiator part to processing the message 3.
+ * It is used by EDHOC Initiator role to processing the message 3.
  * Compute the transcript hash 3 TH3 = H(TH_2, PLAINTEXT_2, data_3)
  * Compute MAC_3 (Message Authentication Code)
  * Compute CIPHERTEXT_3
- * Compose the EDHOC Message 3 as describe the (RFC9528) reference
+ * Compose the EDHOC Message 3 as described in the (RFC9528) reference
  * for EHDOC Authentication with Asymmetric Keys and encoded as a CBOR sequence in the MSG3 element of the
  * ctx struct.
  *
@@ -253,7 +249,7 @@ uint8_t edhoc_gen_msg_error(uint8_t *msg_er, edhoc_context_t *ctx, int8_t err);
  * \retval ERR_CODE when an EDHOC ERROR is detected return a negative number corresponding to the specific error code
  * \retval 1 when EDHOC get success the authentication key
  *
- * Used by Initiator and Responder EDHOC part to get the authentication key from the received msg.
+ * Used by Initiator and Responder EDHOC role to get the authentication key from the received msg.
  *
  * If any verification step fails to return an EDHOC ERROR code and, if all the steps success return 1.
  */
@@ -269,8 +265,8 @@ int edhoc_get_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key);
  * \retval ERR_CODE when an EDHOC ERROR is detected return a negative number corresponding to the specific error code
  * \retval ad_sz The length of the Application Data received in Message 2, when EDHOC success
  *
- * Used by Initiator and Responder EDHOC part to Authenticate the other party
- * - Verify that the EDHOC Responder part identity is among the allowed if it is necessary
+ * Used by Initiator and Responder EDHOC role to Authenticate the other party
+ * - Verify that the EDHOC Responder role identity is among the allowed if it is necessary
  * - Verify MAC
  * - Pass Application data AD
  *
@@ -288,7 +284,7 @@ int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **pt, uint8_t cipher_le
  * \retval negative number (EDHOC ERROR CODES) when an EDHOC ERROR is detected
  * \retval ad_sz The length of the Application Data received in Message 1, when EDHOC success
  *
- * Used by Responder EDHOC part to process the Message 1 receive
+ * Used by Responder EDHOC role to process the Message 1 received
  * - Decode the message 1
  * - Verify that cipher suite
  * - Pass Application data AD_1
@@ -306,9 +302,9 @@ int edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz, u
  * \retval ERR_CODE when an EDHOC ERROR is detected return a negative number corresponding to the specific error code
  * \retval 1 when EDHOC decode and verify success
  *
- * Used by Initiator EDHOC part to process the Message 2 receive
+ * Used by Initiator EDHOC role to process the Message 2 received
  * - Decode the message 2
- * - Verify the other par through 5-tuple and/or connection identifier C_I
+ * - Verify the other peer through 5-tuple and/or connection identifier C_I
  *
  * If any verification step fails to return an EDHOC ERROR code and, if all the steps success return 1.
  */
@@ -323,7 +319,7 @@ int edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer
  * \retval negative number (EDHOC ERROR CODE) when an EDHOC ERROR is detected
  * \retval 1 when EDHOC decode and verify success
  *
- * Used by Responder EDHOC part to process the Message 3 receive
+ * Used by Responder EDHOC role to process the Message 3 receive
  * - Decode the message 3
  * - Verify the other peer through 5-tuple and/or connection identifier C_R
  *
@@ -334,7 +330,7 @@ int edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer
 /**
  * \brief EDHOC Key Derivation Function (KDF) based on HMAC-based Expand (RFC 5869)
  * \param result OKM (Output Keying Material) - the buffer where the derived key will be stored.
- * \param key PRK (Pseudorandom Key) - a pseudorandom key used as input to the key derivation, should be at least `HAS_LENGTH` bits.
+ * \param key PRK (Pseudorandom Key) - a pseudorandom key used as input to the key derivation, should be at least `HASH_LENGTH` bits.
  * \param info_label Label used to generate the CBOR-based info input for key derivation.
  * \param context Context data (in bstr format) used to generate the info input for key derivation.
  * \param length Desired length of the output key material (OKM) in bits.
@@ -381,7 +377,7 @@ int16_t edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info
  * \brief Get the SH-Static authentication pair key from the storage and set in the EDHOC context
  * \param ctx EDHOC Context struct
  *
- * Used by both Initiator and Responder EDHOC parts to set the EDHOC context with their
+ * Used by both Initiator and Responder EDHOC roles to set the EDHOC context with their
  * own authentication key from the EDHOC key storage. The authentication keys must be
  * established at the EDHOC key storage before running the EDHOC protocol.
  */

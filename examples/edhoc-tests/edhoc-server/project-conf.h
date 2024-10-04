@@ -16,7 +16,7 @@
 #define EDHOC_CID 0x27
 
 /* Define the party role on the EDHOC protocol as responder and the correlation method */
-#define EDHOC_CONF_PART PART_R /* Server */
+#define EDHOC_CONF_ROLE RESPONDER /* Server */
 #define EDHOC_CONF_CORR EXTERNAL_CORR_U
 
 /* To run with the test vector DH ephemeral keys used on the interoperability session */

@@ -85,12 +85,12 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   LOG_DBG("PRK_exporter (%d bytes): ", prk_exporter_sz);
   print_buff_8_dbg(prk_exporter, prk_exporter_sz);
 
-  /* The oscore client is the initiator */
-  if(PART == PART_I) {
+  /* The OSCORE client is the initiator */
+  if(ROLE == INITIATOR) {
     osc->client_ID = ctx->session.cid;
     osc->server_ID = ctx->session.cid_rx;
   }
-  if(PART == PART_R) {
+  if(ROLE == RESPONDER) {
     osc->client_ID = ctx->session.cid_rx;
     osc->server_ID = ctx->session.cid;
   }

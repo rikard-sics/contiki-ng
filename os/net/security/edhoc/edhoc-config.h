@@ -42,19 +42,20 @@
 #ifndef _EDHOC_CONFIG_H_
 #define _EDHOC_CONFIG_H_
 
-#define EDHOC_02 1
-#define EDHOC_O4 2
+#define EDHOC_02  1
+#define EDHOC_O4  2
+#define EDHOC_RFC 3
 
 #ifdef EDHOC_CONF_VERSION
 #define EDHOC_VERSION EDHOC_CONF_VERSION
 #else
-#define EDHOC_VERSION EDHOC_O4
+#define EDHOC_VERSION EDHOC_RFC
 #endif  
 
 
-/*SHA256 types*/
-#define DECC_SH2 0       /*Macro to declare the use of SH2 Software library from Oriol Pinol*/
-#define DCC2538_SH2 1    /*Macro to declare the use of SH2 Hardware of the CC2538 module */
+/* SHA256 types*/
+#define DECC_SH2 0       /* Macro to declare the use of SH2 Software library from Oriol Pinol */
+#define DCC2538_SH2 1    /* Macro to declare the use of SH2 Hardware of the CC2538 module */
 
 /**
  * \brief Set the SH2 library
@@ -65,7 +66,7 @@
 #define SH256 DECC_SH2
 #endif
 
-/*Correlation types*/
+/* Correlation types*/
 #define NON_EXTERNAL_CORR 0
 #define EXTERNAL_CORR_U 1
 #define EXTERNAL_CORR_V 2
@@ -80,30 +81,30 @@
 #define CORR EXTERNAL_CORR_UV
 #endif
 
-/* Part definition */
-#define PART_R 0   /*The Responder of the EDHOC protocol*/
-#define PART_I 1   /*The Initiator of the EDHOC protocol*/
+/* EDHOC Role definitions */
+#define RESPONDER 0   /* The Responder of the EDHOC protocol */
+#define INITIATOR 1   /* The Initiator of the EDHOC protocol */
 
 /**
- * \brief Set the EDHOC Protocol part
+ * \brief Set the EDHOC Protocol role
  */
-#ifdef EDHOC_CONF_PART
-#define PART EDHOC_CONF_PART
+#ifdef EDHOC_CONF_ROLE
+#define ROLE EDHOC_CONF_ROLE
 #else
-#define PART PART_I
+#define ROLE INITIATOR
 #endif
 
-/*COSE_key parameters */
-#define OKP 1  /*not implemented yet */
+/* COSE_key parameters */
+#define OKP 1  /* not implemented yet */
 #define EC2 2
-#define SYMMETRIC 3  /*not implemented yet */
+#define SYMMETRIC 3  /* not implemented yet */
 
-/*EDHOC Authentication Method Types: Initiator (I) | Responder (R) */
-#define METH0 0                  /* Signature Key  | Signature Key   //not implemented yet */
-#define METH1 1                  /* Signature Key  | Static DH Key   //not implemented yet */
-#define METH2 2                  /* Static DH Key  | Signature Key   //not implemented yet */
+/* EDHOC Authentication Method Types: Initiator (I) | Responder (R) */
+#define METH0 0                  /* Signature Key  | Signature Key   // not implemented yet */
+#define METH1 1                  /* Signature Key  | Static DH Key   // not implemented yet */
+#define METH2 2                  /* Static DH Key  | Signature Key   // not implemented yet */
 #define METH3 3                  /* Static DH Key  | Static DH Key */
-#define METH4 4                  /* PSK            | PSK             //not implemented yet */
+#define METH4 4                  /* PSK            | PSK             // not implemented yet */
 
 /**
  * \brief Set the Authentication method
@@ -114,7 +115,7 @@
 #define METHOD METH3
 #endif
 
-/* Credential Types*/
+/* Credential Types */
 #define PRKI 1
 #define PRK_ID 2
 #define PRKI_2 3
@@ -128,18 +129,17 @@
 #define AUTHENT_TYPE PRK_ID
 #endif
 
-/*#define AUTHENTICATION_KEY_LEN 32 //For Signature key, not yet implemented*/
+/* #define AUTHENTICATION_KEY_LEN 32 // For Signature key, not yet implemented */
 
-/*cipher suit */
-#define X25519 0 /*AES-CCM-16-64-128, (HMAC 256/256) SHA-256, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256  //not implemented yet * / */
-#define X25519_2 1  /*AES-CCM-16-128-128,(HMAC 256/256) SHA-256, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
-#define P256 2    /*AES-CCM-16-64-128, (HMAC 256/256) SHA-256, P-256, ES256, P-256, AES-CCM-16-64-128, SHA-256 */
-#define P256_2 3    /*AES-CCM-16-64-128, (HMAC 256/256) SHA-256, P-256, ES256, P-256, AES-CCM-16-64-128, SHA-256 */
+/* cipher suits */
+#define X25519   0 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256  //not implemented yet * / */
+#define X25519_2 1 /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
+#define P256     2 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */
+#define P256_2   3 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */
 
 /**
- * \brief Set the EDHOC cipher suit
+ * \brief Set EDHOC cipher suit config
  */
-
 #ifndef EDHOC_MAX_SUITS 
 #define EDHOC_MAX_SUITS 5
 #endif
@@ -171,17 +171,17 @@
 #define SUIT_4 -1
 #endif
 
-/*Set COSE_Key parameter*/
+/* Set COSE_Key parameter */
 //#if (SUIT == P256)
 #define KEY_CRV 1
-#define KEY_TYPE EC2 /*EC2 key */
+#define KEY_TYPE EC2 /* EC2 key */
 //#endif
 //#if (SUIT == X25519)
 //#define KEY_CRV 1
-//#define KEY_TYPE EC2 /*EC2 key */
+//#define KEY_TYPE EC2 /* EC2 key */
 
 //#define KEY_CRV 4
-//#define KEY_TYPE OKP /*EC2 key */
+//#define KEY_TYPE OKP /* EC2 key */
 //#endif
 
 /**
@@ -196,16 +196,16 @@
 #define COSE_CONF_ALGORITHM_ID COSE_Algorithm_AES_CCM_16_64_128
 #endif
 
-/* Selected Algorithm Parameters*/
+/* Selected Algorithm Parameters */
 #if ALGORITHM_ID == COSE_Algorithm_AES_CCM_16_64_128
 #define ECC_KEY_BYTE_LENGTH 32
-#define HAS_LENGTH 32
+#define HASH_LENGTH 32
 #define KEY_DATA_LENGTH COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
 #define IV_LENGTH COSE_algorithm_AES_CCM_16_64_128_IV_LEN
 #endif
 
 /**
- * \brief Set the EDHOC part as RPL node. By default deselected
+ * \brief Set the EDHOC peer as RPL node. By default deselected
  */
 #ifdef EDHOC_CONF_RPL_NODE
 #define RPL_NODE EDHOC_CONF_RPL_NODE
@@ -214,14 +214,14 @@
 #endif
 
 /**
- * \brief Set the number of attempts to connect with the EDHOC server successfully
+ * \brief The number of attempts to try to connect with the EDHOC server successfully
  */
 #ifndef EDHOC_CONF_ATTEMPTS
 #define EDHOC_CONF_ATTEMPTS 3
 #endif
 
 /**
- * \brief The max length of the EDHOC msg, as CoAP payload
+ * \brief The max length of the EDHOC message, as CoAP payload
  */
 #ifdef EDHOC_CONF_MAX_PAYLOAD
 #define MAX_DATA_LEN EDHOC_CONF_MAX_PAYLOAD
@@ -239,7 +239,7 @@
 #endif
 
 /**
- * \brief EDHOC resource uri-path
+ * \brief EDHOC resource Uri-Path
  */
 #define WELL_KNOWN ".well-known/edhoc"
 

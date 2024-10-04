@@ -12,7 +12,7 @@ For the specific example the EDHOC Server IP must be selected on the project-con
 ```c
 #define EDHOC_CONF_SERVER_EP "coap://[fd01::202:2:2:2]" /* Server IP for Cooja simulator */
 
-#define EDHOC_CONF_PART PART_I
+#define EDHOC_CONF_ROLE INITIATOR
 ```
 
 Additionally, the node runs with RPL by:

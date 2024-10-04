@@ -50,28 +50,28 @@
 #endif
 
 #define HMAC_BLOCKSIZE   64
-#define HMAC_DIGEST_SIZE 32 /**< digest size (for SHA-256) */
-#define HMAC_MAX    64  /**< max number of bytes in digest */
-#define HASH_MAX 1 /*maximum number of hash functions that can be used in parallel */
+#define HMAC_DIGEST_SIZE 32 /** < digest size (for SHA-256) */
+#define HMAC_MAX    64  /** < max number of bytes in digest */
+#define HASH_MAX 1 /* maximum number of hash functions that can be used in parallel */
 
 #ifdef CC2538_SH2
 #include "dev/rom-util.h"
 #include "dev/sha256.h"
 typedef struct {
-  sha256_state_t data;              /**< context for hash function */
+  sha256_state_t data;              /** context for hash function */
 } sha_context_t;
 #endif
 
 #ifdef ECC_SH2
 #include "sha.h"
 typedef struct {
-  SHA256Context data;             /**< context for hash function */
+  SHA256Context data;             /** context for hash function */
 } sha_context_t;
 #endif
 
 typedef struct {
-  unsigned char pad[HMAC_BLOCKSIZE]; /*< ipad and opad storage */
-  sha_context_t sha;              /*< context for hash function */
+  unsigned char pad[HMAC_BLOCKSIZE]; /* ipad and opad storage */
+  sha_context_t sha;              /* context for hash function */
 } hmac_context_t;
 
 void hmac_storage_init(void);
