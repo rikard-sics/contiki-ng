@@ -63,6 +63,12 @@
 #define MAX_BUFFER 256
 
 /**
+ * \brief The length of connection identifiers
+ * FIXME: Support other than 1 byte CIDs
+ */
+#define CID_LEN 1
+
+/**
  * \brief The max size of the EDHOC msg, as CoAP payload
  */
 /*#ifdef EDHOC_CONF_MAX_PAYLOAD
@@ -101,8 +107,8 @@ typedef struct edhoc_session {
   uint8_t suit_num;
   uint8_t suit_rx;
   bstr Gx;
-  int cid;
-  int cid_rx;
+  uint8_t cid;
+  uint8_t cid_rx;
   bstr id_cred_x;
   bstr cred_x;
   bstr th;

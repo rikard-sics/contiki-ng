@@ -11,6 +11,7 @@ CFLAGS += -DuECC_SQUARE_FUNC=1
 
 CONTIKI = ../../..
 include $(CONTIKI)/Makefile.dir-variables
+
 MODULES += $(CONTIKI_NG_SERVICES_DIR)/rpl-border-router
 # Include webserver module
 # FIXME: should not include cross-examples.

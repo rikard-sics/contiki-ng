@@ -79,7 +79,7 @@ void
 edhoc_init(edhoc_context_t *ctx)
 {
   /*TODO : check that the key belongs to the curve */
-  ctx->session.cid = EDHOC_CID;
+  ctx->session.cid = (uint8_t)EDHOC_CID;
   ctx->session.suit[0] = SUIT;
   ctx->session.suit_num = 1;
   ctx->session.suit[1] = SUIT_1;
@@ -208,17 +208,13 @@ generate_info(uint8_t *info, uint8_t *context, uint8_t context_sz, uint8_t lengt
 static int8_t
 set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz)
 {
-  /*set connector id from rx */
+  /* set connector id from rx */
   if(cidrx_sz == 1) {
-    ctx->session.cid_rx = (int8_t)edhoc_get_byte_identifier(&cidrx);
-  } else {
-    uint8_t cid[4];
-    memset(cid, 0, 4);
-    memcpy(cid, cidrx, cidrx_sz);
-    ctx->session.cid_rx = cid[0] | (cid[1] << 8) | (cid[2] << 16) | (cid[3] << 24);
+    ctx->session.cid_rx = (uint8_t)edhoc_get_byte_identifier(&cidrx);
   }
+  
   if(ctx->session.cid_rx == ctx->session.cid) {
-    LOG_ERR("error code (%d)\n ", ERR_CID_NOT_VALID);
+    LOG_ERR("error code2 (%d)\n ", ERR_CID_NOT_VALID);
     return ERR_CID_NOT_VALID;
   } else {
     return 0;
@@ -285,21 +281,10 @@ print_connection(edhoc_session *con)
   LOG_DBG("connection method: %d\n", (int)con->method);
   LOG_DBG("My suit: %d\n", con->suit[0]);
   LOG_DBG("Other part suit: %d\n", (int)con->suit_rx);
-  LOG_DBG("My cID: %x\n", (int)con->cid);
-  LOG_DBG("Other part cID: %x\n", (int)con->cid_rx);
+  LOG_DBG("My cID: %x\n", (uint8_t)con->cid);
+  LOG_DBG("Other part cID: %x\n", (uint8_t)con->cid_rx);
   LOG_DBG("Gx:");
   print_buff_8_dbg(con->Gx.buf, con->Gx.len);
-}
-static uint8_t
-int_sz(int num)
-{
-  uint8_t cidr_sz = 1;
-  int quotient = (num / 256);
-  while(quotient != 0) {
-    cidr_sz++;
-    quotient /= 256;
-  }
-  return cidr_sz;
 }
 static int8_t
 gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
@@ -714,7 +699,14 @@ gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, 
   uint8_t *pout = buffer;
   uint8_t num = edhoc_get_maps_num(&pint);
   uint8_t *buf_ptr = &(buffer[0]);
-  size_t size = msg2 ? cbor_put_bytes_identifier(&buf_ptr, (uint8_t *)&ctx->session.cid, int_sz(ctx->session.cid)) : 0;
+
+  size_t size;
+  if (msg2) {
+      size = edhoc_put_byte_identifier(&buf_ptr, (uint8_t *)&ctx->session.cid, CID_LEN);
+  } else {
+      size = 0;
+  }
+
   if(num == 1) {
     num = (uint8_t)edhoc_get_unsigned(&pint);
     size_t sz = edhoc_get_bytes(&pint, &pout);
@@ -848,7 +840,7 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suit_array
     .method = ctx->session.method,
     .suites_i = { .buf = ctx->session.suit, .len = ctx->session.suit_num},
     .g_x = (bstr){ (uint8_t *)&ctx->ephemeral_key.public.x, ECC_KEY_BYTE_LENGTH},
-    .c_i = (bstr){ (uint8_t *)&ctx->session.cid, int_sz(ctx->session.cid) },
+    .c_i = (bstr){ (uint8_t *)&ctx->session.cid, CID_LEN },
     .uad = (ead_data){ .ead_label = 0, .ead_value = (bstr){ ad, ad_sz }},
   };
 
@@ -1201,12 +1193,12 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer, si
   LOG_DBG("PLAINTEXT_2 (%d bytes):", ciphertext2_sz);
   print_buff_8_dbg(msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGTH, ciphertext2_sz);
   // FIXME: C_R can be more than 1 byte.
-  int cr_sz = 1;
+  int cr_sz = CID_LEN;
   er = set_rx_cid(ctx, buf, cr_sz);
   if(er < 0) {
     return er;
   }
-  LOG_DBG("cid (%d)\n", (int)ctx->session.cid_rx);
+  LOG_DBG("cid (%d)\n", (uint8_t)ctx->session.cid_rx);
   // ctx->session.id_cred_x.buf = msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGTH + cr_sz;
   ctx->session.id_cred_x.buf = buf + cr_sz;
   LOG_DBG("ID_CRED_R (%d bytes):", 1);
@@ -1224,7 +1216,7 @@ edhoc_get_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key)
     LOG_ERR("error code (%d)\n ", ERR_ID_CRED_X_MALFORMED);
     return ERR_ID_CRED_X_MALFORMED;
   } else if(len < 0) {
-    LOG_ERR("error code (%d)\n ", ERR_CID_NOT_VALID);
+    LOG_ERR("error code1 (%d)\n ", ERR_CID_NOT_VALID);
     return ERR_CID_NOT_VALID;
   }
   ctx->session.id_cred_x.len = len;

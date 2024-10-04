@@ -121,6 +121,9 @@ uint8_t edhoc_get_array_num(uint8_t **in);
 
 void edhoc_deserialize_suites(unsigned char **buffer, bstr *suites);
 
+int edhoc_put_byte_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len);
+
+
 // static int16_t get_text(uint8_t **in, char **out);
 // static int64_t get_negative(uint8_t **in);
 // static uint8_t get_byte(uint8_t **in);

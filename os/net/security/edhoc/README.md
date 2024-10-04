@@ -1,21 +1,21 @@
 #Ephemeral Diffie-Hellman Over COSE (EDHOC) [RFC9528]
 
-The [RFC9528] IETF Internet - RFC specifies Ephemeral Diffie-Hellman Over COSE (EDHOC), a very compact, and lightweight authenticated Diffie-Hellman key exchange with ephemeral keys that provides mutual authentication, perfect forward secrecy, and identity protection.It uses COSE [RFC8152] for cryptography, CBOR [RFC7049] for encoding, and CoAP [RFC7252] for transport and the main use case is to establish an OSCORE security context. The EDHOC exchange and the key derivation follow known protocol constructions such as [SIGMA], NISTSP-800-56A and HKDF [RFC5869].
+The [RFC9528] IETF Internet - RFC specifies Ephemeral Diffie-Hellman Over COSE (EDHOC), a very compact, and lightweight authenticated Diffie-Hellman key exchange with ephemeral keys that provides mutual authentication, perfect forward secrecy, and identity protection. It uses COSE [RFC8152] for cryptography, CBOR [RFC7049] for encoding, and CoAP [RFC7252] for transport and the main use case is to establish an OSCORE security context. The EDHOC exchange and the key derivation follow known protocol constructions such as [SIGMA], NISTSP-800-56A and HKDF [RFC5869].
 
 ## EDHOC in Contiki-NG
-The Contik-NG EDHOC module implememts asymmetric key authentication by using static Diffie-Hellman keys.The authentication is provided by a Message Authentication Code (MAC) computed from an ephemeral-static ECDH shared secret which enables significant reductions in message sizes. 
+The Contik-NG EDHOC module implements asymmetric key authentication by using static Diffie-Hellman keys. The authentication is provided by a Message Authentication Code (MAC) computed from an ephemeral-static ECDH shared secret which enables significant reductions in message sizes. 
 The implementation uses cipher suite 2 that consists of AES-CCM-16-64-128 as an AEAD algorithm, SHA-256 as a Hash algorithm, and the P-256 as ECDH curve.
-The implementation has passed the interoperability test succesffuly in the IETF-Hacktachon 110.
+The implementation has passed the interoperability test successfully in the IETF-Hackathon 110.
 
-EDHOC consists of three messages (MSG1, MSG2 and, MSG3), plus an EDHOC error message (MSG_ERR) where each of them is a CBOR sequence.The current implementation transports these messages as an exchange of Confirmable CoAP [RFC725] messages where the CoAP client is the EDHOC Initiator and the
-CoAP server is the EDHOC Responder.The MSG1 and MSG3 are transferred in POST requests and MSG2 in a 2.04(Changed) response to the Uri-Path: 
-"/.well-known/edhoc".When MSGs size is bigger than 64B the Block-Wise transfer mechanism [RFC7959] for fragmentation is being used.
+EDHOC consists of three messages (MSG1, MSG2 and, MSG3), plus an EDHOC error message (MSG_ERR) where each of them is a CBOR sequence. The current implementation transports these messages as an exchange of Confirmable CoAP [RFC725] messages where the CoAP client is the EDHOC Initiator and the
+CoAP server is the EDHOC Responder. The MSG1 and MSG3 are transferred in POST requests and MSG2 in a 2.04(Changed) response to the Uri-Path: 
+"/.well-known/edhoc". When MSGs size is bigger than 64B the Block-Wise transfer mechanism [RFC7959] for fragmentation is being used.
 
-Notice that the authentication keys must be established at the EDHOC key storage before running the EDHOC protocol.For this reason, an edhoc-key-sotrage.h() API function is provided in order to set the COSE_key with the correct struct format.
-At the configuration file, the credential type used for authentication must be selected.Two methods have been implemented:
-- `PRK_ID` : The EDHOC exchanging a unique identity of the public authentication key to be retrieved.Before running the EDHOC protocol each party need at least a DH-static public key and a set of identities which is allowed to communicate with.
+Notice that the authentication keys must be established at the EDHOC key storage before running the EDHOC protocol. For this reason, an edhoc-key-storage.h() API function is provided in order to set the COSE_key with the correct struct format.
+At the configuration file, the credential type used for authentication must be selected. Two methods have been implemented:
+- `PRK_ID` : The EDHOC exchanging a unique identity of the public authentication key to be retrieved. Before running the EDHOC protocol each party need at least a DH-static public key and a set of identities which is allowed to communicate with.
 - `PRKI_2` : The EDHOC exchanging messages which include directly the actual
-credential (DH-static public key) formatted as a COSE_Key of type EC2. The EDHOC protocol can runs without prior knowledge of the other part.Each part provisionally accepts the RPK of the other part until posterior authentication.
+credential (DH-static public key) formatted as a COSE_Key of type EC2. The EDHOC protocol can runs without prior knowledge of the other part. Each part provisionally accepts the RPK of the other part until posterior authentication.
 
 ### EDHOC configuration
 The following macro must be defined on the configuration file:
@@ -27,19 +27,19 @@ If the parties have agreed on an identity beside the public key, the "subject na
 ```c
 #define AUTH_SUBJECT_NAME "Node_Key_Identity"
 ```
-- Define the part roll taking on the EDHOC pprotocol.`PART_I` for the Initiator and `PART_R` for the Responder.
+- Define the part role taking on the EDHOC protocol.`PART_I` for the Initiator and `PART_R` for the Responder.
 ```c
 #define EDHOC_CONF_PART PART_I
 ```
-- Define the Conexion Identifier(`CID`)
+- Define the Connection Identifier(`CID`)
 ```c
 #define EDHOC_CID 0x20
 ```
-- Define mechanism for correlating messages.When CoAP is used, as in this implementation, with the client as Initiator the trasport provide the responder to correlate message_2 and message_1 and `EXTERNAL_CORR_U` macro must be defined. But the EDHOC implementation include also the other three correlation mechanims defined on the protocol.
+- Define mechanism for correlating messages. When CoAP is used, as in this implementation, with the client as Initiator the transport provide the responder to correlate message_2 and message_1 and `EXTERNAL_CORR_U` macro must be defined. But the EDHOC implementation include also the other three correlation mechanisms defined on the protocol.
 ```c
 #define EDHOC_CONF_CORR EXTERNAL_CORR_U
 ```
-- Define which library to use for ECDH operations.The SW library of `micro-ECC` with the macro `UECC_ECC` or the HW driver acelerator for cc2538 modules with the macro `CC2538_ECC .
+- Define which library to use for ECDH operations.The SW library of `micro-ECC` with the macro `UECC_ECC` or the HW driver accelerator for cc2538 modules with the macro `CC2538_ECC .
 ```c
 #define EDHOC_CONF_ECC CC2538_ECC
 ```
@@ -85,12 +85,12 @@ The EDHOC module uses the COSE_Encrypt0 struct encryption from [RFC8152] for cry
 ## EDHOC Client API
 The EDHOC - client - API.h file contains the EDHOC interface to be used by the EDHOC Initiator part as CoAP client.
 
-- `edhoc_client_run()` : Runs the EDHOC Initiator part.This function must be called from the EDHOC Initiator program to start the EDHOC protocol as Initiator.Runs a new process that implements all the EDHOC protocol and exits when the EDHOC protocol finishes successfully or the EDHOC_CONF_ATTEMPTS are exceeded.
+- `edhoc_client_run()` : Runs the EDHOC Initiator part. This function must be called from the EDHOC Initiator program to start the EDHOC protocol as Initiator. Runs a new process that implements all the EDHOC protocol and exits when the EDHOC protocol finishes successfully or the EDHOC_CONF_ATTEMPTS are exceeded.
 - `edhoc_client_callback()` : This function checks the events trigger from the EDHOC client process and returns '1' when the EDHOC protocol successfuly ends, -1 when the EDHOC protocol max retries are exceeded, and 0 when the EDHOC client process is steel running.
 - `edhoc_client_close()` : This function must be called after the Security Context is exported to free the allocated memory.
 - Optionally some functionalities for getting and setting the Aditional Application Data of the EDHOC messages are provided.
 
-Once the EDHOC Client process is successfully finished, the security context can be exported by using the ehdoc - exporter.h API.For example:
+Once the EDHOC Client process is successfully finished, the security context can be exported by using the ehdoc - exporter.h API. For example:
 - `edhoc_exporter_oscore.h()` : This function is used to derive an OSCORE Security Context[RFC8613] from the EDHOC shared secret.
 
 ### EDHOC Client Example
@@ -116,24 +116,24 @@ The EDHOC - server - API.h file contains the EDHOC interface to be used by the E
 - `edhoc_server_close()` : This function must be called after the Security Context is exported to free the allocated memory.
 - `edhoc_server_restart()` : This function Rest the EDHOC context to initiate a new EDHOC protocol session with a new client.
 
-- Optionally some functionalities for getting and setting the Aditional Application Data of the EDHOC messages are provided.
+- Optionally some functionalities for getting and setting the Additional Application Data of the EDHOC messages are provided.
 
-From every client that the EDHOC server side is successfully finished, the security context to be used with the specific client can be exported by using the ehdoc - exporter.h API.For example:
+From every client that the EDHOC server side is successfully finished, the security context to be used with the specific client can be exported by using the EDHOC - exporter.h API. For example:
 -`edhoc_exporter_oscore.h()` : This function is used to derive an OSCORE Security Context [RFC8613] from the EDHOC shared secret.
 
 ### EDHOC Server Example
 
 An EDHOC Server Example is provided at `examples/edhoc-tests/edhoc-test-server.c ` together with the corresponding EDHOC plug test resource at
 `examples/edhoc-tests/res-edhoc.c`. The specific example runs the EDHOC Responder protocol part on the CoAP server. Can runs on
-constrained device or natively at a host toghter with the RPL border router role. Also can runs on constraind device as RPL node by definde the `EDHOC_RPL_NODE` macro to 1.
+constrained device or natively at a host together with the RPL border router role. Also can runs on constrained device as RPL node by defined the `EDHOC_RPL_NODE` macro to 1.
 
-The Server Identity must be selected at:                                                                        
+The Server Identity must be selected at:
 ```c
 #define AUTH_SUBJECT_NAME "Server_key_identity"
 ```
 
 ## EDHOC Tests
-The EDHOC implementation has been tested running both `example\edhoc-test\edhoc-test-client.c ` and `example\edhoc-test\edhoc-test-server.c ` on Cooja and Zolertia RE-Mote platforms. In the latter case, it is mandatory to either set the 32Mhz Clock or else disable the watchdog when the[MicroECC] library is using.Instead when the CC2538 ECC module is used there is not need of increase the CPU clock frequency or disable the watchdog.
+The EDHOC implementation has been tested running both `example\edhoc-test\edhoc-test-client.c ` and `example\edhoc-test\edhoc-test-server.c ` on Cooja and Zolertia RE-Mote platforms. In the latter case, it is mandatory to either set the 32Mhz Clock or else disable the watchdog when the[MicroECC] library is using. Instead when the CC2538 ECC module is used there is not need of increase the CPU clock frequency or disable the watchdog.
 
 ```c
 #define SYS_CTRL_CONF_SYS_DIV SYS_CTRL_CLOCK_CTRL_SYS_DIV_32MHZ
