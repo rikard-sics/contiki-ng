@@ -179,17 +179,20 @@ get_text(uint8_t **in, char **out)
 uint8_t
 edhoc_get_byte_identifier(uint8_t **in)
 {
-  uint8_t out = **in;
-  int out_int = out;
-  if((0x20 <= out) && (out < 0x38)) {
-    out_int = (out - 0x20) * (-1) - 1;
-  } else if (out >= 0x38 || out == 0x18 || out == 0x19) {
-    LOG_ERR("edhoc_get_byte_identifier got non-integer value: %d\n", out);
-    return 0;
-  }
+  uint8_t input_byte = **in;
   (*in)++;
-  return out_int;
+
+  // Check if the byte is in the range 0x00 to 0x17 (positive integers 0 to 23)
+  // or in the range 0x20 to 0x37 (negative integers -1 to -24)
+  if ((input_byte <= 0x17) || (input_byte >= 0x20 && input_byte <= 0x37)) {
+    return input_byte;
+  }
+
+  // Else: FIXME: handle CBOR byte string CIDs
+  // int out_sz = cbor_get_bytes(in, out);
+  return 0;
 }
+
 size_t
 edhoc_serialize_suites(unsigned char **buffer, const bstr *suites)
 {
@@ -226,7 +229,7 @@ edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suit_array)
   size_t size = cbor_put_unsigned(&buffer, msg->method);
   size += edhoc_serialize_suites(&buffer, &msg->suites_i);
   size += cbor_put_bytes(&buffer, msg->g_x.buf, msg->g_x.len);
-  size += cbor_put_bytes_identifier(&buffer, msg->c_i.buf, msg->c_i.len);
+  size += edhoc_put_byte_identifier(&buffer, msg->c_i.buf, msg->c_i.len);
   // FIXME: send full ead if sending ead.
   if(msg->uad.ead_value.len > 0) {
     size += cbor_put_bytes(&buffer, msg->uad.ead_value.buf, msg->uad.ead_value.len);
@@ -492,3 +495,23 @@ edhoc_get_ad(uint8_t **p, uint8_t *ad)
   memcpy(ad, ptr, ad_sz);
   return ad_sz;
 }
+int 
+edhoc_put_byte_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len)
+{
+  // For single byte values check whether they are a valid CBOR integer
+  if (len == 1) {
+    uint8_t byte = bytes[0];
+
+    // Check if the byte is in the range 0x00 to 0x17 (positive integers 0 to 23)
+    // or in the range 0x20 to 0x37 (negative integers -1 to -24)
+    if ((byte <= 0x17) || (byte >= 0x20 && byte <= 0x37)) {
+      **buffer = byte;
+      (*buffer)++;
+      return 1;
+    }
+  }
+  
+  // Else encode as a CBOR byte string
+  return cbor_put_bytes(buffer, bytes, len);
+}
+
