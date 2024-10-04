@@ -411,8 +411,12 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     mac_info_ptr[1] = 0x86;
     mac_info_ptr += 2;
     
-    // RH: Add C_R // (uint8_t) ctx->session.cid_rx;
-    mac_info_ptr[0] = 0x27;
+    // RH: Add C_R to context_2
+    if(ROLE == INITIATOR) {
+      mac_info_ptr[0] = (uint8_t) ctx->session.cid_rx;
+    } else {
+      mac_info_ptr[0] = (uint8_t) ctx->session.cid;
+    }
     mac_info_ptr += 1;
     
     memcpy(mac_info_ptr, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
@@ -1064,7 +1068,7 @@ edhoc_check_rx_msg(uint8_t *buffer, uint8_t buff_sz)
     return RX_ERR_MSG;
   }
   if(msg_err_sz == -1) {
-    LOG_ERR("RX MSG_ERROR WITH SUIT PROPOSE");
+    LOG_ERR("RX MSG_ERROR WITH SUIT PROPOSE: ");
     print_char_8_err(err.err_info.buf, err.err_info.len);
     return RX_ERR_MSG;
   }
@@ -1079,7 +1083,7 @@ edhoc_check_rx_msg_2(uint8_t *buffer, uint8_t buff_sz,edhoc_context_t* ctx)
 
   int8_t msg_err_sz = edhoc_deserialize_err(&err, msg_err, buff_sz);
   if(msg_err_sz < 0) {
-    LOG_ERR("RX MSG_ERR:");
+    LOG_ERR("RX MSG_ERR: ");
     print_char_8_err(err.err_info.buf, err.err_info.len);
     return RX_ERR_MSG;
   }

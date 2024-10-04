@@ -178,9 +178,9 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
   t = RTIMER_NOW() - t;
   LOG_INFO("Server time to generate new key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
 
-  LOG_DBG("Gy (%d bytes):", ECC_KEY_BYTE_LENGTH);
+  LOG_DBG("Gy (%d bytes): ", ECC_KEY_BYTE_LENGTH);
   print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.x, ECC_KEY_BYTE_LENGTH);
-  LOG_DBG("Y (%d bytes):", ECC_KEY_BYTE_LENGTH);
+  LOG_DBG("Y (%d bytes): ", ECC_KEY_BYTE_LENGTH);
   print_buff_8_dbg(edhoc_ctx->ephemeral_key.private_key, ECC_KEY_BYTE_LENGTH);
   while(1) {
     PROCESS_WAIT_EVENT();
@@ -199,7 +199,7 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
       /*LOG_DBG("And Get your Application Data\n");
          char ad3[16];
          uint8_t ad3_sz = edhoc_server_get_ad_3(ad3);
-         LOG_DBG("AD_3 (%d bytes):",ad3_sz);
+         LOG_DBG("AD_3 (%d bytes): ",ad3_sz);
          print_char_8_dbg(ad3,ad3_sz); */
       res = SERV_RESTART;
     }
@@ -231,9 +231,9 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
       LOG_INFO("Server time to generate new key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
       LOG_INFO("Compile time: %s %s\n", __DATE__, __TIME__);
       LOG_INFO("\n");
-      LOG_INFO("G_y (%d bytes):", ECC_KEY_BYTE_LENGTH);
+      LOG_INFO("G_y (%d bytes): ", ECC_KEY_BYTE_LENGTH);
       print_buff_8_info(edhoc_ctx->ephemeral_key.public.x, ECC_KEY_BYTE_LENGTH);
-      LOG_INFO("Y (%d bytes):", ECC_KEY_BYTE_LENGTH);
+      LOG_INFO("Y (%d bytes): ", ECC_KEY_BYTE_LENGTH);
       print_buff_8_info(edhoc_ctx->ephemeral_key.private_key, ECC_KEY_BYTE_LENGTH);
     }
   }
