@@ -412,7 +412,7 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     mac_info_ptr[1] = 0x86;
     mac_info_ptr += 2;
     
-    // RH: Add C_R
+    // RH: Add C_R // (uint8_t) ctx->session.cid_rx;
     mac_info_ptr[0] = 0x27;
     mac_info_ptr += 1;
     

@@ -130,9 +130,9 @@ uint8_t cc2538_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint
 void compress_key_hw(uint8_t *compressed, uint8_t *public, ecc_curve_info_t *curve);
 
 
-void ecc_set_random_key(uint32_t *secret);
 void eccbytesToNative(uint32_t *native, const uint8_t *bytes, int num_bytes);
 void eccnativeToBytes(uint8_t *bytes, int num_bytes, const uint32_t *native);
+// static void ecc_set_random_key(uint32_t *secret);
 
 #endif
 #endif /* _ECDH_H_ */

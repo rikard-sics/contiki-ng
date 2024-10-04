@@ -17,7 +17,7 @@
     <motetype>
       org.contikios.cooja.contikimote.ContikiMoteType
       <description>Client</description>
-      <source>[CONFIG_DIR]/edhoc-client/edhoc-test-client.c</source>
+     <source>[CONFIG_DIR]/edhoc-client/edhoc-test-client.c</source>
       <commands>$(MAKE) TARGET=cooja clean
       $(MAKE) -j$(CPUS) DEBUG=1 COOJA_CONSOLE_OUTPUT=1 edhoc-test-client.cooja TARGET=cooja</commands>
       <moteinterface>org.contikios.cooja.interfaces.Position</moteinterface>
@@ -128,7 +128,7 @@
     <plugin_config>
       <port>60002</port>
       <bound>true</bound>
-      <commands>[CONFIG_DIR]/test-edhoc.sh [CONTIKI_DIR] 45</commands>
+      <commands>[CONFIG_DIR]/script-cooja.sh [CONTIKI_DIR] 45</commands>
     </plugin_config>
     <bounds x="28" y="423" height="116" width="362" />
   </plugin>

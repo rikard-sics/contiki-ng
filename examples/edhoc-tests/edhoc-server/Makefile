@@ -12,10 +12,13 @@ CFLAGS += -DuECC_SQUARE_FUNC=1
 CONTIKI = ../../..
 include $(CONTIKI)/Makefile.dir-variables
 
+ifeq ($(TARGET),cooja)
 MODULES += $(CONTIKI_NG_SERVICES_DIR)/rpl-border-router
 # Include webserver module
 # FIXME: should not include cross-examples.
 MODULES_REL += ../../rpl-border-router/webserver
+CFLAGS += -DBORDER_ROUTER_CONF_WEBSERVER=1
+endif
 
 MODULES += $(CONTIKI_NG_SECURITY_DIR)/edhoc
 MODULES += $(CONTIKI_NG_SECURITY_DIR)/edhoc/server
