@@ -148,7 +148,7 @@ while (true) {
 
   // Check if the OSCORE master secret is correct
   if (msg.contains("OSCORE Master Secret")) {
-    if (msg.contains("OSCORE Master Secret (16 bytes):f9 86 8f 6a 3a ca 78 a0 5d 14 85 b3 50 30 b1 62")) {
+    if (msg.contains("OSCORE Master Secret (16 bytes): f9 86 8f 6a 3a ca 78 a0 5d 14 85 b3 50 30 b1 62")) {
       log.log("C " + device + ": Correct master secret!\n");
     } else {
       log.log("I " + device + ": Incorrect master secret!\n");
@@ -157,7 +157,7 @@ while (true) {
   
   // Check if the OSCORE master salt is correct
   if (msg.contains("OSCORE Master Salt")) {
-    if (msg.contains("OSCORE Master Salt (8 bytes):ad a2 4c 7d bf c8 5e eb")) {
+    if (msg.contains("OSCORE Master Salt (8 bytes): ad a2 4c 7d bf c8 5e eb")) {
       log.log("C " + device + ": Correct master salt!\n");
     } else {
       log.log("I " + device + ": Incorrect master salt!\n");
@@ -175,7 +175,7 @@ while (true) {
 
   // Check if info for SALT_4e3m is correct
   if (msg.contains("info SALT_4e3m")) {
-    if (msg.contains("info SALT_4e3m (37 bytes):05 58 20 ad af 67 a7 8a 4b cc 91 e0 18 f8 88 27 62 a7 22 00 0b 25 07 03 9d f0 bc 1b bf 0c 16 1b b3 15 5c 18 20")) {
+    if (msg.contains("info SALT_4e3m (37 bytes): 05 58 20 ad af 67 a7 8a 4b cc 91 e0 18 f8 88 27 62 a7 22 00 0b 25 07 03 9d f0 bc 1b bf 0c 16 1b b3 15 5c 18 20")) {
       log.log("C " + device + ": Correct info for SALT_4e3m!\n");
     } else {
       log.log("I " + device + ": Incorrect info for SALT_4e3m!\n");
@@ -185,7 +185,7 @@ while (true) {
   // Check if SALT_4e3m is correct
   if (msg.contains("SALT_4e3m")) {
     if (!msg.contains("info SALT_4e3m")) {
-      if (msg.contains("SALT_4e3m (32 bytes):cf dd f9 51 5a 7e 46 e7 b4 db ff 31 cb d5 6c d0 4b a3 32 25 0d e9 ea 5d e1 ca f9 f6 d1 39 14 a7")) {
+      if (msg.contains("SALT_4e3m (32 bytes): cf dd f9 51 5a 7e 46 e7 b4 db ff 31 cb d5 6c d0 4b a3 32 25 0d e9 ea 5d e1 ca f9 f6 d1 39 14 a7")) {
         log.log("C " + device + ": Correct SALT_4e3m!\n");
       } else {
         log.log("I " + device + ": Incorrect SALT_4e3m!\n");
@@ -195,7 +195,7 @@ while (true) {
   
   // Check if TH_4 is correct
   if (msg.contains("TH4")) {
-    if (msg.contains("TH4 (32 bytes):c9 02 b1 e3 a4 32 6c 93 c5 55 1f 5f 3a a6 c5 ec c0 24 68 06 76 56 12 e5 2b 5d 99 e6 05 9d 6b 6e")) {
+    if (msg.contains("TH4 (32 bytes): c9 02 b1 e3 a4 32 6c 93 c5 55 1f 5f 3a a6 c5 ec c0 24 68 06 76 56 12 e5 2b 5d 99 e6 05 9d 6b 6e")) {
       log.log("C " + device + ": Correct TH_4!\n");
     } else {
       log.log("I " + device + ": Incorrect TH_4!\n");
@@ -222,7 +222,7 @@ while (true) {
 
   // Check if message_3 is correct (on reception)
   if (msg.contains("RX message_3")) {
-    if (msg.contains("RX message_3 (19 bytes):52 e5 62 09 7b c4 17 dd 59 19 48 5a c7 89 1f fd 90 a9 fc")) {
+    if (msg.contains("RX message_3 (19 bytes): 52 e5 62 09 7b c4 17 dd 59 19 48 5a c7 89 1f fd 90 a9 fc")) {
       log.log("C " + device + ": Correct message_3!\n");
     } else {
       log.log("I " + device + ": Incorrect message_3!\n");

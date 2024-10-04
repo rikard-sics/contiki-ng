@@ -317,7 +317,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
   switch(cli->state) {
   case RX_MSG2:
     LOG_DBG("--------------Handler message_2------------------\n");
-    LOG_DBG("RX message_2 (%d bytes):", edhoc_ctx->rx_sz);
+    LOG_DBG("RX message_2 (%d bytes): ", edhoc_ctx->rx_sz);
     print_buff_8_dbg(edhoc_ctx->msg_rx, edhoc_ctx->rx_sz);
 
     time = RTIMER_NOW();
@@ -353,7 +353,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
       /* TODO: Include a way to pass application msgs. */
       edhoc_state.ad.ad_2_sz = er;
       if(edhoc_state.ad.ad_2_sz > 0 && edhoc_state.ad.ad_2) {
-        LOG_DBG("Ap_2 (%d bytes):", edhoc_state.ad.ad_2_sz);
+        LOG_DBG("Ap_2 (%d bytes): ", edhoc_state.ad.ad_2_sz);
         print_char_8_dbg((char *)edhoc_state.ad.ad_2, edhoc_state.ad.ad_2_sz);
       }
       LOG_DBG("-----------------gen MSG3---------------------\n");
@@ -362,7 +362,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
       edhoc_gen_msg_3(edhoc_ctx, (uint8_t *)edhoc_state.ad.ad_3, edhoc_state.ad.ad_3_sz);
       time = RTIMER_NOW() - time;
       LOG_INFO("Client time to gen MSG3: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
-      LOG_DBG("message_3 (%d bytes):", edhoc_ctx->tx_sz);
+      LOG_DBG("message_3 (%d bytes): ", edhoc_ctx->tx_sz);
       print_buff_8_dbg(edhoc_ctx->msg_tx, edhoc_ctx->tx_sz);
       cli->rx_msg2 = true;
       cli->state = RX_RESPONSE_MSG3;
@@ -471,11 +471,11 @@ PROCESS_THREAD(edhoc_client, ev, data)
   memcpy(edhoc_ctx->ephemeral_key.private_key, key.private, ECC_KEY_BYTE_LENGTH);
 #endif
 
-  LOG_DBG("X (%d bytes):", ECC_KEY_BYTE_LENGTH);
+  LOG_DBG("X (%d bytes): ", ECC_KEY_BYTE_LENGTH);
   print_buff_8_dbg(edhoc_ctx->ephemeral_key.private_key, ECC_KEY_BYTE_LENGTH);
-  LOG_DBG("G_X x (%d bytes):", ECC_KEY_BYTE_LENGTH);
+  LOG_DBG("G_X x (%d bytes): ", ECC_KEY_BYTE_LENGTH);
   print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.x, ECC_KEY_BYTE_LENGTH);
-  LOG_DBG("y:");
+  LOG_DBG("y: ");
   print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.y, ECC_KEY_BYTE_LENGTH);
 
   time_total = RTIMER_NOW();

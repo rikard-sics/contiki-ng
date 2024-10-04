@@ -208,7 +208,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         memcpy(&serv->con_ipaddr, &request->src_ep->ipaddr, sizeof(uip_ipaddr_t));
         new_ecc.ad.ad_1_sz = er;
         if(new_ecc.ad.ad_1_sz > 0 && new_ecc.ad.ad_1) {
-          LOG_DBG("AD_1 (%d bytes):", new_ecc.ad.ad_1_sz);
+          LOG_DBG("AD_1 (%d bytes): ", new_ecc.ad.ad_1_sz);
           print_char_8_dbg((char *)new_ecc.ad.ad_1, new_ecc.ad.ad_1_sz);
         }
         serv->rx_msg1 = true;
@@ -218,14 +218,14 @@ PROCESS_THREAD(edhoc_server, ev, data){
         edhoc_gen_msg_2(edhoc_ctx, (uint8_t *)new_ecc.ad.ad_2, new_ecc.ad.ad_2_sz);
         time = RTIMER_NOW() - time;
         LOG_INFO("Server time to gen MSG2: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
-        LOG_DBG("message_2 (CBOR Sequence) (%d bytes):", edhoc_ctx->tx_sz);
+        LOG_DBG("message_2 (CBOR Sequence) (%d bytes): ", edhoc_ctx->tx_sz);
         print_buff_8_dbg(edhoc_ctx->msg_tx, edhoc_ctx->tx_sz);
         serv->state = RX_MSG3;
       }
       break;
     case RX_MSG3:
       LOG_DBG("----------------------------------Handler message_3-----------------------------\n");
-      LOG_DBG("RX message_3 (%d bytes):", (int)msg_rx_len);
+      LOG_DBG("RX message_3 (%d bytes): ", (int)msg_rx_len);
       print_buff_8_dbg(msg_rx, msg_rx_len);
       time = RTIMER_NOW();
       er = edhoc_handler_msg_3(&msg3, edhoc_ctx, msg_rx, msg_rx_len);
@@ -260,7 +260,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         /*TODO: Include a way to pass application msgs. */
         new_ecc.ad.ad_3_sz = er;
         if(new_ecc.ad.ad_3_sz > 0 && new_ecc.ad.ad_3) {
-          LOG_DBG("AP_3 (%d bytes):", new_ecc.ad.ad_3_sz);
+          LOG_DBG("AP_3 (%d bytes): ", new_ecc.ad.ad_3_sz);
           print_char_8_dbg((char *)new_ecc.ad.ad_3, new_ecc.ad.ad_3_sz);
         }
 
