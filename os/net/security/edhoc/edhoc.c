@@ -300,8 +300,8 @@ gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
   }
   LOG_DBG("H(msg1) (%d bytes): ", HASH_LENGTH);
   print_buff_8_dbg(h2 + ECC_KEY_BYTE_LENGTH + 2 + 2, HASH_LENGTH);
-  LOG_DBG("CBOR(H(msg1)) (%d): ", 34);
-  print_buff_8_dbg(h2 + ECC_KEY_BYTE_LENGTH + 2, 34);
+  LOG_DBG("CBOR(H(msg1)) (%d): ", HASH_LENGTH + 2);
+  print_buff_8_dbg(h2 + ECC_KEY_BYTE_LENGTH + 2, HASH_LENGTH + 2);
   LOG_DBG("Input to TH_2 (%d): ", ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2);
   print_buff_8_dbg(h2, ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2);
   er = compute_th(h2, ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2, ctx->session.th.buf, ctx->session.th.len);
@@ -393,54 +393,64 @@ edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info_sz, uin
 static uint8_t
 set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac)
 {
+   // FIXME: add ead_2/3 here too.
+
   if(mac_num == MAC_2) {
-    // FIXME: add ead_2 here too.
-    size_t mac_info_sz = ctx->session.id_cred_x.len + ctx->session.th.len + ctx->session.cred_x.len + 7;
-    uint8_t mac_info[mac_info_sz];
-    uint8_t *mac_info_ptr = mac_info;
-    cbor_put_unsigned(&mac_info_ptr, MAC_2_LABEL);
-    mac_info_ptr[0] = 0x58;
-    mac_info_ptr[1] = 0x86;
-    mac_info_ptr += 2;
     
-    // RH: Add C_R to context_2
+    // RH: Build context_2
+    size_t context_2_buffer_sz = CID_LEN + ctx->session.id_cred_x.len + cbor_bstr_size(ctx->session.th.len) + ctx->session.cred_x.len;
+    uint8_t context_2[context_2_buffer_sz];
+    uint8_t *context_2_ptr = context_2;
+    // RH: Add C_R
     if(ROLE == INITIATOR) {
-      mac_info_ptr[0] = (uint8_t) ctx->session.cid_rx;
+      context_2_ptr[0] = (uint8_t) ctx->session.cid_rx;
     } else {
-      mac_info_ptr[0] = (uint8_t) ctx->session.cid;
+      context_2_ptr[0] = (uint8_t) ctx->session.cid;
     }
-    mac_info_ptr += CID_LEN;
+    context_2_ptr += CID_LEN;
+    memcpy(context_2_ptr, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
+    context_2_ptr += ctx->session.id_cred_x.len;
+    cbor_put_bytes(&context_2_ptr, ctx->session.th.buf, ctx->session.th.len);
+    memcpy(context_2_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
+    context_2_ptr += ctx->session.cred_x.len;
+    cbor_put_unsigned(&context_2_ptr, MAC_LEN);
+    LOG_DBG("CONTEXT_2 (%zu bytes): ", context_2_buffer_sz);
+    print_buff_8_dbg(context_2, context_2_buffer_sz);
     
-    memcpy(mac_info_ptr, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
-    mac_info_ptr += ctx->session.id_cred_x.len;
-    cbor_put_bytes(&mac_info_ptr, ctx->session.th.buf, ctx->session.th.len);
-    memcpy(mac_info_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
-    mac_info_ptr += ctx->session.cred_x.len;
-    cbor_put_unsigned(&mac_info_ptr, 8);
+    // RH: Create mac_info
+    size_t mac_info_buffer_sz = cbor_int_size(MAC_2_LABEL) + cbor_bstr_size(context_2_buffer_sz) + cbor_int_size(MAC_LEN);
+    uint8_t mac_info[mac_info_buffer_sz];
+    size_t mac_info_sz = generate_info(mac_info, context_2, context_2_buffer_sz, MAC_LEN, MAC_2_LABEL);
     LOG_DBG("info MAC_2 (%zu bytes): ", mac_info_sz);
-    print_buff_8_dbg((uint8_t *)&mac_info, mac_info_sz);
+    print_buff_8_dbg(mac_info, mac_info_sz);
+  
     int8_t er = edhoc_expand(mac, ctx->eph_key.prk_3e2m, mac_info, mac_info_sz, MAC_LEN);
     if(er < 0) {
       LOG_ERR("Failed to expand MAC_2\n");
       return 0;
     }
   } else if(mac_num == MAC_3) {
-    // FIXME: add ead_3 here too.
-    size_t mac_info_sz = ctx->session.id_cred_x.len + ctx->session.th.len + ctx->session.cred_x.len + 6;
-    uint8_t mac_info[mac_info_sz];
-    uint8_t *mac_info_ptr = mac_info;
-    cbor_put_unsigned(&mac_info_ptr, MAC_3_LABEL);
-    mac_info_ptr[0] = 0x58;
-    mac_info_ptr[1] = 0x91;
-    mac_info_ptr += 2;
-    memcpy(mac_info_ptr, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
-    mac_info_ptr += ctx->session.id_cred_x.len;
-    cbor_put_bytes(&mac_info_ptr, ctx->session.th.buf, ctx->session.th.len);
-    memcpy(mac_info_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
-    mac_info_ptr += ctx->session.cred_x.len;
-    cbor_put_unsigned(&mac_info_ptr, 8);
+  
+    // RH: Build context_3
+    size_t context_3_buffer_sz = ctx->session.id_cred_x.len + cbor_bstr_size(ctx->session.th.len) + ctx->session.cred_x.len;
+    uint8_t context_3[context_3_buffer_sz];
+    uint8_t *context_3_ptr = context_3;
+    memcpy(context_3_ptr, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
+    context_3_ptr += ctx->session.id_cred_x.len;
+    cbor_put_bytes(&context_3_ptr, ctx->session.th.buf, ctx->session.th.len);
+    memcpy(context_3_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
+    context_3_ptr += ctx->session.cred_x.len;
+    cbor_put_unsigned(&context_3_ptr, MAC_LEN);
+    LOG_DBG("CONTEXT_3 (%zu bytes): ", context_3_buffer_sz);
+    print_buff_8_dbg(context_3, context_3_buffer_sz);
+
+    // RH: Create mac_info
+    size_t mac_info_buffer_sz = cbor_int_size(MAC_3_LABEL) + cbor_bstr_size(context_3_buffer_sz) + cbor_int_size(MAC_LEN);
+    uint8_t mac_info[mac_info_buffer_sz];
+    size_t mac_info_sz = generate_info(mac_info, context_3, context_3_buffer_sz, MAC_LEN, MAC_3_LABEL);
     LOG_DBG("info MAC_3 (%zu bytes): ", mac_info_sz);
-    print_buff_8_dbg((uint8_t *)&mac_info, mac_info_sz);
+    print_buff_8_dbg(mac_info, mac_info_sz);
+ 
     int8_t er = edhoc_expand(mac, ctx->eph_key.prk_4e3m, mac_info, mac_info_sz, MAC_LEN);
      if(er < 0) {
       LOG_ERR("Failed to expand MAC_3\n");
@@ -564,17 +574,14 @@ gen_prk_3e2m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
     LOG_ERR("error in generate shared secret for prk_3e2m\n ");
     return 0;
   }
-  uint8_t salt_info[37];
-  salt_info[0] = (uint8_t)SALT_3E2M_LABEL;
-  salt_info[1] = 0x58;
-  salt_info[2] = 0x20;
-  memcpy(salt_info + 3, ctx->session.th.buf, ctx->session.th.len);
-  salt_info[35] = 0x18;
-  salt_info[36] = 0x20;
-  LOG_DBG("info SALT_3e2m (37 bytes): ");
-  print_buff_8_dbg(salt_info, 37);
+  
+  size_t salt_info_buffer_sz = cbor_int_size(SALT_3E2M_LABEL) + cbor_bstr_size(ctx->session.th.len) + cbor_int_size(HASH_LENGTH);
+  uint8_t salt_info[salt_info_buffer_sz];
+  size_t salt_info_sz = generate_info(salt_info, ctx->session.th.buf, ctx->session.th.len, HASH_LENGTH, SALT_3E2M_LABEL);
+  LOG_DBG("info SALT_3e2m (%zu bytes): ", salt_info_sz);
+  print_buff_8_dbg(salt_info, salt_info_sz);
   uint8_t salt[HASH_LENGTH];
-  er = edhoc_expand(salt, ctx->eph_key.prk_2e, salt_info, 37, HASH_LENGTH);
+  er = edhoc_expand(salt, ctx->eph_key.prk_2e, salt_info, salt_info_sz, HASH_LENGTH);
   if(er < 1) {
     LOG_ERR("Error calculating salt (%d)\n", er);
     return 0;
@@ -606,17 +613,14 @@ gen_prk_4e3m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
     LOG_ERR("error in generate shared secret for prk_4e3m\n ");
     return 0;
   }
-  uint8_t salt_info[37];
-  salt_info[0] = (uint8_t)SALT_4E3M_LABEL;
-  salt_info[1] = 0x58;
-  salt_info[2] = 0x20;
-  memcpy(salt_info + 3, ctx->session.th.buf, ctx->session.th.len);
-  salt_info[35] = 0x18;
-  salt_info[36] = 0x20;
-  LOG_DBG("info SALT_4e3m (37 bytes): ");
-  print_buff_8_dbg(salt_info, 37);
+  
+  size_t salt_info_buffer_sz = cbor_int_size(SALT_4E3M_LABEL) + cbor_bstr_size(ctx->session.th.len) + cbor_int_size(HASH_LENGTH);
+  uint8_t salt_info[salt_info_buffer_sz];
+  size_t salt_info_sz = generate_info(salt_info, ctx->session.th.buf, ctx->session.th.len, HASH_LENGTH, SALT_4E3M_LABEL);
+  LOG_DBG("info SALT_4e3m (%zu bytes): ", salt_info_sz);
+  print_buff_8_dbg(salt_info, salt_info_sz);
   uint8_t salt[HASH_LENGTH];
-  er = edhoc_expand(salt, ctx->eph_key.prk_3e2m, salt_info, 37, HASH_LENGTH);
+  er = edhoc_expand(salt, ctx->eph_key.prk_3e2m, salt_info, salt_info_sz, HASH_LENGTH);
   if(er < 1) {
     LOG_ERR("Error calculating salt (%d)\n", er);
     return 0;
@@ -1345,7 +1349,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 #endif
   return rest_sz;
 }
-int //RH: WIP
+uint8_t //RH: WIP
 cbor_bstr_size(uint32_t len) {
     if (len <= 23) {
         return 1 + len;  // 1 byte total for encoding
@@ -1359,4 +1363,12 @@ cbor_bstr_size(uint32_t len) {
         return 9 + len;  // 1 byte for 0x1B + 8 bytes for the length
     }
 }
-
+uint8_t //RH: WIP
+cbor_int_size(int16_t num) {
+    if (num <= 23 && num >= -24) {
+        return 1;
+    } else if (num <= 255 && num >= -256) {
+        return 2;
+    }
+    return 0;
+}
