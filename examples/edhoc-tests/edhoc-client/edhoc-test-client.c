@@ -52,7 +52,7 @@ AUTOSTART_PROCESSES(&edhoc_example_client);
 
 PROCESS_THREAD(edhoc_example_client, ev, data)
 {
-  /*static struct etimer wait_timer; */
+  /* static struct etimer wait_timer; */
 #if RPL_NODE == 1
   static struct etimer timer;
 #endif
@@ -72,7 +72,7 @@ PROCESS_THREAD(edhoc_example_client, ev, data)
   }
 #endif
 
-  /*Set the other part authentication key */
+  /* Set the other part authentication key */
   edhoc_create_key_list();
   cose_key_t auth_client = { NULL, { 0x2b }, 1,
                              /* { "Node_101" }, strlen("Node_101"), */
@@ -110,7 +110,7 @@ PROCESS_THREAD(edhoc_example_client, ev, data)
   edhoc_add_key(&auth_client);
   edhoc_add_key(&auth_server);
 
-  /*edhoc_server_set_ad_1("MSG1!",strlen("MSG1!")); 
+  /* edhoc_server_set_ad_1("MSG1!",strlen("MSG1!")); 
   edhoc_server_set_ad_3("MSG3!",strlen("MSG3!")); */
 
   edhoc_client_run();
@@ -127,11 +127,11 @@ PROCESS_THREAD(edhoc_example_client, ev, data)
         LOG_INFO("Export OSCORE CTX success\n");
         edhoc_exporter_print_oscore_ctx(&osc);
       }
-	  /*LOG_DBG("And Get your Application Data\n");
+	  /* LOG_DBG("And Get your Application Data\n");
 	  char ad2[16];
 	  LOG_DBG("AD2:");
 	  uint8_t ad2_sz = edhoc_server_get_ad_2(ad2);
-	  print_char_8_dbg(ad2,ad2_sz);*/
+	  print_char_8_dbg(ad2,ad2_sz); */
       break;
     }
     if(re < 0) {

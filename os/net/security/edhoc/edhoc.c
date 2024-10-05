@@ -417,7 +417,7 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     } else {
       mac_info_ptr[0] = (uint8_t) ctx->session.cid;
     }
-    mac_info_ptr += 1;
+    mac_info_ptr += CID_LEN;
     
     memcpy(mac_info_ptr, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
     mac_info_ptr += ctx->session.id_cred_x.len;
