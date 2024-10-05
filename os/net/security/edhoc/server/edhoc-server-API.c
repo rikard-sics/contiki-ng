@@ -52,8 +52,6 @@ struct serv_data_t *dat_ptr;
 static rtimer_clock_t time;
 static rtimer_clock_t time_total;
 
-#define RTIME_MS 32768
-
 static coap_timer_t timer;
 static uint8_t msg_rx[MAX_DATA_LEN];
 static size_t msg_rx_len;
@@ -134,7 +132,7 @@ void
 edhoc_server_init()
 {
   LOG_INFO("SERVER: CoAP active resource\n");
-  coap_activate_resource(&res_edhoc, WELL_KNOWN);
+  coap_activate_resource(&res_edhoc, EDHOC_WELL_KNOWN);
   new_ecc_event = process_alloc_event();
 }
 void

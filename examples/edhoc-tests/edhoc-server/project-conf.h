@@ -21,7 +21,6 @@
 
 /* To run with the test vector DH ephemeral keys used on the interoperability session */
 #define EDHOC_TEST TEST_VECTOR
-#define EDHOC_CONF_VERSION EDHOC_RFC
 
 /* Define the authentication method */
 //#define EDHOC_CONF_AUTHENT_TYPE PRKI_2
@@ -36,9 +35,11 @@
 //#define EDHOC_CONF_ECC CC2538_ECC
 #define EDHOC_CONF_ECC UECC_ECC
 
-
 /* To run EDHOC server as RPL node */
 //#define EDHOC_CONF_RPL_NODE 1
+
+/* Set the supported cipher suits */
+#define EDHOC_CONF_SUPPORTED_SUIT_1 EDHOC_CIPHERSUITE_2
 
 /* Set up the node as Border Router (if enabled in Makefile) */
 #if BORDER_ROUTER_CONF_WEBSERVER

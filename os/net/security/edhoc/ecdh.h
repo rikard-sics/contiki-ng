@@ -47,7 +47,7 @@
 #include "hmac-sha.h"
 
 /*Choose the ECC library to be used*/
-#define CC2258_ECC 1
+#define CC2238_ECC 1
 #define UECC_ECC 2
 #define TEST_VECTOR 1
 

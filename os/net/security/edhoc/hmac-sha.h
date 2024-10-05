@@ -50,8 +50,7 @@
 #endif
 
 #define HMAC_BLOCKSIZE   64
-#define HMAC_DIGEST_SIZE 32 /** < digest size (for SHA-256) */
-#define HMAC_MAX    64  /** < max number of bytes in digest */
+#define HMAC_DIGEST_SIZE 32 /** digest size (for SHA-256) */
 #define HASH_MAX 1 /* maximum number of hash functions that can be used in parallel */
 
 #ifdef CC2538_SH2

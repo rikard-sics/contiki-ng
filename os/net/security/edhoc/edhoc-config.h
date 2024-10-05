@@ -42,17 +42,6 @@
 #ifndef _EDHOC_CONFIG_H_
 #define _EDHOC_CONFIG_H_
 
-#define EDHOC_02  1
-#define EDHOC_O4  2
-#define EDHOC_RFC 3
-
-#ifdef EDHOC_CONF_VERSION
-#define EDHOC_VERSION EDHOC_CONF_VERSION
-#else
-#define EDHOC_VERSION EDHOC_RFC
-#endif  
-
-
 /* SHA256 types*/
 #define DECC_SH2 0       /* Macro to declare the use of SH2 Software library from Oriol Pinol */
 #define DCC2538_SH2 1    /* Macro to declare the use of SH2 Hardware of the CC2538 module */
@@ -61,12 +50,12 @@
  * \brief Set the SH2 library
  */
 #ifdef EDHOC_CONF_SH256
-#define SH256 EDHOC_CONF_SH256
+  #define SH256 EDHOC_CONF_SH256
 #else
-#define SH256 DECC_SH2
+  #define SH256 DECC_SH2
 #endif
 
-/* Correlation types*/
+/* Correlation types */
 #define NON_EXTERNAL_CORR 0
 #define EXTERNAL_CORR_U 1
 #define EXTERNAL_CORR_V 2
@@ -74,11 +63,12 @@
 
 /**
  * \brief Set the Correlation type
+ * TODO: This is never used (remove?)
  */
 #ifdef EDHOC_CONF_CORR
-#define CORR EDHOC_CONF_CORR
+  #define CORR EDHOC_CONF_CORR
 #else
-#define CORR EXTERNAL_CORR_UV
+  #define CORR EXTERNAL_CORR_UV
 #endif
 
 /* EDHOC Role definitions */
@@ -89,9 +79,9 @@
  * \brief Set the EDHOC Protocol role
  */
 #ifdef EDHOC_CONF_ROLE
-#define ROLE EDHOC_CONF_ROLE
+  #define ROLE EDHOC_CONF_ROLE
 #else
-#define ROLE INITIATOR
+  #define ROLE INITIATOR
 #endif
 
 /* COSE_key parameters */
@@ -109,9 +99,9 @@
  * \brief Set the Authentication method
  */
 #ifdef EDHOC_CONF_METHOD
-#define METHOD EDHOC_CONF_METHOD
+ #define METHOD EDHOC_CONF_METHOD
 #else
-#define METHOD METH3
+ #define METHOD METH3
 #endif
 
 /* Credential Types */
@@ -123,51 +113,49 @@
  * \brief Set the authentication credential type
  */
 #ifdef EDHOC_CONF_AUTHENT_TYPE
-#define AUTHENT_TYPE EDHOC_CONF_AUTHENT_TYPE
+  #define AUTHENT_TYPE EDHOC_CONF_AUTHENT_TYPE
 #else
-#define AUTHENT_TYPE PRK_ID
+  #define AUTHENT_TYPE PRK_ID
 #endif
 
 /* #define AUTHENTICATION_KEY_LEN 32 // For Signature key, not yet implemented */
 
 /* cipher suits */
-#define X25519   0 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256, HASH LEN 8,  X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
-#define X25519_2 1 /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256, HASH LEN 16, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
-#define P256     2 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256, HASH LEN 8,  P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */ // Supported
-#define P256_2   3 /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256, HASH LEN 16, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */
+#define EDHOC_CIPHERSUITE_0 0   /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256,  MAC LEN 8,  X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
+#define EDHOC_CIPHERSUITE_1 1   /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
+#define EDHOC_CIPHERSUITE_2 2   /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256,  MAC LEN 8,  P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */ // Supported
+#define EDHOC_CIPHERSUITE_3 3   /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256,  MAC LEN 16, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */
+#define EDHOC_CIPHERSUITE_4 4   /* ChaCha20/Poly1305,  (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, EdDSA, Ed25519, ChaCha20/Poly1305, SHA-256 */
+#define EDHOC_CIPHERSUITE_5 5   /* ChaCha20/Poly1305,  (HMAC 256/256) SHA-256,  MAC LEN 16, P-256,  ES256, P-256,   ChaCha20/Poly1305, SHA-256 */
+#define EDHOC_CIPHERSUITE_6 6   /* A128GCM,            (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, ES256, P-256,   A128GCM, SHA-256 */
+#define EDHOC_CIPHERSUITE_24 24 /* A256GCM,            (HMAC 384/384) SHA-384,  MAC LEN 16, P-384,  ES384, P-384,   A256GCM, SHA-384 */
+#define EDHOC_CIPHERSUITE_25 25 /* ChaCha20/Poly1305,  (HMAC 256/256) SHAKE256, MAC LEN 16, X448,   EdDSA, Ed448,   ChaCha20/Poly1305, SHAKE256 */
 
 /**
  * \brief Set EDHOC cipher suit config
  */
-#ifndef EDHOC_MAX_SUITS 
-#define EDHOC_MAX_SUITS 5
+#ifdef EDHOC_CONF_SUPPORTED_SUIT_1
+  #define SUPPORTED_SUIT_1 EDHOC_CONF_SUPPORTED_SUIT_1
+#else
+  #define SUPPORTED_SUIT_1 -1
 #endif
 
-#ifdef EDHOC_CONF_SUIT
-#define SUIT EDHOC_CONF_SUIT
+#ifdef EDHOC_CONF_SUPPORTED_SUIT_2
+  #define SUPPORTED_SUIT_2 EDHOC_CONF_SUPPORTED_SUIT_2
 #else
-#define SUIT P256
+  #define SUPPORTED_SUIT_2 -1
 #endif
 
-#ifdef EDHOC_CONF_SUIT_1
-#define SUIT_1 EDHOC_CONF_SUIT_1
+#ifdef EDHOC_CONF_SUPPORTED_SUIT_3
+  #define SUPPORTED_SUIT_3 EDHOC_CONF_SUPPORTED_SUIT_3
 #else
-#define SUIT_1 -1
+  #define SUPPORTED_SUIT_3 -1
 #endif
-#ifdef EDHOC_CONF_SUIT_2
-#define SUIT_2 EDHOC_CONF_SUIT_2
+
+#ifdef EDHOC_CONF_SUPPORTED_SUIT_4
+  #define SUPPORTED_SUIT_4 EDHOC_CONF_SUPPORTED_SUIT_4
 #else
-#define SUIT_2 -1
-#endif
-#ifdef EDHOC_CONF_SUIT_3
-#define SUIT_3 EDHOC_CONF_SUIT_3
-#else
-#define SUIT_3 -1
-#endif
-#ifdef EDHOC_CONF_SUIT_4
-#define SUIT_4 EDHOC_CONF_SUIT_4
-#else
-#define SUIT_4 -1
+  #define SUPPORTED_SUIT_4 -1
 #endif
 
 /* Set COSE_Key parameter */
@@ -175,72 +163,64 @@
 #define KEY_CRV 1
 #define KEY_TYPE EC2 /* EC2 key */
 //#endif
-//#if (SUIT == X25519)
-//#define KEY_CRV 1
-//#define KEY_TYPE EC2 /* EC2 key */
-
-//#define KEY_CRV 4
-//#define KEY_TYPE OKP /* EC2 key */
-//#endif
 
 /**
  * \brief COSE algorithm selection
  */
 #ifdef EDHOC_CONF_ALGORITHM_ID
-#define ALGORITHM_ID EDHOC_CONF_ALGORITHM_ID
-#define COSE_CONF_ALGORITHM_ID EDHOC_CONF_ALGORITHM_ID
+  #define ALGORITHM_ID EDHOC_CONF_ALGORITHM_ID
+  #define COSE_CONF_ALGORITHM_ID EDHOC_CONF_ALGORITHM_ID
 #else
-#define ALGORITHM_ID COSE_Algorithm_AES_CCM_16_64_128
-
-#define COSE_CONF_ALGORITHM_ID COSE_Algorithm_AES_CCM_16_64_128
+  #define ALGORITHM_ID COSE_Algorithm_AES_CCM_16_64_128
+  #define COSE_CONF_ALGORITHM_ID COSE_Algorithm_AES_CCM_16_64_128
 #endif
 
 /* Selected Algorithm Parameters */
 #if ALGORITHM_ID == COSE_Algorithm_AES_CCM_16_64_128
-#define ECC_KEY_BYTE_LENGTH 32
-#define HASH_LENGTH 32
-#define KEY_DATA_LENGTH COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
-#define IV_LENGTH COSE_algorithm_AES_CCM_16_64_128_IV_LEN
+  #define ECC_KEY_BYTE_LENGTH 32
+  #define HASH_LENGTH 32
+  #define KEY_DATA_LENGTH COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
+  #define IV_LENGTH COSE_algorithm_AES_CCM_16_64_128_IV_LEN
 #endif
 
 /**
  * \brief Set the EDHOC peer as RPL node. By default deselected
  */
 #ifdef EDHOC_CONF_RPL_NODE
-#define RPL_NODE EDHOC_CONF_RPL_NODE
+  #define RPL_NODE EDHOC_CONF_RPL_NODE
 #else
-#define RPL_NODE 0
+  #define RPL_NODE 0
 #endif
 
 /**
  * \brief The number of attempts to try to connect with the EDHOC server successfully
  */
 #ifndef EDHOC_CONF_ATTEMPTS
-#define EDHOC_CONF_ATTEMPTS 3
+  #define EDHOC_CONF_ATTEMPTS 3
 #endif
 
 /**
  * \brief The max length of the EDHOC message, as CoAP payload
  */
 #ifdef EDHOC_CONF_MAX_PAYLOAD
-#define MAX_DATA_LEN EDHOC_CONF_MAX_PAYLOAD
+  #define MAX_DATA_LEN EDHOC_CONF_MAX_PAYLOAD
 #else
-#define MAX_DATA_LEN 254
+  #define MAX_DATA_LEN 254
 #endif
 
 /**
  * \brief The max length of the Application Data
  */
 #ifdef EDHOC_CONF_MAX_AD_SZ
-#define MAX_AD_SZ EDHOC_CONF_MAX_AD_SZ
+  #define MAX_AD_SZ EDHOC_CONF_MAX_AD_SZ
 #else
-#define MAX_AD_SZ 16
+  #define MAX_AD_SZ 16
 #endif
 
 /**
  * \brief EDHOC resource Uri-Path
  */
-#define WELL_KNOWN ".well-known/edhoc"
+#define EDHOC_WELL_KNOWN ".well-known/edhoc"
 
 #endif /* _EDHOC_CONFIG_H_ */
 
