@@ -260,7 +260,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         /*TODO: Include a way to pass application msgs. */
         new_ecc.ad.ad_3_sz = er;
         if(new_ecc.ad.ad_3_sz > 0 && new_ecc.ad.ad_3) {
-          LOG_DBG("AP_3 (%d bytes): ", new_ecc.ad.ad_3_sz);
+          LOG_DBG("AD_3 (%d bytes): ", new_ecc.ad.ad_3_sz);
           print_char_8_dbg((char *)new_ecc.ad.ad_3, new_ecc.ad.ad_3_sz);
         }
 

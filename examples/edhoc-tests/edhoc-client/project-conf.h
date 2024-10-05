@@ -18,7 +18,7 @@
 /* Define the coap server to connect with */
 //#define EDHOC_CONF_SERVER_EP "coap://[fe80::212:4b00:615:9fec]"
 #define EDHOC_CONF_SERVER_EP "coap://[fd01::202:2:2:2]" /* Server IP for Cooja simulator */
-
+//#define EDHOC_CONF_SERVER_EP "coap://[fd00::1]" /* IP for using with socat to reach other servers */
 
 
 /* Define the party role on the EDHOC protocol as Initiator and the correlation method */
@@ -27,7 +27,7 @@
 
 /* To run with the test vector DH ephemeral keys used on the EDHOC interoperability session */
 #define EDHOC_TEST TEST_VECTOR
-#define EDHOC_CONF_VERSION EDHOC_04
+#define EDHOC_CONF_VERSION EDHOC_RFC
 
 /* Define the authentication method */
 //#define EDHOC_CONF_AUTHENT_TYPE PRKI_2

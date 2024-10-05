@@ -53,7 +53,7 @@ AUTOSTART_PROCESSES(&edhoc_example_server);
 
 PROCESS_THREAD(edhoc_example_server, ev, data)
 {
-/*static struct etimer wait_timer; */
+/* static struct etimer wait_timer; */
 #if RPL_NODE == 1
   static struct etimer timer;
 #endif
@@ -101,7 +101,7 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 #endif
 #endif
 
-  /*Set the other part authentication key and add in the storage */
+  /* Set the other part authentication key and add in the storage */
   cose_key_t auth_client = { NULL, { 0x2b }, 1,
                              /*{ "Node_101" }, strlen("Node_101"), */
                              { "42-50-31-FF-EF-37-32-39" }, strlen("42-50-31-FF-EF-37-32-39"),
@@ -115,7 +115,7 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 #endif
   };
 
-  /*Set the server authentication key and add in the ctx */
+  /* Set the server authentication key and add in the ctx */
   cose_key_t auth_server = { NULL, { 0x32 }, 1,
                              { "example.edu" }, strlen("example.edu"),
                              /*{ "" }, 0,*/
@@ -142,7 +142,7 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
   edhoc_add_key(&auth_client);
   edhoc_add_key(&auth_server);
 
-  /*edhoc_server_set_ad_2("MSG2!",strlen("MSG2!")); */
+  /* edhoc_server_set_ad_2("MSG2!",strlen("MSG2!")); */
 
   edhoc_server_init();
   if(!edhoc_server_start()) {
@@ -193,10 +193,10 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
       } else {
         t = RTIMER_NOW() - t;
         LOG_INFO("Server time to generate OSCORE ctx: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
-       
+
         edhoc_exporter_print_oscore_ctx(&osc);
       }
-      /*LOG_DBG("And Get your Application Data\n");
+      /* LOG_DBG("And Get your Application Data\n");
          char ad3[16];
          uint8_t ad3_sz = edhoc_server_get_ad_3(ad3);
          LOG_DBG("AD_3 (%d bytes): ",ad3_sz);

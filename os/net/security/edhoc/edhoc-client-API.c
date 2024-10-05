@@ -353,7 +353,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
       /* TODO: Include a way to pass application msgs. */
       edhoc_state.ad.ad_2_sz = er;
       if(edhoc_state.ad.ad_2_sz > 0 && edhoc_state.ad.ad_2) {
-        LOG_DBG("Ap_2 (%d bytes): ", edhoc_state.ad.ad_2_sz);
+        LOG_DBG("AD_2 (%d bytes): ", edhoc_state.ad.ad_2_sz);
         print_char_8_dbg((char *)edhoc_state.ad.ad_2, edhoc_state.ad.ad_2_sz);
       }
       LOG_DBG("-----------------gen MSG3---------------------\n");
