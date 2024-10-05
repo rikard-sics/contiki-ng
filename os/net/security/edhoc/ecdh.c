@@ -101,7 +101,7 @@ hmac_sha256_free(hmac_context_t *ctx)
   hmac_free(ctx);
 }
 uint8_t
-compute_TH(uint8_t *in, uint8_t in_sz, uint8_t *hash, uint8_t hash_sz)
+compute_th(uint8_t *in, uint8_t in_sz, uint8_t *hash, uint8_t hash_sz)
 {
   int er = sha256(in, in_sz, hash);
   return er;
