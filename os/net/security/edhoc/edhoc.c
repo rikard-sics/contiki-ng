@@ -145,14 +145,7 @@ static size_t
 generate_id_cred_x(cose_key *cose, uint8_t *cred)
 {
   size_t size = 0;
-  /* TODO: PRKI Include a reduce form of the credentials */
-  /*if(AUTHENT_TYPE == PRKI) {
-     size += cbor_put_map(&cred, 2);
-     size += cbor_put_unsigned(&cred, 32);
-     size += cbor_put_bytes(&cred, cose->x.buf, cose->x.len);
-     size += cbor_put_text(&cred, "subject name", strlen("subject name"));
-     size += cbor_put_text(&cred, cose->identity.buf, cose->identity.len);
-     }*/
+  /* TODO: PRKI Include a reduce form of the credentials? */
   LOG_DBG("kid (%zu bytes): ", cose->kid.len);
   print_buff_8_dbg(cose->kid.buf, cose->kid.len);
   /* PRK_ID Include KID */
@@ -292,7 +285,7 @@ gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
   uint8_t h2_sz = msg_sz + ECC_KEY_BYTE_LENGTH + 2 + 2;
   uint8_t h2[h2_sz];
   memcpy(h2 + 2, data, ECC_KEY_BYTE_LENGTH);
-  // FIXME: verify that CBOR encoding adds 2 bytes
+  // TODO: verify that CBOR encoding adds 2 bytes
   h2[0] = 0x58;
   h2[1] = 0x20;
   h2[ECC_KEY_BYTE_LENGTH + 2] = 0x58;
@@ -300,19 +293,18 @@ gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
   LOG_DBG("Input to calculate H(msg1) (%d bytes): ", (int)msg_sz);
   print_buff_8_dbg(msg, msg_sz);
   /* Compute TH */
-  // FIXME: hardcoded value 32
-  uint8_t er = compute_TH(msg, msg_sz, h2 + ECC_KEY_BYTE_LENGTH + 2 + 2, 32);
+  uint8_t er = compute_TH(msg, msg_sz, h2 + ECC_KEY_BYTE_LENGTH + 2 + 2, HASH_LENGTH);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED H(msg1)\n");
     return ERR_CODE;
   }
-  LOG_DBG("H(msg1) (32 bytes): ");
-  print_buff_8_dbg(h2 + ECC_KEY_BYTE_LENGTH + 2 + 2, 32);
+  LOG_DBG("H(msg1) (%d bytes): ", HASH_LENGTH);
+  print_buff_8_dbg(h2 + ECC_KEY_BYTE_LENGTH + 2 + 2, HASH_LENGTH);
   LOG_DBG("CBOR(H(msg1)) (%d): ", 34);
   print_buff_8_dbg(h2 + ECC_KEY_BYTE_LENGTH + 2, 34);
-  LOG_DBG("Input to TH_2 (%d): ", ECC_KEY_BYTE_LENGTH + 2 + 32 + 2);
-  print_buff_8_dbg(h2, ECC_KEY_BYTE_LENGTH + 2 + 32 + 2);
-  er = compute_TH(h2, ECC_KEY_BYTE_LENGTH + 2 + 32 + 2, ctx->session.th.buf, ctx->session.th.len);
+  LOG_DBG("Input to TH_2 (%d): ", ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2);
+  print_buff_8_dbg(h2, ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2);
+  er = compute_TH(h2, ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2, ctx->session.th.buf, ctx->session.th.len);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED H(G_Y, H(msg1))\n ");
     return ERR_CODE;
@@ -398,7 +390,7 @@ edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info_sz, uin
   }
   return length;
 }
-static uint8_t //RH: Why not use edhoc_kdf in this function?
+static uint8_t
 set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac)
 {
   if(mac_num == MAC_2) {
@@ -427,7 +419,7 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     cbor_put_unsigned(&mac_info_ptr, 8);
     LOG_DBG("info MAC_2 (%zu bytes): ", mac_info_sz);
     print_buff_8_dbg((uint8_t *)&mac_info, mac_info_sz);
-    int8_t er = hkdf_expand(ctx->eph_key.prk_3e2m, ECC_KEY_BYTE_LENGTH, mac_info, mac_info_sz, mac, MAC_LEN);
+    int8_t er = edhoc_expand(mac, ctx->eph_key.prk_3e2m, mac_info, mac_info_sz, MAC_LEN);
     if(er < 0) {
       LOG_ERR("Failed to expand MAC_2\n");
       return 0;
@@ -449,7 +441,7 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     cbor_put_unsigned(&mac_info_ptr, 8);
     LOG_DBG("info MAC_3 (%zu bytes): ", mac_info_sz);
     print_buff_8_dbg((uint8_t *)&mac_info, mac_info_sz);
-    int8_t er = hkdf_expand(ctx->eph_key.prk_4e3m, ECC_KEY_BYTE_LENGTH, mac_info, mac_info_sz, mac, MAC_LEN);
+    int8_t er = edhoc_expand(mac, ctx->eph_key.prk_4e3m, mac_info, mac_info_sz, MAC_LEN);
      if(er < 0) {
       LOG_ERR("Failed to expand MAC_3\n");
       return 0;
@@ -582,15 +574,15 @@ gen_prk_3e2m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
   salt_info[36] = 0x20;
   LOG_DBG("info SALT_3e2m (37 bytes): ");
   print_buff_8_dbg(salt_info, 37);
-  uint8_t salt[32];
-  er = hkdf_expand(ctx->eph_key.prk_2e, ECC_KEY_BYTE_LENGTH, salt_info, 37, salt, 32);
+  uint8_t salt[HASH_LENGTH];
+  er = edhoc_expand(salt, ctx->eph_key.prk_2e, salt_info, 37, HASH_LENGTH);
   if(er < 1) {
     LOG_ERR("Error calculating salt (%d)\n", er);
     return 0;
   }
-  LOG_DBG("SALT_3e2m (32 bytes): ");
-  print_buff_8_dbg(salt, 32);
-  er = hkdf_extract(salt, 32, grx, ECC_KEY_BYTE_LENGTH, ctx->eph_key.prk_3e2m);
+  LOG_DBG("SALT_3e2m (%d bytes): ", HASH_LENGTH);
+  print_buff_8_dbg(salt, HASH_LENGTH);
+  er = hkdf_extract(salt, HASH_LENGTH, grx, ECC_KEY_BYTE_LENGTH, ctx->eph_key.prk_3e2m);
   if(er < 1) {
     LOG_ERR("error in extract for prk_3e2m\n");
     return 0;
@@ -624,15 +616,15 @@ gen_prk_4e3m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
   salt_info[36] = 0x20;
   LOG_DBG("info SALT_4e3m (37 bytes): ");
   print_buff_8_dbg(salt_info, 37);
-  uint8_t salt[32];
-  er = hkdf_expand(ctx->eph_key.prk_3e2m, ECC_KEY_BYTE_LENGTH, salt_info, 37, salt, 32);
+  uint8_t salt[HASH_LENGTH];
+  er = edhoc_expand(salt, ctx->eph_key.prk_3e2m, salt_info, 37, HASH_LENGTH);
   if(er < 1) {
     LOG_ERR("Error calculating salt (%d)\n", er);
     return 0;
   }
-  LOG_DBG("SALT_4e3m (32 bytes): ");
-  print_buff_8_dbg(salt, 32);
-  er = hkdf_extract(salt, 32, giy, ECC_KEY_BYTE_LENGTH, ctx->eph_key.prk_4e3m);
+  LOG_DBG("SALT_4e3m (%d bytes): ", HASH_LENGTH);
+  print_buff_8_dbg(salt, HASH_LENGTH);
+  er = hkdf_extract(salt, HASH_LENGTH, giy, ECC_KEY_BYTE_LENGTH, ctx->eph_key.prk_4e3m);
   if(er < 1) {
     LOG_ERR("error in extract for prk_4e3m\n");
     return 0;
