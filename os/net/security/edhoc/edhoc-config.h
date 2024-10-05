@@ -104,7 +104,6 @@
 #define METH1 1                  /* Signature Key  | Static DH Key   // not implemented yet */
 #define METH2 2                  /* Static DH Key  | Signature Key   // not implemented yet */
 #define METH3 3                  /* Static DH Key  | Static DH Key */
-#define METH4 4                  /* PSK            | PSK             // not implemented yet */
 
 /**
  * \brief Set the Authentication method
@@ -132,10 +131,10 @@
 /* #define AUTHENTICATION_KEY_LEN 32 // For Signature key, not yet implemented */
 
 /* cipher suits */
-#define X25519   0 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256  //not implemented yet * / */
-#define X25519_2 1 /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
-#define P256     2 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */
-#define P256_2   3 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */
+#define X25519   0 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256, HASH LEN 8,  X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
+#define X25519_2 1 /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256, HASH LEN 16, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
+#define P256     2 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256, HASH LEN 8,  P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */ // Supported
+#define P256_2   3 /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256, HASH LEN 16, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */
 
 /**
  * \brief Set EDHOC cipher suit config
