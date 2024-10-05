@@ -75,13 +75,11 @@ void print_char(const char *buff, size_t len);
 } while(0)
 
 #define LOG_ERR_EDHOC_BUFF(data, len)  LOG_EDHOC_BUFF(LOG_LEVEL_ERR, data, len)
-#define LOG_WARN_EDHOC_BUFF(data, len) LOG_EDHOC_BUFF(LOG_LEVEL_WARN, data, len)
 #define LOG_INFO_EDHOC_BUFF(data, len) LOG_EDHOC_BUFF(LOG_LEVEL_INFO, data, len)
 #define LOG_DBG_EDHOC_BUFF(data, len)  LOG_EDHOC_BUFF(LOG_LEVEL_DBG, data, len)
 #define LOG_PRINT_EDHOC_BUFF(data, len)  LOG_EDHOC_BUFF(LOG_LEVEL_NONE, data, len)
 
 #define LOG_ERR_EDHOC_STR(data, len)  LOG_EDHOC_STR(LOG_LEVEL_ERR, data, len)
-#define LOG_WARN_EDHOC_STR(data, len) LOG_EDHOC_STR(LOG_LEVEL_WARN, data, len)
 #define LOG_INFO_EDHOC_STR(data, len) LOG_EDHOC_STR(LOG_LEVEL_INFO, data, len)
 #define LOG_DBG_EDHOC_STR(data, len)  LOG_EDHOC_STR(LOG_LEVEL_DBG, data, len)
 

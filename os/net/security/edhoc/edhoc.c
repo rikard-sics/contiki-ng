@@ -79,17 +79,31 @@ void
 edhoc_init(edhoc_context_t *ctx)
 {
   /* TODO : check that the key belongs to the curve */
-  ctx->session.cid = (uint8_t)EDHOC_CID;
-  ctx->session.suit[0] = SUIT;
-  ctx->session.suit_num = 1;
-  ctx->session.suit[1] = SUIT_1;
-  if(SUIT_1 > -1) ctx->session.suit_num++;
-  ctx->session.suit[2] = SUIT_2;  
-  if(SUIT_2 > -1) ctx->session.suit_num++;
-  ctx->session.suit[3] = SUIT_3; 
-  if(SUIT_3 > -1) ctx->session.suit_num++;
-  ctx->session.suit[4] = SUIT_4;
-  if(SUIT_4 > -1) ctx->session.suit_num++;
+
+  ctx->session.cid = EDHOC_CID;
+  
+  /* Reverse order for the suit values */
+  ctx->session.suit_num = 0;
+  if (SUPPORTED_SUIT_4 > -1) {
+      ctx->session.suit[ctx->session.suit_num] = SUPPORTED_SUIT_4;
+      ctx->session.suit_num++;
+  }
+  if (SUPPORTED_SUIT_3 > -1) {
+      ctx->session.suit[ctx->session.suit_num] = SUPPORTED_SUIT_3;
+      ctx->session.suit_num++;
+  }
+  if (SUPPORTED_SUIT_2 > -1) {
+      ctx->session.suit[ctx->session.suit_num] = SUPPORTED_SUIT_2;
+      ctx->session.suit_num++;
+  }
+  if (SUPPORTED_SUIT_1 > -1) {
+      ctx->session.suit[ctx->session.suit_num] = SUPPORTED_SUIT_1;
+      ctx->session.suit_num++;
+  }
+
+  if (ctx->session.suit_num == 0) {
+    LOG_ERR("No supported cipher suites set (%d)\n ", ERR_SUIT_NON_SUPPORT);
+  }
   
   ctx->session.role = ROLE;  /* initiator I (U) or responder (V) */
   ctx->session.method = METHOD;
@@ -1024,10 +1038,8 @@ edhoc_gen_msg_error(uint8_t *msg_er, edhoc_context_t *ctx, int8_t err)
     msg.err_info = (sstr){ "ERR_CORRELATION", strlen("ERR_CORRELATION") };
     break;
   case (ERR_NEW_SUIT_PROPOSE * (-1)): {
-    // FIXME: return supported suites.
-    char suites[] = {P256, 0};
     msg.err_code = 2;
-    msg.err_info = (sstr) {suites, strlen(suites)};
+    msg.err_info = (sstr) { (char *)ctx->session.suit, ctx->session.suit_num * sizeof(ctx->session.suit[0]) };
     break;
   }
   case (ERR_RESEND_MSG_1 * (-1)):

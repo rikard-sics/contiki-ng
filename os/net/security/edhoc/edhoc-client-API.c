@@ -54,7 +54,6 @@
 #define CL_BLOCK1 3
 #define CL_POST 4
 #define CL_TRIES_EXPIRE 5
-#define CL_PROTOCOL 6
 #define CL_BLOCKING 7
 
 
@@ -267,7 +266,7 @@ static void
 edhoc_client_post()
 {
   coap_init_message(state.state.request, COAP_TYPE_CON, COAP_POST, 0);
-  coap_set_header_uri_path(state.state.request, WELL_KNOWN);
+  coap_set_header_uri_path(state.state.request, EDHOC_WELL_KNOWN);
   send_sz = 0;
   msg_num = 0;
   state.state.block_num = 0;

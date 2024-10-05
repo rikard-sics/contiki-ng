@@ -111,7 +111,7 @@ The EDHOC - server - API.h file contains the EDHOC interface to be used by the E
 
 - `edhoc_server_process()` : This function must be called from a CoAP response POST handler to run the EDHOC protocol Responder party process.
 - `edhoc_server_callback()` :  This function checks the events trigger from the EDHOC server protocol looking for the `SERV_FINSHED` event.
-- `edhoc_server_init()` : This function activates the EDHOC well-known CoAP Resource(that runs edhoc_server_resource() functionality) at the Uri-Path defined on the WELL_KNOWN macro (`./well-known.edhoc` by default).
+- `edhoc_server_init()` : This function activates the EDHOC well-known CoAP Resource(that runs edhoc_server_resource() functionality) at the Uri-Path defined on the EDHOC_WELL_KNOWN macro (`./well-known.edhoc` by default).
 - `edhoc_server_start()` : This function gets the DH-static authentication pair keys of the Server by using the edhoc-key-storage API, creates a new EDHOC context and generates the DH-ephemeral key for the specific session. A new EDHOC protocol session must be created for each new EDHOC client transaction.
 - `edhoc_server_close()` : This function must be called after the Security Context is exported to free the allocated memory.
 - `edhoc_server_restart()` : This function Rest the EDHOC context to initiate a new EDHOC protocol session with a new client.

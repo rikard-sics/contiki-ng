@@ -27,7 +27,6 @@
 
 /* To run with the test vector DH ephemeral keys used on the EDHOC interoperability session */
 #define EDHOC_TEST TEST_VECTOR
-#define EDHOC_CONF_VERSION EDHOC_RFC
 
 /* Define the authentication method */
 //#define EDHOC_CONF_AUTHENT_TYPE PRKI_2
@@ -45,16 +44,11 @@
 /* To run EDHOC client as RPL node */
 #define EDHOC_CONF_RPL_NODE 1
 
-// FIXME: should be reverse SUIT, but no error handling implemented
-#if 0
-#define EDHOC_CONF_SUIT 2
-#define EDHOC_CONF_SUIT_1 6
-#else
-#define EDHOC_CONF_SUIT 6
-#define EDHOC_CONF_SUIT_1 2
-#endif
+/* Set the supported cipher suits */
+#define EDHOC_CONF_SUPPORTED_SUIT_1 EDHOC_CIPHERSUITE_2
+#define EDHOC_CONF_SUPPORTED_SUIT_2 EDHOC_CIPHERSUITE_6
 
-/* May be necesary to define one of the following macros when the UECC_ECC library is
+/* May be necessary to define one of the following macros when the UECC_ECC library is
 used and the target is an embedded device */
 //#define WATCHDOG_CONF_ENABLE 0x00000000
 //#define SYS_CTRL_CONF_SYS_DIV SYS_CTRL_CLOCK_CTRL_SYS_DIV_32MHZ
