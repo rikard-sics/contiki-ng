@@ -285,7 +285,7 @@ gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
   uint8_t h2_sz = msg_sz + ECC_KEY_BYTE_LENGTH + 2 + 2;
   uint8_t h2[h2_sz];
   memcpy(h2 + 2, data, ECC_KEY_BYTE_LENGTH);
-  // TODO: verify that CBOR encoding adds 2 bytes
+  // TODO: use CBOR functions
   h2[0] = 0x58;
   h2[1] = 0x20;
   h2[ECC_KEY_BYTE_LENGTH + 2] = 0x58;
@@ -293,18 +293,16 @@ gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
   LOG_DBG("Input to calculate H(msg1) (%d bytes): ", (int)msg_sz);
   print_buff_8_dbg(msg, msg_sz);
   /* Compute TH */
-  uint8_t er = compute_th(msg, msg_sz, h2 + ECC_KEY_BYTE_LENGTH + 2 + 2, HASH_LENGTH);
+  uint8_t hash_offset = 2 + ECC_KEY_BYTE_LENGTH + 2;
+  uint8_t er = compute_th(msg, msg_sz, h2 + hash_offset, HASH_LENGTH);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED H(msg1)\n");
     return ERR_CODE;
   }
-  LOG_DBG("H(msg1) (%d bytes): ", HASH_LENGTH);
-  print_buff_8_dbg(h2 + ECC_KEY_BYTE_LENGTH + 2 + 2, HASH_LENGTH);
-  LOG_DBG("CBOR(H(msg1)) (%d): ", HASH_LENGTH + 2);
-  print_buff_8_dbg(h2 + ECC_KEY_BYTE_LENGTH + 2, HASH_LENGTH + 2);
-  LOG_DBG("Input to TH_2 (%d): ", ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2);
-  print_buff_8_dbg(h2, ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2);
-  er = compute_th(h2, ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2, ctx->session.th.buf, ctx->session.th.len);
+ 
+  LOG_DBG("Input to TH_2 (%d): ", hash_offset + HASH_LENGTH);
+  print_buff_8_dbg(h2, hash_offset + HASH_LENGTH);
+  er = compute_th(h2, hash_offset + HASH_LENGTH, ctx->session.th.buf, ctx->session.th.len);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED H(G_Y, H(msg1))\n ");
     return ERR_CODE;
@@ -381,11 +379,11 @@ edhoc_kdf(uint8_t *result, uint8_t *key, uint8_t info_label, bstr context, uint1
 int16_t
 edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info_sz, uint16_t length)
 {
-  LOG_DBG("info KEYSTREAM_2/3 (%d bytes): ", info_sz);
-  print_buff_8_dbg(inf, info_sz);
+  LOG_DBG("INFO for HKDF_Expand (%d bytes): ", info_sz);
+  print_buff_8_dbg(info, info_sz);
   int16_t er = hkdf_expand(key, ECC_KEY_BYTE_LENGTH, info, info_sz, result, length);
   if(er < 0) {
-    LOG_ERR("Error calculating KEYSTREAM_2/3 (%d)\n", er);
+    LOG_ERR("Error calculating when calling hkdf_expand (%d)\n", er);
     return er;
   }
   return length;
@@ -397,11 +395,11 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
 
   if(mac_num == MAC_2) {
     
-    // RH: Build context_2
+    /* RH: Build context_2 */
     size_t context_2_buffer_sz = CID_LEN + ctx->session.id_cred_x.len + cbor_bstr_size(ctx->session.th.len) + ctx->session.cred_x.len;
     uint8_t context_2[context_2_buffer_sz];
     uint8_t *context_2_ptr = context_2;
-    // RH: Add C_R
+    /* RH: Add C_R */
     if(ROLE == INITIATOR) {
       context_2_ptr[0] = (uint8_t) ctx->session.cid_rx;
     } else {
@@ -417,7 +415,7 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     LOG_DBG("CONTEXT_2 (%zu bytes): ", context_2_buffer_sz);
     print_buff_8_dbg(context_2, context_2_buffer_sz);
     
-    // RH: Create mac_info
+    /* RH: Create mac_info */
     size_t mac_info_buffer_sz = cbor_int_size(MAC_2_LABEL) + cbor_bstr_size(context_2_buffer_sz) + cbor_int_size(MAC_LEN);
     uint8_t mac_info[mac_info_buffer_sz];
     size_t mac_info_sz = generate_info(mac_info, context_2, context_2_buffer_sz, MAC_LEN, MAC_2_LABEL);
@@ -431,7 +429,7 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     }
   } else if(mac_num == MAC_3) {
   
-    // RH: Build context_3
+    /* RH: Build context_3 */
     size_t context_3_buffer_sz = ctx->session.id_cred_x.len + cbor_bstr_size(ctx->session.th.len) + ctx->session.cred_x.len;
     uint8_t context_3[context_3_buffer_sz];
     uint8_t *context_3_ptr = context_3;
@@ -444,7 +442,7 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     LOG_DBG("CONTEXT_3 (%zu bytes): ", context_3_buffer_sz);
     print_buff_8_dbg(context_3, context_3_buffer_sz);
 
-    // RH: Create mac_info
+    /* RH: Create mac_info */
     size_t mac_info_buffer_sz = cbor_int_size(MAC_3_LABEL) + cbor_bstr_size(context_3_buffer_sz) + cbor_int_size(MAC_LEN);
     uint8_t mac_info[mac_info_buffer_sz];
     size_t mac_info_sz = generate_info(mac_info, context_3, context_3_buffer_sz, MAC_LEN, MAC_3_LABEL);
@@ -1110,7 +1108,7 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz, uint8
   }
   print_msg_1(&msg1);
 
-  /* check rx suit and set id connection of the other party */
+  /* check rx suit and set connection identifier of the other peer */
   er = check_rx_suit_I(ctx, msg1.suites_i);
   if(er < 0) {
     LOG_ERR("Rx Suit not supported\n");
@@ -1364,11 +1362,15 @@ cbor_bstr_size(uint32_t len) {
     }
 }
 uint8_t //RH: WIP
-cbor_int_size(int16_t num) {
-    if (num <= 23 && num >= -24) {
+cbor_int_size(int32_t num) {
+    if (num >= -24 && num <= 23) {
         return 1;
-    } else if (num <= 255 && num >= -256) {
+    } else if (num >= -256 && num <= 255) {
         return 2;
+    } else if (num >= -32768 && num <= 65535) {
+        return 3;
+    } else if (num >= -2147483648 && num <= 4294967295) {
+        return 5;
     }
     return 0;
 }
