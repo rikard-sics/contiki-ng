@@ -293,7 +293,7 @@ gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
   LOG_DBG("Input to calculate H(msg1) (%d bytes): ", (int)msg_sz);
   print_buff_8_dbg(msg, msg_sz);
   /* Compute TH */
-  uint8_t er = compute_TH(msg, msg_sz, h2 + ECC_KEY_BYTE_LENGTH + 2 + 2, HASH_LENGTH);
+  uint8_t er = compute_th(msg, msg_sz, h2 + ECC_KEY_BYTE_LENGTH + 2 + 2, HASH_LENGTH);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED H(msg1)\n");
     return ERR_CODE;
@@ -304,7 +304,7 @@ gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
   print_buff_8_dbg(h2 + ECC_KEY_BYTE_LENGTH + 2, 34);
   LOG_DBG("Input to TH_2 (%d): ", ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2);
   print_buff_8_dbg(h2, ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2);
-  er = compute_TH(h2, ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2, ctx->session.th.buf, ctx->session.th.len);
+  er = compute_th(h2, ECC_KEY_BYTE_LENGTH + 2 + HASH_LENGTH + 2, ctx->session.th.buf, ctx->session.th.len);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED H(G_Y, H(msg1))\n ");
     return ERR_CODE;
@@ -333,7 +333,7 @@ gen_th3(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   print_buff_8_dbg(h, h_sz);
 
   /* Compute TH */
-  uint8_t er = compute_TH(h, h_sz, ctx->session.th.buf, ctx->session.th.len);
+  uint8_t er = compute_th(h, h_sz, ctx->session.th.buf, ctx->session.th.len);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED TH3\n ");
     return ERR_CODE;
@@ -362,7 +362,7 @@ gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   print_buff_8_dbg(h, h_sz);
 
   /* Compute TH */
-  uint8_t er = compute_TH(h, h_sz, ctx->session.th.buf, ctx->session.th.len);
+  uint8_t er = compute_th(h, h_sz, ctx->session.th.buf, ctx->session.th.len);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED TH4\n ");
     return ERR_CODE;
@@ -398,7 +398,7 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     size_t mac_info_sz = ctx->session.id_cred_x.len + ctx->session.th.len + ctx->session.cred_x.len + 7;
     uint8_t mac_info[mac_info_sz];
     uint8_t *mac_info_ptr = mac_info;
-    cbor_put_unsigned(&mac_info_ptr, 2);
+    cbor_put_unsigned(&mac_info_ptr, MAC_2_LABEL);
     mac_info_ptr[0] = 0x58;
     mac_info_ptr[1] = 0x86;
     mac_info_ptr += 2;
@@ -429,7 +429,7 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     size_t mac_info_sz = ctx->session.id_cred_x.len + ctx->session.th.len + ctx->session.cred_x.len + 6;
     uint8_t mac_info[mac_info_sz];
     uint8_t *mac_info_ptr = mac_info;
-    cbor_put_unsigned(&mac_info_ptr, 6);
+    cbor_put_unsigned(&mac_info_ptr, MAC_3_LABEL);
     mac_info_ptr[0] = 0x58;
     mac_info_ptr[1] = 0x91;
     mac_info_ptr += 2;
@@ -549,7 +549,6 @@ gen_k_2e(edhoc_context_t *ctx, uint16_t length)
   return 1;
 }
 /* TODO: change the gen with the ROLE: Initiator U: gen = 0; Responder V: gen = 1; */
-// RH: Why not use edhoc_kdf for SALT_3e2m / SALT_4e3m?
 static uint8_t
 gen_prk_3e2m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
 {
@@ -566,7 +565,7 @@ gen_prk_3e2m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
     return 0;
   }
   uint8_t salt_info[37];
-  salt_info[0] = 0x01;
+  salt_info[0] = (uint8_t)SALT_3E2M_LABEL;
   salt_info[1] = 0x58;
   salt_info[2] = 0x20;
   memcpy(salt_info + 3, ctx->session.th.buf, ctx->session.th.len);
@@ -608,7 +607,7 @@ gen_prk_4e3m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
     return 0;
   }
   uint8_t salt_info[37];
-  salt_info[0] = 0x05;
+  salt_info[0] = (uint8_t)SALT_4E3M_LABEL;
   salt_info[1] = 0x58;
   salt_info[2] = 0x20;
   memcpy(salt_info + 3, ctx->session.th.buf, ctx->session.th.len);
