@@ -55,7 +55,7 @@ static uint8_t buf[MAX_BUFFER];
 static uint8_t inf[MAX_BUFFER];
 static uint8_t cred_x[128];
 static uint8_t id_cred_x[128];
-static uint8_t mac[MAC_LEN];
+static uint8_t mac[HASH_LENGTH]; //TODO: signature_or_mac
 
 MEMB(edhoc_context_storage, edhoc_context_t, 1);
 
@@ -159,17 +159,18 @@ static size_t
 generate_id_cred_x(cose_key *cose, uint8_t *cred)
 {
   size_t size = 0;
-  /* TODO: PRKI Include a reduce form of the credentials? */
+  /* TODO: PRKI Include a reduced form of the credentials? */
   LOG_DBG("kid (%zu bytes): ", cose->kid.len);
   print_buff_8_dbg(cose->kid.buf, cose->kid.len);
-  /* PRK_ID Include KID */
-  if(AUTHENT_TYPE == PRK_ID) {
+ 
+  /* Include KID */
+  if(AUTHENT_TYPE == CRED_KID) {
     size += cbor_put_map(&cred, 1);
     size += cbor_put_unsigned(&cred, 4);
     size += cbor_put_bytes(&cred, cose->kid.buf, cose->kid.len);
   }
   /* PRK_2 Include directly the credential used for authentication ID_CRED_X = CRED_X */
-  if(AUTHENT_TYPE == PRKI_2) {
+  if(AUTHENT_TYPE == CRED_INCLUDE) {
     size = generate_cred_x(cose, cred);
   }
   return size;
@@ -265,7 +266,6 @@ set_rx_gx(edhoc_context_t *ctx, uint8_t *gx)
 static int8_t
 set_rx_method(edhoc_context_t *ctx, uint8_t method)
 {
-  /*TODO: Support more than one method */
   if(method != METHOD) {
     LOG_ERR("error code (%d)\n ", ERR_REJECT_METHOD);
     return ERR_REJECT_METHOD;
@@ -283,6 +283,7 @@ static void
 print_connection(edhoc_session *con)
 {
   LOG_DBG("Connection print\n");
+  LOG_DBG("Using test vector: %s\n", TEST != 0 ? "true" : "false");
   LOG_DBG("connection role: %d\n", (int)con->role);
   LOG_DBG("connection method: %d\n", (int)con->method);
   LOG_DBG("My suit: %d\n", con->suit[0]);
@@ -403,7 +404,7 @@ edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info_sz, uin
   return length;
 }
 static uint8_t
-set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac)
+set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac, uint8_t mac_len)
 {
    // FIXME: add ead_2/3 here too.
 
@@ -425,18 +426,17 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     cbor_put_bytes(&context_2_ptr, ctx->session.th.buf, ctx->session.th.len);
     memcpy(context_2_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
     context_2_ptr += ctx->session.cred_x.len;
-    cbor_put_unsigned(&context_2_ptr, MAC_LEN);
     LOG_DBG("CONTEXT_2 (%zu bytes): ", context_2_buffer_sz);
     print_buff_8_dbg(context_2, context_2_buffer_sz);
     
     /* RH: Create mac_info */
-    size_t mac_info_buffer_sz = cbor_int_size(MAC_2_LABEL) + cbor_bstr_size(context_2_buffer_sz) + cbor_int_size(MAC_LEN);
+    size_t mac_info_buffer_sz = cbor_int_size(MAC_2_LABEL) + cbor_bstr_size(context_2_buffer_sz) + cbor_int_size(mac_len);
     uint8_t mac_info[mac_info_buffer_sz];
-    size_t mac_info_sz = generate_info(mac_info, context_2, context_2_buffer_sz, MAC_LEN, MAC_2_LABEL);
+    size_t mac_info_sz = generate_info(mac_info, context_2, context_2_buffer_sz, mac_len, MAC_2_LABEL);
     LOG_DBG("info MAC_2 (%zu bytes): ", mac_info_sz);
     print_buff_8_dbg(mac_info, mac_info_sz);
   
-    int8_t er = edhoc_expand(mac, ctx->eph_key.prk_3e2m, mac_info, mac_info_sz, MAC_LEN);
+    int8_t er = edhoc_expand(mac, ctx->eph_key.prk_3e2m, mac_info, mac_info_sz, mac_len);
     if(er < 0) {
       LOG_ERR("Failed to expand MAC_2\n");
       return 0;
@@ -452,18 +452,17 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
     cbor_put_bytes(&context_3_ptr, ctx->session.th.buf, ctx->session.th.len);
     memcpy(context_3_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
     context_3_ptr += ctx->session.cred_x.len;
-    cbor_put_unsigned(&context_3_ptr, MAC_LEN);
     LOG_DBG("CONTEXT_3 (%zu bytes): ", context_3_buffer_sz);
     print_buff_8_dbg(context_3, context_3_buffer_sz);
 
     /* RH: Create mac_info */
-    size_t mac_info_buffer_sz = cbor_int_size(MAC_3_LABEL) + cbor_bstr_size(context_3_buffer_sz) + cbor_int_size(MAC_LEN);
+    size_t mac_info_buffer_sz = cbor_int_size(MAC_3_LABEL) + cbor_bstr_size(context_3_buffer_sz) + cbor_int_size(mac_len);
     uint8_t mac_info[mac_info_buffer_sz];
-    size_t mac_info_sz = generate_info(mac_info, context_3, context_3_buffer_sz, MAC_LEN, MAC_3_LABEL);
+    size_t mac_info_sz = generate_info(mac_info, context_3, context_3_buffer_sz, mac_len, MAC_3_LABEL);
     LOG_DBG("info MAC_3 (%zu bytes): ", mac_info_sz);
     print_buff_8_dbg(mac_info, mac_info_sz);
  
-    int8_t er = edhoc_expand(mac, ctx->eph_key.prk_4e3m, mac_info, mac_info_sz, MAC_LEN);
+    int8_t er = edhoc_expand(mac, ctx->eph_key.prk_4e3m, mac_info, mac_info_sz, mac_len);
      if(er < 0) {
       LOG_ERR("Failed to expand MAC_3\n");
       return 0;
@@ -476,7 +475,7 @@ set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint
   return 1;
 }
 static uint8_t
-gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac)
+gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac, uint8_t mac_len)
 {
   uint8_t mac_num = 0;
   if(ROLE == INITIATOR) {
@@ -485,7 +484,7 @@ gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac)
     mac_num = MAC_2;
   }
 
-  if(!set_mac(ctx, ad, ad_sz, mac_num, mac)) {
+  if(!set_mac(ctx, ad, ad_sz, mac_num, mac, mac_len)) {
     LOG_ERR("Set MAC error\n");
     return 0;
   }
@@ -493,7 +492,7 @@ gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac)
   return MAC_LEN;
 }
 static uint16_t
-check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher, uint16_t cipher_sz, uint8_t *mac)
+check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *received_mac, uint16_t received_mac_sz, uint8_t *mac, uint8_t mac_len)
 {
   uint8_t mac_num = 0;
   if(ROLE == INITIATOR) {
@@ -502,22 +501,22 @@ check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher,
     mac_num = MAC_3;
   }
 
-  if(!set_mac(ctx, ad, ad_sz, mac_num, mac)) {
+  if(!set_mac(ctx, ad, ad_sz, mac_num, mac, mac_len)) {
     LOG_ERR("Set MAC error\n");
     return 0;
   }
   
-  LOG_DBG("Received MAC (%d): ", (int)cipher_sz);
-  print_buff_8_dbg(cipher, cipher_sz);
+  LOG_DBG("Received MAC (%d): ", (int)received_mac_sz);
+  print_buff_8_dbg(received_mac, received_mac_sz);
 
-  LOG_DBG("Recalculated MAC (%d): ", (int)cipher_sz);
-  print_buff_8_dbg(mac, cipher_sz);
+  LOG_DBG("Recalculated MAC (%d): ", (int)received_mac_sz);
+  print_buff_8_dbg(mac, received_mac_sz);
   
   /* RH: Verify the MAC value */
   uint16_t mac_sz = MAC_LEN;
   uint8_t diff = 0;
   for(int i = 0 ; i < MAC_LEN ; i++) {
-    diff |= (mac[i] ^ cipher[i]);
+    diff |= (mac[i] ^ received_mac[i]);
   } 
   
   if(diff != 0) {
@@ -703,7 +702,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphert
   return cose->plaintext_sz;
 }
 static uint16_t
-gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool msg2)
+gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool msg2, uint8_t mac_or_signature_sz)
 {
   uint8_t *pint = (ctx->session.id_cred_x.buf);
   uint8_t *pout = buffer;
@@ -734,7 +733,7 @@ gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, 
     size += ctx->session.id_cred_x.len;
   }
 
-  size += cbor_put_bytes(&buf_ptr, &(mac[0]), MAC_LEN);
+  size += cbor_put_bytes(&buf_ptr, &(mac[0]), mac_or_signature_sz);
   if(ad_sz != 0) {
     size += cbor_put_bytes(&buf_ptr, ad, ad_sz);
   }
@@ -751,7 +750,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   cose->external_aad_sz = ctx->session.th.len;
   memcpy(th3_ptr, ctx->session.th.buf, ctx->session.th.len);
 
-  cose->plaintext_sz = gen_plaintext(cose->plaintext, ctx, ad, ad_sz, false);
+  cose->plaintext_sz = gen_plaintext(cose->plaintext, ctx, ad, ad_sz, false, MAC_LEN);
   LOG_DBG("PLAINTEXT_3 (%d bytes): ", (int)cose->plaintext_sz);
   print_buff_8_dbg(cose->plaintext, cose->plaintext_sz);
 
@@ -902,17 +901,55 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 
   /* generate prk_3e2m */
   gen_prk_3e2m(ctx, &ctx->authen_key, 1);
-#if ((METHOD == METH0) || (METHOD == METH2))
 
-#endif
+
+  uint8_t mac_or_signature_sz = -1;
 
 #if ((METHOD == METH1) || (METHOD == METH3))
-  gen_mac_dh(ctx, ad, ad_sz, mac);
+  gen_mac_dh(ctx, ad, ad_sz, mac, MAC_LEN);
   LOG_DBG("MAC_2 (%d bytes): ", MAC_LEN);
   print_buff_8_dbg(mac, MAC_LEN);
+  mac_or_signature_sz = MAC_LEN;
 #endif
 
-  uint16_t p_sz = gen_plaintext(buf, ctx, ad, ad_sz, true);
+#if ((METHOD == METH0) || (METHOD == METH2))
+  // Derive MAC with HASH_LEN size
+  gen_mac_dh(ctx, ad, ad_sz, mac, HASH_LENGTH);
+  LOG_DBG("MAC_2 (%d bytes): ", HASH_LENGTH);
+  print_buff_8_dbg(mac, HASH_LENGTH);
+
+  /* Create signature from MAC and other data using COSE_Sign1 */
+  
+  // Protected
+  cose_sign1 *cose_sign1 = cose_sign1_new();
+  cose_sign1_set_header(cose_sign1, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len, NULL, 0);
+  
+  // External AAD
+  uint8_t *aad_ptr = cose_sign1->external_aad;
+  memcpy(aad_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
+  aad_ptr += ctx->session.cred_x.len;
+  memcpy(aad_ptr, ctx->session.th.buf, ctx->session.th.len);
+  cose_sign1->external_aad_sz = ctx->session.cred_x.len + ctx->session.th.len;
+  
+  // Payload
+  uint8_t er = cose_sign1_set_payload(cose_sign1, mac, HASH_LENGTH);
+  if(er < 0) {
+    LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
+    return;
+  }
+
+  cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key.private_key, ECC_KEY_BYTE_LENGTH);
+  er = cose_sign(cose_sign1);
+  if(er < 0) {
+    LOG_ERR("Failed to sign for COSE_Sign1 object\n");
+    return;
+  }
+
+  cose_sign1_finalize(cose_sign1);
+  mac_or_signature_sz = HASH_LENGTH;
+#endif
+
+  uint16_t p_sz = gen_plaintext(buf, ctx, ad, ad_sz, true, mac_or_signature_sz);
   LOG_DBG("PLAINTEXT_2 (%d bytes): ", (int)p_sz);
   print_buff_8_dbg(buf, p_sz);
   gen_k_2e(ctx, p_sz);
@@ -969,13 +1006,13 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   /* Generate prk_4e3m */
   gen_prk_4e3m(ctx, &ctx->authen_key, 0);
 
-#if ((METHOD == METH0) || (METHOD == METH2))
+#if ((METHOD == METH0) || (METHOD == METH1))
+
 
 #endif
 
-  /* Generate Authentication MAC */
-#if ((METHOD == METH1) || (METHOD == METH3))
-  gen_mac_dh(ctx, ad, ad_sz, mac);
+#if ((METHOD == METH2) || (METHOD == METH3))
+  gen_mac_dh(ctx, ad, ad_sz, mac, MAC_LEN);
   LOG_DBG("MAC 3 (%d bytes): ", MAC_LEN);
   print_buff_8_dbg(mac, MAC_LEN);
 #endif
@@ -1301,17 +1338,17 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   uint8_t *in_ptr = *ptr;
   LOG_DBG("msg (%d bytes): ", cipher_len);
   print_buff_8_dbg(in_ptr, cipher_len);
-  uint8_t *sign_r = NULL;
+  uint8_t *received_mac = NULL;
   /* Get MAC from the decrypt msg*/
-  uint16_t sign_r_sz = edhoc_get_sign(ptr, &sign_r);
-  uint16_t rest_sz = cipher_len - (*ptr - buf);
+  uint16_t received_mac_sz = edhoc_get_sign(ptr, &received_mac);
+  uint16_t ad_sz = cipher_len - (*ptr - buf);
 
   /* Get the ad from the decrypt msg*/
-  if(rest_sz) {
-    rest_sz = edhoc_get_ad(ptr, ad);
+  if(ad_sz) {
+    ad_sz = edhoc_get_ad(ptr, ad);
   } else {
     ad = NULL;
-    rest_sz = 0;
+    ad_sz = 0;
   }
   cose_key cose;
   ecc_key authenticate;
@@ -1334,15 +1371,24 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   ctx->session.id_cred_x.len = reconstruct_id_cred_x(ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
   ctx->session.id_cred_x.buf = id_cred_x;
 
-#if ((METHOD == METH0) || (METHOD == METH2))
 
-#endif
-#if ((METHOD == METH1) || (METHOD == METH3))
-  if(check_mac_dh(ctx, ad, rest_sz, sign_r, sign_r_sz, mac) == 0) {
+#if (METHOD == METH3)
+  if(check_mac_dh(ctx, ad, ad_sz, received_mac, received_mac_sz, mac, MAC_LEN) == 0) {
     LOG_ERR("error code in handler (%d)\n ", ERR_AUTHENTICATION);
     return ERR_AUTHENTICATION;
   }
- 
+#endif
+#if (METHOD == METH0)
+  if(check_mac_dh(ctx, ad, ad_sz, received_mac, received_mac_sz, mac, HASH_LENGTH) == 0) {
+    LOG_ERR("error code in handler (%d)\n ", ERR_AUTHENTICATION);
+    return ERR_AUTHENTICATION;
+  }
+  //TODO Use SIGN1 with received_mac
+#endif
+#if ((METHOD == METH1) || (METHOD == METH2))
+  // TODO: Handle method 1-2 (need to check ROLE too then)
+#endif
+
   /* RH: Compute TH4 WIP (after verifying MAC_3) */
   if(ROLE == RESPONDER) { 
     // Start by retrieving CRED_I
@@ -1354,10 +1400,9 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 
     // Actually calculate TH_4
     gen_th4(ctx, cred_i.buf, cred_i.len, ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
-  }
-  
-#endif
-  return rest_sz;
+  }  
+
+  return ad_sz;
 }
 uint8_t //RH: WIP
 cbor_bstr_size(uint32_t len) {

@@ -79,7 +79,7 @@ static edhoc_msg_2 msg2;
 PROCESS(edhoc_client, "EDHOC Client");
 PROCESS(edhoc_client_protocol, "EDHOC Client Protocol");
 
-#if TEST == TEST_VECTOR
+#if TEST == TEST_VECTOR_TRACE_2
 #if 0
 uint8_t eph_pub_x_i[ECC_KEY_BYTE_LENGTH] = { 0x47, 0x57, 0x76, 0xf8, 0x44, 0x97, 0x9a, 0xd0, 0xb4, 0x63, 0xc5, 0xa6, 0xa4, 0x34, 0x3a, 0x66, 0x3d, 0x17, 0xa3, 0xa8, 0x0e, 0x38, 0xa8, 0x1d,
                                              0x3e, 0x34, 0x96, 0xf6, 0x06, 0x1f, 0xd7, 0x16 };
@@ -444,7 +444,7 @@ PROCESS_THREAD(edhoc_client, ev, data)
   static struct etimer wait_timer;
   edhoc_client_init();
   time = RTIMER_NOW();
-#if TEST == TEST_VECTOR
+#if TEST == TEST_VECTOR_TRACE_2
   LOG_DBG("Using test vector\n");
   memcpy(edhoc_ctx->ephemeral_key.public.x, eph_pub_x_i, ECC_KEY_BYTE_LENGTH);
   memcpy(edhoc_ctx->ephemeral_key.public.y, eph_pub_y_i, ECC_KEY_BYTE_LENGTH);

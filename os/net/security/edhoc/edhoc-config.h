@@ -105,9 +105,8 @@
 #endif
 
 /* Credential Types */
-#define PRKI 1
-#define PRK_ID 2
-#define PRKI_2 3
+#define CRED_KID 2
+#define CRED_INCLUDE 3
 
 /**
  * \brief Set the authentication credential type
@@ -130,6 +129,19 @@
 #define EDHOC_CIPHERSUITE_6 6   /* A128GCM,            (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, ES256, P-256,   A128GCM, SHA-256 */
 #define EDHOC_CIPHERSUITE_24 24 /* A256GCM,            (HMAC 384/384) SHA-384,  MAC LEN 16, P-384,  ES384, P-384,   A256GCM, SHA-384 */
 #define EDHOC_CIPHERSUITE_25 25 /* ChaCha20/Poly1305,  (HMAC 256/256) SHAKE256, MAC LEN 16, X448,   EdDSA, Ed448,   ChaCha20/Poly1305, SHAKE256 */
+
+/* Algorithms for signing */
+#define ES256 -7
+#define EDDSA -8
+#define ES384 -35
+
+/**
+ * \brief Length of signatures
+ */
+#define P256_SIGNATURE_LEN 64
+#define ED25519_SIGNATURE_LEN 64
+#define ED448_SIGNATURE_LEN 114
+#define P384_SIGNATURE_LEN 96
 
 /**
  * \brief Set EDHOC cipher suit config
