@@ -136,7 +136,7 @@
     org.contikios.cooja.plugins.ScriptRunner
     <plugin_config>
       <script>
-TIMEOUT(10000000000);
+TIMEOUT(800000000);
 sim.setSpeedLimit(100000.0);  // Simulation speed.
 
 var checkingEnabled = true;
@@ -152,7 +152,7 @@ while (true) {
     log.testOK();
   }
   
-  if(msg.contains("Using test vector: false")) {
+  if(msg.contains("Using test vector: false") || msg.contains("connection method: 0")) {
     checkingEnabled = false;
   }
   if(checkingEnabled == false) {

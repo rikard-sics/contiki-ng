@@ -12,10 +12,9 @@ CoAP server is the EDHOC Responder. The MSG1 and MSG3 are transferred in POST re
 "/.well-known/edhoc". When MSGs size is bigger than 64B the Block-Wise transfer mechanism [RFC7959] for fragmentation is being used.
 
 Notice that the authentication keys must be established at the EDHOC key storage before running the EDHOC protocol. For this reason, an edhoc-key-storage.h() API function is provided in order to set the COSE_key with the correct struct format.
-At the configuration file, the credential type used for authentication must be selected. Two methods have been implemented:
-- `PRK_ID` : The EDHOC exchanging a unique identity of the public authentication key to be retrieved. Before running the EDHOC protocol each party need at least a DH-static public key and a set of identities which is allowed to communicate with.
-- `PRKI_2` : The EDHOC exchanging messages which include directly the actual
-credential (DH-static public key) formatted as a COSE_Key of type EC2. The EDHOC protocol can runs without prior knowledge of the other peer. Each peer provisionally accepts the RPK of the other party until posterior authentication.
+At the configuration file, the credential type used for authentication must be selected. Two types have been implemented:
+- `CRED_KID` : The EDHOC exchanging a unique identity of the public authentication key to be retrieved. Before running the EDHOC protocol each party need at least a DH-static public key and a set of identities which is allowed to communicate with.
+- `CRED_INCLUDE` : The EDHOC exchanging messages which include directly the actual credential (DH-static public key) formatted as a COSE_Key of type EC2. The EDHOC protocol can runs without prior knowledge of the other peer. Each peer provisionally accepts the RPK of the other party until posterior authentication.
 
 ### EDHOC configuration
 The following macro must be defined on the configuration file:
@@ -32,6 +31,10 @@ If the parties have agreed on an identity beside the public key, the "subject na
 #define EDHOC_CONF_ROLE INITIATOR
 ```
 - Define the Connection Identifier(`CID`)
+```c
+#define METHOD METH3
+```
+- Define the EDHOC method to use
 ```c
 #define EDHOC_CID 0x20
 ```

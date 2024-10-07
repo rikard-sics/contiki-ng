@@ -90,10 +90,10 @@
 #define SYMMETRIC 3  /* not implemented yet */
 
 /* EDHOC Authentication Method Types: Initiator (I) | Responder (R) */
-#define METH0 0                  /* Signature Key  | Signature Key   // not implemented yet */
-#define METH1 1                  /* Signature Key  | Static DH Key   // not implemented yet */
-#define METH2 2                  /* Static DH Key  | Signature Key   // not implemented yet */
-#define METH3 3                  /* Static DH Key  | Static DH Key */
+#define METH0 0                  /* Signature Key  | Signature Key  */
+#define METH1 1                  /* Signature Key  | Static DH Key  */
+#define METH2 2                  /* Static DH Key  | Signature Key  */
+#define METH3 3                  /* Static DH Key  | Static DH Key  */
 
 /**
  * \brief Set the Authentication method
@@ -103,6 +103,14 @@
 #else
  #define METHOD METH3
 #endif
+
+/**
+ * \brief Helper defines for method handling on msg. reception
+ */
+#define INITIATOR_METH2 (METHOD == METH2 && ROLE == INITIATOR)
+#define RESPONDER_METH1 (METHOD == METH1 && ROLE == RESPONDER)
+#define INITIATOR_METH1 (METHOD == METH1 && ROLE == INITIATOR)
+#define RESPONDER_METH2 (METHOD == METH2 && ROLE == RESPONDER)
 
 /* Credential Types */
 #define CRED_KID 2
@@ -114,7 +122,7 @@
 #ifdef EDHOC_CONF_AUTHENT_TYPE
   #define AUTHENT_TYPE EDHOC_CONF_AUTHENT_TYPE
 #else
-  #define AUTHENT_TYPE PRK_ID
+  #define AUTHENT_TYPE CRED_KID
 #endif
 
 /* #define AUTHENTICATION_KEY_LEN 32 // For Signature key, not yet implemented */

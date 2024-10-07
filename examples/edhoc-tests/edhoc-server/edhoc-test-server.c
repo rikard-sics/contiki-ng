@@ -195,18 +195,13 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
         t = RTIMER_NOW() - t;
         LOG_INFO("Server time to generate OSCORE ctx: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
 
-        edhoc_exporter_print_oscore_ctx(&osc);
+        print_oscore_ctx(&osc);
       }
-      /* LOG_DBG("And Get your Application Data\n");
-         char ad3[16];
-         uint8_t ad3_sz = edhoc_server_get_ad_3(ad3);
-         LOG_DBG("AD_3 (%d bytes): ",ad3_sz);
-         print_char_8_dbg(ad3,ad3_sz); */
       res = SERV_RESTART;
     }
     if(res == SERV_RESTART) {
       edhoc_server_restart();
-      LOG_INFO("restart server\n");
+      LOG_INFO("Server restarting\n");
       t = RTIMER_NOW();
 #if TEST == TEST_VECTOR_TRACE_2
       LOG_INFO("Using test vector\n");
