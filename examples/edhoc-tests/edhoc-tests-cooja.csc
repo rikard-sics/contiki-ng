@@ -139,12 +139,26 @@
 TIMEOUT(10000000000);
 sim.setSpeedLimit(100000.0);  // Simulation speed.
 
+var checkingEnabled = true;
 while (true) {
   log.log(id + " " + msg + "\n");  // Write all output to COOJA.testlog
 
   // Define the device type using a ternary operator
   var device = (id == 1) ? "Client" : (id == 2) ? "Server" : "Unknown";
   device = "[MSG : EDHOC     ] " + device;
+  
+  // Check for finish condition
+  if (msg.contains("Client time to finish")) {
+    log.testOK();
+  }
+  
+  if(msg.contains("Using test vector: false")) {
+    checkingEnabled = false;
+  }
+  if(checkingEnabled == false) {
+    YIELD();
+    continue;
+  }
 
   // Check if the OSCORE master secret is correct
   if (msg.contains("OSCORE Master Secret")) {
@@ -227,11 +241,6 @@ while (true) {
     } else {
       log.log("I " + device + ": Incorrect message_3!\n");
     }
-  }
-
-  // Check for finish condition
-  if (msg.contains("Client time to finish")) {
-    log.testOK();
   }
   YIELD();
 }

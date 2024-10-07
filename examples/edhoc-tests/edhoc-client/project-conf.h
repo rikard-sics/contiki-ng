@@ -26,11 +26,10 @@
 #define EDHOC_CONF_CORR EXTERNAL_CORR_U
 
 /* To run with the test vector DH ephemeral keys used on the EDHOC interoperability session */
-#define EDHOC_TEST TEST_VECTOR
+#define EDHOC_CONF_TEST TEST_VECTOR_TRACE_2
 
 /* Define the authentication method */
-//#define EDHOC_CONF_AUTHENT_TYPE PRKI_2
-#define EDHOC_CONF_AUTHENT_TYPE PRK_ID
+#define EDHOC_CONF_AUTHENT_TYPE CRED_KID
 
 /* Define the library for SHA operations */
 // #define EDHOC_CONF_SH256 DECC_SH2
