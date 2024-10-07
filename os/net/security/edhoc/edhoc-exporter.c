@@ -43,7 +43,7 @@
 #include "contiki-lib.h"
 
 void
-edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc)
+print_oscore_ctx(oscore_ctx_t *osc)
 {
   LOG_PRINT("Initiator client CID: 0x%02x\n", osc->client_ID);
   LOG_PRINT("Responder server CID: 0x%02x\n", osc->server_ID);

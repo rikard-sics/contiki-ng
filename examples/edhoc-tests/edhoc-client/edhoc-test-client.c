@@ -112,9 +112,6 @@ PROCESS_THREAD(edhoc_example_client, ev, data)
   edhoc_add_key(&auth_client);
   edhoc_add_key(&auth_server);
 
-  /* edhoc_server_set_ad_1("MSG1!",strlen("MSG1!")); 
-  edhoc_server_set_ad_3("MSG3!",strlen("MSG3!")); */
-
   edhoc_client_run();
   while(1) {
     watchdog_periodic();
@@ -127,13 +124,8 @@ PROCESS_THREAD(edhoc_example_client, ev, data)
         LOG_ERR("ERROR IN EXPORT CTX\n");
       } else {
         LOG_INFO("Export OSCORE CTX success\n");
-        edhoc_exporter_print_oscore_ctx(&osc);
+        print_oscore_ctx(&osc);
       }
-	  /* LOG_DBG("And Get your Application Data\n");
-	  char ad2[16];
-	  LOG_DBG("AD2:");
-	  uint8_t ad2_sz = edhoc_server_get_ad_2(ad2);
-	  print_char_8_dbg(ad2,ad2_sz); */
       break;
     }
     if(re < 0) {

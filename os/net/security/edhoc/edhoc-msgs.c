@@ -330,7 +330,7 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
       LOG_ERR("error code (%d)\n ", ERR_MSG_MALFORMED);
       return ERR_MSG_MALFORMED;
     }
-    // FIXME: add ead_label decoding.
+    // FIXME: add ead_label decoding
     msg->uad.ead_value.buf = p_out;
     msg->uad.ead_value.len = out_sz;
   }
@@ -406,24 +406,8 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
     }
     break;
 
-  /*TODO: include cases for each different support authentication case */
-  /*case 32:
-
-     key_sz = edhoc_get_bytes(p, &ptr);
-     memcpy(key->x, ptr, ECC_KEY_BYTE_LENGTH);
-     get_text(p, &sn);
-     key->kid_sz = 0;
-     if(memcmp(sn, "subject name", strlen("subject name")) == 0) {
-      key_id_sz = get_text(p, &sn);
-      memcpy(key->identity, sn, key_id_sz);
-      key->identity_sz = key_id_sz;
-     } else {
-      return 0;
-      LOG_ERR("missing subject name");
-      break;
-     }
-     break;*/
-  /*(PRK_ID) ID_CRED_R = map(4:KID bstr)  (KID 4 Byte)*/
+  /* TODO: include cases for each different support authentication case */
+  /* (CRED_KID) ID_CRED_R = map(4:KID bstr)  (KID 4 Byte)*/
   case 4:
     key_id_sz = edhoc_get_bytes(p, &ptr);
     key_sz = edhoc_get_cred_x_from_kid(ptr, key_id_sz, &hkey);
@@ -435,7 +419,7 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
     }
     break;
 
-  /*(PRKI_2) ID_CRED_R = CRED_R */
+  /* (CRED_INCLUDE) ID_CRED_R = CRED_R */
   case 1:
     key->kty = edhoc_get_unsigned(p);
     int param = get_negative(p);

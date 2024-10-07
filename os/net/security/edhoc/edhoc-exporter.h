@@ -98,7 +98,7 @@ int8_t edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx);
  * \param osc input OSCORE Context struct
  *
  */
-void edhoc_exporter_print_oscore_ctx(oscore_ctx_t *osc);
+void print_oscore_ctx(oscore_ctx_t *osc);
 
 /**
  * \brief Derive an application-specific key from EDHOC

@@ -55,7 +55,7 @@ static uint8_t buf[MAX_BUFFER];
 static uint8_t inf[MAX_BUFFER];
 static uint8_t cred_x[128];
 static uint8_t id_cred_x[128];
-static uint8_t mac[HASH_LENGTH]; //TODO: signature_or_mac
+static uint8_t mac[P256_SIGNATURE_LEN]; //TODO: rename to signature_or_mac
 
 MEMB(edhoc_context_storage, edhoc_context_t, 1);
 
@@ -78,8 +78,6 @@ edhoc_storage_init(void)
 void
 edhoc_init(edhoc_context_t *ctx)
 {
-  /* TODO : check that the key belongs to the curve */
-
   ctx->session.cid = EDHOC_CID;
   
   /* Reverse order for the suit values */
@@ -130,7 +128,6 @@ generate_cred_x(cose_key *cose, uint8_t *cred)
   size_t size = 0;
   size += cbor_put_map(&cred, 2);
   size += cbor_put_unsigned(&cred, 2);
-  // size += cbor_put_text(&cred, "subject name", strlen("subject name"));
   size += cbor_put_text(&cred, cose->identity.buf, cose->identity.len);
   size += cbor_put_unsigned(&cred, 8);
   size += cbor_put_map(&cred, 1);
@@ -159,7 +156,6 @@ static size_t
 generate_id_cred_x(cose_key *cose, uint8_t *cred)
 {
   size_t size = 0;
-  /* TODO: PRKI Include a reduced form of the credentials? */
   LOG_DBG("kid (%zu bytes): ", cose->kid.len);
   print_buff_8_dbg(cose->kid.buf, cose->kid.len);
  
@@ -169,7 +165,7 @@ generate_id_cred_x(cose_key *cose, uint8_t *cred)
     size += cbor_put_unsigned(&cred, 4);
     size += cbor_put_bytes(&cred, cose->kid.buf, cose->kid.len);
   }
-  /* PRK_2 Include directly the credential used for authentication ID_CRED_X = CRED_X */
+  /* Include directly the credential used for authentication ID_CRED_X = CRED_X */
   if(AUTHENT_TYPE == CRED_INCLUDE) {
     size = generate_cred_x(cose, cred);
   }
@@ -750,7 +746,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   cose->external_aad_sz = ctx->session.th.len;
   memcpy(th3_ptr, ctx->session.th.buf, ctx->session.th.len);
 
-  cose->plaintext_sz = gen_plaintext(cose->plaintext, ctx, ad, ad_sz, false, MAC_LEN);
+  cose->plaintext_sz = gen_plaintext(cose->plaintext, ctx, ad, ad_sz, false, mac_sz);
   LOG_DBG("PLAINTEXT_3 (%d bytes): ", (int)cose->plaintext_sz);
   print_buff_8_dbg(cose->plaintext, cose->plaintext_sz);
 
@@ -766,7 +762,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
     return 0;
   }
   cose->key_sz = KEY_DATA_LENGTH;
-  LOG_DBG("K_3ae (%d bytes): ", (int)cose->key_sz);
+  LOG_DBG("K_3 (%d bytes): ", (int)cose->key_sz);
   print_buff_8_dbg(cose->key, cose->key_sz);
 
   /* generate IV_3 */
@@ -776,7 +772,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
     return 0;
   }
   cose->nonce_sz = IV_LENGTH;
-  LOG_DBG("IV_3ae (%d bytes): ", (int)cose->nonce_sz);
+  LOG_DBG("IV_3 (%d bytes): ", (int)cose->nonce_sz);
   print_buff_8_dbg(cose->nonce, cose->nonce_sz);
 
   /* COSE encrypt0 set header */
@@ -946,7 +942,12 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   }
 
   cose_sign1_finalize(cose_sign1);
-  mac_or_signature_sz = HASH_LENGTH;
+
+  LOG_DBG("Signature from COSE_Sign1 (%d bytes): ", P256_SIGNATURE_LEN);
+  print_buff_8_dbg(cose_sign1->signature, P256_SIGNATURE_LEN);
+
+  mac_or_signature_sz = P256_SIGNATURE_LEN;
+  memcpy(mac, cose_sign1->signature, cose_sign1->signature_sz);
 #endif
 
   uint16_t p_sz = gen_plaintext(buf, ctx, ad, ad_sz, true, mac_or_signature_sz);
@@ -1006,20 +1007,61 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   /* Generate prk_4e3m */
   gen_prk_4e3m(ctx, &ctx->authen_key, 0);
 
+  uint8_t mac_or_signature_sz = -1;
+
 #if ((METHOD == METH0) || (METHOD == METH1))
+  // TODO: Merge with gen_msg_2?
+  // Derive MAC with HASH_LEN size
+  gen_mac_dh(ctx, ad, ad_sz, mac, HASH_LENGTH);
+  LOG_DBG("MAC_3 (%d bytes): ", HASH_LENGTH);
+  print_buff_8_dbg(mac, HASH_LENGTH);
 
+  /* Create signature from MAC and other data using COSE_Sign1 */
 
+  // Protected
+  cose_sign1 *cose_sign1 = cose_sign1_new();
+  cose_sign1_set_header(cose_sign1, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len, NULL, 0);
+
+  // External AAD
+  uint8_t *aad_ptr = cose_sign1->external_aad;
+  memcpy(aad_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
+  aad_ptr += ctx->session.cred_x.len;
+  memcpy(aad_ptr, ctx->session.th.buf, ctx->session.th.len);
+  cose_sign1->external_aad_sz = ctx->session.cred_x.len + ctx->session.th.len;
+
+  // Payload
+  uint8_t er = cose_sign1_set_payload(cose_sign1, mac, HASH_LENGTH);
+  if(er < 0) {
+    LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
+    return;
+  }
+
+  cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key.private_key, ECC_KEY_BYTE_LENGTH);
+  er = cose_sign(cose_sign1);
+  if(er < 0) {
+    LOG_ERR("Failed to sign for COSE_Sign1 object\n");
+    return;
+  }
+
+  cose_sign1_finalize(cose_sign1);
+
+  LOG_DBG("Signature from COSE_Sign1 (%d bytes): ", P256_SIGNATURE_LEN);
+  print_buff_8_dbg(cose_sign1->signature, P256_SIGNATURE_LEN);
+
+  mac_or_signature_sz = P256_SIGNATURE_LEN;
+  memcpy(mac, cose_sign1->signature, cose_sign1->signature_sz);
 #endif
 
 #if ((METHOD == METH2) || (METHOD == METH3))
   gen_mac_dh(ctx, ad, ad_sz, mac, MAC_LEN);
   LOG_DBG("MAC 3 (%d bytes): ", MAC_LEN);
   print_buff_8_dbg(mac, MAC_LEN);
+  mac_or_signature_sz = MAC_LEN;
 #endif
 
   /* time = RTIMER_NOW(); */
   /* Gen ciphertext_3 */
-  uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac, MAC_LEN, ctx->msg_tx);
+  uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac, mac_or_signature_sz, ctx->msg_tx);
   ctx->tx_sz = ciphertext_sz;
   
   /* Compute TH4 WIP */
@@ -1357,6 +1399,13 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   set_cose_key(&authenticate, &cose, key, ctx->curve);
   cose_print_key(&cose);
 
+#if (METHOD == METH0) || INITIATOR_METH2 || RESPONDER_METH1
+  /* Save the other peer's public key for later */
+  uint8_t other_public_key[ECC_KEY_BYTE_LENGTH * 2];
+  memcpy(other_public_key, cose.x.buf, cose.x.len);
+  memcpy(other_public_key + cose.x.len, cose.y.buf, cose.y.len);
+#endif
+
   ctx->session.cred_x.buf = inf;
   ctx->session.cred_x.len = generate_cred_x(&cose, ctx->session.cred_x.buf);
   LOG_DBG("CRED_R auth (%zu): ", ctx->session.cred_x.len);
@@ -1371,22 +1420,58 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   ctx->session.id_cred_x.len = reconstruct_id_cred_x(ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
   ctx->session.id_cred_x.buf = id_cred_x;
 
-
-#if (METHOD == METH3)
+#if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
   if(check_mac_dh(ctx, ad, ad_sz, received_mac, received_mac_sz, mac, MAC_LEN) == 0) {
     LOG_ERR("error code in handler (%d)\n ", ERR_AUTHENTICATION);
     return ERR_AUTHENTICATION;
   }
 #endif
-#if (METHOD == METH0)
-  if(check_mac_dh(ctx, ad, ad_sz, received_mac, received_mac_sz, mac, HASH_LENGTH) == 0) {
-    LOG_ERR("error code in handler (%d)\n ", ERR_AUTHENTICATION);
+#if (METHOD == METH0) || INITIATOR_METH2 || RESPONDER_METH1
+  /* Create signature from MAC and other data using COSE_Sign1 */
+
+  // Protected
+  cose_sign1 *cose_sign1 = cose_sign1_new();
+  cose_sign1_set_header(cose_sign1, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len, NULL, 0);
+
+  // External AAD (CRED_I and TH)
+  bstr cred_i_sig;
+  int8_t er2 = retrieve_cred_i(ctx, inf, &cred_i_sig);
+  if(er2 != 1) {
     return ERR_AUTHENTICATION;
   }
-  //TODO Use SIGN1 with received_mac
-#endif
-#if ((METHOD == METH1) || (METHOD == METH2))
-  // TODO: Handle method 1-2 (need to check ROLE too then)
+  uint8_t *aad_ptr = cose_sign1->external_aad;
+  memcpy(aad_ptr, cred_i_sig.buf, cred_i_sig.len);
+  aad_ptr += cred_i_sig.len;
+  memcpy(aad_ptr, ctx->session.th.buf, ctx->session.th.len);
+  cose_sign1->external_aad_sz = cred_i_sig.len + ctx->session.th.len;
+
+  // Set received signature
+  cose_sign1_set_signature(cose_sign1, received_mac, received_mac_sz);
+
+  // Payload (MAC)
+  uint8_t mac_num = -1;
+  if(ROLE == INITIATOR) {
+    mac_num = MAC_2;
+  } else {
+    mac_num = MAC_3;
+  }
+  set_mac(ctx, ad, ad_sz, mac_num, mac, HASH_LENGTH);
+  LOG_DBG("MAC_%d (%d bytes): ", mac_num == 2 ? 2 : 3, HASH_LENGTH); // MAC_2 or 3
+  print_buff_8_dbg(mac, HASH_LENGTH);
+  er2 = cose_sign1_set_payload(cose_sign1, mac, HASH_LENGTH);
+  if(er2 < 0) {
+    LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
+    return ERR_AUTHENTICATION;
+  }
+
+  // Set other peer public key and verify
+  cose_sign1_set_key(cose_sign1, ES256, other_public_key, ECC_KEY_BYTE_LENGTH * 2);
+  er2 = cose_verify(cose_sign1);
+  cose_sign1_finalize(cose_sign1);
+  if(er2 <= 0) {
+    LOG_ERR("Failed to check signature for COSE_Sign1 object\n");
+    return ERR_AUTHENTICATION;
+  }
 #endif
 
   /* RH: Compute TH4 WIP (after verifying MAC_3) */
