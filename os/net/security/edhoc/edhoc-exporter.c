@@ -34,7 +34,6 @@
  *
  * \author
  *         Lidia Pocero <pocero@isi.gr>
- *         Peter Jonsson
  *         Rikard Höglund
  *         Marco Tiloca
  */

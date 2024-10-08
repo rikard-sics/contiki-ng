@@ -32,7 +32,7 @@
  * \file
  *         ecc-uecc headers
  * \author
- *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
+ *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
  */
 #ifndef _ECC_UECC_H_
 #define _ECC_UECC_H_

@@ -108,8 +108,8 @@ typedef struct edhoc_session {
   bstr id_cred_x;
   bstr cred_x;
   bstr th;
-  bstr ciphertext_2;
-  bstr ciphertext_3;
+  bstr plaintext_2;
+  bstr plaintext_3;
 } edhoc_session;
 
 /**
