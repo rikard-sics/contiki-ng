@@ -196,7 +196,7 @@ void edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suit_
  * It is used by EDHOC Responder role to processing the message 2
  * Generate an ephemeral ECDH key pair
  * Choose a connection identifier,
- * Compute the transcript hash 2 TH2 = H(ctx->MSG1, data_2)
+ * Compute the transcript hash 2 TH_2 = H(ctx->MSG1, data_2)
  * Compute MAC_2 (Message Authentication Code)
  * Compute CIPHERTEXT_2
  * Compose the EDHOC Message 2 as described in the (RFC9528) reference
@@ -214,7 +214,7 @@ void edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz);
  * \param ad_sz Application data length
  *
  * It is used by EDHOC Initiator role to processing the message 3.
- * Compute the transcript hash 3 TH3 = H(TH_2, PLAINTEXT_2, data_3)
+ * Compute the transcript hash 3 TH_3 = H(TH_2, PLAINTEXT_2, data_3)
  * Compute MAC_3 (Message Authentication Code)
  * Compute CIPHERTEXT_3
  * Compose the EDHOC Message 3 as described in the (RFC9528) reference

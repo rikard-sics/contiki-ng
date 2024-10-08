@@ -290,42 +290,41 @@ print_connection(edhoc_session *con)
   print_buff_8_dbg(con->Gx.buf, con->Gx.len);
 }
 static int8_t
-gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz)
+gen_th2(edhoc_context_t *ctx, uint8_t *eph_pub, uint8_t *msg, uint16_t msg_sz)
 {
-  /* Create the input for TH2 = H(msg1), msg1 is in msg_rx */
-  uint8_t h2_sz = msg_sz + ECC_KEY_BYTE_LENGTH + 2 + 2;
-  uint8_t h2[h2_sz];
-  memcpy(h2 + 2, data, ECC_KEY_BYTE_LENGTH);
-  // TODO: use CBOR functions
-  h2[0] = 0x58;
-  h2[1] = 0x20;
-  h2[ECC_KEY_BYTE_LENGTH + 2] = 0x58;
-  h2[ECC_KEY_BYTE_LENGTH + 2 + 1] = 0x20;
+  /* Create the input for TH_2 = H(G_Y, H(msg)), msg1 is in msg_rx */
+  int h_buffer_sz = cbor_bstr_size(HASH_LENGTH) + cbor_bstr_size(ECC_KEY_BYTE_LENGTH);
+  uint8_t h2[h_buffer_sz];
+  uint8_t *h2_ptr = h2;
+  
   LOG_DBG("Input to calculate H(msg1) (%d bytes): ", (int)msg_sz);
   print_buff_8_dbg(msg, msg_sz);
+  
+  uint8_t msg_1_hash[HASH_LENGTH];
+  compute_th(msg, msg_sz, msg_1_hash, HASH_LENGTH);
+  
+  cbor_put_bytes(&h2_ptr, eph_pub, ECC_KEY_BYTE_LENGTH);
+  cbor_put_bytes(&h2_ptr, msg_1_hash, HASH_LENGTH);
+  
   /* Compute TH */
-  uint8_t hash_offset = 2 + ECC_KEY_BYTE_LENGTH + 2;
-  uint8_t er = compute_th(msg, msg_sz, h2 + hash_offset, HASH_LENGTH);
-  if(er != 0) {
-    LOG_ERR("ERR COMPUTED H(msg1)\n");
-    return ERR_CODE;
-  }
- 
-  LOG_DBG("Input to TH_2 (%d): ", hash_offset + HASH_LENGTH);
-  print_buff_8_dbg(h2, hash_offset + HASH_LENGTH);
-  er = compute_th(h2, hash_offset + HASH_LENGTH, ctx->session.th.buf, ctx->session.th.len);
+  LOG_DBG("Input to TH_2 (%d): ", h_buffer_sz);
+  print_buff_8_dbg(h2, h_buffer_sz);
+  uint8_t er = compute_th(h2, h_buffer_sz, ctx->session.th.buf, ctx->session.th.len);
   if(er != 0) {
     LOG_ERR("ERR COMPUTED H(G_Y, H(msg1))\n ");
     return ERR_CODE;
   }
+  
   LOG_DBG("TH_2 (%d bytes): ", (int)ctx->session.th.len);
   print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
   return 0;
 }
 static uint8_t
-gen_th3(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz)
+gen_th3(edhoc_context_t *ctx, uint8_t *cred, uint16_t cred_sz, uint8_t *ciphertext, uint16_t ciphertext_sz)
 {
-  uint8_t h[MAX_BUFFER];
+  /* TH_3 = H(TH_2, PLAINTEXT_2, CRED_R) */
+  int h_buffer_sz = cbor_bstr_size(ctx->session.th.len) + ciphertext_sz + cred_sz;
+  uint8_t h[h_buffer_sz];
   uint8_t *ptr = h;
   uint16_t h_sz = cbor_put_bytes(&ptr, ctx->session.th.buf, ctx->session.th.len);
   LOG_DBG("TH_2 (%zu): ", ctx->session.th.len);
@@ -334,27 +333,29 @@ gen_th3(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   h_sz += ciphertext_sz;
   LOG_DBG("PLAINTEXT_2 (%d): ", ciphertext_sz);
   print_buff_8_dbg(ciphertext, ciphertext_sz);
-  memcpy(h + h_sz, data, data_sz);
-  h_sz += data_sz;
-  LOG_DBG("CRED_R (%d): ", data_sz);
-  print_buff_8_dbg(data, data_sz);
+  memcpy(h + h_sz, cred, cred_sz);
+  h_sz += cred_sz;
+  LOG_DBG("CRED_R (%d): ", cred_sz);
+  print_buff_8_dbg(cred, cred_sz);
   LOG_DBG("input to calculate TH_3 (CBOR Sequence) (%d bytes): ", (int)h_sz);
   print_buff_8_dbg(h, h_sz);
 
   /* Compute TH */
   uint8_t er = compute_th(h, h_sz, ctx->session.th.buf, ctx->session.th.len);
   if(er != 0) {
-    LOG_ERR("ERR COMPUTED TH3\n ");
+    LOG_ERR("ERR COMPUTED TH_3\n ");
     return ERR_CODE;
   }
-  LOG_DBG("TH3 (%d bytes): ", (int)ctx->session.th.len);
+  LOG_DBG("TH_3 (%d bytes): ", (int)ctx->session.th.len);
   print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
   return 0;
 }
 static uint8_t
-gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz)
+gen_th4(edhoc_context_t *ctx, uint8_t *cred, uint16_t cred_sz, uint8_t *ciphertext, uint16_t ciphertext_sz)
 {
-  uint8_t h[MAX_BUFFER];
+  /* TH_4 = H(TH_3, PLAINTEXT_3, CRED_I) */
+  int h_buffer_sz = cbor_bstr_size(ctx->session.th.len) + ciphertext_sz + cred_sz;
+  uint8_t h[h_buffer_sz];
   uint8_t *ptr = h;
   uint16_t h_sz = cbor_put_bytes(&ptr, ctx->session.th.buf, ctx->session.th.len);
   LOG_DBG("TH_3 (%zu): ", ctx->session.th.len);
@@ -363,20 +364,20 @@ gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *cipherte
   h_sz += ciphertext_sz;
   LOG_DBG("PLAINTEXT_3 (%d): ", ciphertext_sz);
   print_buff_8_dbg(ciphertext, ciphertext_sz);
-  memcpy(h + h_sz, data, data_sz);
-  h_sz += data_sz;
-  LOG_DBG("CRED_I (%d): ", data_sz);
-  print_buff_8_dbg(data, data_sz);
+  memcpy(h + h_sz, cred, cred_sz);
+  h_sz += cred_sz;
+  LOG_DBG("CRED_I (%d): ", cred_sz);
+  print_buff_8_dbg(cred, cred_sz);
   LOG_DBG("input to calculate TH_4 (CBOR Sequence) (%d bytes): ", (int)h_sz);
   print_buff_8_dbg(h, h_sz);
 
   /* Compute TH */
   uint8_t er = compute_th(h, h_sz, ctx->session.th.buf, ctx->session.th.len);
   if(er != 0) {
-    LOG_ERR("ERR COMPUTED TH4\n ");
+    LOG_ERR("ERR COMPUTED TH_4\n ");
     return ERR_CODE;
   }
-  LOG_DBG("TH4 (%d bytes): ", (int)ctx->session.th.len);
+  LOG_DBG("TH_4 (%d bytes): ", (int)ctx->session.th.len);
   print_buff_8_dbg(ctx->session.th.buf, ctx->session.th.len);
   return 0;
 }
@@ -871,7 +872,6 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   ctx->session.th.len = ECC_KEY_BYTE_LENGTH;
 
   int8_t rv = gen_th2(ctx, ctx->ephemeral_key.public.x, ctx->msg_rx, ctx->rx_sz);
-  // int8_t rv = gen_th2(ctx, ctx->msg_tx, ctx->msg_rx, ctx->rx_sz);
   if(rv < 0) {
     LOG_ERR("Failed to generate TH_2 (%d)\n", rv);
     // FIXME: return error.
@@ -972,8 +972,8 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 void
 edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 {
-  /* gen TH3 */
-  /* Set the pointer to th2 */
+  /* gen TH_3 */
+  /* Set the pointer to TH_2 */
   ctx->session.th.buf = ctx->eph_key.th;
   ctx->session.th.len = ECC_KEY_BYTE_LENGTH;
 
@@ -1064,7 +1064,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac, mac_or_signature_sz, ctx->msg_tx);
   ctx->tx_sz = ciphertext_sz;
   
-  /* Compute TH4 WIP */
+  /* Compute TH_4 WIP */
   gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
 }
 
@@ -1327,7 +1327,7 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   ctx->session.ciphertext_3.len = msg3->ciphertext_3.len;
   LOG_DBG("CIPHERTEXT_3 (%d bytes): ", (int)ctx->session.ciphertext_3.len); //RH FIXME: Should be plaintext?
   print_buff_8_dbg(ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
-  /* generate TH3 */
+  /* generate TH_3 */
   gen_ciphertext_2(ctx, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);
   gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);
   /* decrypt msg3 and check the TAG for verify the outer */
@@ -1474,7 +1474,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   }
 #endif
 
-  /* RH: Compute TH4 WIP (after verifying MAC_3) */
+  /* RH: Compute TH_4 WIP (after verifying MAC_3) */
   if(ROLE == RESPONDER) { 
     // Start by retrieving CRED_I
     bstr cred_i;
