@@ -59,6 +59,4 @@ int cbor_put_unsigned(uint8_t **buffer, uint8_t value);
 
 int cbor_put_negative(uint8_t **buffer, int64_t value);
 
-int cbor_put_bytes_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len);
-
 #endif /* _cbor_H */
