@@ -136,6 +136,7 @@
     org.contikios.cooja.plugins.ScriptRunner
     <plugin_config>
       <script>
+      
 TIMEOUT(800000000);
 sim.setSpeedLimit(100000.0);  // Simulation speed.
 
@@ -244,6 +245,7 @@ while (true) {
   }
   YIELD();
 }
+
 </script>
       <active>true</active>
     </plugin_config>

@@ -164,15 +164,4 @@ cbor_put_negative(uint8_t **buffer, int64_t value)
   *pt = (*pt | 0x20);
   return nb;
 }
-//Include it: 
-int 
-cbor_put_bytes_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len)
-{
-  if(len == 1 && (bytes[0] <= 23 || bytes[0] >= (uint8_t)-24)) {
-    (**buffer) = bytes[0] <= 23 ? bytes[0] : 0x37 - (bytes[0] - ((uint8_t)-24));
-    (*buffer)++;
-    return 1;
-  }
-  return cbor_put_bytes(buffer, bytes, len);
-}
 
