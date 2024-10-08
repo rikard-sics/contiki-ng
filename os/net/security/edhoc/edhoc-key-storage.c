@@ -33,7 +33,7 @@
  *         edhoc-key-storage an implementation of a key stroge to keep the ECC authentication keys to work with.
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
+ *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
  */
 
 #include "edhoc-key-storage.h"

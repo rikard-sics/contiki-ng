@@ -34,7 +34,7 @@
  *         from the EDHOC shared secret
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
+ *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
  *         Christos Koulamas <cklm@isi.gr>
  */
 

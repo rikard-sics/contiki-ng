@@ -34,7 +34,7 @@
  *         of cc2538 HW module
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
+ *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
  */
 
 #include "ecc-cc2538.h"

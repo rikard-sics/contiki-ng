@@ -144,7 +144,7 @@ var checkingEnabled = true;
 while (true) {
   log.log(id + " " + msg + "\n");  // Write all output to COOJA.testlog
 
-  // Define the device type using a ternary operator
+  // Define the device type
   var device = (id == 1) ? "Client" : (id == 2) ? "Server" : "Unknown";
   device = "[MSG : EDHOC     ] " + device;
   

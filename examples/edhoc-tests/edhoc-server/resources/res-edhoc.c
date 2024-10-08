@@ -2,7 +2,7 @@
  * \file
  *      EDHOC plugtest resource [RFC9528] with CoAP Block-Wise Transfer [RFC7959]
  * \author
- *      Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
+ *      Lidia Pocero <pocero@isi.gr>, Peter A Jonsson
  */
 
 #include <stdio.h>

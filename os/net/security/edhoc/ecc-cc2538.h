@@ -33,7 +33,7 @@
  *         ecc-ccc2538 headers
  *
  * \author
- *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
+ *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
  */
 #ifndef _ECC_CC2538_H_
 #define _ECC_CC2538_H_

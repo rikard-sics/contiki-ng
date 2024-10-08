@@ -33,7 +33,7 @@
  *         EDHOC, an implementation of Ephemeral Diffie-Hellman Over COSE (EDHOC) (IETF RFC9528)
  * \author
  *         Lidia Pocero <pocero@isi.gr>
- *         Peter Jonsson
+ *         Peter A Jonsson
  *         Rikard Höglund
  *         Marco Tiloca
  */
@@ -49,13 +49,13 @@
 
 edhoc_context_t *edhoc_ctx;
 
-/*static rtimer_clock_t time; */
+/* static rtimer_clock_t time; */
 
 static uint8_t buf[MAX_BUFFER];
 static uint8_t inf[MAX_BUFFER];
 static uint8_t cred_x[128];
 static uint8_t id_cred_x[128];
-static uint8_t mac[P256_SIGNATURE_LEN]; //TODO: rename to signature_or_mac
+static uint8_t mac[P256_SIGNATURE_LEN]; //TODO: rename to signature_or_mac?
 
 MEMB(edhoc_context_storage, edhoc_context_t, 1);
 
@@ -753,8 +753,8 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
 
   /* RH: Modified to store plaintext 3 WIP */
   memcpy(buf, cose->plaintext, cose->plaintext_sz);
-  ctx->session.ciphertext_3.buf = buf;
-  ctx->session.ciphertext_3.len = cose->plaintext_sz;
+  ctx->session.plaintext_3.buf = buf;
+  ctx->session.plaintext_3.len = cose->plaintext_sz;
   
   /* generate K_3 */
   er = edhoc_kdf(cose->key, ctx->eph_key.prk_3e2m, K_3_LABEL, ctx->session.th, KEY_DATA_LENGTH);
@@ -959,13 +959,15 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 
   LOG_DBG("CIPHERTEXT_2 (%d bytes): ", (int)p_sz);
   print_buff_8_dbg(buf, p_sz);
+  
   /* set ciphertext in msg tx */
+  // TODO: Check why saving in ctx->session.plaintext
   uint8_t *ptr = &(ctx->msg_tx[0]);
   int sz = cbor_put_bytes(&ptr, ctx->ephemeral_key.public.x, ECC_KEY_BYTE_LENGTH);
-  ctx->session.ciphertext_2.buf = ptr;
+  ctx->session.plaintext_2.buf = ptr;
   memcpy(ptr, buf, p_sz);
-  ctx->session.ciphertext_2.len = p_sz;
-  ctx->tx_sz = sz + ctx->session.ciphertext_2.len;
+  ctx->session.plaintext_2.len = p_sz;
+  ctx->tx_sz = sz + ctx->session.plaintext_2.len;
   ctx->msg_tx[1] = ctx->tx_sz - 2;
   LOG_INFO("MSG2 sz: %d \n", ctx->tx_sz);
 }
@@ -977,7 +979,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   ctx->session.th.buf = ctx->eph_key.th;
   ctx->session.th.len = ECC_KEY_BYTE_LENGTH;
 
-  gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);
+  gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.plaintext_2.buf, ctx->session.plaintext_2.len);
   /* Generate COSE authentication key */
   cose_key cose;
   generate_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_size);
@@ -1065,7 +1067,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   ctx->tx_sz = ciphertext_sz;
   
   /* Compute TH_4 WIP */
-  gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
+  gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.plaintext_3.buf, ctx->session.plaintext_3.len);
 }
 
 uint8_t
@@ -1261,8 +1263,9 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer, si
   gen_k_2e(ctx, ciphertext2_sz);
 
   /* Set ciphertext */
-  ctx->session.ciphertext_2.buf = msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGTH;
-  ctx->session.ciphertext_2.len = ciphertext2_sz;
+  // TODO: Check why saving in ctx->session.plaintext
+  ctx->session.plaintext_2.buf = msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGTH;
+  ctx->session.plaintext_2.len = ciphertext2_sz;
 
   /* Decrypted cipher text */
   memcpy(buf, msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGTH, ciphertext2_sz);
@@ -1279,7 +1282,6 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer, si
     return er;
   }
   LOG_DBG("cid (%d)\n", (uint8_t)ctx->session.cid_rx);
-  // ctx->session.id_cred_x.buf = msg2->g_y_ciphertext_2.buf + ECC_KEY_BYTE_LENGTH + cr_sz;
   ctx->session.id_cred_x.buf = buf + cr_sz;
   LOG_DBG("ID_CRED_R (%d bytes): ", 1);
   print_buff_8_dbg(ctx->session.id_cred_x.buf, 1);
@@ -1322,14 +1324,13 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   }
   print_msg_3(msg3);
 
-  /* Set the ciphertext_3 for the key exporter */
-  ctx->session.ciphertext_3.buf = msg3->ciphertext_3.buf;
-  ctx->session.ciphertext_3.len = msg3->ciphertext_3.len;
-  LOG_DBG("CIPHERTEXT_3 (%d bytes): ", (int)ctx->session.ciphertext_3.len); //RH FIXME: Should be plaintext?
-  print_buff_8_dbg(ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
+  LOG_DBG("CIPHERTEXT_3 (%d bytes): ", (int)msg3->ciphertext_3.len);
+  print_buff_8_dbg(msg3->ciphertext_3.buf, msg3->ciphertext_3.len);
+
   /* generate TH_3 */
-  gen_ciphertext_2(ctx, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);
-  gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.ciphertext_2.buf, ctx->session.ciphertext_2.len);
+  gen_ciphertext_2(ctx, ctx->session.plaintext_2.buf, ctx->session.plaintext_2.len);
+  gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.plaintext_2.buf, ctx->session.plaintext_2.len);
+
   /* decrypt msg3 and check the TAG for verify the outer */
   uint16_t plaintext_sz = decrypt_ciphertext_3(ctx, msg3->ciphertext_3.buf, msg3->ciphertext_3.len, buf);
   if(plaintext_sz == 0) {
@@ -1338,11 +1339,11 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
   }
   LOG_DBG("PLAINTEXT_3 (%d): ", (int)plaintext_sz);
   print_buff_8_dbg(buf, plaintext_sz);
-  ctx->session.id_cred_x.buf = buf;
+  ctx->session.id_cred_x.buf = buf; //RH: Why is this done?
   
   /* RH: Save the plaintext in the ctx object WIP */
-  ctx->session.ciphertext_3.buf = buf;
-  ctx->session.ciphertext_3.len = plaintext_sz;
+  ctx->session.plaintext_3.buf = buf;
+  ctx->session.plaintext_3.len = plaintext_sz;
 
   return 1;
 }
@@ -1484,7 +1485,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
     }
 
     // Actually calculate TH_4
-    gen_th4(ctx, cred_i.buf, cred_i.len, ctx->session.ciphertext_3.buf, ctx->session.ciphertext_3.len);
+    gen_th4(ctx, cred_i.buf, cred_i.len, ctx->session.plaintext_3.buf, ctx->session.plaintext_3.len);
   }  
 
   return ad_sz;

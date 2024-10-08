@@ -32,7 +32,7 @@
  * \file
  *         ecc-uecc interface the uecc SW library
  * \author
- *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
+ *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
  */
 
 #include "ecc-uecc.h"

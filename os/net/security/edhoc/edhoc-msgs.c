@@ -49,7 +49,7 @@ print_msg_1(edhoc_msg_1 *msg)
   print_buff_8_dbg(msg->g_x.buf, msg->g_x.len);
   LOG_DBG("Ci: ");
   print_buff_8_dbg(msg->c_i.buf, msg->c_i.len);
-  LOG_DBG("Uad (label: %d): ", msg->uad.ead_label);
+  LOG_DBG("EAD (label: %d): ", msg->uad.ead_label);
   print_buff_8_dbg(msg->uad.ead_value.buf, msg->uad.ead_value.len);
 }
 void
@@ -61,7 +61,7 @@ print_msg_2(edhoc_msg_2 *msg)
 void
 print_msg_3(edhoc_msg_3 *msg)
 {
-  LOG_DBG("ciphertext_3: ");
+  LOG_DBG("CIPHERTEXT_3: ");
   print_buff_8_dbg(msg->ciphertext_3.buf, msg->ciphertext_3.len);
 }
 static uint8_t
@@ -361,7 +361,7 @@ edhoc_get_cred_x_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
 {
   cose_key_t *auth_key;
   if(edhoc_check_key_list_kid(kid, kid_sz, &auth_key) == 0) {
-    LOG_ERR("The authentication key id is not in the list\n");
+    LOG_ERR("The authentication key ID is not in the list\n");
     return ERR_NOT_ALLOWED_IDENTITY;
   }
   *key = auth_key;

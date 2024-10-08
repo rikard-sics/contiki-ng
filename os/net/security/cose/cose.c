@@ -32,7 +32,7 @@
  * \file
  *         COSE, an implementation of COSE_Encrypt0 structure from: CBOR Object Signing and Encryption (COSE) (IETF RFC8152)
  * \author
- *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
+ *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 
 #include "cose.h"
