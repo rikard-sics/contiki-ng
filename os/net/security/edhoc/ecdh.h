@@ -84,7 +84,7 @@
 #include "ecc-cc2538.h"
 #endif
 
-typedef struct session_key {
+typedef struct session_key_mat {
   uint8_t k2_e[MAX_KEY];
   uint8_t prk_2e[ECC_KEY_BYTE_LENGTH];
   uint8_t prk_3e2m[ECC_KEY_BYTE_LENGTH];
@@ -92,14 +92,14 @@ typedef struct session_key {
   uint8_t gx[ECC_KEY_BYTE_LENGTH];
   uint8_t gy[ECC_KEY_BYTE_LENGTH];
   uint8_t th[ECC_KEY_BYTE_LENGTH];
-} session_key;
+} session_key_mat;
 
 
 uint8_t generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve);
 uint8_t compute_th(uint8_t *in, uint8_t in_sz, uint8_t *hash, uint8_t hash_sz);
 int8_t hkdf_extract(uint8_t *salt, uint8_t salt_sz, uint8_t *ikm, uint8_t ikm_sz, uint8_t *hmac);
 int8_t hkdf_expand(uint8_t *prk, uint16_t prk_sz, uint8_t *info, uint16_t info_sz, uint8_t *okm, uint16_t okm_sz);
-void generate_cose_key(ecc_key *key, cose_key *cose, char *identity, uint8_t id_sz);
-void set_cose_key(ecc_key *key, cose_key *cose, cose_key_t *auth_key, ecc_curve_t curve);
+void generate_cose_key_t(ecc_key *key, cose_key_t *cose, char *identity, uint8_t id_sz);
+void set_cose_key_t(ecc_key *key, cose_key_t *cose, cose_key_t *auth_key, ecc_curve_t curve);
 
 #endif /* _ECDH_H_ */

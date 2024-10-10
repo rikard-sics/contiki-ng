@@ -64,7 +64,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   /* RH: WIP Derive prk_out */
   int prk_out_sz = ECC_KEY_BYTE_LENGTH;
   uint8_t prk_out[prk_out_sz];
-  int8_t er = edhoc_kdf(prk_out, ctx->eph_key.prk_4e3m, PRK_OUT_LABEL, ctx->session.th, prk_out_sz);
+  int8_t er = edhoc_kdf(prk_out, ctx->session_keys.prk_4e3m, PRK_OUT_LABEL, ctx->session.th, prk_out_sz);
   if(er < 0) {
     return er;
   }

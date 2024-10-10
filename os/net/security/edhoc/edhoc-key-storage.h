@@ -64,6 +64,8 @@ typedef struct cose_key_t {
   uint8_t x[ECC_KEY_BYTE_LENGTH];
   uint8_t y[ECC_KEY_BYTE_LENGTH];
   uint8_t private[ECC_KEY_BYTE_LENGTH];
+  uint8_t x_sz;
+  uint8_t y_sz;
 }cose_key_t;
 
 /**
@@ -144,5 +146,12 @@ void edhoc_remove_key(cose_key_t *auth_key);
  * to the destination (k). The entire structure is copied using memcpy.
  */
 void edhoc_copy_key(cose_key_t *k, cose_key_t *key);
+
+/**
+ * \brief Print a key in a format of cose_key_t struct for debugging
+ * \param cose input cose_key_t struct
+ *
+ */
+void cose_print_key(cose_key_t *cose);
 
 #endif

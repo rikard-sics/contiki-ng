@@ -40,8 +40,7 @@
  * @{
  * This is an implementation of CBOR Object Signing and Encryption (COSE) protocol (IETF RFC8152)
  * when COSE_Encrypt0 or COSE_Sign1 structures are used. This specification describes how to create and process
- * signatures, message authentication codes, and encryption using CBOR for serialization. This specification additionally
- * describes how to represent cryptographic keys using CBOR.
+ * signatures, message authentication codes, and encryption using CBOR for serialization.
  **/
 
 #ifndef _COSE_H_
@@ -178,19 +177,6 @@ uint8_t cose_sign1_set_signature(cose_sign1 *sign1, uint8_t *signature, uint16_t
 uint8_t cose_verify(cose_sign1 *sign1);
 
 /**
- * \brief COSE_key struct [RFC8152]
- */
-typedef struct cose_key {
-  bstr_cose kid;  /* Key Identifier*/
-  uint8_t kty;
-  uint8_t crv;
-  bstr_cose x;
-  bstr_cose y;
-  sstr_cose identity;
-  char name[8];  /* Identity */
-} cose_key;
-
-/**
  * \brief Create a new cose_encrypt0 context
  * \return cose_encrypt0 new cose_encrypt0 context struct
  *
@@ -298,13 +284,6 @@ uint8_t cose_encrypt(cose_encrypt0 *enc);
  *
  */
 uint8_t cose_decrypt(cose_encrypt0 *enc);
-
-/**
- * \brief Print a key in a format of cose_key struct for debugging
- * \param cose input cose_key struct
- *
- */
-void cose_print_key(cose_key *cose);
 
 #endif /* _COSE_H_ */
 /** @} */

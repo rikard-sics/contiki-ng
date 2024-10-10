@@ -168,17 +168,21 @@ hkdf_expand(uint8_t *prk, uint16_t prk_sz, uint8_t *info, uint16_t info_sz, uint
   return 1;
 }
 void
-generate_cose_key(ecc_key *key, cose_key *cose, char *identity, uint8_t id_sz)
+generate_cose_key_t(ecc_key *key, cose_key_t *cose, char *identity, uint8_t id_sz)
 {
-  cose->kid = (bstr_cose){ key->kid, key->kid_sz };
-  cose->identity = (sstr_cose){ identity, id_sz };
+  memcpy(cose->kid, key->kid, key->kid_sz);
+  cose->kid_sz = key->kid_sz; 
+  memcpy(cose->identity, identity, id_sz);
+  cose->identity_sz = id_sz;
   cose->crv = KEY_CRV; /* P-256 */
   cose->kty = KEY_TYPE; /* EC2 */
-  cose->x = (bstr_cose){ key->public.x, ECC_KEY_BYTE_LENGTH };
-  cose->y = (bstr_cose){ key->public.y, ECC_KEY_BYTE_LENGTH };
+  memcpy(cose->x, key->public.x, ECC_KEY_BYTE_LENGTH);
+  cose->x_sz = ECC_KEY_BYTE_LENGTH;
+  memcpy(cose->y, key->public.y, ECC_KEY_BYTE_LENGTH);
+  cose->y_sz = ECC_KEY_BYTE_LENGTH;
 }
 void
-set_cose_key(ecc_key *key, cose_key *cose, cose_key_t *auth_key, ecc_curve_t curve)
+set_cose_key_t(ecc_key *key, cose_key_t *cose, cose_key_t *auth_key, ecc_curve_t curve)
 {
   if(auth_key->kid_sz == 0) {
     key->kid_sz = 0;
@@ -190,5 +194,5 @@ set_cose_key(ecc_key *key, cose_key *cose, cose_key_t *auth_key, ecc_curve_t cur
     memcpy(key->public.x, auth_key->x, ECC_KEY_BYTE_LENGTH);
     memcpy(key->public.y, auth_key->y, ECC_KEY_BYTE_LENGTH);
   }
-  generate_cose_key(key, cose, auth_key->identity, auth_key->identity_sz);
+  generate_cose_key_t(key, cose, auth_key->identity, auth_key->identity_sz);
 }

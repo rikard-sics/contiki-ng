@@ -83,7 +83,7 @@ The EDHOC module uses CBOR to encode the EDHOC exchanging messages. The `cbor` C
 A `cbor_put_bytes_identifier()` function has been added in order to cover the EDHOC protocol requirements.
 
 ### COSE module
-The EDHOC module uses the COSE_Encrypt0 struct encryption from [RFC8152] for cryptography as well as the COSE_key format. The required COSE functionality has been implemented in a lightweight module under `os/net/security/cose `.
+The EDHOC module uses COSE_Encrypt0 and COSE_Sign1 from [RFC8152] for cryptography and signing as well as the COSE_key format. The required COSE functionality has been implemented in a lightweight module under `os/net/security/cose `.
 
 ## EDHOC Client API
 The EDHOC - client - API.h file contains the EDHOC interface to be used by the EDHOC Initiator role as CoAP client.

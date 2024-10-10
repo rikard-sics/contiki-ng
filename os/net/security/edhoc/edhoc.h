@@ -102,29 +102,29 @@ typedef struct edhoc_session {
   uint8_t suit[5];
   uint8_t suit_num;
   uint8_t suit_rx;
-  bstr Gx;
+  bstr    Gx;
   uint8_t cid;
   uint8_t cid_rx;
-  bstr id_cred_x;
-  bstr cred_x;
-  bstr th;
-  bstr plaintext_2;
-  bstr plaintext_3;
+  bstr    id_cred_x;
+  bstr    cred_x;
+  bstr    th;
+  bstr    plaintext_2;
+  bstr    plaintext_3;
 } edhoc_session;
 
 /**
  * \brief EDHOC context struct
  */
 typedef struct edhoc_context_t {
-  ecc_key authen_key;
-  ecc_key ephemeral_key;
-  session_key eph_key;
-  edhoc_session session;
-  ecc_curve_t curve;
-  uint8_t msg_rx[MAX_PAYLOAD];
-  uint8_t msg_tx[MAX_PAYLOAD];
-  uint16_t rx_sz;
-  uint16_t tx_sz;
+  ecc_key          authen_key;
+  ecc_key          ephemeral_key;
+  session_key_mat  session_keys;
+  edhoc_session    session;
+  ecc_curve_t      curve;
+  uint8_t          msg_rx[MAX_PAYLOAD];
+  uint8_t          msg_tx[MAX_PAYLOAD];
+  uint16_t         rx_sz;
+  uint16_t         tx_sz;
 } edhoc_context_t;
 
 /**
@@ -405,8 +405,8 @@ void set_rx_gx(edhoc_context_t *ctx, uint8_t *gx);
 // static int8_t gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz);
 // static int8_t set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz);
 // static int8_t set_rx_method(edhoc_context_t *ctx, uint8_t method);
-// static size_t generate_cred_x(cose_key *cose, uint8_t *cred);
-// static size_t generate_id_cred_x(cose_key *cose, uint8_t *cred);
+// static size_t generate_cred_x(cose_key_t *cose, uint8_t *cred);
+// static size_t generate_id_cred_x(cose_key_t *cose, uint8_t *cred);
 // static size_t generate_info(uint8_t *info, uint8_t *th, uint8_t th_sz, uint8_t length, uint8_t value);
 // static size_t reconstruct_id_cred_x(uint8_t *cred_in, size_t cred_in_sz);
 // static uint16_t check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher, uint16_t cipher_sz, uint8_t *mac);

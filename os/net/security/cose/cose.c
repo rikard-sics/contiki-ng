@@ -100,20 +100,6 @@ cose_sign1_finalize(cose_sign1 *sign)
   sign1_free(sign);
 }
 
-void
-cose_print_key(cose_key *cose)
-{
-  LOG_DBG("kid: ");
-  cose_print_buff_8_dbg(cose->kid.buf, cose->kid.len);
-  LOG_DBG("identity: ");
-  cose_print_char_8_dbg((uint8_t *)cose->identity.buf, cose->identity.len);
-  LOG_DBG("kty: %d\n", cose->kty);
-  LOG_DBG("crv: %d\n", cose->crv);
-  LOG_DBG("x: ");
-  cose_print_buff_8_dbg(cose->x.buf, cose->x.len);
-  LOG_DBG("y: ");
-  cose_print_buff_8_dbg(cose->y.buf, cose->y.len);
-}
 uint8_t
 cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, uint8_t *key, uint8_t key_sz, uint8_t *nonce, uint16_t nonce_sz)
 {

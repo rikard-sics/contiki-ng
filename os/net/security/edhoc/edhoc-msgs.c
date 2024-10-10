@@ -364,6 +364,8 @@ edhoc_get_cred_x_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
     LOG_ERR("The authentication key ID is not in the list\n");
     return ERR_NOT_ALLOWED_IDENTITY;
   }
+  auth_key->x_sz = ECC_KEY_BYTE_LENGTH;
+  auth_key->y_sz = ECC_KEY_BYTE_LENGTH;
   *key = auth_key;
   return ECC_KEY_BYTE_LENGTH;
 }
