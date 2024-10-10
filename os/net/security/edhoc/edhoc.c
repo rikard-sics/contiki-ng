@@ -568,10 +568,14 @@ gen_ks_2e(edhoc_context_t *ctx, uint16_t length)
 }
 /* TODO: change the gen with the ROLE: Initiator U: gen = 0; Responder V: gen = 1; */
 static uint8_t
-gen_prk_3e2m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
+gen_prk_3e2m(edhoc_context_t *ctx, cose_key_t *cose_auth_key, uint8_t gen)
 {
   uint8_t grx[ECC_KEY_BYTE_LENGTH];
   int8_t er = 0;
+ 
+  ecc_key authenticate;
+  initialize_ecc_key_from_cose(&authenticate, cose_auth_key, ctx->curve);
+  ecc_key *key_authenticate = &authenticate;
 
   if(gen) {
     er = generate_IKM(ctx->session_keys.gx, ctx->session_keys.gy, key_authenticate->private_key, grx, ctx->curve);
@@ -606,10 +610,15 @@ gen_prk_3e2m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
   return 1;
 }
 static uint8_t
-gen_prk_4e3m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen)
+gen_prk_4e3m(edhoc_context_t *ctx, cose_key_t *cose_auth_key, uint8_t gen)
 {
   uint8_t giy[ECC_KEY_BYTE_LENGTH];
   int8_t er = 0;
+  
+  ecc_key authenticate;
+  initialize_ecc_key_from_cose(&authenticate, cose_auth_key, ctx->curve);
+  ecc_key *key_authenticate = &authenticate;
+  
   if(gen) {
     er = generate_IKM(key_authenticate->public.x, key_authenticate->public.y, ctx->ephemeral_key.private_key, giy, ctx->curve);
   } else {
@@ -877,12 +886,12 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
     // FIXME: return error.
     return;
   }
-  /* Generate MAC */
-  /* generate id_cred_x and cred_x */
+
   /* The COSE key include the authentication key */
   cose_key_t cose;
-  generate_cose_key_t(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_size);
+  convert_ecc_key_to_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_size);
 
+  /* generate id_cred_x and cred_x */
   ctx->session.cred_x.buf = cred_x;
   ctx->session.cred_x.len = generate_cred_x(&cose, ctx->session.cred_x.buf);
   LOG_DBG("CRED_R (%d bytes): ", (int)ctx->session.cred_x.len);
@@ -896,10 +905,11 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   gen_prk_2e(ctx);
 
   /* generate prk_3e2m */
-  gen_prk_3e2m(ctx, &ctx->authen_key, 1);
-
+  gen_prk_3e2m(ctx, &cose, 1);
 
   uint8_t mac_or_signature_sz = -1;
+
+  /* Generate MAC or Signature */
 
 #if ((METHOD == METH1) || (METHOD == METH3))
   gen_mac_dh(ctx, ad, ad_sz, mac, MAC_LEN);
@@ -982,7 +992,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.plaintext_2.buf, ctx->session.plaintext_2.len);
   /* Generate COSE authentication key */
   cose_key_t cose;
-  generate_cose_key_t(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_size);
+  convert_ecc_key_to_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_size);
 
   cose_print_key(&cose);
   LOG_DBG("SK_I (Initiator's private authentication key) (%d bytes): ", ECC_KEY_BYTE_LENGTH);
@@ -1007,7 +1017,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   print_buff_8_dbg(ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
 
   /* Generate prk_4e3m */
-  gen_prk_4e3m(ctx, &ctx->authen_key, 0);
+  gen_prk_4e3m(ctx, &cose, 0);
 
   uint8_t mac_or_signature_sz = -1;
 
@@ -1349,31 +1359,27 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, si
 }
 static int //RH: Added this
 retrieve_cred_i(edhoc_context_t *ctx, uint8_t *inf, bstr *cred_i) {
-    // Get the cose_key_t version of the auth cred  
-    uint8_t *auth_key_buffer = NULL;
-    cose_key_t auth_cose_key_t;
-    int8_t er = edhoc_get_auth_key(ctx, &auth_key_buffer, &auth_cose_key_t);
-    if(er != 1) {
-      return er;
-    }
 
-    // Create a normal cose_key_t from it
-    cose_key_t auth_cose_key_t_final;
-    ecc_key ecc_auth_key;
-    set_cose_key_t(&ecc_auth_key, &auth_cose_key_t_final, &auth_cose_key_t, ctx->curve);
+  // Get the cose_key_t version of the auth cred  
+  uint8_t *auth_key_buffer = NULL;
+  cose_key_t auth_cose_key_t;
+  int8_t er = edhoc_get_auth_key(ctx, &auth_key_buffer, &auth_cose_key_t);
+  if(er != 1) {
+    return er;
+  }
 
-    // Use inf buffer for CRED_I
-    cred_i->buf = inf;
-    cred_i->len = sizeof(inf);
+  // Use inf buffer for CRED_I
+  cred_i->buf = inf;
+  cred_i->len = sizeof(inf);
 
-    // Build the CRED_I value
-    int cred_i_size = generate_cred_x(&auth_cose_key_t_final, cred_i->buf);
-    if(cred_i_size <= 0) {
-      return ERR_ID_CRED_X_MALFORMED;
-    }
-    cred_i->len = cred_i_size;
+  // Build the CRED_I value
+  int cred_i_size = generate_cred_x(&auth_cose_key_t, cred_i->buf);
+  if(cred_i_size <= 0) {
+    return ERR_ID_CRED_X_MALFORMED;
+  }
+  cred_i->len = cred_i_size;
 
-    return 1;
+  return 1;
 }
 int
 edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, uint8_t *ad, cose_key_t *key)
@@ -1393,29 +1399,16 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
     ad = NULL;
     ad_sz = 0;
   }
-  cose_key_t cose;
-  ecc_key authenticate;
-
-  /* ecc_key authenticate_R; */
-  set_cose_key_t(&authenticate, &cose, key, ctx->curve);
-  cose_print_key(&cose);
-
-#if (METHOD == METH0) || INITIATOR_METH2 || RESPONDER_METH1
-  /* Save the other peer's public key for later */
-  uint8_t other_public_key[ECC_KEY_BYTE_LENGTH * 2];
-  memcpy(other_public_key, cose.x, cose.x_sz);
-  memcpy(other_public_key + cose.x_sz, cose.y, cose.y_sz);
-#endif
 
   ctx->session.cred_x.buf = inf;
-  ctx->session.cred_x.len = generate_cred_x(&cose, ctx->session.cred_x.buf);
+  ctx->session.cred_x.len = generate_cred_x(key, ctx->session.cred_x.buf);
   LOG_DBG("CRED_R auth (%zu): ", ctx->session.cred_x.len);
   print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
 
   if(ROLE == INITIATOR) {
-    gen_prk_3e2m(ctx, &authenticate, 0);
+    gen_prk_3e2m(ctx, key, 0);
   } else if(ROLE == RESPONDER) {
-    gen_prk_4e3m(ctx, &authenticate, 1);
+    gen_prk_4e3m(ctx, key, 1);
   }
 
   ctx->session.id_cred_x.len = reconstruct_id_cred_x(ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
@@ -1464,6 +1457,10 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
     return ERR_AUTHENTICATION;
   }
+
+  uint8_t other_public_key[ECC_KEY_BYTE_LENGTH * 2];
+  memcpy(other_public_key, key->x, key->x_sz);
+  memcpy(other_public_key + key->x_sz, key->y, key->y_sz);
 
   // Set other peer public key and verify
   cose_sign1_set_key(cose_sign1, ES256, other_public_key, ECC_KEY_BYTE_LENGTH * 2);

@@ -397,7 +397,8 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
   }
 
   switch(label) {
-  /*(PRK_ID) ID_CRED_R = KID byte identifier (KID 1 Byte)*/
+  /* TODO: include cases for each different support authentication case */
+  /* TODO: Use defines for values in switch, and where they are set */
   case 0:
     key_sz = edhoc_get_cred_x_from_kid(key->kid, key->kid_sz, &hkey);
     memcpy(key, hkey, sizeof(cose_key_t));
@@ -408,7 +409,6 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
     }
     break;
 
-  /* TODO: include cases for each different support authentication case */
   /* (CRED_KID) ID_CRED_R = map(4:KID bstr)  (KID 4 Byte)*/
   case 4:
     key_id_sz = edhoc_get_bytes(p, &ptr);
