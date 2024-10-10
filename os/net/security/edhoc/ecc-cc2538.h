@@ -64,6 +64,7 @@ typedef struct ecc_key {
   char *identity;
   uint8_t identity_size;
 } ecc_key;
+
 typedef struct  {
   /* Containers for the State */
   struct pt pt;

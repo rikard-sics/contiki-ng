@@ -30,7 +30,7 @@
 
 /**
  * \file
- *         edhoc-key-storage an implementation of a key stroge to keep the ECC authentication keys to work with.
+ *         edhoc-key-storage an implementation of a key storage to keep the ECC authentication keys to work with.
  *
  * \author
  *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
@@ -122,3 +122,19 @@ edhoc_remove_key(cose_key_t *auth_key)
 {
   list_remove(key_list, auth_key);
 }
+
+void
+cose_print_key(cose_key_t *cose)
+{
+  LOG_DBG("kid: ");
+  LOG_PRINT_EDHOC_BUFF(cose->kid, cose->kid_sz);
+  LOG_DBG("identity: ");
+  LOG_PRINT_EDHOC_BUFF((uint8_t *)cose->identity, cose->identity_sz);
+  LOG_DBG("kty: %d\n", cose->kty);
+  LOG_DBG("crv: %d\n", cose->crv);
+  LOG_DBG("x: ");
+  LOG_PRINT_EDHOC_BUFF(cose->x, cose->x_sz);
+  LOG_DBG("y: ");
+  LOG_PRINT_EDHOC_BUFF(cose->y, cose->y_sz);
+}
+
