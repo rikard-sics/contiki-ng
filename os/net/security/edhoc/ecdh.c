@@ -168,7 +168,7 @@ hkdf_expand(uint8_t *prk, uint16_t prk_sz, uint8_t *info, uint16_t info_sz, uint
   return 1;
 }
 void
-generate_cose_key_t(ecc_key *key, cose_key_t *cose, char *identity, uint8_t id_sz)
+convert_ecc_key_to_cose_key(ecc_key *key, cose_key_t *cose, char *identity, uint8_t id_sz)
 {
   memcpy(cose->kid, key->kid, key->kid_sz);
   cose->kid_sz = key->kid_sz; 
@@ -180,19 +180,20 @@ generate_cose_key_t(ecc_key *key, cose_key_t *cose, char *identity, uint8_t id_s
   cose->x_sz = ECC_KEY_BYTE_LENGTH;
   memcpy(cose->y, key->public.y, ECC_KEY_BYTE_LENGTH);
   cose->y_sz = ECC_KEY_BYTE_LENGTH;
+  memcpy(cose->private, key->private_key, ECC_KEY_BYTE_LENGTH);
 }
 void
-set_cose_key_t(ecc_key *key, cose_key_t *cose, cose_key_t *auth_key, ecc_curve_t curve)
+initialize_ecc_key_from_cose(ecc_key *key, cose_key_t *auth_key, ecc_curve_t curve)
 {
-  if(auth_key->kid_sz == 0) {
-    key->kid_sz = 0;
+    if (auth_key->kid_sz == 0) {
+        key->kid_sz = 0;
+    } else {
+        key->kid_sz = auth_key->kid_sz;
+        memcpy(key->kid, auth_key->kid, auth_key->kid_sz);
+    }
+
+    /* Copy the public ECC key points from the COSE key to the ECC key */
     memcpy(key->public.x, auth_key->x, ECC_KEY_BYTE_LENGTH);
     memcpy(key->public.y, auth_key->y, ECC_KEY_BYTE_LENGTH);
-  } else {
-    key->kid_sz = auth_key->kid_sz;
-    memcpy(key->kid, auth_key->kid, auth_key->kid_sz);
-    memcpy(key->public.x, auth_key->x, ECC_KEY_BYTE_LENGTH);
-    memcpy(key->public.y, auth_key->y, ECC_KEY_BYTE_LENGTH);
-  }
-  generate_cose_key_t(key, cose, auth_key->identity, auth_key->identity_sz);
+    memcpy(key->private_key, auth_key->private, ECC_KEY_BYTE_LENGTH);
 }
