@@ -554,16 +554,16 @@ gen_prk_2e(edhoc_context_t *ctx)
   print_buff_8_dbg(ctx->session_keys.prk_2e, ECC_KEY_BYTE_LENGTH);
   return 1;
 }
-/* Derive PRK_2e */
+/* Derive KEYSTREAM_2 */
 static int16_t
-gen_k_2e(edhoc_context_t *ctx, uint16_t length)
+gen_ks_2e(edhoc_context_t *ctx, uint16_t length)
 {
-  int er = edhoc_kdf(ctx->session_keys.k2_e, ctx->session_keys.prk_2e, KEYSTREAM_2_LABEL, ctx->session.th, length);
+  int er = edhoc_kdf(ctx->session_keys.ks_2e, ctx->session_keys.prk_2e, KEYSTREAM_2_LABEL, ctx->session.th, length);
   if(er < 0) {
     return er;
   }
   LOG_DBG("KEYSTREAM_2 (%d bytes): ", length);
-  print_buff_8_dbg(ctx->session_keys.k2_e, length);
+  print_buff_8_dbg(ctx->session_keys.ks_2e, length);
   return 1;
 }
 /* TODO: change the gen with the ROLE: Initiator U: gen = 0; Responder V: gen = 1; */
@@ -648,7 +648,7 @@ static void
 gen_ciphertext_2(edhoc_context_t *ctx, uint8_t *plaintext, uint16_t plaintext_sz)
 {
   for(int i = 0; i < plaintext_sz; i++) {
-    plaintext[i] = plaintext[i] ^ ctx->session_keys.k2_e[i];
+    plaintext[i] = plaintext[i] ^ ctx->session_keys.ks_2e[i];
   }
 }
 static uint16_t
@@ -953,7 +953,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   uint16_t p_sz = gen_plaintext(buf, ctx, ad, ad_sz, true, mac_or_signature_sz);
   LOG_DBG("PLAINTEXT_2 (%d bytes): ", (int)p_sz);
   print_buff_8_dbg(buf, p_sz);
-  gen_k_2e(ctx, p_sz);
+  gen_ks_2e(ctx, p_sz);
 
   gen_ciphertext_2(ctx, buf, p_sz);
 
@@ -1260,7 +1260,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer, si
   gen_prk_2e(ctx);
   /* Gen KS_2e */
   int ciphertext2_sz = msg2->g_y_ciphertext_2.len - ECC_KEY_BYTE_LENGTH;
-  gen_k_2e(ctx, ciphertext2_sz);
+  gen_ks_2e(ctx, ciphertext2_sz);
 
   /* Set ciphertext */
   // TODO: Check why saving in ctx->session.plaintext

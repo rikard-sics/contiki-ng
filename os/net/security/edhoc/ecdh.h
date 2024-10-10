@@ -85,7 +85,7 @@
 #endif
 
 typedef struct session_key_mat {
-  uint8_t k2_e[MAX_KEY];
+  uint8_t ks_2e[MAX_KEY];
   uint8_t prk_2e[ECC_KEY_BYTE_LENGTH];
   uint8_t prk_3e2m[ECC_KEY_BYTE_LENGTH];
   uint8_t prk_4e3m[ECC_KEY_BYTE_LENGTH];

@@ -399,7 +399,7 @@ int8_t edhoc_check_rx_msg(uint8_t *buffer, uint8_t buff_sz);
 int8_t edhoc_check_rx_msg_2(uint8_t *buffer, uint8_t buff_sz,edhoc_context_t* ctx);
 void set_rx_gx(edhoc_context_t *ctx, uint8_t *gx);
 
-// static int16_t gen_k_2e(edhoc_context_t *ctx, uint16_t length);
+// static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length);
 // static int16_t get_rx_suit_I(const edhoc_context_t *ctx, bstr suit_rx);
 // static int8_t check_rx_suit_I(edhoc_context_t *ctx, bstr suitrx);
 // static int8_t gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz);
