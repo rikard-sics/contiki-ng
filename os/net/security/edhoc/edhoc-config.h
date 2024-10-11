@@ -62,6 +62,11 @@
 #define EXTERNAL_CORR_UV 3
 
 /**
+ * \brief MAC length
+ */
+#define MAC_LEN 8
+
+/**
  * \brief Set the Correlation type
  * TODO: This is never used (remove?)
  */
@@ -199,7 +204,7 @@
 #if ALGORITHM_ID == COSE_Algorithm_AES_CCM_16_64_128
   #define ECC_KEY_BYTE_LENGTH 32
   #define HASH_LENGTH 32
-  #define KEY_DATA_LENGTH COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
+  #define COSE_KEY_LEN COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
   #define IV_LENGTH COSE_algorithm_AES_CCM_16_64_128_IV_LEN
 #endif
 

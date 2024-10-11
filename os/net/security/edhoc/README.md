@@ -1,4 +1,4 @@
-#Ephemeral Diffie-Hellman Over COSE (EDHOC) [RFC9528]
+# Ephemeral Diffie-Hellman Over COSE (EDHOC) [RFC9528]
 
 The [RFC9528] IETF Internet - RFC specifies Ephemeral Diffie-Hellman Over COSE (EDHOC), a very compact, and lightweight authenticated Diffie-Hellman key exchange with ephemeral keys that provides mutual authentication, perfect forward secrecy, and identity protection. It uses COSE [RFC8152] for cryptography, CBOR [RFC7049] for encoding, and CoAP [RFC7252] for transport and the main use case is to establish an OSCORE security context. The EDHOC exchange and the key derivation follow known protocol constructions such as [SIGMA], NISTSP-800-56A and HKDF [RFC5869].
 
@@ -15,6 +15,17 @@ Notice that the authentication keys must be established at the EDHOC key storage
 At the configuration file, the credential type used for authentication must be selected. Two types have been implemented:
 - `CRED_KID` : The EDHOC exchanging a unique identity of the public authentication key to be retrieved. Before running the EDHOC protocol each party need at least a DH-static public key and a set of identities which is allowed to communicate with.
 - `CRED_INCLUDE` : The EDHOC exchanging messages which include directly the actual credential (DH-static public key) formatted as a COSE_Key of type EC2. The EDHOC protocol can runs without prior knowledge of the other peer. Each peer provisionally accepts the RPK of the other party until posterior authentication.
+
+### Supported functionality
+
+The implementation supports the following features of EDHOC:
+
+- Ciphersuite: 2
+- Method: 0, 1, 2, 3
+- Credential identifier: KID
+- Credential type: CCS of type EC2
+- Message_4: No
+- EAD items: None
 
 ### EDHOC configuration
 The following macro must be defined on the configuration file:

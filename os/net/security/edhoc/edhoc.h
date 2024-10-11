@@ -75,11 +75,6 @@
 #define EDHOC_CID 0x1
 #endif
 
-/**
- * \brief MAC length
- */
-#define MAC_LEN 8
-
 /* EDHOC_KDF label values */
 #define KEYSTREAM_2_LABEL    0
 #define SALT_3E2M_LABEL      1
