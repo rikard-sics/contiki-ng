@@ -324,37 +324,42 @@ cose_verify(cose_sign1 *sign1)
     return 0;
   }
 }
-uint8_t get_cose_key_len(uint8_t alg_id) {
-    switch (alg_id) {
-        case COSE_ALG_AES_CCM_16_64_128:
-            return COSE_ALG_AES_CCM_16_64_128_KEY_LEN;
-        case COSE_ALG_AES_CCM_16_128_128:
-            return COSE_ALG_AES_CCM_16_128_128_KEY_LEN;
-        default:
-            LOG_ERR("*** ERROR ERROR \n");
-            return -1;
-    }
+uint8_t
+get_cose_key_len(uint8_t alg_id)
+{
+  switch (alg_id) {
+    case COSE_ALG_AES_CCM_16_64_128:
+      return COSE_ALG_AES_CCM_16_64_128_KEY_LEN;
+    case COSE_ALG_AES_CCM_16_128_128:
+      return COSE_ALG_AES_CCM_16_128_128_KEY_LEN;
+    default:
+      LOG_ERR("Invalid COSE algorithm specified\n");
+      return -1;
+  }
 }
-uint8_t get_cose_iv_len(uint8_t alg_id) {
-    switch (alg_id) {
-        case COSE_ALG_AES_CCM_16_64_128:
-            return COSE_ALG_AES_CCM_16_64_128_IV_LEN;
-        case COSE_ALG_AES_CCM_16_128_128:
-            return COSE_ALG_AES_CCM_16_128_128_IV_LEN;
-        default:
-        LOG_ERR("*** ERROR ERROR 2\n");
-            return -1;
-    }
+uint8_t
+get_cose_iv_len(uint8_t alg_id)
+{
+  switch (alg_id) {
+    case COSE_ALG_AES_CCM_16_64_128:
+      return COSE_ALG_AES_CCM_16_64_128_IV_LEN;
+    case COSE_ALG_AES_CCM_16_128_128:
+      return COSE_ALG_AES_CCM_16_128_128_IV_LEN;
+    default:
+      LOG_ERR("Invalid COSE algorithm specified\n");
+      return -1;
+  }
 }
-uint8_t get_cose_tag_len(uint8_t alg_id) {
-    switch (alg_id) {
-        case COSE_ALG_AES_CCM_16_64_128:
-            return COSE_ALG_AES_CCM_16_64_128_TAG_LEN;
-        case COSE_ALG_AES_CCM_16_128_128:
-            return COSE_ALG_AES_CCM_16_128_128_TAG_LEN;
-        default:
-        LOG_ERR("*** ERROR ERROR 3\n");
-            return -1;
-    }
+uint8_t
+get_cose_tag_len(uint8_t alg_id) {
+  switch (alg_id) {
+    case COSE_ALG_AES_CCM_16_64_128:
+      return COSE_ALG_AES_CCM_16_64_128_TAG_LEN;
+    case COSE_ALG_AES_CCM_16_128_128:
+      return COSE_ALG_AES_CCM_16_128_128_TAG_LEN;
+    default:
+      LOG_ERR("Invalid COSE algorithm specified\n");
+      return -1;
+  }
 }
 

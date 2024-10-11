@@ -88,11 +88,6 @@
 #endif
 
 /**
- * \brief Maximum Algorithm Identifier length
- */
-#define MAX_ALG_SZ 4
-
-/**
  * \brief Buffer struct
  */
 typedef struct bstr_cose {
@@ -135,8 +130,6 @@ typedef struct cose_encrypt0 {
 typedef struct cose_sign1 {
   uint8_t protected_header[COSE_MAX_BUFFER];
   uint8_t protected_header_sz;
-  //uint8_t unprotected_header[COSE_MAX_BUFFER];
-  //uint8_t unprotected_header_sz;
   uint8_t payload[COSE_MAX_BUFFER];
   uint8_t payload_sz;
   uint8_t signature[P256_SIGNATURE_LEN];

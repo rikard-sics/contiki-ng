@@ -46,7 +46,7 @@
 #include "edhoc-config.h"
 
 /*Error definitions*/
-#define ERR_SUIT_NON_SUPPORT -2
+#define ERR_SUITE_NON_SUPPORT -2
 #define ERR_MSG_MALFORMED -3
 #define ERR_REJECT_METHOD -4
 #define ERR_CID_NOT_VALID -5
@@ -59,7 +59,7 @@
 #define RX_ERR_MSG -1
 #define ERR_TIMEOUT -12
 #define ERR_CORRELATION -13
-#define ERR_NEW_SUIT_PROPOSE -14
+#define ERR_NEW_SUITE_PROPOSE -14
 #define ERR_RESEND_MSG_1 -15
 
 typedef struct ead_data {
@@ -72,8 +72,8 @@ typedef struct edhoc_msg_1 {
   uint8_t method;
   bstr suites_i; /* FIXME: array of int, or int */
   bstr g_x;
-  bstr c_i; /* FIXME: alternatively -24..23 */
-  ead_data uad; /* FIXME: optional */
+  bstr c_i;
+  ead_data uad;
 } edhoc_msg_1;
 
 typedef struct edhoc_msg_2 {
@@ -95,7 +95,7 @@ void print_msg_3(edhoc_msg_3 *msg);
 
 size_t edhoc_serialize_suites(unsigned char **buffer, const bstr *suites);
 
-size_t edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suit_array);
+size_t edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array);
 #if 0
 size_t edhoc_serialize_data_2(edhoc_data_2 *msg, unsigned char *buffer);
 size_t edhoc_serialize_data_3(edhoc_data_3 *msg, unsigned char *buffer);

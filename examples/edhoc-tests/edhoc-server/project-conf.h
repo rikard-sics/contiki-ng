@@ -17,7 +17,6 @@
 
 /* Define the party role on the EDHOC protocol as responder and the correlation method */
 #define EDHOC_CONF_ROLE RESPONDER /* Server */
-#define EDHOC_CONF_CORR EXTERNAL_CORR_U
 
 /* To run with the test vector DH ephemeral keys used on the interoperability session */
 #define EDHOC_CONF_TEST TEST_VECTOR_TRACE_2
@@ -36,8 +35,8 @@
 /* To run EDHOC server as RPL node */
 //#define EDHOC_CONF_RPL_NODE 1
 
-/* Set the supported cipher suits */
-#define EDHOC_CONF_SUPPORTED_SUIT_1 EDHOC_CIPHERSUITE_2
+/* Set the supported cipher suites */
+#define EDHOC_CONF_SUPPORTED_SUITE_1 EDHOC_CIPHERSUITE_2
 
 /* Set up the node as Border Router (if enabled in Makefile) */
 #if BORDER_ROUTER_CONF_WEBSERVER

@@ -173,9 +173,9 @@ client_block2_handler(coap_message_t *response, uint8_t *target, size_t *len, si
   int pay_len = coap_get_payload(response, &payload);
 
   if(response->block2_offset + pay_len > max_len) {
-    LOG_ERR("message to big\n");
+    LOG_ERR("message too big\n");
     coap_status_code = REQUEST_ENTITY_TOO_LARGE_4_13;
-    coap_error_message = "Message to big";
+    coap_error_message = "Message too big";
     return -1;
   }
 
@@ -299,10 +299,10 @@ edhoc_client_post_blocks()
   }
 }
 static int
-edhoc_send_msg1(uint8_t *ad, uint8_t ad_sz, bool suit_array){
+edhoc_send_msg1(uint8_t *ad, uint8_t ad_sz, bool suite_array){
   LOG_DBG("--------------Generate message_1------------------\n");
   time = RTIMER_NOW();
-  edhoc_gen_msg_1(edhoc_ctx, ad, ad_sz, suit_array);
+  edhoc_gen_msg_1(edhoc_ctx, ad, ad_sz, suite_array);
   time = RTIMER_NOW() - time;
   LOG_INFO("Client time to gen MSG1: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
   time = RTIMER_NOW();
@@ -333,7 +333,6 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
     }
 
     if(er > 0) {
-      // FIXME: hardcoded lengths?
       int cipher_sz = msg2.g_y_ciphertext_2.len - ECC_KEY_BYTE_LENGTH;
       er = edhoc_authenticate_msg(edhoc_ctx, &pt, cipher_sz, (uint8_t *)edhoc_state.ad.ad_2, &key);
     }
