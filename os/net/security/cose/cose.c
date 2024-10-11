@@ -103,10 +103,10 @@ cose_sign1_finalize(cose_sign1 *sign)
 uint8_t
 cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, uint8_t *key, uint8_t key_sz, uint8_t *nonce, uint16_t nonce_sz)
 {
-  if(key_sz != KEY_LEN) {
+  if(key_sz != get_cose_key_len(enc->alg)) {
     return 0;
   }
-  if(nonce_sz != IV_LEN) {
+  if(nonce_sz != get_cose_iv_len(enc->alg)) {
     return 0;
   }
   enc->key_sz = key_sz;
@@ -176,7 +176,6 @@ cose_encrypt0_set_header(cose_encrypt0 *enc, uint8_t *prot, uint16_t prot_sz, ui
   enc->protected_header_sz = prot_sz;
   enc->unprotected_header_sz = unp_sz;
 }
-//TODO: Merge with above?
 void
 cose_sign1_set_header(cose_sign1 *sign1, uint8_t *prot, uint16_t prot_sz, uint8_t *unp, uint16_t unp_sz)
 {
@@ -185,27 +184,27 @@ cose_sign1_set_header(cose_sign1 *sign1, uint8_t *prot, uint16_t prot_sz, uint8_
   sign1->protected_header_sz = prot_sz;
   //sign1->unprotected_header_sz = unp_sz;
 }
-static char enc_rec[] = ENC0;
+static char enc_header[] = ENC0;
 static uint8_t
 encode_enc_structure(cose_encrypt0 *enc, uint8_t *cbor)
 {
   uint8_t size = 0;
 
   size += cbor_put_array(&cbor, 3);
-  size += cbor_put_text(&cbor, enc_rec, strlen(enc_rec));
+  size += cbor_put_text(&cbor, enc_header, strlen(enc_header));
   size += cbor_put_bytes(&cbor, enc->protected_header, enc->protected_header_sz);
   size += cbor_put_bytes(&cbor, enc->external_aad, enc->external_aad_sz);
 
   return size;
 }
-static char sig_rec[] = SIGN1;
+static char sig_header[] = SIGN1;
 static uint8_t
 encode_sig_structure(cose_sign1 *sign1, uint8_t *cbor)
 {
   uint8_t size = 0;
 
   size += cbor_put_array(&cbor, 4);
-  size += cbor_put_text(&cbor, sig_rec, strlen(sig_rec));
+  size += cbor_put_text(&cbor, sig_header, strlen(sig_header));
   size += cbor_put_bytes(&cbor, sign1->protected_header, sign1->protected_header_sz);
   size += cbor_put_bytes(&cbor, sign1->external_aad, sign1->external_aad_sz);
   size += cbor_put_bytes(&cbor, sign1->payload, sign1->payload_sz);
@@ -221,15 +220,23 @@ cose_decrypt(cose_encrypt0 *enc)
   LOG_DBG("CBOR-encoded AAD for COSE_Encrypt0 decryption (%d bytes): ", str_sz);
   cose_print_buff_8_dbg(enc_struct_bytes, str_sz);
 
-  uint8_t tag[TAG_LEN];
+  uint8_t key_len = get_cose_key_len(enc->alg);
+  uint8_t iv_len = get_cose_iv_len(enc->alg);
+  uint8_t tag_len = get_cose_tag_len(enc->alg);
+  if (enc->key_sz != key_len || enc->nonce_sz != iv_len || enc->plaintext_sz > COSE_MAX_BUFFER || str_sz > (2 * COSE_MAX_BUFFER)) {
+    LOG_ERR("The COSE parameters are not corresponding with the selected algorithm or buffer sizes\n");
+    return 0;
+  }
 
+  uint8_t tag[tag_len];
+  
   CCM_STAR.set_key(enc->key);
-  enc->plaintext_sz = enc->ciphertext_sz - TAG_LEN;
+  enc->plaintext_sz = enc->ciphertext_sz - tag_len;
 
-  CCM_STAR.aead(enc->nonce, enc->ciphertext, enc->plaintext_sz, enc_struct_bytes, str_sz, tag, TAG_LEN, 0);
+  CCM_STAR.aead(enc->nonce, enc->ciphertext, enc->plaintext_sz, enc_struct_bytes, str_sz, tag, tag_len, 0);
   memcpy(enc->plaintext, enc->ciphertext, enc->plaintext_sz);
 
-  if (memcmp(tag, &(enc->ciphertext[enc->plaintext_sz]), TAG_LEN) != 0) {
+  if (memcmp(tag, &(enc->ciphertext[enc->plaintext_sz]), tag_len) != 0) {
     LOG_ERR("Decrypt msg error\n");
     return 0;  /* Decryption failure */
   }
@@ -245,8 +252,11 @@ cose_encrypt(cose_encrypt0 *enc)
   LOG_DBG("CBOR-encoded AAD for COSE_Encrypt0 encryption (%d bytes): ", str_sz);
   cose_print_buff_8_dbg(enc_struct_bytes, str_sz);
 
-  /* TODO: check the algorithm selected in enc */
-  if (enc->key_sz != KEY_LEN || enc->nonce_sz != IV_LEN || enc->plaintext_sz > COSE_MAX_BUFFER || str_sz > (2 * COSE_MAX_BUFFER)) {
+  uint8_t key_len = get_cose_key_len(enc->alg);
+  uint8_t iv_len = get_cose_iv_len(enc->alg);
+  uint8_t tag_len = get_cose_tag_len(enc->alg);
+  
+  if (enc->key_sz != key_len || enc->nonce_sz != iv_len || enc->plaintext_sz > COSE_MAX_BUFFER || str_sz > (2 * COSE_MAX_BUFFER)) {
     LOG_ERR("The COSE parameters are not corresponding with the selected algorithm or buffer sizes\n");
     return 0;
   }
@@ -256,8 +266,8 @@ cose_encrypt(cose_encrypt0 *enc)
   memcpy(enc->ciphertext, enc->plaintext, enc->plaintext_sz);
 
   // Perform encryption
-  CCM_STAR.aead(enc->nonce, enc->ciphertext, enc->plaintext_sz, enc_struct_bytes, str_sz, &enc->ciphertext[enc->plaintext_sz], TAG_LEN, 1);
-  enc->ciphertext_sz = enc->plaintext_sz + TAG_LEN;
+  CCM_STAR.aead(enc->nonce, enc->ciphertext, enc->plaintext_sz, enc_struct_bytes, str_sz, &enc->ciphertext[enc->plaintext_sz], tag_len, 1);
+  enc->ciphertext_sz = enc->plaintext_sz + tag_len;
 
   return enc->ciphertext_sz;
 }
@@ -313,5 +323,38 @@ cose_verify(cose_sign1 *sign1)
     LOG_ERR("Signature verification failed for COSE_Sign1\n");
     return 0;
   }
+}
+uint8_t get_cose_key_len(uint8_t alg_id) {
+    switch (alg_id) {
+        case COSE_ALG_AES_CCM_16_64_128:
+            return COSE_ALG_AES_CCM_16_64_128_KEY_LEN;
+        case COSE_ALG_AES_CCM_16_128_128:
+            return COSE_ALG_AES_CCM_16_128_128_KEY_LEN;
+        default:
+            LOG_ERR("*** ERROR ERROR \n");
+            return -1;
+    }
+}
+uint8_t get_cose_iv_len(uint8_t alg_id) {
+    switch (alg_id) {
+        case COSE_ALG_AES_CCM_16_64_128:
+            return COSE_ALG_AES_CCM_16_64_128_IV_LEN;
+        case COSE_ALG_AES_CCM_16_128_128:
+            return COSE_ALG_AES_CCM_16_128_128_IV_LEN;
+        default:
+        LOG_ERR("*** ERROR ERROR 2\n");
+            return -1;
+    }
+}
+uint8_t get_cose_tag_len(uint8_t alg_id) {
+    switch (alg_id) {
+        case COSE_ALG_AES_CCM_16_64_128:
+            return COSE_ALG_AES_CCM_16_64_128_TAG_LEN;
+        case COSE_ALG_AES_CCM_16_128_128:
+            return COSE_ALG_AES_CCM_16_128_128_TAG_LEN;
+        default:
+        LOG_ERR("*** ERROR ERROR 3\n");
+            return -1;
+    }
 }
 

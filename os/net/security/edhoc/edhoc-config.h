@@ -55,27 +55,6 @@
   #define SH256 DECC_SH2
 #endif
 
-/* Correlation types */
-#define NON_EXTERNAL_CORR 0
-#define EXTERNAL_CORR_U 1
-#define EXTERNAL_CORR_V 2
-#define EXTERNAL_CORR_UV 3
-
-/**
- * \brief MAC length
- */
-#define MAC_LEN 8
-
-/**
- * \brief Set the Correlation type
- * TODO: This is never used (remove?)
- */
-#ifdef EDHOC_CONF_CORR
-  #define CORR EDHOC_CONF_CORR
-#else
-  #define CORR EXTERNAL_CORR_UV
-#endif
-
 /* EDHOC Role definitions */
 #define RESPONDER 0   /* The Responder of the EDHOC protocol */
 #define INITIATOR 1   /* The Initiator of the EDHOC protocol */
@@ -92,7 +71,6 @@
 /* COSE_key parameters */
 #define OKP 1  /* not implemented yet */
 #define EC2 2
-#define SYMMETRIC 3  /* not implemented yet */
 
 /* EDHOC Authentication Method Types: Initiator (I) | Responder (R) */
 #define METH0 0                  /* Signature Key  | Signature Key  */
@@ -136,7 +114,7 @@
 #define EDHOC_CIPHERSUITE_0 0   /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256,  MAC LEN 8,  X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
 #define EDHOC_CIPHERSUITE_1 1   /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
 #define EDHOC_CIPHERSUITE_2 2   /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256,  MAC LEN 8,  P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */ // Supported
-#define EDHOC_CIPHERSUITE_3 3   /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256,  MAC LEN 16, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */
+#define EDHOC_CIPHERSUITE_3 3   /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256,  MAC LEN 16, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */ // Supported
 #define EDHOC_CIPHERSUITE_4 4   /* ChaCha20/Poly1305,  (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, EdDSA, Ed25519, ChaCha20/Poly1305, SHA-256 */
 #define EDHOC_CIPHERSUITE_5 5   /* ChaCha20/Poly1305,  (HMAC 256/256) SHA-256,  MAC LEN 16, P-256,  ES256, P-256,   ChaCha20/Poly1305, SHA-256 */
 #define EDHOC_CIPHERSUITE_6 6   /* A128GCM,            (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, ES256, P-256,   A128GCM, SHA-256 */
@@ -183,29 +161,28 @@
   #define SUPPORTED_SUIT_4 -1
 #endif
 
-/* Set COSE_Key parameter */
-//#if (SUIT == P256)
-#define KEY_CRV 1
-#define KEY_TYPE EC2 /* EC2 key */
-//#endif
+// TODO: Make dynamic
+#define USED_SUIT EDHOC_CIPHERSUITE_2
 
-/**
- * \brief COSE algorithm selection
- */
-#ifdef EDHOC_CONF_ALGORITHM_ID
-  #define ALGORITHM_ID EDHOC_CONF_ALGORITHM_ID
-  #define COSE_CONF_ALGORITHM_ID EDHOC_CONF_ALGORITHM_ID
-#else
-  #define ALGORITHM_ID COSE_Algorithm_AES_CCM_16_64_128
-  #define COSE_CONF_ALGORITHM_ID COSE_Algorithm_AES_CCM_16_64_128
-#endif
+/* Set parameters depending on used ciphersuit */
+#if USED_SUIT == EDHOC_CIPHERSUITE_2
 
-/* Selected Algorithm Parameters */
-#if ALGORITHM_ID == COSE_Algorithm_AES_CCM_16_64_128
+  #define COSE_CONF_ALGORITHM_ID COSE_ALG_AES_CCM_16_64_128
+  #define KEY_CRV 1
+  #define KEY_TYPE EC2
   #define ECC_KEY_BYTE_LENGTH 32
   #define HASH_LENGTH 32
-  #define COSE_KEY_LEN COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
-  #define IV_LENGTH COSE_algorithm_AES_CCM_16_64_128_IV_LEN
+  #define MAC_LEN 8
+
+#elif USED_SUIT == EDHOC_CIPHERSUITE_3
+
+  #define COSE_CONF_ALGORITHM_ID COSE_ALG_AES_CCM_16_128_128
+  #define KEY_CRV 1
+  #define KEY_TYPE EC2
+  #define ECC_KEY_BYTE_LENGTH 32
+  #define HASH_LENGTH 32
+  #define MAC_LEN 16
+
 #endif
 
 /**

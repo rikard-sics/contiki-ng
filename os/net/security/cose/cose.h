@@ -52,41 +52,26 @@
 #include "hmac-sha.h"
 #include "uECC.h"
 
-/* COSE Algorithm parameters */
-#define COSE_Algorithm_AES_CCM_16_64_128 10
-#define COSE_algorithm_AES_CCM_16_64_128_KEY_LEN 16
-#define COSE_algorithm_AES_CCM_16_64_128_IV_LEN  13
-#define COSE_algorithm_AES_CCM_16_64_128_TAG_LEN  8
+/* COSE Algorithm parameters AES-CCM-16-64-128 */
+#define COSE_ALG_AES_CCM_16_64_128 10
+#define COSE_ALG_AES_CCM_16_64_128_KEY_LEN 16
+#define COSE_ALG_AES_CCM_16_64_128_IV_LEN  13
+#define COSE_ALG_AES_CCM_16_64_128_TAG_LEN  8
+
+/* COSE Algorithm parameters AES-CCM-16-128-128 */
+#define COSE_ALG_AES_CCM_16_128_128 30
+#define COSE_ALG_AES_CCM_16_128_128_KEY_LEN 16
+#define COSE_ALG_AES_CCM_16_128_128_IV_LEN  13
+#define COSE_ALG_AES_CCM_16_128_128_TAG_LEN  16
+
+#define MAX_IV_LEN 13
+#define MAX_KEY_LEN 16
 
 /**
  * \brief context of the  different COSE data structures
  */
 #define ENC0 "Encrypt0"
 #define SIGN1 "Signature1"
-
-/**
- * \brief Set the AEAD encryption algorithm
- */
-#ifdef COSE_CONF_ALGORITHM_ID
-#define COSE_ALG_ID COSE_CONF_ALGORITHM_ID
-#else
-#define COSE_ALG_ID COSE_Algorithm_AES_CCM_16_64_128
-#endif
-
-#if COSE_ALG_ID == COSE_Algorithm_AES_CCM_16_64_128
-/**
- * \brief Set Key length
- */
-#define KEY_LEN COSE_algorithm_AES_CCM_16_64_128_KEY_LEN
-/**
- * \brief Set nonce length
- */
-#define IV_LEN COSE_algorithm_AES_CCM_16_64_128_IV_LEN
-/**
- * \brief Set TAG length
- */
-#define TAG_LEN COSE_algorithm_AES_CCM_16_64_128_TAG_LEN
-#endif
 
 /**
  * \brief Set the Maximum Buffer length
@@ -103,7 +88,7 @@
 #endif
 
 /**
- * \brief Maximum Algorithm Identify length
+ * \brief Maximum Algorithm Identifier length
  */
 #define MAX_ALG_SZ 4
 
@@ -135,11 +120,10 @@ typedef struct cose_encrypt0 {
   uint8_t plaintext_sz;
   uint8_t ciphertext[MAX_CIPHER];
   uint8_t ciphertext_sz;
-  uint8_t alg[MAX_ALG_SZ];
-  uint8_t alg_sz;
-  uint8_t key[KEY_LEN];
+  uint8_t alg;
+  uint8_t key[MAX_KEY_LEN];
   uint8_t key_sz;
-  uint8_t nonce[IV_LEN];
+  uint8_t nonce[MAX_IV_LEN];
   uint8_t nonce_sz;
   uint8_t external_aad[COSE_MAX_BUFFER];
   uint8_t external_aad_sz;
@@ -157,8 +141,7 @@ typedef struct cose_sign1 {
   uint8_t payload_sz;
   uint8_t signature[P256_SIGNATURE_LEN];
   uint8_t signature_sz;
-  uint8_t alg[MAX_ALG_SZ];
-  uint8_t alg_sz;
+  uint8_t alg;
   uint8_t key[ECC_KEY_BYTE_LENGTH * 2];
   uint8_t key_sz;
   uint8_t external_aad[COSE_MAX_BUFFER];
@@ -175,6 +158,9 @@ uint8_t cose_sign(cose_sign1 *sign1);
 uint8_t cose_sign1_set_key(cose_sign1 *sign1, uint8_t alg, uint8_t *key, uint8_t key_sz);
 uint8_t cose_sign1_set_signature(cose_sign1 *sign1, uint8_t *signature, uint16_t signature_sz);
 uint8_t cose_verify(cose_sign1 *sign1);
+uint8_t get_cose_key_len(uint8_t alg_id);
+uint8_t get_cose_iv_len(uint8_t alg_id);
+uint8_t get_cose_tag_len(uint8_t alg_id);
 
 /**
  * \brief Create a new cose_encrypt0 context

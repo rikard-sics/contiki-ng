@@ -20,7 +20,7 @@ At the configuration file, the credential type used for authentication must be s
 
 The implementation supports the following features of EDHOC:
 
-- Ciphersuite: 2
+- Ciphersuite: 2, 3
 - Method: 0, 1, 2, 3
 - Credential identifier: KID
 - Credential type: CCS of type EC2
@@ -48,10 +48,6 @@ If the parties have agreed on an identity beside the public key, the "subject na
 - Define the EDHOC method to use
 ```c
 #define EDHOC_CID 0x20
-```
-- Define mechanism for correlating messages. When CoAP is used, as in this implementation, with the client as Initiator the transport provide the responder to correlate message_2 and message_1 and `EXTERNAL_CORR_U` macro must be defined. But the EDHOC implementation include also the other three correlation mechanisms defined on the protocol.
-```c
-#define EDHOC_CONF_CORR EXTERNAL_CORR_U
 ```
 - Define which library to use for ECDH operations.The SW library of `micro-ECC` with the macro `UECC_ECC` or the HW driver accelerator for cc2538 modules with the macro `CC2538_ECC .
 ```c
