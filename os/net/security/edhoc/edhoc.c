@@ -673,23 +673,27 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphert
   cose_encrypt0_set_ciphertext(cose, ciphertext, ciphertext_sz);
   /* COSE encrypt0 set header */
   cose_encrypt0_set_header(cose, NULL, 0, NULL, 0);
+  
   /* generate K3_ae */
-  int8_t er = edhoc_kdf(cose->key, ctx->session_keys.prk_3e2m, K_3_LABEL, ctx->session.th, COSE_KEY_LEN);
+  cose->alg = COSE_CONF_ALGORITHM_ID;
+  uint8_t cose_key_len = get_cose_key_len(cose->alg);
+  int8_t er = edhoc_kdf(cose->key, ctx->session_keys.prk_3e2m, K_3_LABEL, ctx->session.th, cose_key_len);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
   }
-  cose->key_sz = COSE_KEY_LEN;
+  cose->key_sz = cose_key_len;
   LOG_DBG("K_3 (%d bytes): ", cose->key_sz);
   print_buff_8_dbg(cose->key, cose->key_sz);
 
   /* generate IV */
-  er = edhoc_kdf(cose->nonce, ctx->session_keys.prk_3e2m, IV_3_LABEL, ctx->session.th, IV_LENGTH);
+  uint8_t iv_len = get_cose_iv_len(COSE_CONF_ALGORITHM_ID);
+  er = edhoc_kdf(cose->nonce, ctx->session_keys.prk_3e2m, IV_3_LABEL, ctx->session.th, iv_len);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
   }
-  cose->nonce_sz = IV_LENGTH;
+  cose->nonce_sz = iv_len;
   LOG_DBG("IV_3 (%d bytes): ", cose->nonce_sz);
   print_buff_8_dbg(cose->nonce, cose->nonce_sz);
 
@@ -766,22 +770,25 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   ctx->session.plaintext_3.len = cose->plaintext_sz;
   
   /* generate K_3 */
-  er = edhoc_kdf(cose->key, ctx->session_keys.prk_3e2m, K_3_LABEL, ctx->session.th, COSE_KEY_LEN);
+  cose->alg = COSE_CONF_ALGORITHM_ID;
+  uint8_t cose_key_len = get_cose_key_len(cose->alg);
+  er = edhoc_kdf(cose->key, ctx->session_keys.prk_3e2m, K_3_LABEL, ctx->session.th, cose_key_len);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
   }
-  cose->key_sz = COSE_KEY_LEN;
+  cose->key_sz = cose_key_len;
   LOG_DBG("K_3 (%d bytes): ", (int)cose->key_sz);
   print_buff_8_dbg(cose->key, cose->key_sz);
 
   /* generate IV_3 */
-  er = edhoc_kdf(cose->nonce, ctx->session_keys.prk_3e2m, IV_3_LABEL, ctx->session.th, IV_LENGTH);
+  uint8_t iv_len = get_cose_iv_len(COSE_CONF_ALGORITHM_ID);
+  er = edhoc_kdf(cose->nonce, ctx->session_keys.prk_3e2m, IV_3_LABEL, ctx->session.th, iv_len);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
   }
-  cose->nonce_sz = IV_LENGTH;
+  cose->nonce_sz = iv_len;
   LOG_DBG("IV_3 (%d bytes): ", (int)cose->nonce_sz);
   print_buff_8_dbg(cose->nonce, cose->nonce_sz);
 
