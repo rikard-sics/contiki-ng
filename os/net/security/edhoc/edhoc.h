@@ -94,9 +94,9 @@
 typedef struct edhoc_session {
   uint8_t role;
   uint8_t method;
-  uint8_t suit[5];
-  uint8_t suit_num;
-  uint8_t suit_rx;
+  uint8_t suite[5];
+  uint8_t suite_num;
+  uint8_t suite_selected;
   bstr    Gx;
   uint8_t cid;
   uint8_t cid_rx;
@@ -168,8 +168,8 @@ void edhoc_finalize(edhoc_context_t *ctx);
  * \param ctx EDHOC Context struct
  * \param ad Application data to include in MSG1
  * \param ad_sz Application data length
- * \param suit_array If true the msg1 include an array of suits if have more than one suit if 0 msg1 includes an 
- * unique unsigned suit independently of the number of suits supported by the initiator 
+ * \param suite_array If true the msg1 include an array of suites if have more than one suite if 0 msg1 includes an 
+ * unique unsigned suite independently of the number of suites supported by the initiator 
  *
  * Generate an ephemeral ECDH key pair, determinate the cipher suite to use and the
  * connection identifier. Compose the EDHOC Message 1 as described in the (RFC9528) reference
@@ -180,13 +180,15 @@ void edhoc_finalize(edhoc_context_t *ctx);
  * - ctx->MSG1 = (METHOD_CORR:unsigned, SUITES_I:unsigned, G_X:bstr, C_I:bstr_identifier)
  *
  */
-void edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suit_array);
+void edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_array);
 
 /**
  * \brief Generate the EDHOC Message 2 and set it in the EDHOC ctx
  * \param ctx EDHOC Context struct
  * \param ad Application data to include in MSG2
  * \param ad_sz Application data length
+ * \retval -1 when message generation fails
+ * \retval 1 when message generation succeeds
  *
  * It is used by EDHOC Responder role to processing the message 2
  * Generate an ephemeral ECDH key pair
@@ -200,7 +202,7 @@ void edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suit_
  * - ctx->MSG2 = (data_2, CIPHERTEXT_2:bstr)
  * - where: data_2 = (?C_I:bstr_identifier, G_Y:bstr)
  */
-void edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz);
+uint8_t edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz);
 
 /**
  * \brief Generate the EDHOC Message 3 and set it in the EDHOC ctx
@@ -395,8 +397,8 @@ int8_t edhoc_check_rx_msg_2(uint8_t *buffer, uint8_t buff_sz,edhoc_context_t* ct
 void set_rx_gx(edhoc_context_t *ctx, uint8_t *gx);
 
 // static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length);
-// static int16_t get_rx_suit_I(const edhoc_context_t *ctx, bstr suit_rx);
-// static int8_t check_rx_suit_I(edhoc_context_t *ctx, bstr suitrx);
+// static int16_t get_rx_suite_I(const edhoc_context_t *ctx, bstr suite_rx);
+// static int8_t check_rx_suite_I(edhoc_context_t *ctx, bstr suiterx);
 // static int8_t gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz);
 // static int8_t set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz);
 // static int8_t set_rx_method(edhoc_context_t *ctx, uint8_t method);

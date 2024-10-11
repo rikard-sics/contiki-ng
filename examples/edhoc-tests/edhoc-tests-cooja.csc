@@ -210,10 +210,12 @@ while (true) {
   
   // Check if TH_4 is correct
   if (msg.contains("TH_4")) {
-    if (msg.contains("TH_4 (32 bytes): c9 02 b1 e3 a4 32 6c 93 c5 55 1f 5f 3a a6 c5 ec c0 24 68 06 76 56 12 e5 2b 5d 99 e6 05 9d 6b 6e")) {
-      log.log("C " + device + ": Correct TH_4!\n");
-    } else {
-      log.log("I " + device + ": Incorrect TH_4!\n");
+    if(!msg.contains("input to calculate TH_4")) {
+      if (msg.contains("TH_4 (32 bytes): c9 02 b1 e3 a4 32 6c 93 c5 55 1f 5f 3a a6 c5 ec c0 24 68 06 76 56 12 e5 2b 5d 99 e6 05 9d 6b 6e")) {
+        log.log("C " + device + ": Correct TH_4!\n");
+      } else {
+        log.log("I " + device + ": Incorrect TH_4!\n");
+      }
     }
   }
   

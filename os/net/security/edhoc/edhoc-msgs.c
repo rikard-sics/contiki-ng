@@ -43,8 +43,8 @@ void
 print_msg_1(edhoc_msg_1 *msg)
 {
   LOG_DBG("Type: %d\n", msg->method);
-  LOG_DBG("Suit I: ");
-  print_buff_8_dbg(msg->suites_i.buf,msg->suites_i.len);
+  LOG_DBG("Suite I: ");
+  print_buff_8_dbg(msg->suites_i.buf, msg->suites_i.len);
   LOG_DBG("Gx: ");
   print_buff_8_dbg(msg->g_x.buf, msg->g_x.len);
   LOG_DBG("Ci: ");
@@ -224,13 +224,12 @@ edhoc_deserialize_suites(unsigned char **buffer, bstr *suites)
 }
 
 size_t
-edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suit_array)
+edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array)
 {
   size_t size = cbor_put_unsigned(&buffer, msg->method);
   size += edhoc_serialize_suites(&buffer, &msg->suites_i);
   size += cbor_put_bytes(&buffer, msg->g_x.buf, msg->g_x.len);
   size += edhoc_put_byte_identifier(&buffer, msg->c_i.buf, msg->c_i.len);
-  // FIXME: send full EAD if sending EAD
   if(msg->uad.ead_value.len > 0) {
     size += cbor_put_bytes(&buffer, msg->uad.ead_value.buf, msg->uad.ead_value.len);
   }
@@ -249,7 +248,7 @@ edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer)
       size += cbor_put_text(&buffer, msg->err_info.buf, msg->err_info.len);
       break;
     case 2:
-      // FIXME: strict aliasing violation.
+      // FIXME: strict aliasing violation
       size += edhoc_serialize_suites(&buffer, (bstr *)&msg->err_info);
       break;
     case 3:
@@ -274,7 +273,7 @@ edhoc_deserialize_err(edhoc_msg_error *msg, unsigned char *buffer, uint8_t buff_
     if(msg->err_code == 2) {
       // FIXME: strict aliasing violation
       edhoc_deserialize_suites(&buffer, (bstr *)&msg->err_info);
-      return ERR_NEW_SUIT_PROPOSE;
+      return ERR_NEW_SUITE_PROPOSE;
     }
     int16_t len = get_text(&buffer, &msg->err_info.buf);
     if(len > 0) {
@@ -301,7 +300,7 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
     int8_t unint = (int8_t)edhoc_get_unsigned(&buffer);
     msg->method = unint;
   }
-  /* Get the suit */
+  /* Get the suite */
   if(buffer < buff_f) {
     edhoc_deserialize_suites(&buffer, &msg->suites_i);
   }
@@ -330,7 +329,7 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
       LOG_ERR("error code (%d)\n ", ERR_MSG_MALFORMED);
       return ERR_MSG_MALFORMED;
     }
-    // FIXME: add ead_label decoding
+
     msg->uad.ead_value.buf = p_out;
     msg->uad.ead_value.len = out_sz;
   }

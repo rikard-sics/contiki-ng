@@ -108,23 +108,31 @@
   #define AUTHENT_TYPE CRED_KID
 #endif
 
-/* #define AUTHENTICATION_KEY_LEN 32 // For Signature key, not yet implemented */
-
-/* cipher suits */
+/* cipher suites */
 #define EDHOC_CIPHERSUITE_0 0   /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256,  MAC LEN 8,  X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
 #define EDHOC_CIPHERSUITE_1 1   /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
 #define EDHOC_CIPHERSUITE_2 2   /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256,  MAC LEN 8,  P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */ // Supported
 #define EDHOC_CIPHERSUITE_3 3   /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256,  MAC LEN 16, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */ // Supported
 #define EDHOC_CIPHERSUITE_4 4   /* ChaCha20/Poly1305,  (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, EdDSA, Ed25519, ChaCha20/Poly1305, SHA-256 */
 #define EDHOC_CIPHERSUITE_5 5   /* ChaCha20/Poly1305,  (HMAC 256/256) SHA-256,  MAC LEN 16, P-256,  ES256, P-256,   ChaCha20/Poly1305, SHA-256 */
-#define EDHOC_CIPHERSUITE_6 6   /* A128GCM,            (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, ES256, P-256,   A128GCM, SHA-256 */
-#define EDHOC_CIPHERSUITE_24 24 /* A256GCM,            (HMAC 384/384) SHA-384,  MAC LEN 16, P-384,  ES384, P-384,   A256GCM, SHA-384 */
+#define EDHOC_CIPHERSUITE_6 6   /* A128GCM,            (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, ES256, P-256,   A128GCM,           SHA-256 */
+#define EDHOC_CIPHERSUITE_24 24 /* A256GCM,            (HMAC 384/384) SHA-384,  MAC LEN 16, P-384,  ES384, P-384,   A256GCM,           SHA-384 */
 #define EDHOC_CIPHERSUITE_25 25 /* ChaCha20/Poly1305,  (HMAC 256/256) SHAKE256, MAC LEN 16, X448,   EdDSA, Ed448,   ChaCha20/Poly1305, SHAKE256 */
+
+/* EDHOC MAC lengths */
+#define SUITE_1_3_4_5_6_24_25_MAC_LEN 16
+#define SUITE_0_2_MAC_LEN 8
 
 /* Algorithms for signing */
 #define ES256 -7
 #define EDDSA -8
 #define ES384 -35
+
+/* Common settings for supported cipher suites */
+#define KEY_CRV 1
+#define KEY_TYPE EC2
+#define ECC_KEY_BYTE_LENGTH 32
+#define HASH_LENGTH 32
 
 /**
  * \brief Length of signatures
@@ -135,54 +143,30 @@
 #define P384_SIGNATURE_LEN 96
 
 /**
- * \brief Set EDHOC cipher suit config
+ * \brief Set EDHOC cipher suite config
  */
-#ifdef EDHOC_CONF_SUPPORTED_SUIT_1
-  #define SUPPORTED_SUIT_1 EDHOC_CONF_SUPPORTED_SUIT_1
+#ifdef EDHOC_CONF_SUPPORTED_SUITE_1
+  #define SUPPORTED_SUITE_1 EDHOC_CONF_SUPPORTED_SUITE_1
 #else
-  #define SUPPORTED_SUIT_1 -1
+  #define SUPPORTED_SUITE_1 -1
 #endif
 
-#ifdef EDHOC_CONF_SUPPORTED_SUIT_2
-  #define SUPPORTED_SUIT_2 EDHOC_CONF_SUPPORTED_SUIT_2
+#ifdef EDHOC_CONF_SUPPORTED_SUITE_2
+  #define SUPPORTED_SUITE_2 EDHOC_CONF_SUPPORTED_SUITE_2
 #else
-  #define SUPPORTED_SUIT_2 -1
+  #define SUPPORTED_SUITE_2 -1
 #endif
 
-#ifdef EDHOC_CONF_SUPPORTED_SUIT_3
-  #define SUPPORTED_SUIT_3 EDHOC_CONF_SUPPORTED_SUIT_3
+#ifdef EDHOC_CONF_SUPPORTED_SUITE_3
+  #define SUPPORTED_SUITE_3 EDHOC_CONF_SUPPORTED_SUITE_3
 #else
-  #define SUPPORTED_SUIT_3 -1
+  #define SUPPORTED_SUITE_3 -1
 #endif
 
-#ifdef EDHOC_CONF_SUPPORTED_SUIT_4
-  #define SUPPORTED_SUIT_4 EDHOC_CONF_SUPPORTED_SUIT_4
+#ifdef EDHOC_CONF_SUPPORTED_SUITE_4
+  #define SUPPORTED_SUITE_4 EDHOC_CONF_SUPPORTED_SUITE_4
 #else
-  #define SUPPORTED_SUIT_4 -1
-#endif
-
-// TODO: Make dynamic
-#define USED_SUIT EDHOC_CIPHERSUITE_2
-
-/* Set parameters depending on used ciphersuit */
-#if USED_SUIT == EDHOC_CIPHERSUITE_2
-
-  #define COSE_CONF_ALGORITHM_ID COSE_ALG_AES_CCM_16_64_128
-  #define KEY_CRV 1
-  #define KEY_TYPE EC2
-  #define ECC_KEY_BYTE_LENGTH 32
-  #define HASH_LENGTH 32
-  #define MAC_LEN 8
-
-#elif USED_SUIT == EDHOC_CIPHERSUITE_3
-
-  #define COSE_CONF_ALGORITHM_ID COSE_ALG_AES_CCM_16_128_128
-  #define KEY_CRV 1
-  #define KEY_TYPE EC2
-  #define ECC_KEY_BYTE_LENGTH 32
-  #define HASH_LENGTH 32
-  #define MAC_LEN 16
-
+  #define SUPPORTED_SUITE_4 -1
 #endif
 
 /**
@@ -198,7 +182,7 @@
  * \brief The number of attempts to try to connect with the EDHOC server successfully
  */
 #ifndef EDHOC_CONF_ATTEMPTS
-  #define EDHOC_CONF_ATTEMPTS 3
+  #define EDHOC_CONF_ATTEMPTS 2
 #endif
 
 /**
@@ -216,7 +200,7 @@
 #ifdef EDHOC_CONF_MAX_AD_SZ
   #define MAX_AD_SZ EDHOC_CONF_MAX_AD_SZ
 #else
-  #define MAX_AD_SZ 16
+  #define MAX_AD_SZ 8
 #endif
 
 /**

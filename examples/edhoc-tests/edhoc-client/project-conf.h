@@ -20,10 +20,8 @@
 #define EDHOC_CONF_SERVER_EP "coap://[fd01::202:2:2:2]" /* Server IP for Cooja simulator */
 //#define EDHOC_CONF_SERVER_EP "coap://[fd00::1]" /* IP for using with socat to reach other servers */
 
-
 /* Define the party role on the EDHOC protocol as Initiator and the correlation method */
 #define EDHOC_CONF_ROLE INITIATOR
-#define EDHOC_CONF_CORR EXTERNAL_CORR_U
 
 /* To run with the test vector DH ephemeral keys used on the EDHOC interoperability session */
 #define EDHOC_CONF_TEST TEST_VECTOR_TRACE_2
@@ -35,7 +33,6 @@
 // #define EDHOC_CONF_SH256 DECC_SH2
 // #define EDHOC_CONF_SH256 CC2538_SH2
 
-
 /* Define the library for ECDH operations */
 //#define EDHOC_CONF_ECC CC2538_ECC
 #define EDHOC_CONF_ECC UECC_ECC
@@ -43,9 +40,9 @@
 /* To run EDHOC client as RPL node */
 #define EDHOC_CONF_RPL_NODE 1
 
-/* Set the supported cipher suits */
-#define EDHOC_CONF_SUPPORTED_SUIT_1 EDHOC_CIPHERSUITE_2
-#define EDHOC_CONF_SUPPORTED_SUIT_2 EDHOC_CIPHERSUITE_6
+/* Set the supported cipher suites */
+#define EDHOC_CONF_SUPPORTED_SUITE_1 EDHOC_CIPHERSUITE_2
+#define EDHOC_CONF_SUPPORTED_SUITE_2 EDHOC_CIPHERSUITE_6
 
 /* May be necessary to define one of the following macros when the UECC_ECC library is
 used and the target is an embedded device */

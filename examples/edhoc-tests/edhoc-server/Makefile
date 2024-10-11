@@ -16,7 +16,7 @@ include $(CONTIKI)/Makefile.dir-variables
 ifeq ($(TARGET),cooja)
 MODULES += $(CONTIKI_NG_SERVICES_DIR)/rpl-border-router
 # Include webserver module
-# FIXME: should not include cross-examples
+# FIXME: should not include across examples
 MODULES_REL += ../../rpl-border-router/webserver
 CFLAGS += -DBORDER_ROUTER_CONF_WEBSERVER=1
 endif

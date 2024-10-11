@@ -195,7 +195,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         LOG_WARN("Send MSG error with code (%d)\n", er);
         edhoc_ctx->tx_sz = edhoc_gen_msg_error(edhoc_ctx->msg_tx, edhoc_ctx, er);
         serv->state = TX_MSG_ERR;
-        if(er != ERR_NEW_SUIT_PROPOSE){
+        if(er != ERR_NEW_SUITE_PROPOSE){
           coap_timer_stop(&timer);
           edhoc_server_close();
           new_ecc.val = SERV_RESTART;
