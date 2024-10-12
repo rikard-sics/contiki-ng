@@ -116,12 +116,16 @@ cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, uint8_t *key, uint8_t key
   return 1;
 }
 uint8_t
-cose_sign1_set_key(cose_sign1 *sign1, uint8_t alg, uint8_t *key, uint8_t key_sz)
+cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, uint8_t *key, uint8_t key_sz)
 {
   if(key_sz > ECC_KEY_LEN * 2) {
     return 0;
   }
 
+  if(alg != ES256) {
+    LOG_ERR("Unknown COSE signing algorithm specified\n");
+  }
+  
   sign1->key_sz = key_sz;
   memcpy(sign1->key, key, key_sz);
   return 1;
