@@ -47,8 +47,6 @@
 
 #include "sliding-window.h"
 
-#include "sliding-window.h"
-
 #define CONTEXT_KEY_LEN 16
 #define CONTEXT_INIT_VECT_LEN 13
 #define CONTEXT_SEQ_LEN sizeof(uint64_t)
