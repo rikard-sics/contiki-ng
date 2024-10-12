@@ -32,7 +32,7 @@
  * \file
  *      An implementation of the Concise Binary Object Representation (RFC7049).
  * \author
- *      Martin Gunnarsson  <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson  <martin.gunnarsson@ri.se>, Rikard Höglund
  *
  */
 
@@ -163,5 +163,34 @@ cbor_put_negative(uint8_t **buffer, int64_t value)
   int nb = cbor_put_unsigned(buffer, value);
   *pt = (*pt | 0x20);
   return nb;
+}
+
+uint8_t //RH: WIP
+cbor_bstr_size(uint32_t len) {
+  if (len <= 23) {
+    return 1 + len; // 1 byte total for encoding
+  } else if (len <= 255) {
+    return 2 + len; // 1 byte for 0x18 + 1 byte for the length
+  } else if (len <= 65535) {
+    return 3 + len; // 1 byte for 0x19 + 2 bytes for the length
+  } else if (len <= 4294967295) {
+    return 5 + len; // 1 byte for 0x1A + 4 bytes for the length
+  } else {
+    return 9 + len; // 1 byte for 0x1B + 8 bytes for the length
+  }
+}
+
+uint8_t //RH: WIP
+cbor_int_size(int32_t num) {
+  if (num >= -24 && num <= 23) {
+    return 1;
+  } else if (num >= -256 && num <= 255) {
+    return 2;
+  } else if (num >= -32768 && num <= 65535) {
+    return 3;
+  } else if (num >= -2147483648 && num <= 4294967295) {
+    return 5;
+  }
+  return 0;
 }
 

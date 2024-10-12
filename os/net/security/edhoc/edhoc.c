@@ -498,7 +498,7 @@ get_edhoc_cose_enc_alg(uint8_t ciphersuite_id)
 static uint8_t
 gen_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac, uint8_t mac_len)
 {
-  uint8_t mac_num = 0;
+  uint8_t mac_num;
   if(ROLE == INITIATOR) {
     mac_num = MAC_3;
   } else if(ROLE == RESPONDER) {
@@ -515,7 +515,7 @@ gen_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac, uint8_t
 static uint16_t
 check_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *received_mac, uint16_t received_mac_sz, uint8_t *mac)
 {
-  uint8_t mac_num = 0;
+  uint8_t mac_num;
   if(ROLE == INITIATOR) {
     mac_num = MAC_2;
   } else if(ROLE == RESPONDER) {
@@ -849,9 +849,9 @@ edhoc_get_authentication_key(edhoc_context_t *ctx)
 #ifdef AUTH_KID
   cose_key_t *key;
   uint8_t key_id[sizeof(int)];
-  uint8_t key_id_sz = 1;
   int kid = AUTH_KID;
   int quotient = (AUTH_KID / 256);
+  uint8_t key_id_sz = 1;
   while(quotient != 0) {
     key_id_sz++;
     quotient /= 256;
@@ -1517,32 +1517,5 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   }  
 
   return ad_sz;
-}
-uint8_t //RH: WIP
-cbor_bstr_size(uint32_t len) {
-  if (len <= 23) {
-    return 1 + len; // 1 byte total for encoding
-  } else if (len <= 255) {
-    return 2 + len; // 1 byte for 0x18 + 1 byte for the length
-  } else if (len <= 65535) {
-    return 3 + len; // 1 byte for 0x19 + 2 bytes for the length
-  } else if (len <= 4294967295) {
-    return 5 + len; // 1 byte for 0x1A + 4 bytes for the length
-  } else {
-    return 9 + len; // 1 byte for 0x1B + 8 bytes for the length
-  }
-}
-uint8_t //RH: WIP
-cbor_int_size(int32_t num) {
-  if (num >= -24 && num <= 23) {
-    return 1;
-  } else if (num >= -256 && num <= 255) {
-    return 2;
-  } else if (num >= -32768 && num <= 65535) {
-    return 3;
-  } else if (num >= -2147483648 && num <= 4294967295) {
-    return 5;
-  }
-  return 0;
 }
 

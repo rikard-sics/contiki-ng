@@ -52,12 +52,14 @@
 #define ECC_KEY_LEN 32
 #endif
 
+#define IDENTITY_MAX_LEN 32
+
 /* COSE KEY struct */
 typedef struct cose_key_t {
   struct  key *next;
   uint8_t kid[4];
   uint8_t kid_sz;
-  char identity[32];
+  char identity[IDENTITY_MAX_LEN];
   uint8_t identity_sz;
   uint8_t kty;
   uint8_t crv;
