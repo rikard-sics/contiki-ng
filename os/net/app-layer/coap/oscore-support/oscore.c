@@ -1,5 +1,5 @@
-/*
- * Copyright (c) 2018, SICS, RISE AB
+/* 
+ * Copyright (c) 2024, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,11 @@
  *
  */
 
-/**
+/* *
  * \file
- *      An implementation of the Object Security for Constrained RESTful Enviornments (Internet-Draft-15) .
+ *      An implementation of the Object Security for Constrained RESTful Enviornments (RFC8613) .
  * \author
- *      Martin Gunnarsson  <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson  <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  *
  */
 
@@ -68,7 +68,7 @@ oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const osc
 static int
 oscore_prepare_aad(const coap_message_t *coap_pkt, const cose_encrypt0_t *cose, nanocbor_encoder_t* enc, bool sending);
 
-/*Return 1 if OK, Error code otherwise */
+/* Return 1 if OK, Error code otherwise */
 static bool
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, const cose_encrypt0_t *cose);
 
@@ -127,7 +127,7 @@ static uint64_t
 btou64(const uint8_t *bytes, size_t len)
 {
   uint8_t buffer[sizeof(uint64_t)];
-  memset(buffer, 0, sizeof(buffer)); /* function variables are not initializated to anything */
+  memset(buffer, 0, sizeof(buffer)); /* function variables are not initialized to anything */
   int offset = sizeof(buffer) - len;
   uint64_t num;
 
@@ -240,7 +240,6 @@ oscore_decode_message(coap_message_t *coap_pkt)
   oscore_ctx_t *ctx = NULL;
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
-  uint8_t seq_buffer[CONTEXT_SEQ_LEN];
   cose_encrypt0_init(cose);
 
   printf_hex_detailed("object_security", coap_pkt->object_security, coap_pkt->object_security_len);
@@ -268,7 +267,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
       return OSCORE_MISSING_CONTEXT; /* Will transform into UNAUTHORIZED_4_01 later */
     }
 
-    /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
+    /* 4 Verify the Partial IV parameter using the Replay Window, as described in Section 7.4. */
     if(!oscore_validate_sender_seq(&ctx->recipient_context, cose)) {
       LOG_WARN("OSCORE Replayed or old message\n");
       coap_error_message = "Replay detected";
@@ -310,6 +309,7 @@ oscore_decode_message(coap_message_t *coap_pkt)
     LOG_DBG("cose->partial_iv_len == %"PRIu16" (%"PRIu64")\n", cose->partial_iv_len, seq);
 
     /* If message contains a partial IV, the received is used. */
+    uint8_t seq_buffer[CONTEXT_SEQ_LEN];
     if(cose->partial_iv_len == 0){
       uint8_t seq_len = u64tob(seq, seq_buffer);
       cose_encrypt0_set_partial_iv(cose, seq_buffer, seq_len);
@@ -389,7 +389,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
   cose_encrypt0_set_content(cose, content_buffer, plaintext_len);
   
-  /*3 Compute the AEAD nonce as described in Section 5.2*/ 
+  /* 3 Compute the AEAD nonce as described in Section 5.2*/ 
   nanocbor_encoder_t aad_enc;
   nanocbor_encoder_init(&aad_enc, aad_buffer, sizeof(aad_buffer));
   if (oscore_prepare_aad(coap_pkt, cose, &aad_enc, true) != NANOCBOR_OK) {
@@ -409,7 +409,7 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     oscore_increment_sender_seq(ctx);
   }
 
-  /*4 Encrypt the COSE object using the Sender Key*/
+  /* 4 Encrypt the COSE object using the Sender Key*/
   int ciphertext_len = cose_encrypt0_encrypt(cose);
   if(ciphertext_len < 0){
     LOG_ERR("OSCORE internal error %d.\n", ciphertext_len);
@@ -447,7 +447,7 @@ oscore_prepare_aad(const coap_message_t *coap_pkt, const cose_encrypt0_t *cose, 
 
   /* Serialize the External AAD*/
   NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 5));
-  NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, 1)); /* Version, always for this version of the draft 1 */
+  NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, 1)); /* Version is always 1 for this version of the RFC */
 
   NANOCBOR_CHECK(nanocbor_fmt_array(&aad_enc, 1)); /* Algorithms array */
   NANOCBOR_CHECK(nanocbor_fmt_uint(&aad_enc, coap_pkt->security_context->alg)); /* Algorithm */
@@ -467,7 +467,7 @@ oscore_prepare_aad(const coap_message_t *coap_pkt, const cose_encrypt0_t *cose, 
     }
   }
   NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc, cose->partial_iv, cose->partial_iv_len));
-  NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc, NULL, 0)); /* Put integrety protected option, at present there are none. */
+  NANOCBOR_CHECK(nanocbor_put_bstr(&aad_enc, NULL, 0)); /* Put integrity protected option, at present there are none. */
 
   const size_t external_aad_len = nanocbor_encoded_len(&aad_enc);
 
@@ -500,7 +500,7 @@ oscore_generate_nonce(const cose_encrypt0_t *ptr, const coap_message_t *coap_pkt
   printf_hex_detailed("result", buffer, size);
 }
 
-/*Remove all protected options */
+/* Remove all protected options */
 static void
 oscore_clear_option(coap_message_t *coap_pkt, coap_option_t option)
 {
@@ -530,7 +530,7 @@ oscore_clear_options(coap_message_t *coap_pkt)
   /* Size1 should be duplicated */
 }
 
-/*Return 1 if OK, Error code otherwise */
+/* Return 1 if OK, Error code otherwise */
 bool
 oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, const cose_encrypt0_t *cose)
 {
@@ -558,7 +558,7 @@ oscore_init(void)
   oscore_exchange_store_init();
 
 #ifdef OSCORE_EP_CTX_ASSOCIATION
-  /* Initialize the security_context storage, the token - seq association storrage and the URI - security_context association storage. */
+  /* Initialize the security_context storage, the token - seq association storage and the URI - security_context association storage. */
   oscore_ep_ctx_store_init();
 #endif
 }

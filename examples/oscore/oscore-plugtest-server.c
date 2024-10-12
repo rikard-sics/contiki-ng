@@ -31,9 +31,9 @@
 
 /**
  * \file
- *      OSCORE interops server, tests specified according to https://raw.githubusercontent.com/EricssonResearch/OSCOAP/master/test-spec5.md .
+ *      OSCORE interops server
  * \author
- *      Martin Gunnarsson <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  */
 
 

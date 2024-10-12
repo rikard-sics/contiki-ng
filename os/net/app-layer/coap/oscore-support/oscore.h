@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, SICS, RISE AB
+ * Copyright (c) 2024, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,9 +30,9 @@
 
 /**
  * \file
- *      An implementation of the Object Security for Constrained RESTful Enviornments (Internet-Draft-15).
+ *      An implementation of the Object Security for Constrained RESTful Enviornments (RFC8613).
  * \author
- *      Martin Gunnarsson  <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson  <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  *
  */
 
@@ -54,7 +54,7 @@
 /*
  * The maximum length of Sender ID in
  * bytes equals the length of the AEAD nonce minus 6
- * https://tools.ietf.org/html/rfc8613#section-3.3
+ * https://tools.ietf.org/html/RFC8613#section-3.3
  */
 #define OSCORE_SENDER_ID_MAX_LEN(NONE_LENGTH) (NONE_LENGTH - 6)
 #define OSCORE_SENDER_ID_MAX_SUPPORTED_LEN OSCORE_SENDER_ID_MAX_LEN(COSE_LARGEST_IV_LENGTH)
@@ -65,7 +65,7 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data, uint16_t da
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
 coap_status_t oscore_decode_message(coap_message_t *coap_pkt);
 
-/*Decodes the OSCORE option value and places decoded values into the provided code structure */
+/* Decodes the OSCORE option value and places decoded values into the provided code structure */
 coap_status_t oscore_decode_option_value(uint8_t *option_value, int option_len, cose_encrypt0_t *cose);
 
 /* Prepares a new OSCORE message, returns the size of the message. */
@@ -84,11 +84,11 @@ bool oscore_increment_sender_seq(oscore_ctx_t *ctx);
 void oscore_protect_resource(coap_resource_t *resource);
 bool oscore_is_resource_protected(const coap_resource_t *resource);
 
-/* Retuns 1 if the resource is protected by OSCORE, 0 otherwise. */
+/* Returns 1 if the resource is protected by OSCORE, 0 otherwise. */
 bool oscore_is_request_protected(const coap_message_t *request);
 
 /* Initialize the context storage and the protected resource storage. */
-/* Initialize the context storage, the token - seq association storrage and the URI - context association storage. */
+/* Initialize the context storage, the token - seq association storage and the URI - context association storage. */
 void oscore_init(void);
 
 #endif /* _OSCORE_H */

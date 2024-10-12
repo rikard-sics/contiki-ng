@@ -107,7 +107,7 @@ int  coap_endpoint_snprint(char *str, size_t size,
  * \param text The string to parse.
  * \param size The max number of characters in the string.
  * \param ep   A pointer to the CoAP endpoint to write to.
- * \return     Returns non-zero if the endpoint was successfully parsed and
+ * \return     Returns non-zero if the endpoint was successfuly parsed and
  *             zero otherwise.
  */
 int coap_endpoint_parse(const char *text, size_t size, coap_endpoint_t *ep);

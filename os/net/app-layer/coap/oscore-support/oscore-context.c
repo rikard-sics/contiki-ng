@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, SICS, RISE AB
+ * Copyright (c) 2024, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,9 +30,9 @@
 
 /**
  * \file
- *      An implementation of the Object Security for Constrained RESTful Enviornments (Internet-Draft-15) .
+ *      An implementation of the Object Security for Constrained RESTful Enviornments (RFC8613) .
  * \author
- *      Martin Gunnarsson  <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson  <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  *
  */
 
@@ -159,7 +159,7 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   common_ctx->alg = alg;
   common_ctx->sender_context.sender_id = sid;
   common_ctx->sender_context.sender_id_len = sid_len;
-  common_ctx->sender_context.seq = 0; /* rfc8613 Section 3.2.2 */
+  common_ctx->sender_context.seq = 0; /* RFC8613 Section 3.2.2 */
 
   common_ctx->recipient_context.recipient_id = rid;
   common_ctx->recipient_context.recipient_id_len = rid_len;

@@ -87,7 +87,7 @@ typedef int (*uECC_RNG_Function)(uint8_t *dest, unsigned size);
 Set the function that will be used to generate random bytes. The RNG function should
 return 1 if the random data was generated, or 0 if the random data could not be generated.
 
-On platforms where there is no predefined RNG function (eg embedded platforms), this must
+On platforms where there is no predefined RNG function (e.g. embedded platforms), this must
 be called before uECC_make_key() or uECC_sign() are used.
 
 Inputs:
@@ -102,7 +102,7 @@ Outputs:
     public_key  - Will be filled in with the public key.
     private_key - Will be filled in with the private key.
 
-Returns 1 if the key pair was generated successfully, 0 if an error occurred.
+Returns 1 if the key pair was generated successfuly, 0 if an error occurred.
 */
 int uECC_make_key(uint8_t public_key[uECC_BYTES*2], uint8_t private_key[uECC_BYTES]);
 
@@ -118,7 +118,7 @@ Inputs:
 Outputs:
     secret - Will be filled in with the shared secret value.
 
-Returns 1 if the shared secret was generated successfully, 0 if an error occurred.
+Returns 1 if the shared secret was generated successfuly, 0 if an error occurred.
 */
 int uECC_shared_secret(const uint8_t public_key[uECC_BYTES*2],
                        const uint8_t private_key[uECC_BYTES],
@@ -137,7 +137,7 @@ Inputs:
 Outputs:
     signature - Will be filled in with the signature value.
 
-Returns 1 if the signature generated successfully, 0 if an error occurred.
+Returns 1 if the signature generated successfuly, 0 if an error occurred.
 */
 int uECC_sign(const uint8_t private_key[uECC_BYTES],
               const uint8_t message_hash[uECC_BYTES],
@@ -187,8 +187,8 @@ typedef struct uECC_HashContext {
                         const uint8_t *message,
                         unsigned message_size);
     void (*finish_hash)(struct uECC_HashContext *context, uint8_t *hash_result);
-    unsigned block_size; /* Hash function block size in bytes, eg 64 for SHA-256. */
-    unsigned result_size; /* Hash function result size in bytes, eg 32 for SHA-256. */
+    unsigned block_size; /* Hash function block size in bytes, e.g. 64 for SHA-256. */
+    unsigned result_size; /* Hash function result size in bytes, e.g. 32 for SHA-256. */
     uint8_t *tmp; /* Must point to a buffer of at least (2 * result_size + block_size) bytes. */
 } uECC_HashContext;
 
@@ -209,7 +209,7 @@ Inputs:
 Outputs:
     signature - Will be filled in with the signature value.
 
-Returns 1 if the signature generated successfully, 0 if an error occurred.
+Returns 1 if the signature generated successfuly, 0 if an error occurred.
 */
 int uECC_sign_deterministic(const uint8_t private_key[uECC_BYTES],
                             const uint8_t message_hash[uECC_BYTES],
@@ -278,7 +278,7 @@ Inputs:
 Outputs:
     public_key - Will be filled in with the corresponding public key
 
-Returns 1 if the key was computed successfully, 0 if an error occurred.
+Returns 1 if the key was computed successfuly, 0 if an error occurred.
 */
 int uECC_compute_public_key(const uint8_t private_key[uECC_BYTES],
                             uint8_t public_key[uECC_BYTES * 2]);

@@ -33,4 +33,4 @@ connect-router-native:	$(CONTIKI)/examples/rpl-border-router/border-router.nativ
 	sudo $(CONTIKI)/examples/rpl-border-router/border-router.native -a 127.0.0.1 -p 60001 fd00::1/64
 
 connect-native:
-	sudo ip address add fdfd::1/64 dev tun0
+	sudo IP address add fdfd::1/64 dev tun0

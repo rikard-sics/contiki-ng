@@ -90,9 +90,8 @@ dtls_ticks(dtls_tick_t *t)
 int
 dtls_fill_random(uint8_t *buf, size_t len)
 {
-  int i;
   if(buf) {
-    for(i = 0; i < len; i++) {
+    for(int i = 0; i < len; i++) {
       buf[i] = random_rand() & 0xff;
     }
     return 1;

@@ -65,7 +65,7 @@
 #define OBS_RESOURCE_URI "test/push"
 
 /*----------------------------------------------------------------------------*/
-static uip_ipaddr_t server_ipaddr[1]; /* holds the server ip address */
+static uip_ipaddr_t server_ipaddr[1]; /* holds the server IP address */
 static coap_observee_t *obs;
 
 /*----------------------------------------------------------------------------*/
@@ -92,7 +92,7 @@ notification_callback(coap_observee_t *obs, void *notification,
   case NOTIFICATION_OK:
     printf("NOTIFICATION OK: %*s\n", len, (char *)payload);
     break;
-  case OBSERVE_OK: /* server accepeted observation request */
+  case OBSERVE_OK: /* server accepted observation request */
     printf("OBSERVE_OK: %*s\n", len, (char *)payload);
     break;
   case OBSERVE_NOT_SUPPORTED:

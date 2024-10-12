@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, SICS, RISE AB
+ * Copyright (c) 2024, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  * \file
  *      OSCORE server example.
  * \author
- *      Martin Gunnarsson <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  */
 
 #include <stdio.h>
@@ -112,7 +112,7 @@ PROCESS_THREAD(er_example_server, ev, data)
 #endif
 
   #ifdef WITH_OSCORE
-  /*Derive an OSCORE-Security-Context. */
+  /* Derive an OSCORE-Security-Context. */
   static oscore_ctx_t context;
   oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0);
 
@@ -159,7 +159,7 @@ PROCESS_THREAD(er_example_server, ev, data)
 #endif
 
   #ifdef WITH_OSCORE
-  /*Marks a resource as protected by OSCORE. A CoAP request arriving to the resource will not be processed and return a UNAUTHORIZED_4_01
+  /* Marks a resource as protected by OSCORE. A CoAP request arriving to the resource will not be processed and return a UNAUTHORIZED_4_01
    * response. Only the specified resources "test/hello", "debug/mirror", "test/chunks", "test/separate" and "test/push" are protected in this example.*/
   oscore_protect_resource(&res_hello);
   oscore_protect_resource(&res_mirror);

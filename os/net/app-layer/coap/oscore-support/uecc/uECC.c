@@ -2042,7 +2042,7 @@ int uECC_shared_secret(const uint8_t public_key[uECC_BYTES*2],
     uECC_word_t carry;
 
     // Try to get a random initial Z value to improve protection against side-channel
-    // attacks. If the RNG fails every time (eg it was not defined), we continue so that
+    // attacks. If the RNG fails every time (e.g. it was not defined), we continue so that
     // uECC_shared_secret() can still work without an RNG defined.
     for (tries = 0; tries < MAX_TRIES; ++tries) {
         if (g_rng_function((uint8_t *)random, sizeof(random)) && !vli_isZero(random)) {
@@ -2470,7 +2470,7 @@ static int uECC_sign_with_k(const uint8_t private_key[uECC_BYTES],
     }
 
     // Attempt to get a random number to prevent side channel analysis of k.
-    // If the RNG fails every time (eg it was not defined), we continue so that
+    // If the RNG fails every time (e.g. it was not defined), we continue so that
     // deterministic signing can still work (with reduced security) without
     // an RNG defined.
     carry = 0; // use to signal that the RNG succeeded at least once.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, SICS, RISE AB
+ * Copyright (c) 2024, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  * \file
  *      OSCORE server example.
  * \author
- *      Martin Gunnarsson <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  */
 
 #include <stdio.h>

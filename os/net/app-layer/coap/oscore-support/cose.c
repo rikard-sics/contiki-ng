@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, SICS, RISE AB
+ * Copyright (c) 2024, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  * \file
  *      An implementation of the CBOR Object Signing and Encryption (RFC8152).
  * \author
- *      Martin Gunnarsson  <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson  <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  *
  */
 
@@ -114,7 +114,7 @@ cose_encrypt0_set_aad(cose_encrypt0_t *ptr, const uint8_t *buffer, uint8_t size)
   ptr->aad_len = size;
 }
 
-/* Returns 1 if successfull, 0 if key is of incorrect length. */
+/* Returns 1 if successful, 0 if key is of incorrect length. */
 bool
 cose_encrypt0_set_key(cose_encrypt0_t *ptr, const uint8_t *key, uint8_t key_size)
 {

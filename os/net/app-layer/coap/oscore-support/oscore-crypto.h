@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, SICS, RISE AB
+ * Copyright (c) 2024, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  * \file
  *      An implementation of the Hash Based Key Derivation Function (RFC5869) and wrappers for AES-CCM*.
  * \author
- *      Martin Gunnarsson  <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson  <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  *
  */
 
@@ -45,11 +45,11 @@
 
 #ifndef HKDF_INFO_MAXLEN
 #define HKDF_INFO_MAXLEN 25
-#endif /*HKDF_INFO_MAXLEN*/
+#endif /* HKDF_INFO_MAXLEN */
 
 #ifndef HKDF_OUTPUT_MAXLEN
 #define HKDF_OUTPUT_MAXLEN 25
-#endif /*HKDF_OUTPUT_MAXLEN*/
+#endif /* HKDF_OUTPUT_MAXLEN */
 
 /* Plaintext Maxlen and Tag Maxlen is quite generous. */
 #define AEAD_PLAINTEXT_MAXLEN COAP_MAX_CHUNK_SIZE
@@ -89,11 +89,11 @@ int hkdf(
 int
 oscore_esDSA_keypair(int8_t alg, int8_t alg_param, uint8_t *private_key, uint8_t *public_key, uint8_t *es256_seed);
 
-/* Return 0 if signing failure. Signatue length otherwise, signature length and key length are derived fron es256 values. No check is done to ensure that buffers are of the correct length. */
+/* Return 0 if signing failure. Signature length otherwise, signature length and key length are derived from es256 values. No check is done to ensure that buffers are of the correct length. */
 int
 oscore_edDSA_sign(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *ciphertext, uint16_t ciphertext_len, const uint8_t *private_key, const uint8_t *public_key);
 
-/* Return 0 if signing failure. Signatue length otherwise, signature length and key length are derived fron es256 values. No check is done to ensure that buffers are of the correct length. */
+/* Return 0 if signing failure. Signature length otherwise, signature length and key length are derived from es256 values. No check is done to ensure that buffers are of the correct length. */
 int
 oscore_edDSA_verify(int8_t alg, int8_t alg_param, uint8_t *signature, uint8_t *plaintext, uint16_t plaintext_len, const uint8_t *public_key);
 

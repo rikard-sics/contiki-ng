@@ -352,7 +352,7 @@ coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
   coap_pkt->buffer[2] = (uint8_t)((coap_pkt->mid) >> 8);
   coap_pkt->buffer[3] = (uint8_t)(coap_pkt->mid);
 
-  /* empty message, dont need to do more stuff */
+  /* empty message, do not need to do more stuff */
   if(!coap_pkt->code) {
     LOG_DBG_("-Done serializing empty message at %p-\n", coap_pkt->buffer);
     return 4;
@@ -1220,7 +1220,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
 
   /* Initialize */
   /*TODO Fix the buffer issue the SERIALIZE OPTION macros works on the option* pointer
-   *Consider the Integrityprotect and plaintext (oscoap) cases, we might be using different buffers
+   *Consider the Integrityprotect and plaintext (OSCORE) cases, we might be using different buffers
    *However, maybe one can use the same buffer to save memory*/
   
   coap_pkt->buffer = buffer;
@@ -1250,7 +1250,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
     coap_pkt->buffer[2] = (uint8_t)((coap_pkt->mid) >> 8);
     coap_pkt->buffer[3] = (uint8_t)(coap_pkt->mid);
   }
-  /* empty packet, dont need to do more stuff */
+  /* empty packet, do not need to do more stuff */
   if(!coap_pkt->code) {
     LOG_DBG_("-Done serializing empty message at %p-\n", coap_pkt->buffer);
     return 4;
@@ -1385,7 +1385,7 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
                                          uint16_t data_len, uint8_t role)
 {
 
-  int OSCOAP = 0;    
+  int OSCORE = 0;    
   uint8_t* original_buffer = NULL;
 
   if(role == ROLE_COAP) {
@@ -1646,8 +1646,8 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
                               option_length, '&');
       LOG_DBG_("Object-Security [%.*s]\n", (int)coap_pkt->object_security_len,
       coap_pkt->object_security);
-      OSCOAP = 1; 
-      LOG_DBG_("OSCOAP FOUND!\n");
+      OSCORE = 1; 
+      LOG_DBG_("OSCORE FOUND!\n");
       break;
     default:
       LOG_DBG_("unknown (%u)\n", option_number);
@@ -1660,10 +1660,10 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
 
     current_option += option_length;
   }                             /* for */
-    if(OSCOAP && role == ROLE_COAP) {
+    if(OSCORE && role == ROLE_COAP) {
       coap_pkt->buffer = original_buffer;
       if(coap_pkt->object_security_len == 0 && coap_pkt->payload_len == 0) {
-        return 0; /*OSCOAP_MALFORMED_PACKET;*/
+        return 0; /*OSCORE_MALFORMED_PACKET;*/
       } else {
         return oscore_decode_message(coap_pkt);
       }

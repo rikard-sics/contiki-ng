@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, SICS, RISE AB
+ * Copyright (c) 2024, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,9 +31,8 @@
 /**
  * \file
  *      An implementation of the Hash Based Key Derivation Function (RFC5869) and wrappers for AES-CCM*.
- *      TODO update the docs
  * \author
- *      Martin Gunnarsson  <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson  <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  *
  */
 
@@ -50,7 +49,7 @@
 #define LOG_MODULE "oscore-crypto"
 #define LOG_LEVEL LOG_LEVEL_COAP
 
-/*SW/HW crypto libraries*/
+/* SW/HW crypto libraries */
 #ifdef OSCORE_WITH_HW_CRYPTO
 #include "sys/pt-sem.h"
 process_event_t oscore_pe_crypto_lock_released;
@@ -58,23 +57,23 @@ static struct pt_sem oscore_crypto_processor_mutex;
 
 #ifdef CONTIKI_TARGET_ZOUL
 #include "dev/sha256.h"
-#endif /*CONTIKI_TARGET_ZOUL*/
+#endif /* CONTIKI_TARGET_ZOUL*/
 
 #ifdef CONTIKI_TARGET_SIMPLELINK
 #include "ti/drivers/SHA2.h"
 #include "ti/drivers/AESCCM.h"
 #include "ti/drivers/cryptoutils/cryptokey/CryptoKeyPlaintext.h"
-#endif /*CONTIKI_TARGET_SIMPLELINK*/
+#endif /* CONTIKI_TARGET_SIMPLELINK */
 
 #ifdef CONTIKI_TARGET_NATIVE
 #error "Cannot run HW crypto on native!"
-#endif /*CONTIKI_TARGET_NATIVE*/
+#endif /* CONTIKI_TARGET_NATIVE */
 
-#else /*OSCORE_WITH_HW_CRYPTO*/
+#else /* OSCORE_WITH_HW_CRYPTO */
 #include "lib/ccm-star.h"
-#endif /*OSCORE_WITH_HW_CRYPTO*/
+#endif /* OSCORE_WITH_HW_CRYPTO */
 
-/*Utilities*/
+/* Utilities */
 /*---------------------------------------------------------------------------*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 void
@@ -89,7 +88,7 @@ reverse_endianness(uint8_t *a, unsigned int len) {
 static inline
 uint32_t
 uint8x4_to_uint32(const uint8_t *field)
-{/*left*/
+{/* left */
   return ((uint32_t)field[0] << 24)
          | ((uint32_t)field[1] << 16)
          | ((uint32_t)field[2] << 8)
@@ -99,7 +98,7 @@ uint8x4_to_uint32(const uint8_t *field)
 static void
 ec_uint8v_to_uint32v(uint32_t *result, const uint8_t *data, size_t size)
 {
-  /* `data` is expected to be encoded in big-endian */
+  /* data is expected to be encoded in big-endian */
   for(int i = (size / sizeof(uint32_t)) - 1; i >= 0; i--) {
     *result = uint8x4_to_uint32(&data[i * sizeof(uint32_t)]);
     result++;
@@ -110,18 +109,18 @@ static inline void
 uint32_to_uint8x4(uint8_t *field, uint32_t data)
 {
 #ifdef CONTIKI_TARGET_SIMPLELINK
-	/*right*/
+	/* right */
 	field[3] = (uint8_t)((data & 0xFF000000) >> 24);
 	field[2] = (uint8_t)((data & 0x00FF0000) >> 16);
 	field[1] = (uint8_t)((data & 0x0000FF00) >>  8);
 	field[0] = (uint8_t)((data & 0x000000FF)      );
 #elif CONTIKI_TARGET_ZOUL
-	/*left*/
+	/* left */
 	field[0] = (uint8_t)((data & 0xFF000000) >> 24);
 	field[1] = (uint8_t)((data & 0x00FF0000) >> 16);
 	field[2] = (uint8_t)((data & 0x0000FF00) >>  8);
 	field[3] = (uint8_t)((data & 0x000000FF)      );
-#endif/*CONTIKI_TARGET_SIMPLELINK*/
+#endif/* CONTIKI_TARGET_SIMPLELINK */
 
 }
 /*---------------------------------------------------------------------------*/
@@ -139,7 +138,7 @@ void convert_simplelink(uint8_t *a, size_t len) {
 	uint8_t i, len_32 = len / sizeof(uint32_t);
 	uint32_t a_32[len_32], a_32_rev[len_32];
 	ec_uint8v_to_uint32v(a_32, a, len);
-	/*reverse endianness within 32-bit words*/
+	/* reverse endianness within 32-bit words */
 	for(i = 0; i < len_32; i++) {
 		a_32_rev[len_32 - 1 - i] = a_32[i];
 	}
@@ -236,7 +235,7 @@ encrypt(uint8_t alg,
   memcpy(buffer, output, plaintext_len);
   memcpy(&(buffer[plaintext_len]), mac,  COSE_algorithm_AES_CCM_16_64_128_TAG_LEN);
   AESCCM_close(handle);
-#endif /*CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
+#endif /* CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
 #else /* not OSCORE_WITH_HW_CRYPTO  */
   CCM_STAR.set_key(key);
   CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
@@ -338,7 +337,7 @@ decrypt(uint8_t alg,
   memcpy(buffer, output, plaintext_len);
   AESCCM_close(handle);
   return plaintext_len;
-#endif /*CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
+#endif /* CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
 #else /* not OSCORE_WITH_HW_CRYPTO  */
   CCM_STAR.set_key(key);
   CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 0);

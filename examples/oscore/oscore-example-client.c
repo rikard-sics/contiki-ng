@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, SICS, RISE AB
+ * Copyright (c) 2024, RISE AB
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,7 @@
  * \file
  *      OSCORE client example.
  * \author
- *      Martin Gunnarsson <martin.gunnarsson@ri.se>
+ *      Martin Gunnarsson <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  */
 
 #include <stdio.h>
@@ -66,7 +66,7 @@ uint8_t receiver_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 #define TOGGLE_INTERVAL 10
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
-//#define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
+// #define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
 #define SERVER_EP "coap://[fd00::212:4b00:14b5:ee10]"
 
 PROCESS(er_example_client, "OSCORE Example Client");
@@ -104,13 +104,13 @@ PROCESS_THREAD(er_example_client, ev, data)
   coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
 
   #ifdef WITH_OSCORE
-  /*Derive an OSCORE-Security-Context. */
+  /* Derive an OSCORE-Security-Context. */
   static oscore_ctx_t context;
   oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0);
 
   /* Set the association between a remote URL and a security contect. When sending a message the specified context will be used to 
    * protect the message. Note that this can be done on a resource-by-resource basis. Thus any requests to .well-known/core will not 
-   * be OSCORE protected.*/  
+   * be OSCORE protected. */  
   oscore_ep_ctx_set_association(&server_ep, service_urls[1], &context);
   oscore_ep_ctx_set_association(&server_ep, service_urls[2], &context);
 
