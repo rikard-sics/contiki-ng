@@ -67,6 +67,11 @@
 #define MAX_IV_LEN 13
 #define MAX_KEY_LEN 16
 
+/* Algorithms for signing */
+#define ES256 -7
+#define EDDSA -8
+#define ES384 -35
+
 /**
  * \brief context of the  different COSE data structures
  */
@@ -134,7 +139,7 @@ typedef struct cose_sign1 {
   uint8_t payload_sz;
   uint8_t signature[P256_SIGNATURE_LEN];
   uint8_t signature_sz;
-  uint8_t alg;
+  int8_t alg;
   uint8_t key[ECC_KEY_LEN * 2];
   uint8_t key_sz;
   uint8_t external_aad[COSE_MAX_BUFFER];
@@ -148,7 +153,7 @@ void cose_sign1_finalize(cose_sign1 *sign);
 void cose_sign1_set_header(cose_sign1 *sign1, uint8_t *prot, uint16_t prot_sz, uint8_t *unp, uint16_t unp_sz);
 uint8_t cose_sign1_set_payload(cose_sign1 *sign1, uint8_t *payload, uint16_t payload_sz);
 uint8_t cose_sign(cose_sign1 *sign1);
-uint8_t cose_sign1_set_key(cose_sign1 *sign1, uint8_t alg, uint8_t *key, uint8_t key_sz);
+uint8_t cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, uint8_t *key, uint8_t key_sz);
 uint8_t cose_sign1_set_signature(cose_sign1 *sign1, uint8_t *signature, uint16_t signature_sz);
 uint8_t cose_verify(cose_sign1 *sign1);
 uint8_t get_cose_key_len(uint8_t alg_id);

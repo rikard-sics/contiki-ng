@@ -133,11 +133,6 @@
 #define SUITE_0_2_MAC_LEN 8
 #define MAX_MAC_LEN 16
 
-/* Algorithms for signing */
-#define ES256 -7
-#define EDDSA -8
-#define ES384 -35
-
 /* Common settings for supported cipher suites */
 #define KEY_CRV 1
 #define KEY_TYPE EC2

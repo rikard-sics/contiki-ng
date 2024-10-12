@@ -392,8 +392,6 @@ uint8_t cbor_bstr_size(uint32_t len);
 
 uint8_t cbor_int_size(int32_t num);
 int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, uint8_t *ad, cose_key_t *key);
-int8_t edhoc_check_rx_msg(uint8_t *buffer, uint8_t buff_sz);
-int8_t edhoc_check_rx_msg_2(uint8_t *buffer, uint8_t buff_sz,edhoc_context_t* ctx);
 void set_rx_gx(edhoc_context_t *ctx, uint8_t *gx);
 
 // static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length);
