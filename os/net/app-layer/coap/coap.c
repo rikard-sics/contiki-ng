@@ -309,6 +309,7 @@ coap_init_message(coap_message_t *coap_pkt, coap_message_type_t type,
   coap_pkt->mid = mid;
 }
 /*---------------------------------------------------------------------------*/
+//FIXME: RH: Check when this should be called
 size_t
 oscore_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
@@ -352,7 +353,7 @@ coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
   coap_pkt->buffer[2] = (uint8_t)((coap_pkt->mid) >> 8);
   coap_pkt->buffer[3] = (uint8_t)(coap_pkt->mid);
 
-  /* empty message, do not need to do more stuff */
+  /* empty message, dont need to do more stuff */
   if(!coap_pkt->code) {
     LOG_DBG_("-Done serializing empty message at %p-\n", coap_pkt->buffer);
     return 4;

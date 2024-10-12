@@ -68,8 +68,8 @@
 
 /* CoAP message types */
 typedef enum {
-  COAP_TYPE_CON,                /* confirmable */
-  COAP_TYPE_NON,                /* non-confirmable */
+  COAP_TYPE_CON,                /* confirmables */
+  COAP_TYPE_NON,                /* non-confirmables */
   COAP_TYPE_ACK,                /* acknowledgements */
   COAP_TYPE_RST                 /* reset */
 } coap_message_type_t;
