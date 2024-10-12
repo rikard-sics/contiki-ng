@@ -50,6 +50,12 @@
 #include <string.h>
 #include <inttypes.h>
 
+#if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
+/* For OSCORE */
+#include "oscore-association.h"
+#include "coap-endpoint.h"
+#endif /* WITH_OSCORE */
+
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "coap"
@@ -160,6 +166,22 @@ coap_send_request(coap_callback_request_state_t *callback_state, coap_endpoint_t
   state->request = request;
   state->remote_endpoint = endpoint;
   callback_state->callback = callback;
+
+#if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
+  const char *uri;
+  oscore_ctx_t *context = NULL;
+  if(coap_get_header_uri_path(request, &uri)){
+    context = oscore_get_context_from_ep(endpoint, uri);
+    if(context){
+      //TODO maybe an if and random token should be added here
+      static const uint8_t token[2] = {0xA, 0xA};
+      coap_set_token(request, token, sizeof(token));
+      coap_set_oscore(request, context);
+    }
+  } else {
+    LOG_WARN("OSCORE: No URI to fetch context from\n");
+  }
+#endif /* WITH_OSCORE */
 
   return progress_request(callback_state);
 }

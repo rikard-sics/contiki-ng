@@ -54,6 +54,12 @@
 #define LOG_MODULE "coap"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
+#if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
+/* For OSCORE */
+#include "oscore-association.h"
+#include "coap-endpoint.h"
+#endif /* WITH_OSCORE */
+
 /*---------------------------------------------------------------------------*/
 /*- Client Part -------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -87,6 +93,23 @@ PT_THREAD(coap_blocking_request
 
   do {
     request->mid = coap_get_mid();
+    
+#if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
+    const char *uri;
+    oscore_ctx_t *context = NULL;
+    if(coap_get_header_uri_path(request, &uri)){
+      context = oscore_get_context_from_ep(remote_ep, uri);
+      if(context){
+        //TODO maybe an if and random token should be added here
+        static const uint8_t token[2] = {0xA, 0xA};
+        coap_set_token(request, token, sizeof(token));
+        coap_set_oscore(request, context);
+      }
+    } else {
+      LOG_WARN("OSCORE: No URI to fetch context from\n");
+    }
+#endif /* WITH_OSCORE */
+    
     if((state->transaction = coap_new_transaction(request->mid, remote_ep))) {
       state->transaction->callback = coap_blocking_request_callback;
       state->transaction->callback_data = blocking_state;

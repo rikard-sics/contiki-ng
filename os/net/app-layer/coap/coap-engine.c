@@ -54,6 +54,11 @@
 #define LOG_MODULE "coap-eng"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
+#ifdef WITH_OSCORE
+#include "oscore.h"
+#include "coap-transactions.h"
+#endif /* WITH_OSCORE */
+
 static void process_callback(coap_timer_t *t);
 
 /*
@@ -139,6 +144,15 @@ call_service(coap_message_t *request, coap_message_t *response,
 extern coap_resource_t res_well_known_core;
 #endif
 
+#ifdef WITH_OSCORE
+static void oscore_missing_security_context_default(const coap_endpoint_t *src)
+{
+}
+
+extern void oscore_missing_security_context(const coap_endpoint_t *src)
+  __attribute__ ((weak, alias ("oscore_missing_security_context_default")));
+#endif
+
 /*---------------------------------------------------------------------------*/
 /*- Internal API ------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
@@ -191,8 +205,13 @@ coap_receive(const coap_endpoint_t *src,
         }
         if(message->token_len) {
           coap_set_token(response, message->token, message->token_len);
-          /* get offset for blockwise transfers */
         }
+#ifdef WITH_OSCORE 
+        if(coap_is_option(message, COAP_OPTION_OSCORE)){
+          coap_set_oscore(response, message->security_context);
+        }
+#endif /* WITH_OSCORE */
+        /* get offset for blockwise transfers */
         if(coap_get_header_block2
            (message, &block_num, NULL, &block_size, &block_offset)) {
           LOG_DBG("Blockwise: block request %"PRIu32" (%u/%u) @ %"PRIu32" bytes\n",
@@ -350,6 +369,22 @@ coap_receive(const coap_endpoint_t *src,
     LOG_DBG("Clearing transaction for manual response");
     coap_clear_transaction(transaction);
   } else {
+  
+#ifdef WITH_OSCORE
+    if (coap_status_code == OSCORE_MISSING_CONTEXT) {
+      LOG_WARN("OSCORE cannot decrypt, missing context!\n");
+
+      /* Need to inform receivers of failed decryption */
+      oscore_missing_security_context(src);
+
+      coap_status_code = UNAUTHORIZED_4_01;
+
+      // TODO: this return needs to be removed so that a
+      // UNAUTHORIZED_4_01 is sent if a context is unavailable.
+      return coap_status_code;
+    }
+#endif /* WITH_OSCORE */
+  
     coap_message_type_t reply_type = COAP_TYPE_ACK;
 
 #if COAP_MESSAGE_ON_ERROR
@@ -400,6 +435,10 @@ coap_engine_init(void)
 
   coap_transport_init();
   coap_init_connection();
+  
+#ifdef WITH_OSCORE
+  oscore_init();
+#endif
 }
 /*---------------------------------------------------------------------------*/
 /**

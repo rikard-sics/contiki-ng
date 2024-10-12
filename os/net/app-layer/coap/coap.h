@@ -54,6 +54,13 @@
 #include "coap-conf.h"
 #include "coap-transport.h"
 
+#ifdef WITH_OSCORE
+#include "oscore-context.h"
+#define ROLE_COAP 0
+#define ROLE_CONFIDENTIAL 1
+#define ROLE_PROTECTED 2
+#endif /* WITH_OSCORE */
+
 /**
  * \brief      The max size of the CoAP messages
  */
@@ -126,6 +133,12 @@ typedef struct {
 
   uint16_t payload_len;
   uint8_t *payload;
+  
+#ifdef WITH_OSCORE
+  size_t object_security_len;
+  uint8_t *object_security;
+  oscore_ctx_t *security_context;
+#endif /* WITH_OSCORE */
 } coap_message_t;
 
 static inline int
@@ -285,6 +298,14 @@ int coap_set_header_location_path(coap_message_t *message, const char *path);
 int coap_get_header_location_query(const coap_message_t *message,
                                    const char **query);
 int coap_set_header_location_query(coap_message_t *message, const char *query);
+
+#ifdef WITH_OSCORE
+/* OSCORE header functions. */
+int coap_get_header_object_security(coap_message_t *message, uint8_t **object_security);
+int coap_set_header_object_security(coap_message_t *message, uint8_t *object_security, size_t object_security_len);
+
+void coap_set_oscore(coap_message_t *coap_pkt, oscore_ctx_t* ctx);
+#endif /* WITH_OSCORE */
 
 int coap_get_header_observe(const coap_message_t *message, uint32_t *observe);
 int coap_set_header_observe(coap_message_t *message, uint32_t observe);
