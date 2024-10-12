@@ -84,7 +84,7 @@
 #ifdef EDHOC_CONF_METHOD
   #define METHOD EDHOC_CONF_METHOD
 #else
-  #define METHOD METH0
+  #define METHOD METH3
 #endif
 
 /**
@@ -141,8 +141,8 @@
 /* Common settings for supported cipher suites */
 #define KEY_CRV 1
 #define KEY_TYPE EC2
-#define ECC_KEY_BYTE_LENGTH 32
-#define HASH_LENGTH 32
+#define ECC_KEY_LEN 32
+#define HASH_LEN 32
 
 /**
  * \brief Length of signatures
@@ -196,12 +196,12 @@
 #endif
 
 /**
- * \brief The max length of the EDHOC message, as CoAP payload
+ * \brief The max length of the EDHOC message
  */
-#ifdef EDHOC_CONF_MAX_PAYLOAD
-  #define MAX_DATA_LEN EDHOC_CONF_MAX_PAYLOAD
+#ifdef EDHOC_CONF_MAX_PAYLOAD_LEN
+#define MAX_PAYLOAD_LEN EDHOC_CONF_MAX_PAYLOAD_LEN
 #else
-  #define MAX_DATA_LEN 254
+#define MAX_PAYLOAD_LEN 256
 #endif
 
 /**

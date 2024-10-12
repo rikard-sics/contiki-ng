@@ -53,7 +53,7 @@ static rtimer_clock_t time;
 static rtimer_clock_t time_total;
 
 static coap_timer_t timer;
-static uint8_t msg_rx[MAX_DATA_LEN];
+static uint8_t msg_rx[MAX_PAYLOAD_LEN];
 static size_t msg_rx_len;
 static edhoc_server_t server;
 static edhoc_server_t *serv;

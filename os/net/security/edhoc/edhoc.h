@@ -116,8 +116,8 @@ typedef struct edhoc_context_t {
   session_key_mat  session_keys;
   edhoc_session    session;
   ecc_curve_t      curve;
-  uint8_t          msg_rx[MAX_PAYLOAD];
-  uint8_t          msg_tx[MAX_PAYLOAD];
+  uint8_t          msg_rx[MAX_PAYLOAD_LEN];
+  uint8_t          msg_tx[MAX_PAYLOAD_LEN];
   uint16_t         rx_sz;
   uint16_t         tx_sz;
 } edhoc_context_t;
@@ -327,7 +327,7 @@ int edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer
 /**
  * \brief EDHOC Key Derivation Function (KDF) based on HMAC-based Expand (RFC 5869)
  * \param result OKM (Output Keying Material) - the buffer where the derived key will be stored.
- * \param key PRK (Pseudorandom Key) - a pseudorandom key used as input to the key derivation, should be at least `HASH_LENGTH` bits.
+ * \param key PRK (Pseudorandom Key) - a pseudorandom key used as input to the key derivation, should be at least `HASH_LEN` bits.
  * \param info_label Label used to generate the CBOR-based info input for key derivation.
  * \param context Context data (in bstr format) used to generate the info input for key derivation.
  * \param length Desired length of the output key material (OKM) in bits.

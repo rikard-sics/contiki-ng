@@ -69,13 +69,6 @@
 #define ECC UECC_ECC
 #endif
 
-#ifdef EDHOC_CONF_MAX_PAYLOAD
-#define MAX_PAYLOAD EDHOC_CONF_MAX_PAYLOAD
-#else
-#define MAX_PAYLOAD 256
-#endif
-#define MAX_KEY MAX_PAYLOAD
-
 #if ECC == UECC_ECC
 #include "ecc-uecc.h"
 #endif
@@ -86,13 +79,13 @@
 
 /* Underlying buffers, used for edhoc_session among other */
 typedef struct session_key_mat {
-  uint8_t ks_2e[MAX_KEY];
-  uint8_t prk_2e[ECC_KEY_BYTE_LENGTH];
-  uint8_t prk_3e2m[ECC_KEY_BYTE_LENGTH];
-  uint8_t prk_4e3m[ECC_KEY_BYTE_LENGTH];
-  uint8_t gx[ECC_KEY_BYTE_LENGTH];
-  uint8_t gy[ECC_KEY_BYTE_LENGTH];
-  uint8_t th[ECC_KEY_BYTE_LENGTH];
+  uint8_t ks_2e[MAX_PAYLOAD_LEN];
+  uint8_t prk_2e[HASH_LEN];
+  uint8_t prk_3e2m[HASH_LEN];
+  uint8_t prk_4e3m[HASH_LEN];
+  uint8_t gx[ECC_KEY_LEN];
+  uint8_t gy[ECC_KEY_LEN];
+  uint8_t th[HASH_LEN];
 } session_key_mat;
 
 

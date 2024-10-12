@@ -135,7 +135,7 @@ typedef struct cose_sign1 {
   uint8_t signature[P256_SIGNATURE_LEN];
   uint8_t signature_sz;
   uint8_t alg;
-  uint8_t key[ECC_KEY_BYTE_LENGTH * 2];
+  uint8_t key[ECC_KEY_LEN * 2];
   uint8_t key_sz;
   uint8_t external_aad[COSE_MAX_BUFFER];
   uint8_t external_aad_sz;

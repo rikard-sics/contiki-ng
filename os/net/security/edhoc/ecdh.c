@@ -54,8 +54,8 @@
 #define HKDF_OUTPUT_MAXLEN 255
 #endif
 
-static uint8_t aggregate_buffer[HASH_LENGTH + HKDF_INFO_MAXLEN + 1];
-static uint8_t out_buffer[HKDF_OUTPUT_MAXLEN + HASH_LENGTH];
+static uint8_t aggregate_buffer[HASH_LEN + HKDF_INFO_MAXLEN + 1];
+static uint8_t out_buffer[HKDF_OUTPUT_MAXLEN + HASH_LEN];
 
 uint8_t
 generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve)
@@ -129,7 +129,7 @@ hkdf_expand(uint8_t *prk, uint16_t prk_sz, uint8_t *info, uint16_t info_sz, uint
     LOG_ERR("error code (%d)\n ", ERR_OKM_SIZE);
     return ERR_OKM_SIZE;
   }
-  int hash_sz = HASH_LENGTH;
+  int hash_sz = HASH_LEN;
 
   /*ceil */
   int N = (okm_sz + hash_sz - 1) / hash_sz;
@@ -174,13 +174,11 @@ convert_ecc_key_to_cose_key(ecc_key *key, cose_key_t *cose, char *identity, uint
   cose->kid_sz = key->kid_sz; 
   memcpy(cose->identity, identity, id_sz);
   cose->identity_sz = id_sz;
-  cose->crv = KEY_CRV; /* P-256 */
-  cose->kty = KEY_TYPE; /* EC2 */
-  memcpy(cose->x, key->public.x, ECC_KEY_BYTE_LENGTH);
-  cose->x_sz = ECC_KEY_BYTE_LENGTH;
-  memcpy(cose->y, key->public.y, ECC_KEY_BYTE_LENGTH);
-  cose->y_sz = ECC_KEY_BYTE_LENGTH;
-  memcpy(cose->private, key->private_key, ECC_KEY_BYTE_LENGTH);
+  memcpy(cose->x, key->public.x, ECC_KEY_LEN);
+  cose->x_sz = ECC_KEY_LEN;
+  memcpy(cose->y, key->public.y, ECC_KEY_LEN);
+  cose->y_sz = ECC_KEY_LEN;
+  memcpy(cose->private, key->private_key, ECC_KEY_LEN);
 }
 void
 initialize_ecc_key_from_cose(ecc_key *key, cose_key_t *auth_key, ecc_curve_t curve)
@@ -193,7 +191,7 @@ initialize_ecc_key_from_cose(ecc_key *key, cose_key_t *auth_key, ecc_curve_t cur
     }
 
     /* Copy the public ECC key points from the COSE key to the ECC key */
-    memcpy(key->public.x, auth_key->x, ECC_KEY_BYTE_LENGTH);
-    memcpy(key->public.y, auth_key->y, ECC_KEY_BYTE_LENGTH);
-    memcpy(key->private_key, auth_key->private, ECC_KEY_BYTE_LENGTH);
+    memcpy(key->public.x, auth_key->x, ECC_KEY_LEN);
+    memcpy(key->public.y, auth_key->y, ECC_KEY_LEN);
+    memcpy(key->private_key, auth_key->private, ECC_KEY_LEN);
 }
