@@ -150,17 +150,17 @@ hkdf_expand(uint8_t *prk, uint16_t prk_sz, uint8_t *info, uint16_t info_sz, uint
   }
 
   /*Compose T(2) ... T(N) */
-  memcpy(aggregate_buffer, &(out_buffer[0]), 32);
+  memcpy(aggregate_buffer, &(out_buffer[0]), hash_sz);
   for(int i = 1; i < N; i++) {
     hmac_sha256_reset(&ctx, prk, prk_sz);
-    memcpy(&(aggregate_buffer[32]), info, info_sz);
-    aggregate_buffer[32 + info_sz] = i + 1;
-    er = hmac_sha256_create(&ctx, prk, prk_sz, aggregate_buffer, 32 + info_sz + 1, &(out_buffer[i * 32]));
+    memcpy(&(aggregate_buffer[hash_sz]), info, info_sz);
+    aggregate_buffer[hash_sz + info_sz] = i + 1;
+    er = hmac_sha256_create(&ctx, prk, prk_sz, aggregate_buffer, hash_sz + info_sz + 1, &(out_buffer[i * hash_sz]));
     if(er != 0) {
       LOG_ERR("hmac_sha256_create error code (%d)\n", er);
       return ERR_INFO_SIZE; // FIXME: make unique error code
     }
-    memcpy(aggregate_buffer, &(out_buffer[i * 32]), 32);
+    memcpy(aggregate_buffer, &(out_buffer[i * hash_sz]), hash_sz);
   }
 
   memcpy(okm, aggregate_buffer, okm_sz);

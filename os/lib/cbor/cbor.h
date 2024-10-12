@@ -59,4 +59,16 @@ int cbor_put_unsigned(uint8_t **buffer, uint8_t value);
 
 int cbor_put_negative(uint8_t **buffer, int64_t value);
 
+/**
+ * \brief Predict the size of a CBOR byte string wrapping an array with a specific length
+ * \param len The length of the byte array to be wrapped
+ * \return the size of the wrapped CBOR byte string
+ *
+ * Get the size of the resulting CBOR byte string which would be produced by wrapping
+ * a byte array of len as a CBOR byte string.
+ */
+uint8_t cbor_bstr_size(uint32_t len);
+
+uint8_t cbor_int_size(int32_t num);
+
 #endif /* _cbor_H */

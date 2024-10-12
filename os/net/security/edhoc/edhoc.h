@@ -380,17 +380,6 @@ int16_t edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info
  */
 uint8_t edhoc_get_authentication_key(edhoc_context_t *ctx);
 
-/**
- * \brief Predict the size of a CBOR byte string wrapping an array with a specific length
- * \param len The length of the byte array to be wrapped
- * \return the size of the wrapped CBOR byte string
- *
- * Get the size of the resulting CBOR byte string which would be produced by wrapping
- * a byte array of len as a CBOR byte string.
- */
-uint8_t cbor_bstr_size(uint32_t len);
-
-uint8_t cbor_int_size(int32_t num);
 int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, uint8_t *ad, cose_key_t *key);
 void set_rx_gx(edhoc_context_t *ctx, uint8_t *gx);
 

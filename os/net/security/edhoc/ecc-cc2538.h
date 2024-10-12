@@ -90,9 +90,9 @@ typedef struct  {
 
   ecc_curve_info_t *curve_info; /** Curve defining the CyclicGroup */
   /* Output Variables */
-  uint8_t x[32];           /** Result Code */
-  uint8_t y[32];
-  uint8_t private[32];
+  uint8_t x[ECC_KEY_LEN];           /** Result Code */
+  uint8_t y[ECC_KEY_LEN];
+  uint8_t private[ECC_KEY_LEN];
 } key_gen_t;
 
 PT_THREAD(generate_key_hw(key_gen_t * key));

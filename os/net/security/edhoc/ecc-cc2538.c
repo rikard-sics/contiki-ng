@@ -147,7 +147,7 @@ PT_THREAD(ecc_decompress_key(ecc_key_uncompress_t * state)){
   uint32_t *y = point + state->curve_info->size;
 
   memset(point, 0, sizeof(uint32_t) * 16);
-  eccBytes_to_native(point, state->compressed + 1, 32);
+  eccBytes_to_native(point, state->compressed + 1, ECC_KEY_LEN);
 
   int8_t num_words = state->curve_info->size;
 
@@ -229,8 +229,8 @@ PT_THREAD(ecc_decompress_key(ecc_key_uncompress_t * state)){
   memset(y, 0, sizeof(uint32_t) * 8);
   CHECK_RESULT(bignum_exp_mod_get_result(y, num_words, state->rv));
 
-  memset(result, 0, 32);
-  eccNative_to_bytes(result, 32, y);
+  memset(result, 0, ECC_KEY_LEN);
+  eccNative_to_bytes(result, ECC_KEY_LEN, y);
 
 
   if((result[state->curve_info->size * 4 - 1] & 0x01) != (state->compressed[0] & 0x01)) {
@@ -240,8 +240,8 @@ PT_THREAD(ecc_decompress_key(ecc_key_uncompress_t * state)){
     memset(y, 0, sizeof(uint32_t) * 8);
     state->len = state->curve_info->size;
     CHECK_RESULT(bignum_subtract_get_result(y, &state->len, state->rv));
-    memset(result, 0, 32);
-    eccNative_to_bytes(result, 32, y);
+    memset(result, 0, ECC_KEY_LEN);
+    eccNative_to_bytes(result, ECC_KEY_LEN, y);
   
   }
   memcpy(state->public, state->compressed + 1, sizeof(uint32_t) * state->curve_info->size);
@@ -256,18 +256,22 @@ cc2538_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm
   static ecc_multiply_state_t shared;
   shared.curve_info = &nist_p_256;
   pka_init();
-  /*If just one coordinate is have it we put first byte non zero */
+  
+  /* If just one coordinate is have it we put first byte non zero */
   if(gy[0] == 0) {
     gy[0] = 0x01;
   }
+  
   eccBytes_to_native(shared.point_in.x, gx, ECC_KEY_LEN);
   eccBytes_to_native(shared.point_in.y, gy, ECC_KEY_LEN);
   eccBytes_to_native(shared.secret, private_key, ECC_KEY_LEN);
   watchdog_periodic();
   ecc_mul_start(shared.secret, &shared.point_in, shared.curve_info, &shared.rv, shared.process);
   watchdog_periodic();
+  
   while(!pka_check_status()) {
   }
+  
   watchdog_periodic();
   ecc_mul_get_result(&shared.point_out, shared.rv);
   watchdog_periodic();
