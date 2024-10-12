@@ -47,6 +47,8 @@
 
 #include "sliding-window.h"
 
+#include "sliding-window.h"
+
 #define CONTEXT_KEY_LEN 16
 #define CONTEXT_INIT_VECT_LEN 13
 #define CONTEXT_SEQ_LEN sizeof(uint64_t)
@@ -68,7 +70,6 @@ typedef struct oscore_sender_ctx {
 #endif /* WITH_GROUPCOM */
 
 } oscore_sender_ctx_t;
-
 
 typedef struct oscore_recipient_ctx {
   uint8_t recipient_key[CONTEXT_KEY_LEN];
@@ -111,6 +112,8 @@ typedef struct oscore_exchange {
   uint8_t token_len;
 } oscore_exchange_t;
 
+void oscore_ctx_store_init(void);
+
 #ifdef WITH_GROUPCOM
 void
 oscore_add_group_keys(oscore_ctx_t *ctx,  
@@ -134,8 +137,8 @@ void oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *gid);
 #else
 void oscore_derive_ctx(oscore_ctx_t *common_ctx,
-  uint8_t *master_secret, uint8_t master_secret_len,
-  uint8_t *master_salt, uint8_t master_salt_len,
+  const uint8_t *master_secret, uint8_t master_secret_len,
+  const uint8_t *master_salt, uint8_t master_salt_len,
   uint8_t alg,
   const uint8_t *sid, uint8_t sid_len,
   const uint8_t *rid, uint8_t rid_len,

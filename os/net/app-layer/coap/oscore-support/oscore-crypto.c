@@ -245,7 +245,7 @@ encrypt(uint8_t alg,
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
   cc2538_ccm_star_driver.set_key(key);
-  cc2538_ccm_star_driver.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
+  cc2538_ccm_star_driver.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
 #elif CONTIKI_TARGET_SIMPLELINK 
   AESCCM_Handle handle;
   CryptoKey cryptoKey;
@@ -288,7 +288,7 @@ encrypt(uint8_t alg,
 #endif /*CONTIKI_TARGET_ZOUL or CONTIKI_TARGET_SIMPLELINK */
 #else /* not OSCORE_WITH_HW_CRYPTO  */
   CCM_STAR.set_key(key);
-  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, &(buffer[plaintext_len]), COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
+  CCM_STAR.aead(nonce, buffer, plaintext_len, aad, aad_len, tag_buffer, COSE_algorithm_AES_CCM_16_64_128_TAG_LEN, 1);
 #endif /* OSCORE_WITH_HW_CRYPTO */
 
 #ifdef OSCORE_ENC_DEC_DEBUG
@@ -951,7 +951,6 @@ oscore_queue_message_to_sign(struct process *process, const uint8_t *private_key
 	item->private_key = private_key;
 	item->public_key = public_key;
 	memcpy(item->message, message, message_len);
-	item->message_buffer_len = 250;
 	item->message_len = message_len;
 	item->signature = signature;
 	

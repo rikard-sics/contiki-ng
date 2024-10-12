@@ -293,7 +293,6 @@ oscore_decode_message(coap_message_t *coap_pkt)
 
   /* Options are discarded later when they are overwritten. This should be improved */
   coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
-
   if(ret != NO_ERROR){
 	  LOG_ERR("OSCORE option value could not be parsed.\n");
 	  coap_error_message = "OSCORE option could not be parsed.";
@@ -452,7 +451,6 @@ oscore_decode_message(coap_message_t *coap_pkt)
   } 
 #endif /* WITH_GROUPCOM */
 
-
   return oscore_parser(coap_pkt, cose->content, res, ROLE_CONFIDENTIAL);
 }
 
@@ -516,7 +514,6 @@ oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 
 #ifndef WITH_GROUPCOM
   uint8_t option_value_buffer[15]; /* When using Group-OSCORE this has to be global. */
-
   uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
 #endif /* not WITH_GROUPCOM */
   uint8_t aad_buffer[35];
@@ -768,6 +765,8 @@ oscore_increment_sender_seq(oscore_ctx_t *ctx)
 void
 oscore_init(void)
 {
+  oscore_ctx_store_init();
+
   /* Initialize the security_context storage and the protected resource storage. */
   oscore_exchange_store_init();
 
