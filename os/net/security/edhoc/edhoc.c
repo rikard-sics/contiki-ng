@@ -55,7 +55,7 @@ static uint8_t buf[MAX_BUFFER];
 static uint8_t inf[MAX_BUFFER];
 static uint8_t cred_x[128];
 static uint8_t id_cred_x[128];
-static uint8_t mac_or_sig[P256_SIGNATURE_LEN];
+static uint8_t mac_or_sig[MAC_OR_SIG_BUF_LEN];
 
 MEMB(edhoc_context_storage, edhoc_context_t, 1);
 

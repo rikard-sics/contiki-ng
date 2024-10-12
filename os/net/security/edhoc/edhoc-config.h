@@ -82,9 +82,18 @@
  * \brief Set the Authentication method
  */
 #ifdef EDHOC_CONF_METHOD
- #define METHOD EDHOC_CONF_METHOD
+  #define METHOD EDHOC_CONF_METHOD
 #else
- #define METHOD METH3
+  #define METHOD METH0
+#endif
+
+/**
+ * \brief Buffer size for mac_or_sig
+ */
+#if METHOD == METH3
+  #define MAC_OR_SIG_BUF_LEN MAX_MAC_LEN
+#else
+  #define MAC_OR_SIG_BUF_LEN P256_SIGNATURE_LEN
 #endif
 
 /**
@@ -122,6 +131,7 @@
 /* EDHOC MAC lengths */
 #define SUITE_1_3_4_5_6_24_25_MAC_LEN 16
 #define SUITE_0_2_MAC_LEN 8
+#define MAX_MAC_LEN 16
 
 /* Algorithms for signing */
 #define ES256 -7
