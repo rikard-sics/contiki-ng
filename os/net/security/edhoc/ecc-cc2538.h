@@ -52,14 +52,14 @@
 #include "sys/pt.h"
 
 typedef struct point_affine {
-  uint8_t x[ECC_KEY_BYTE_LENGTH];
-  uint8_t y[ECC_KEY_BYTE_LENGTH];
+  uint8_t x[ECC_KEY_LEN];
+  uint8_t y[ECC_KEY_LEN];
 } ecc_point_a;
 
 typedef struct ecc_key {
   uint8_t kid[4];
   uint8_t kid_sz;
-  uint8_t private_key[ECC_KEY_BYTE_LENGTH];
+  uint8_t private_key[ECC_KEY_LEN];
   ecc_point_a public;
   char *identity;
   uint8_t identity_size;

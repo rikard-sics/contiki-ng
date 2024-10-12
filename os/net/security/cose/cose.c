@@ -118,7 +118,7 @@ cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, uint8_t *key, uint8_t key
 uint8_t
 cose_sign1_set_key(cose_sign1 *sign1, uint8_t alg, uint8_t *key, uint8_t key_sz)
 {
-  if(key_sz > ECC_KEY_BYTE_LENGTH * 2) {
+  if(key_sz > ECC_KEY_LEN * 2) {
     return 0;
   }
 
@@ -280,9 +280,9 @@ cose_sign(cose_sign1 *sign1)
   cose_print_buff_8_dbg(sig_struct_bytes, sig_str_sz);
 
   LOG_DBG("Using own private key for COSE_Sign1 signing: ");
-  cose_print_buff_8_dbg(sign1->key, ECC_KEY_BYTE_LENGTH);
+  cose_print_buff_8_dbg(sign1->key, ECC_KEY_LEN);
 
-  uint8_t hash[HASH_LENGTH];
+  uint8_t hash[HASH_LEN];
   sha256(sig_struct_bytes, sig_str_sz, hash);
   
   if (uECC_sign(sign1->key, hash, sizeof(hash), sign1->signature, uECC_secp256r1())) {
@@ -302,7 +302,7 @@ cose_verify(cose_sign1 *sign1)
   uint8_t *public_key = sign1->key;
 
   LOG_DBG("Using peer's public key for COSE_Sign1 signature verification: ");
-  cose_print_buff_8_dbg(public_key, ECC_KEY_BYTE_LENGTH * 2);
+  cose_print_buff_8_dbg(public_key, ECC_KEY_LEN * 2);
 
   // Recreate the sig_structure
   uint8_t sig_struct_bytes[2 * COSE_MAX_BUFFER];
@@ -310,7 +310,7 @@ cose_verify(cose_sign1 *sign1)
   LOG_DBG("CBOR-encoded sig_structure for COSE_Sign1 verification (%d bytes): ", sig_str_sz);
   cose_print_buff_8_dbg(sig_struct_bytes, sig_str_sz);
 
-  uint8_t hash[HASH_LENGTH];
+  uint8_t hash[HASH_LEN];
   sha256(sig_struct_bytes, sig_str_sz, hash);
 
   // Verify the signature using the peer's public key
