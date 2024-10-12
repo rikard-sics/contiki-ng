@@ -60,21 +60,22 @@ PROCESS(serial_line_process, "Serial driver");
 process_event_t serial_line_event_message;
 
 /*---------------------------------------------------------------------------*/
-static uint8_t serial_line_overflow = 0; /* Buffer overflow: ignore until END */
 int
 serial_line_input_byte(unsigned char c)
 {
-  if(!serial_line_overflow) {
+  static uint8_t overflow = 0; /* Buffer overflow: ignore until END */
+  
+  if(!overflow) {
     /* Add character */
     if(ringbuf_put(&rxbuf, c) == 0) {
       /* Buffer overflow: ignore the rest of the line */
-      serial_line_overflow = 1;
+      overflow = 1;
     }
   } else {
     /* Buffer overflowed:
      * Only (try to) add terminator characters, otherwise skip */
     if((c == END || c == END2) && ringbuf_put(&rxbuf, c) != 0) {
-      serial_line_overflow = 0;
+      overflow = 0;
     }
   }
 
@@ -83,11 +84,11 @@ serial_line_input_byte(unsigned char c)
   return 1;
 }
 /*---------------------------------------------------------------------------*/
-static char serial_buf[BUFSIZE];
-static int ptr;
-
 PROCESS_THREAD(serial_line_process, ev, data)
 {
+  static char buf[BUFSIZE];
+  static int ptr;
+
   PROCESS_BEGIN();
 
   serial_line_event_message = process_alloc_event();
@@ -103,16 +104,16 @@ PROCESS_THREAD(serial_line_process, ev, data)
     } else {
       if((c != END && c != END2)) {
         if(ptr < BUFSIZE-1) {
-          serial_buf[ptr++] = (uint8_t)c;
+          buf[ptr++] = (uint8_t)c;
         } else {
           /* Ignore character (wait for EOL) */
         }
       } else {
         /* Terminate */
-        serial_buf[ptr++] = (uint8_t)'\0';
+        buf[ptr++] = (uint8_t)'\0';
 
         /* Broadcast event */
-        process_post(PROCESS_BROADCAST, serial_line_event_message, serial_buf);
+        process_post(PROCESS_BROADCAST, serial_line_event_message, buf);
 
         /* Wait until all processes have handled the serial line event */
         if(PROCESS_ERR_OK ==

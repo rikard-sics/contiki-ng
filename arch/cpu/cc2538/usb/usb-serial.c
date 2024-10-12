@@ -298,7 +298,7 @@ usb_serial_set_input(int (* input)(unsigned char c))
 }
 /*---------------------------------------------------------------------------*/
 void
-usb_serial_init(void)
+usb_serial_init()
 {
   process_start(&usb_serial_process, NULL);
 }

@@ -190,11 +190,8 @@ update_ticks(void)
   uint64_t prev_rt_ticks_startup, cur_rt_ticks_startup;
   uint32_t cur_rt_ticks_startup_hi;
 
-  // https://github.com/contiki-ng/contiki-ng/issues/186
-  INTERRUPTS_DISABLE();
-  prev_rt_ticks_startup = rt_ticks_startup;
   now = RTIMER_NOW();
-  INTERRUPTS_ENABLE();
+  prev_rt_ticks_startup = rt_ticks_startup;
 
   cur_rt_ticks_startup_hi = prev_rt_ticks_startup >> 32;
   if(now < (rtimer_clock_t)prev_rt_ticks_startup) {

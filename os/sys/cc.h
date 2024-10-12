@@ -47,11 +47,43 @@
 
 #include "contiki.h"
 
-#ifdef CC_CONF_INLINE
-#define CC_INLINE CC_CONF_INLINE
-#else /* CC_CONF_INLINE */
-#define CC_INLINE
-#endif /* CC_CONF_INLINE */
+#ifdef __GNUC__
+
+#ifndef CC_CONF_ASSUME
+  #ifdef __clang__
+    #define CC_CONF_ASSUME(c) do { __builtin_assume((c)); } while(0)
+  #elif __GNUC__ >= 13
+    #define CC_CONF_ASSUME(c) __attribute__((__assume__(c)))
+  #else
+    #define CC_CONF_ASSUME(c) do { if (!(c)) __builtin_unreachable(); } while(0)
+  #endif
+#endif
+
+#define CC_CONF_ALIGN(n) __attribute__((__aligned__(n)))
+
+#ifndef CC_CONF_CONSTRUCTOR
+#define CC_CONF_CONSTRUCTOR(prio) __attribute__((constructor(prio)))
+#endif /* CC_CONF_CONSTRUCTOR */
+
+#ifndef CC_CONF_DESTRUCTOR
+#define CC_CONF_DESTRUCTOR(prio) __attribute__((destructor(prio)))
+#endif /* CC_CONF_DESTRUCTOR */
+
+#define CC_CONF_DEPRECATED(msg) __attribute__((deprecated(msg)))
+
+#define CC_CONF_NORETURN __attribute__((__noreturn__))
+
+#endif /* __GNUC__ */
+
+/**
+ * Configure if the C compiler supports taking hints from the user about
+ * invariants, e.g. with __attribute__((__assume__(hint))).
+ */
+#ifdef CC_CONF_ASSUME
+#define ASSUME(c) CC_CONF_ASSUME(c)
+#else
+#define ASSUME(c)
+#endif /* CC_CONF_ASSUME */
 
 #ifdef CC_CONF_ALIGN
 #define CC_ALIGN(n) CC_CONF_ALIGN(n)
@@ -66,6 +98,30 @@
 #else
 #define CC_NORETURN
 #endif /* CC_CONF_NORETURN */
+
+/**
+ * Configure if the C compiler supports marking functions as constructors
+ * e.g. with __attribute__((constructor(prio))).
+ *
+ * Lower priority runs before higher priority. Priorities 0-100 are reserved.
+ */
+#ifdef CC_CONF_CONSTRUCTOR
+#define CC_CONSTRUCTOR(prio) CC_CONF_CONSTRUCTOR(prio)
+#else
+#define CC_CONSTRUCTOR(prio)
+#endif /* CC_CONF_CONSTRUCTOR */
+
+/**
+ * Configure if the C compiler supports marking functions as destructors
+ * e.g. with __attribute__((destructor(prio))).
+ *
+ * Lower priority runs before higher priority. Priorities 0-100 are reserved.
+ */
+#ifdef CC_CONF_DESTRUCTOR
+#define CC_DESTRUCTOR(prio) CC_CONF_DESTRUCTOR(prio)
+#else
+#define CC_DESTRUCTOR(prio)
+#endif /* CC_CONF_DESTRUCTOR */
 
 /**
  * Configure if the C compiler supports marking functions as deprecated
@@ -125,19 +181,12 @@
 #define CC_CONCAT3(s1, s2, s3) s1##s2##s3
 #define CC_CONCAT_EXT_3(s1, s2, s3) CC_CONCAT3(s1, s2, s3)
 
-/**
- * A C preprocessing macro to obtain the length of a C array.
- */
-#define CC_ARRAY_SIZE(a) (sizeof(a)/sizeof(*(a)))
-
-/**
- * A C preprocessing macro to obtain size of a field in a struct.
- */
-#define CC_FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
-
-
-#define CC_STRINGIFY_IMPL(s) #s
-#define CC_STRINGIFY(s) CC_STRINGIFY_IMPL(s)
+/* Provide static_assert macro in C11-C17. */
+#if __STDC_VERSION__ >= 201112L && __STDC_VERSION__ < 202311L && \
+  !defined __cplusplus
+#ifndef static_assert
+#define static_assert _Static_assert
+#endif
+#endif
 
 #endif /* CC_H_ */
-

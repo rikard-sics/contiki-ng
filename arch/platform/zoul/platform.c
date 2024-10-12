@@ -237,14 +237,6 @@ platform_init_stage_three()
 {
   LOG_INFO("%s\n", BOARD_STRING);
 
-#if UART_CONF_ENABLE
-  LOG_INFO("Configured with UART_CONF_ENABLE\n");
-#endif
-
-#if USB_SERIAL_CONF_ENABLE
-  LOG_INFO("Configured with USB_SERIAL_CONF_ENABLE\n");
-#endif
-
   set_rf_params();
 
   board_init();

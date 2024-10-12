@@ -48,42 +48,11 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <string.h>
-#include "lib/random.h"
 
 /* Log configuration */
 #include "coap-log.h"
 #define LOG_MODULE "coap-eng"
 #define LOG_LEVEL  LOG_LEVEL_COAP
-
-#ifdef WITH_OSCORE
-#include "oscore.h"
-#include "coap-transactions.h"
-#endif /* WITH_OSCORE */
-
-#ifdef WITH_GROUPCOM
-/*Leisure time*/
-#include "sys/node-id.h"
-#include "sys/ctimer.h"
-static uint16_t dr_mid;
-static struct ctimer dr_timer;
-
-/*---------------------------------------------------------------------------*/
-/*Callback function to actually send the delayed response*/
-void send_delayed_response_callback(void *data)
-{
- uint16_t *mid_;
- coap_transaction_t *trans;
- mid_ = (uint16_t *) data;
- if((trans = coap_get_transaction_by_mid(*mid_))) {
-   LOG_DBG("Transaction found! Sending...\n");
-   coap_send_transaction(trans);
-   ctimer_stop(&dr_timer);
- } else {
-   LOG_DBG("No transaction found, no response will be sent...\n");
- }
-}
-/*---------------------------------------------------------------------------*/
-#endif /*WITH_GROUPCOM*/
 
 static void process_callback(coap_timer_t *t);
 
@@ -170,84 +139,26 @@ call_service(coap_message_t *request, coap_message_t *response,
 extern coap_resource_t res_well_known_core;
 #endif
 
-#ifdef WITH_OSCORE
-static void oscore_missing_security_context_default(const coap_endpoint_t *src)
-{
-}
-
-extern void oscore_missing_security_context(const coap_endpoint_t *src)
-  __attribute__ ((weak, alias ("oscore_missing_security_context_default")));
-#endif
-
-#ifdef WITH_OSCORE
-static void oscore_missing_security_context_default(const coap_endpoint_t *src)
-{
-}
-
-extern void oscore_missing_security_context(const coap_endpoint_t *src)
-  __attribute__ ((weak, alias ("oscore_missing_security_context_default")));
-#endif
-
-#ifdef WITH_OSCORE
-static void oscore_missing_security_context_default(const coap_endpoint_t *src)
-{
-}
-
-extern void oscore_missing_security_context(const coap_endpoint_t *src)
-  __attribute__ ((weak, alias ("oscore_missing_security_context_default")));
-#endif
-
 /*---------------------------------------------------------------------------*/
 /*- Internal API ------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/
-#ifdef WITH_GROUPCOM
-/*Only capture the data and start the signature verification*/
-coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_message_t *message)
-{
-	LOG_DBG("Coap_receive: calling coap_parse for initial processing...\n");
-	return coap_parse_message(message, payload, payload_length);
-}
-/*---------------------------------------------------------------------------*/
-/*This function can only be called after the signature verification has finished*/
-int
-coap_receive_cont(const coap_endpoint_t *src,
-             uint8_t *payload, uint16_t payload_length, uint8_t is_mcast, uint8_t verify_res, coap_status_t in_status, coap_message_t *msg, coap_message_t *response)
-#else
 int
 coap_receive(const coap_endpoint_t *src,
-		uint8_t *payload, uint16_t payload_length, uint8_t is_mcast)
-#endif
+             uint8_t *payload, uint16_t payload_length)
 {
   /* static declaration reduces stack peaks and program code size */
   static coap_message_t message[1]; /* this way the message can be treated as pointer as usual */
-#ifdef WITH_GROUPCOM
-  message[0] = *msg;
-#else
   static coap_message_t response[1];
-  response[0] = *response;
-#endif /*WITH_GROUPCOM*/
   coap_transaction_t *transaction = NULL;
   coap_handler_status_t status;
-  uint8_t is_testmcast = 0;
-  uint8_t is_testmcastq = 0;
-  const char *res1 = "test/mcast", *res2 = "test/mcastq";
-#ifdef WITH_GROUPCOM
-  coap_status_code = in_status;
-#else
+
   coap_status_code = coap_parse_message(message, payload, payload_length);
-#endif /*WITH_GROUPCOM*/
-#ifdef OSCORE_WITH_HW_CRYPTO
-#ifdef CONTIKI_TARGET_ZOUL
-  if(verify_res != 0) {
-	  LOG_DBG("The ECC verification failed with the following code: %u", verify_res);
-	  coap_status_code = OSCORE_DECRYPTION_ERROR;
-  }
-#endif /*CONTIKI_TARGET_ZOUL*/
-#endif /*OSCORE_WITH_HW_CRYPTO*/
   coap_set_src_endpoint(message, src);
 
   if(coap_status_code == NO_ERROR) {
+
     /*TODO duplicates suppression, if required by application */
+
     LOG_DBG("  Parsed: v %u, t %u, tkl %u, c %u, mid %u\n", message->version,
             message->type, message->token_len, message->code, message->mid);
     LOG_DBG("  URL:");
@@ -257,29 +168,6 @@ coap_receive(const coap_endpoint_t *src,
     LOG_DBG_COAP_STRING((const char *)message->payload, message->payload_len);
     LOG_DBG_("\n");
 
-  if(message->uri_path)/*Server responses have NULL STR, so for client mcast check is not needed*/
-  {
-  
-    /*The flags to check if a multicast resource is requested*/
-    is_testmcast = (strncmp(message->uri_path, res1, strlen(res1)) == 0 && !strchr(message->uri_path, 'q'));
-    is_testmcastq = (strncmp(message->uri_path, res2, strlen(res2)) == 0);
-
-    /*If requesting an unicast resource with a multicast address, or vice versa, ignore*/
-    if(is_mcast) {
-     LOG_DBG("Is test/mcast: %d, is test/mcastq: %d\n", is_testmcast, is_testmcastq);
-     if(!is_testmcast && !is_testmcastq) {
-       LOG_DBG("Cannot request unicast resouces with multicast address! Ignoring...\n");
-       return 0;
-     }
-    } else {
-     if(is_testmcast || is_testmcastq) {
-       LOG_DBG("Cannot request multicast resource with unicast address! Ignoring...\n");
-       return 0;
-     }
-    }
-  } else {
-	  LOG_DBG("A client receiving a response, no mcast check.\n");
-  }
     /* handle requests */
     if(message->code >= COAP_GET && message->code <= COAP_DELETE) {
 
@@ -296,38 +184,15 @@ coap_receive(const coap_endpoint_t *src,
           coap_init_message(response, COAP_TYPE_ACK, CONTENT_2_05,
                             message->mid);
         } else {
-#ifdef WITH_GROUPCOM		
-	  if(is_testmcastq) {
-            LOG_DBG("Got a multicast request for a quiet resource (response suppression)...");
-	    status = call_service(message, response,
-                                transaction->message + COAP_MAX_HEADER_SIZE,
-                                block_size, &new_offset);
-	    return 0;
-
-	  } else {
-	    LOG_DBG("A response will be sent...");  
           /* unreliable NON requests are answered with a NON as well */
           coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
                             coap_get_mid());
-	  }
-#endif /*WITH_GROUPCOM*/
-          /* unreliable NON requests are answered with a NON as well */
-          coap_init_message(response, COAP_TYPE_NON, CONTENT_2_05,
-                            coap_get_mid());
+          /* mirror token */
         }
-
-        /* mirror token */
         if(message->token_len) {
           coap_set_token(response, message->token, message->token_len);
+          /* get offset for blockwise transfers */
         }
-
-#ifdef WITH_OSCORE 
-        if(coap_is_option(message, COAP_OPTION_OSCORE)){
-          coap_set_oscore(response, message->security_context);
-        }
-#endif /* WITH_OSCORE */
-
-        /* get offset for blockwise transfers */
         if(coap_get_header_block2
            (message, &block_num, NULL, &block_size, &block_offset)) {
           LOG_DBG("Blockwise: block request %"PRIu32" (%u/%u) @ %"PRIu32" bytes\n",
@@ -421,21 +286,12 @@ coap_receive(const coap_endpoint_t *src,
             /* serialize response */
         }
           if(coap_status_code == NO_ERROR) {
-#ifdef WITH_GROUPCOM
-		/*start the signing process and return.*/
-		size_t prepare_out = oscore_prepare_message(response, transaction->message);
-		if(prepare_out == PACKET_SERIALIZATION_ERROR) {
-			coap_status_code = PACKET_SERIALIZATION_ERROR;
-		} else if(prepare_out == NO_ERROR) {
-			LOG_DBG("Message prepared, signing in progress. Returning for now...\n");
-			return 0;
-		}
-#else
-            if((transaction->message_len = 
-		   coap_serialize_message(response, transaction->message)) == 0) {
+            if((transaction->message_len = coap_serialize_message(response,
+                                                                 transaction->
+                                                                 message)) ==
+               0) {
               coap_status_code = PACKET_SERIALIZATION_ERROR;
             }
-#endif /*WITH_GROUPCOM*/
           }
       } else {
         coap_status_code = SERVICE_UNAVAILABLE_5_03;
@@ -488,56 +344,12 @@ coap_receive(const coap_endpoint_t *src,
     /* if(parsed correctly) */
   if(coap_status_code == NO_ERROR) {
     if(transaction) {
-#ifdef WITH_GROUPCOM
-      if(is_mcast) {
-        /*Copy transport data to a timer data. The response will be sent at timer expiration.*/
-        uint8_t tmp_time = random_rand() % 10; /*TODO a better way*/
-        LOG_DBG("Scheduling delayed response after %d seconds...\n", tmp_time);
-        dr_mid = message->mid;
-	ctimer_set(&dr_timer, CLOCK_SECOND * tmp_time, send_delayed_response_callback, &dr_mid);
-      } else {
-        LOG_DBG("No groupcom, running coap_send_transation...\n");    
-        coap_send_transaction(transaction);
-      }
-#else   /* No WITH_GROUPCOM */
-	coap_send_transaction(transaction);
-#endif /*WITH_GROUPCOM*/
-        
-          }
+      coap_send_transaction(transaction);
+    }
   } else if(coap_status_code == MANUAL_RESPONSE) {
     LOG_DBG("Clearing transaction for manual response");
     coap_clear_transaction(transaction);
-  } else if(coap_status_code == OSCORE_DECRYPTION_ERROR) {
-    LOG_WARN("OSCORE response decryption failed!\n");
-    if ((transaction = coap_get_transaction_by_mid(message->mid))) {
-      /* free transaction memory before callback, as it may create a new transaction */
-      coap_resource_response_handler_t callback = transaction->callback;
-      void *callback_data = transaction->callback_data;
-      
-      message->code = OSCORE_DECRYPTION_ERROR;
-      coap_clear_transaction(transaction);
-      printf("TODO send empty ACK!\n");
-      /* check if someone registered for the response */
-      if(callback) {
-        callback(callback_data, message);
-      }
-    }
   } else {
-#ifdef WITH_OSCORE
-    if (coap_status_code == OSCORE_MISSING_CONTEXT) {
-      LOG_WARN("OSCORE cannot decrypt, missing context!\n");
-
-      /* Need to inform receivers of failed decryption */
-      oscore_missing_security_context(src);
-
-      coap_status_code = UNAUTHORIZED_4_01;
-
-      // TODO: this return needs to be removed so that a
-      // UNAUTHORIZED_4_01 is sent if a context is unavailable.
-      return coap_status_code;
-    }
-#endif /* WITH_OSCORE */
-
     coap_message_type_t reply_type = COAP_TYPE_ACK;
 
 #if COAP_MESSAGE_ON_ERROR
@@ -555,49 +367,18 @@ coap_receive(const coap_endpoint_t *src,
       coap_status_code = INTERNAL_SERVER_ERROR_5_00;
       /* reuse input buffer for error message */
     }
-
-    coap_init_message(response, reply_type, coap_status_code,
+    coap_init_message(message, reply_type, coap_status_code,
                       message->mid);
-#if 0
-#ifdef WITH_OSCORE
-    if(message->token_len){
-      coap_set_token(response, message->token, message->token_len);
-    }
-#endif /* WITH_OSCORE */
-#endif
+#if COAP_MESSAGE_ON_ERROR
     coap_set_payload(message, coap_error_message,
                      strlen(coap_error_message));
+#endif
     coap_sendto(src, payload, coap_serialize_message(message, payload));
   }
 
   /* if(new data) */
   return coap_status_code;
 }
-/*---------------------------------------------------------------------------*/
-#ifdef WITH_GROUPCOM
-/*Now that the signature process has yielded, the message is ready; just send it*/
-void
-coap_send_postcrypto(coap_message_t *message, coap_message_t *response)
-{
-      size_t msg_len = 0;
-      uint8_t tmp_time = random_rand() % 5; /*TODO some better way*/
-      coap_transaction_t *transaction = NULL;
-      transaction = coap_get_transaction_by_mid(message->mid);
-      if(transaction != NULL) {
-              msg_len = coap_serialize_postcrypto(response, transaction->message);
-	      if(msg_len == 0) {
-		      LOG_ERR("POSTCRYPTO serialization failed!\n");
-	      	      return;
-	      }
-	      transaction->message_len = msg_len;
-              LOG_DBG("Scheduling delayed response after %d seconds...\n", tmp_time);
-              dr_mid = message->mid;
-	      ctimer_set(&dr_timer, CLOCK_SECOND * tmp_time, send_delayed_response_callback, &dr_mid);
-      } else {
-	      LOG_WARN("SEND POSTCRYPTO: transaction not found!\n");
-      }
-}
-#endif
 /*---------------------------------------------------------------------------*/
 void
 coap_engine_init(void)
@@ -619,16 +400,10 @@ coap_engine_init(void)
 
   coap_transport_init();
   coap_init_connection();
-
-#ifdef WITH_OSCORE
-  oscore_init();
-#endif
 }
 /*---------------------------------------------------------------------------*/
 /**
  * \brief Makes a resource available under the given URI path
- * \param resource A pointer to a resource implementation
- * \param path The URI path string for this resource
  *
  * The resource implementation must be imported first using the
  * extern keyword. The build system takes care of compiling every

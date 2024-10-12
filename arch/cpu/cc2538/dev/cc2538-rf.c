@@ -640,11 +640,6 @@ init(void)
   return 1;
 }
 /*---------------------------------------------------------------------------*/
-#ifdef MAKE_WITH_PCAP
-extern void pcap_log_output(const void *payload, unsigned short payload_len);
-extern void pcap_log_output_result(unsigned short payload_len, int ret);
-#endif
-
 static int
 prepare(const void *payload, unsigned short payload_len)
 {
@@ -702,10 +697,6 @@ prepare(const void *payload, unsigned short payload_len)
   }
   LOG_INFO_("\n");
 
-#ifdef MAKE_WITH_PCAP
-  pcap_log_output(payload, payload_len);
-#endif
-
   return 0;
 }
 /*---------------------------------------------------------------------------*/
@@ -720,10 +711,6 @@ transmit(unsigned short transmit_len)
   LOG_INFO("Transmit\n");
 
   if(transmit_len > MAX_PAYLOAD_LEN) {
-#ifdef MAKE_WITH_PCAP
-  pcap_log_output_result(transmit_len, RADIO_TX_ERR);
-#endif
-
     return RADIO_TX_ERR;
   }
 
@@ -736,10 +723,6 @@ transmit(unsigned short transmit_len)
 
   if(send_on_cca) {
     if(channel_clear() == CC2538_RF_CCA_BUSY) {
-#ifdef MAKE_WITH_PCAP
-  pcap_log_output_result(transmit_len, RADIO_TX_COLLISION);
-#endif
-
       return RADIO_TX_COLLISION;
     }
   }
@@ -749,10 +732,6 @@ transmit(unsigned short transmit_len)
    * receiving. Abort transmission and bail out with RADIO_TX_COLLISION
    */
   if(REG(RFCORE_XREG_FSMSTAT1) & RFCORE_XREG_FSMSTAT1_SFD) {
-#ifdef MAKE_WITH_PCAP
-  pcap_log_output_result(transmit_len, RADIO_TX_COLLISION);
-#endif
-
     return RADIO_TX_COLLISION;
   }
 
@@ -782,10 +761,6 @@ transmit(unsigned short transmit_len)
     off();
   }
 
-#ifdef MAKE_WITH_PCAP
-  pcap_log_output_result(transmit_len, ret);
-#endif
-
   return ret;
 }
 /*---------------------------------------------------------------------------*/
@@ -796,10 +771,6 @@ send(const void *payload, unsigned short payload_len)
   return transmit(payload_len);
 }
 /*---------------------------------------------------------------------------*/
-#ifdef MAKE_WITH_PCAP
-extern void pcap_log_input(const void *payload, unsigned short payload_len);
-#endif
-
 static int
 read(void *buf, unsigned short bufsize)
 {
@@ -884,10 +855,6 @@ read(void *buf, unsigned short bufsize)
     CC2538_RF_CSP_ISFLUSHRX();
     return 0;
   }
-
-#ifdef MAKE_WITH_PCAP
-  pcap_log_input(buf, len);
-#endif
 
   if(!poll_mode) {
     /* If FIFOP==1 and FIFO==0 then we had a FIFO overflow at some point. */

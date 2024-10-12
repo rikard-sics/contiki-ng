@@ -52,13 +52,6 @@
 
 #include <stdint.h>
 /*---------------------------------------------------------------------------*/
-#ifndef ECC_MAXIMUM_LENGTH
-#define ECC_MAXIMUM_LENGTH 12 /* 384 bits (12*32) */
-#endif
-
-_Static_assert(ECC_MAXIMUM_LENGTH >= 6, "ECC_MAXIMUM_LENGTH cannot be less than 6 (192 bits)");
-_Static_assert(ECC_MAXIMUM_LENGTH <= 12, "ECC_MAXIMUM_LENGTH cannot be larger than 12 (384 bits)");
-/*---------------------------------------------------------------------------*/
 /** \name ECC structures
  * @{
  */
@@ -74,8 +67,8 @@ typedef struct {
 } ecc_curve_info_t;
 
 typedef struct {
-  uint32_t       x[ECC_MAXIMUM_LENGTH];     /**< Pointer to value of the x co-ordinate. */
-  uint32_t       y[ECC_MAXIMUM_LENGTH];     /**< Pointer to value of the y co-ordinate. */
+  uint32_t       x[12];     /**< Pointer to value of the x co-ordinate. */
+  uint32_t       y[12];     /**< Pointer to value of the y co-ordinate. */
 } ec_point_t;
 
 /** @} */
@@ -109,7 +102,7 @@ typedef struct {
  */
 uint8_t ecc_mul_start(uint32_t *scalar,
                       ec_point_t *ec_point,
-                      const ecc_curve_info_t *curve,
+                      ecc_curve_info_t *curve,
                       uint32_t *result_vector,
                       struct process *process);
 
@@ -153,7 +146,7 @@ uint8_t ecc_mul_get_result(ec_point_t *ec_point,
  *         some other operation.
  */
 uint8_t ecc_mul_gen_pt_start(uint32_t *scalar,
-                             const ecc_curve_info_t *curve,
+                             ecc_curve_info_t *curve,
                              uint32_t *result_vector,
                              struct process *process);
 
@@ -199,7 +192,7 @@ uint8_t ecc_mul_gen_pt_get_result(ec_point_t *ec_point,
  *         some other operation.
  */
 uint8_t ecc_add_start(ec_point_t *ec_point1, ec_point_t *ec_point2,
-                      const ecc_curve_info_t *curve,
+                      ecc_curve_info_t *curve,
                       uint32_t *result_vector,
                       struct process *process);
 

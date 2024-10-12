@@ -223,7 +223,6 @@ void * list_chop(list_t list);
  *
  */
 void   list_add(list_t list, void *item);
-bool   list_remove(list_t list, void *item);
 
 /**
  * Remove a specific element from a list.
@@ -281,7 +280,24 @@ list_copy(list_t dest, const_list_t src)
  */
 void   list_insert(list_t list, void *previtem, void *newitem);
 
-void * list_item_next(const void *item);
+/**
+ * \brief      Get the next item following this item
+ * \param item A list item
+ * \returns    A next item on the list
+ *
+ *             This function takes a list item and returns the next
+ *             item on the list, or NULL if there are no more items on
+ *             the list. This function is used when iterating through
+ *             lists.
+ */
+static inline void *
+list_item_next(const void *item)
+{
+  struct list {
+    struct list *next;
+  };
+  return item == NULL ? NULL : ((struct list *)item)->next;
+}
 
 /**
  * \brief      Check if the list contains an item

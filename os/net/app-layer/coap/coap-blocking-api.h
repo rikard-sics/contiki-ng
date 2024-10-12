@@ -38,6 +38,7 @@
 #define COAP_BLOCKING_API_H_
 
 #include "sys/pt.h"
+#include "coap-transactions.h"
 #include "coap-request-state.h"
 
 /*---------------------------------------------------------------------------*/

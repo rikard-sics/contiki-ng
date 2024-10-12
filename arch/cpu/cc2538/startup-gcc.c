@@ -103,7 +103,6 @@ void uart1_isr(void);
 #endif
 /*---------------------------------------------------------------------------*/
 /* Allocate stack space */
-//356 works just fine
 static uint64_t stack[256] __attribute__ ((section(".stack")));
 /*---------------------------------------------------------------------------*/
 __attribute__((__section__(".vectors")))
