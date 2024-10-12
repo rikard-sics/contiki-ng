@@ -839,7 +839,7 @@ edhoc_get_authentication_key(edhoc_context_t *ctx)
     memcpy(ctx->authen_key.kid, key->kid, key->kid_sz);
     ctx->authen_key.kid_sz = key->kid_sz;
     ctx->authen_key.identity = key->identity;
-    ctx->authen_key.identity_size = key->identity_sz;
+    ctx->authen_key.identity_sz = key->identity_sz;
     return 1;
   } else {
     LOG_ERR("Does not contains a key for the authentication key identity\n");
@@ -866,7 +866,7 @@ edhoc_get_authentication_key(edhoc_context_t *ctx)
     memcpy(ctx->authen_key.kid, key->kid, key->kid_sz);
     ctx->authen_key.kid_sz = key->kid_sz;
     ctx->authen_key.identity = key->identity;
-    ctx->authen_key.identity_size = key->identity_sz;
+    ctx->authen_key.identity_sz = key->identity_sz;
     return 1;
   } else {
     LOG_ERR("Does not contains a key for the key ID\n");
@@ -916,7 +916,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 
   /* The COSE key include the authentication key */
   cose_key_t cose;
-  convert_ecc_key_to_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_size);
+  convert_ecc_key_to_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_sz);
 
   /* generate id_cred_x and cred_x */
   ctx->session.cred_x.buf = cred_x;
@@ -1022,7 +1022,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.plaintext_2.buf, ctx->session.plaintext_2.len);
   /* Generate COSE authentication key */
   cose_key_t cose;
-  convert_ecc_key_to_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_size);
+  convert_ecc_key_to_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_sz);
 
   cose_print_key(&cose);
   LOG_DBG("SK_I (Initiator's private authentication key) (%d bytes): ", ECC_KEY_LEN);

@@ -60,7 +60,7 @@ typedef struct ecc_key {
   uint8_t private_key[ECC_KEY_LEN];
   ecc_point_a public;
   char *identity;
-  uint8_t identity_size;
+  uint8_t identity_sz;
 } ecc_key;
 
 typedef struct ecc_curve_t {
