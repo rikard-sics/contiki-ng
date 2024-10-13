@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "coap-engine.h"
-#include "oscore.h"
+#ifdef WITH_OSCORE
+  #include "oscore.h"
+#endif
 #include <assert.h>
 #include "plugtest_resources.h"
 

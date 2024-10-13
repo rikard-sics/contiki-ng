@@ -13,3 +13,7 @@
             return result; \
         } \
     } while (0)
+
+#define CC_STRINGIFY_IMPL(s) #s
+#define CC_STRINGIFY(s) CC_STRINGIFY_IMPL(s)
+

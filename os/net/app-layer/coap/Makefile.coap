@@ -5,6 +5,7 @@ ifeq ($(MAKE_WITH_OSCORE),1)
 
  TINYDTLS_PATH := os/net/security/tinydtls
  NANOCBOR_PATH := os/lib/nanocbor
+ 
  ifeq (${wildcard $(CONTIKI)/$(TINYDTLS_PATH)/Makefile},)
   ${error Could not find the tinyDTLS submodule. Please run "git submodule update --init" and try again}
  endif
@@ -14,12 +15,18 @@ ifeq ($(MAKE_WITH_OSCORE),1)
  endif
 
  MODULES += $(NANOCBOR_PATH)/src $(NANOCBOR_PATH)/include
- CFLAGS += -DNANOCBOR_BYTEORDER_HEADER=\"nanocbor-endian-helper.h\"
 
+ ifeq ($(TARGET), native)
+  CFLAGS += -DNANOCBOR_BYTEORDER_HEADER=\"endian.h\"
+ else
+  CFLAGS += -DNANOCBOR_BYTEORDER_HEADER=\"nanocbor-endian-helper.h\"
+ endif
 
- MODULES += $(TINYDTLS_PATH)/sha2
+ CFLAGS += -DWITH_DTLS=1
+ MODULES += os/net/app-layer/coap/tinydtls-support
+ MODULES += $(TINYDTLS_PATH) ${addprefix $(TINYDTLS_PATH)/,aes sha2 ecc}
  CFLAGS += -DSHA2_USE_INTTYPES_H -DWITH_SHA256 -DHAVE_ASSERT_H
- 
+
  CFLAGS += -DWITH_OSCORE=1
  MODULES += os/net/app-layer/coap/oscore-support
 

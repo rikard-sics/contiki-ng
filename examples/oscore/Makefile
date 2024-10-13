@@ -1,4 +1,4 @@
-all: oscore-example-server oscore-example-client oscore-plugtest-server oscore-plugtest-client
+CONTIKI_PROJECT = oscore-example-server oscore-example-client
 # use target "oscore-plugtest-server" explicitly when required
 
 MAKE_WITH_OSCORE = 1
@@ -6,20 +6,15 @@ WERROR = 1
 CFLAGS += -DCOOJA_MTARCH_STACKSIZE=4096
 CFLAGS += -DOSCORE_EP_CTX_ASSOCIATION
 
-include $(CONTIKI)/Makefile.identify-target
+all: $(CONTIKI_PROJECT)
 
-# build RESTful resources
-ifeq ($(TARGET), native)
-	MODULES_REL += ./resources-plugtest
-endif
+# Do not try to build on Sky because of code size limitation
+PLATFORMS_EXCLUDE = sky z1
 
+# Include CoAP resources
 MODULES_REL += ./resources
-MODULES_REL += ../coap/coap-example-server/resources
-MODULES_REL += $(TARGET)
 
-CONTIKI_TARGET_SOURCEFILES += plugtest_resources.c
-
-CONTIKI=../../..
+CONTIKI=../..
 
 # Include the CoAP implementation
 include $(CONTIKI)/Makefile.dir-variables
@@ -27,19 +22,3 @@ MODULES += $(CONTIKI_NG_APP_LAYER_DIR)/coap
 
 include $(CONTIKI)/Makefile.include
 
-
-# border router rules
-$(CONTIKI)/tools/tunslip6:	$(CONTIKI)/tools/tunslip6.c
-	(cd $(CONTIKI)/tools && $(MAKE) tunslip6)
-
-connect-router:	$(CONTIKI)/tools/tunslip6
-	sudo $(CONTIKI)/tools/tunslip6 fd00::1/64
-
-connect-router-cooja:	$(CONTIKI)/tools/tunslip6
-	sudo $(CONTIKI)/tools/tunslip6 -a 127.0.0.1 -p 60001 fd00::1/64
-
-connect-router-native:	$(CONTIKI)/examples/rpl-border-router/border-router.native
-	sudo $(CONTIKI)/examples/rpl-border-router/border-router.native -a 127.0.0.1 -p 60001 fd00::1/64
-
-connect-native:
-	sudo IP address add fdfd::1/64 dev tun0

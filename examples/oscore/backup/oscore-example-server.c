@@ -32,18 +32,17 @@
  * \file
  *      OSCORE server example.
  * \author
- *      Martin Gunnarsson <martin.gunnarsson@ri.se>, Rikard Höglund
- * <rikard.hoglund@ri.se>
+ *      Martin Gunnarsson <martin.gunnarsson@ri.se>, Rikard Höglund <rikard.hoglund@ri.se>
  */
 
-#include "coap-engine.h"
-#include "contiki.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "contiki.h"
+#include "coap-engine.h"
 #ifdef WITH_OSCORE
-#include "oscore-context.h"
 #include "oscore.h"
+#include "oscore-context.h"
 #endif /* WITH_OSCORE */
 
 #if PLATFORM_SUPPORTS_BUTTON_HAL
@@ -59,10 +58,10 @@
 
 /*
  * Resources to be activated need to be imported through the extern keyword.
- * The build system automatically compiles the resources in the corresponding
- * sub-directory.
+ * The build system automatically compiles the resources in the corresponding sub-directory.
  */
-extern coap_resource_t res_hello;
+extern coap_resource_t
+  res_hello;
 
 #if PLATFORM_HAS_LEDS
 extern coap_resource_t res_leds, res_toggle;
@@ -81,21 +80,18 @@ extern coap_resource_t res_temperature;
 #endif
 
 #ifdef WITH_OSCORE
-/* Key material, sender-ID and receiver-ID used for deriving an
- * OSCORE-Security-Context. Note that Sender-ID and Receiver-ID is mirrored in
- * the Client and Server. */
-uint8_t master_secret[35] = {
-    0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
-    0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
-    0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23 };
-uint8_t salt[8] = { 0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40 };
+/* Key material, sender-ID and receiver-ID used for deriving an OSCORE-Security-Context. Note that Sender-ID and Receiver-ID is
+ * mirrored in the Client and Server. */
+uint8_t master_secret[35] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23};
+uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
 uint8_t sender_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 uint8_t receiver_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
 #endif /* WITH_OSCORE */
 PROCESS(er_example_server, "OSCORE Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 
-PROCESS_THREAD(er_example_server, ev, data) {
+PROCESS_THREAD(er_example_server, ev, data)
+{
   PROCESS_BEGIN();
 
   PROCESS_PAUSE();
@@ -109,7 +105,7 @@ PROCESS_THREAD(er_example_server, ev, data) {
   printf("PAN ID: 0x%04X\n", IEEE802154_PANID);
 #endif
 
-#ifdef WITH_OSCORE
+  #ifdef WITH_OSCORE
   /* Derive an OSCORE-Security-Context. */
   static oscore_ctx_t context;
   oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0);
@@ -117,13 +113,12 @@ PROCESS_THREAD(er_example_server, ev, data) {
   uint8_t key_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
   oscore_ctx_t *ctx;
   ctx = oscore_find_ctx_by_rid(key_id, 6);
-  
-  if (ctx == NULL) {
+  if(ctx == NULL){
     printf("CONTEXT NOT FOUND\n");
-  } else {
+  }else {
     printf("context FOUND!\n");
   }
-#endif /* WITH_OSCORE */
+  #endif /* WITH_OSCORE */
 
   /*
    * Bind the resources to their Uri-Path.
@@ -132,25 +127,25 @@ PROCESS_THREAD(er_example_server, ev, data) {
    */
   coap_activate_resource(&res_hello, "test/hello");
 
-#ifdef WITH_OSCORE
-  /* Marks a resource as protected by OSCORE. A CoAP request arriving to the
-   * resource will not be processed and return a UNAUTHORIZED_4_01 response.
-   * Only the specified resources "test/hello" is protected in this example.*/
+  #ifdef WITH_OSCORE
+  /* Marks a resource as protected by OSCORE. A CoAP request arriving to the resource will not be processed and return a UNAUTHORIZED_4_01
+   * response. Only the specified resources "test/hello" is protected in this example.*/
   oscore_protect_resource(&res_hello);
-#endif /* WITH_OSCORE */
-  /* Define application-specific events here. */
-  while (1) {
+  #endif /* WITH_OSCORE */
+    /* Define application-specific events here. */
+  while(1) {
     PROCESS_WAIT_EVENT();
 #if PLATFORM_HAS_BUTTON
 #if PLATFORM_SUPPORTS_BUTTON_HAL
-    if (ev == button_hal_release_event) {
+    if(ev == button_hal_release_event) {
 #else
-    if (ev == sensors_event && data == &button_sensor) {
+    if(ev == sensors_event && data == &button_sensor) {
 #endif
       LOG_DBG("*******BUTTON*******\n");
     }
 #endif /* PLATFORM_HAS_BUTTON */
-  }    /* while (1) */
+  }                             /* while (1) */
 
   PROCESS_END();
 }
+

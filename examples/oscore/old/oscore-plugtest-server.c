@@ -46,7 +46,10 @@
 #include "coap-transactions.h"
 #include "coap-separate.h"
 #include "coap-engine.h"
-#include "oscore.h"
+
+#ifdef WITH_OSCORE
+  #include "oscore.h"
+#endif
 
 #define DEBUG 0
 #if DEBUG
@@ -62,13 +65,7 @@
  * sub-directory.
  */
 extern coap_resource_t
-  res_hello,
-  res_hello1,
-  res_hello2,
-  res_hello3,
-  res_hello6,
-  res_hello7,
-  res_test;
+  res_hello;
 
 uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
 uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40};
@@ -87,6 +84,7 @@ PROCESS_THREAD(plugtest_server, ev, data)
 
   PRINTF("OSCORE Plugtests Server\n");
 
+#ifdef WITH_OSCORE
   static oscore_ctx_t context;
   oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 0, NULL, 0);
   //oscore_derive_ctx(&context, master_secret, 16, salt, 8, 10, sender_id, 1, receiver_id, 0, id_context, 8);
@@ -99,22 +97,15 @@ PROCESS_THREAD(plugtest_server, ev, data)
   }else {
     printf("context FOUND!\n");
   }
+#endif
 
   /* Activate the application-specific resources. */
   coap_activate_resource(&res_hello, "oscore/hello/coap");
-  coap_activate_resource(&res_hello1, "oscore/hello/1");
-  coap_activate_resource(&res_hello2, "oscore/hello/2");
-  coap_activate_resource(&res_hello3, "oscore/hello/3");
-  coap_activate_resource(&res_hello6, "oscore/hello/6");
-  coap_activate_resource(&res_hello7, "oscore/hello/7");
-  coap_activate_resource(&res_test,   "oscore/test");
-  
-  oscore_protect_resource(&res_hello1);
-  oscore_protect_resource(&res_hello2);
-  oscore_protect_resource(&res_hello3);
-  oscore_protect_resource(&res_hello6);
-  oscore_protect_resource(&res_hello7);
-  oscore_protect_resource(&res_test);
+
+#ifdef WITH_OSCORE  
+  oscore_protect_resource(&res_hello);
+#endif
+
   /* Define application-specific events here. */
   while(1) {
     PROCESS_WAIT_EVENT();

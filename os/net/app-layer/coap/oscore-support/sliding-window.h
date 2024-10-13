@@ -30,6 +30,11 @@ typedef struct {
 #define OSCORE_DEFAULT_REPLAY_WINDOW OSCORE_MAX_REPLAY_WINDOW_SIZE
 #endif
 
+/**
+ * A C preprocessing macro to obtain size of a field in a struct.
+ */
+#define CC_FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
+
 _Static_assert(OSCORE_DEFAULT_REPLAY_WINDOW >= 1, "OSCORE Replay window too small");
 _Static_assert(OSCORE_DEFAULT_REPLAY_WINDOW <= OSCORE_MAX_REPLAY_WINDOW_SIZE, "OSCORE Replay window too large");
 

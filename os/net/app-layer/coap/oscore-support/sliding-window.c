@@ -125,9 +125,10 @@ bool oscore_sliding_window_validate(oscore_sliding_window_t* w, uint64_t incomin
 
     } else { /* seq < recipient_seq */
         if(!oscore_sliding_window_contains(w, incoming_seq)) {
-            LOG_WARN("Replay protection, SEQ outside of replay window "
+            /*LOG_WARN("Replay protection, SEQ outside of replay window "
                 "(incoming_seq=%" PRIu64 ", replay_window_size=%" PRIu8 ", largest_seq=%" PRIu64 ").\n",
-                incoming_seq, OSCORE_DEFAULT_REPLAY_WINDOW, w->largest_seq);
+                incoming_seq, OSCORE_DEFAULT_REPLAY_WINDOW, w->largest_seq); */ //FIXME
+                LOG_WARN("Replay protection, SEQ outside of replay window");
             return false;
         }
 
