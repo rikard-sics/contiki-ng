@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024, RISE Research Institutes of Sweden AB (RISE), Stockholm, Sweden
  * Copyright (c) 2020, Industrial Systems Institute (ISI), Patras, Greece
  * All rights reserved.
  *
@@ -51,10 +52,11 @@ edhoc_context_t *edhoc_ctx;
 
 /* static rtimer_clock_t time; */
 
-static uint8_t data_buf[MAX_BUFFER];
-static uint8_t info_buf[MAX_BUFFER];
+static uint8_t data_buf[MAX_BUFFER / 3];
+static uint8_t info_buf[MAX_BUFFER / 2];
 static uint8_t cred_x[MAX_BUFFER / 2];
 static uint8_t id_cred_x[MAX_BUFFER / 2];
+
 static uint8_t mac_or_sig[MAC_OR_SIG_BUF_LEN];
 
 MEMB(edhoc_context_storage, edhoc_context_t, 1);
@@ -931,14 +933,14 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 
   gen_prk_2e(ctx);
 
-  /* generate prk_3e2m */
-  gen_prk_3e2m(ctx, &cose, 1);
-
   uint8_t mac_or_signature_sz = -1;
 
   /* Generate MAC or Signature */
 
 #if ((METHOD == METH1) || (METHOD == METH3))
+  /* generate prk_3e2m */
+  gen_prk_3e2m(ctx, &cose, 1);
+  
   uint8_t edhoc_mac_len = get_edhoc_mac_len(ctx->session.suite_selected);
   gen_mac(ctx, ad, ad_sz, mac_or_sig, edhoc_mac_len);
   LOG_DBG("MAC_2 (%d bytes): ", edhoc_mac_len);
@@ -947,6 +949,10 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 #endif
 
 #if ((METHOD == METH0) || (METHOD == METH2))
+  
+  /* prk_3e2m is prk_2e */
+  memcpy(ctx->session_keys.prk_3e2m, ctx->session_keys.prk_2e, HASH_LEN);
+
   // Derive MAC with HASH_LEN size
   gen_mac(ctx, ad, ad_sz, mac_or_sig, HASH_LEN);
   LOG_DBG("MAC_2 (%d bytes): ", HASH_LEN);
@@ -1008,7 +1014,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   ctx->tx_sz = sz + ctx->session.plaintext_2.len;
   ctx->msg_tx[1] = ctx->tx_sz - 2;
   LOG_INFO("MSG2 sz: %d\n", ctx->tx_sz);
-  
+
   return 1;
 }
 void
@@ -1046,12 +1052,23 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   LOG_DBG("ID_CRED_I (%d bytes): ", (int)ctx->session.id_cred_x.len);
   print_buff_8_dbg(ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
 
+  uint8_t mac_or_signature_sz = -1;
+
+#if ((METHOD == METH2) || (METHOD == METH3))
   /* Generate prk_4e3m */
   gen_prk_4e3m(ctx, &cose, 0);
 
-  uint8_t mac_or_signature_sz = -1;
+  uint8_t edhoc_mac_len = get_edhoc_mac_len(ctx->session.suite_selected);
+  gen_mac(ctx, ad, ad_sz, mac_or_sig, edhoc_mac_len);
+  LOG_DBG("MAC 3 (%d bytes): ", edhoc_mac_len);
+  print_buff_8_dbg(mac_or_sig, edhoc_mac_len);
+  mac_or_signature_sz = edhoc_mac_len;
+#endif
 
 #if ((METHOD == METH0) || (METHOD == METH1))
+
+  /* prk_4e3m is prk_3e2m */
+  memcpy(ctx->session_keys.prk_4e3m, ctx->session_keys.prk_3e2m, HASH_LEN);
 
   // Derive MAC with HASH_LEN size
   gen_mac(ctx, ad, ad_sz, mac_or_sig, HASH_LEN);
@@ -1092,14 +1109,6 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
 
   mac_or_signature_sz = P256_SIGNATURE_LEN;
   memcpy(mac_or_sig, cose_sign1->signature, cose_sign1->signature_sz);
-#endif
-
-#if ((METHOD == METH2) || (METHOD == METH3))
-  uint8_t edhoc_mac_len = get_edhoc_mac_len(ctx->session.suite_selected);
-  gen_mac(ctx, ad, ad_sz, mac_or_sig, edhoc_mac_len);
-  LOG_DBG("MAC 3 (%d bytes): ", edhoc_mac_len);
-  print_buff_8_dbg(mac_or_sig, edhoc_mac_len);
-  mac_or_signature_sz = edhoc_mac_len;
 #endif
 
   /* time = RTIMER_NOW(); */
@@ -1275,6 +1284,7 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload, size_t payload_sz, u
   } else {
     ad = NULL;
   }
+
   return msg1.uad.ead_value.len;
 }
 int
@@ -1327,6 +1337,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
   LOG_DBG("ID_CRED_R (%d bytes): ", 1);
   print_buff_8_dbg(ctx->session.id_cred_x.buf, 1);
   print_session_info(&ctx->session);
+
   return 1;
 }
 int
@@ -1436,22 +1447,32 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   LOG_DBG("CRED_R auth (%zu): ", ctx->session.cred_x.len);
   print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
 
+  ctx->session.id_cred_x.len = reconstruct_id_cred_x(ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
+  ctx->session.id_cred_x.buf = id_cred_x;
+
+#if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
+  /* Generate prk_3e2m or prk_4e3m */
   if(ROLE == INITIATOR) {
     gen_prk_3e2m(ctx, key, 0);
   } else if(ROLE == RESPONDER) {
     gen_prk_4e3m(ctx, key, 1);
   }
 
-  ctx->session.id_cred_x.len = reconstruct_id_cred_x(ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
-  ctx->session.id_cred_x.buf = id_cred_x;
-
-#if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
   if(check_mac(ctx, ad, ad_sz, received_mac, received_mac_sz, mac_or_sig) == 0) {
     LOG_ERR("error code in handler (%d)\n", ERR_AUTHENTICATION);
     return ERR_AUTHENTICATION;
   }
 #endif
+
 #if (METHOD == METH0) || INITIATOR_METH2 || RESPONDER_METH1
+  if(ROLE == INITIATOR) {
+    /* prk_3e2m is prk_2e */
+    memcpy(ctx->session_keys.prk_3e2m, ctx->session_keys.prk_2e, HASH_LEN);
+  } else if(ROLE == RESPONDER) {
+    /* prk_4e3m is prk_3e2m */
+    memcpy(ctx->session_keys.prk_4e3m, ctx->session_keys.prk_3e2m, HASH_LEN);
+  }
+
   /* Create signature from MAC and other data using COSE_Sign1 */
 
   // Protected
