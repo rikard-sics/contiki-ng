@@ -43,7 +43,6 @@
 [submodule "arch/cpu/gecko/lib/gecko_sdk"]
 	path = arch/cpu/gecko/lib/gecko_sdk
 	url = https://github.com/SiliconLabs/gecko_sdk.git
-[submodule "tools/nanocbor"]
+[submodule "os/lib/nanocbor"]
 	path = os/lib/nanocbor
 	url = https://github.com/bergzand/NanoCBOR.git
-
