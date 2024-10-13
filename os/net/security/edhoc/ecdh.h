@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024, RISE Research Institutes of Sweden AB (RISE), Stockholm, Sweden
  * Copyright (c) 2020, Industrial Systems Institute (ISI), Patras, Greece
  * All rights reserved.
  *
@@ -30,7 +31,7 @@
 
 /**
  * \file
- *         ecdh header
+ *         ECDH header
  *
  * \author
  *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca

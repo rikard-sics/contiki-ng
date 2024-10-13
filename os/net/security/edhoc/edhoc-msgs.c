@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024, RISE Research Institutes of Sweden AB (RISE), Stockholm, Sweden
  * Copyright (c) 2020, Industrial Systems Institute (ISI), Patras, Greece
  * All rights reserved.
  *
@@ -445,11 +446,11 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
 
     //char *ch = key->identity;
     key->identity_sz = get_text(p, &ch);
-    memcpy(key->identity,ch,key->identity_sz);
+    memcpy(key->identity, ch, key->identity_sz);
     ch = NULL;
     if(!memcmp(key->identity, "subject name", strlen("subject name"))) {
       key->identity_sz = get_text(p, &ch);
-      memcpy(key->identity,ch,key->identity_sz);
+      memcpy(key->identity, ch, key->identity_sz);
     }
 
     if(key_sz == 0) {

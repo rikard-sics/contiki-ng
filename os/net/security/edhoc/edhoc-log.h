@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2024, RISE Research Institutes of Sweden AB (RISE), Stockholm, Sweden
  * Copyright (c) 2020, Industrial Systems Institute (ISI), Patras, Greece
  * All rights reserved.
  *
