@@ -419,18 +419,13 @@ calc_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uin
     LOG_DBG("CONTEXT_2 (%zu bytes): ", context_2_buf_sz);
     print_buff_8_dbg(context_2, context_2_buf_sz);
     
-    /* RH: Create mac_info */
-    size_t mac_info_buf_sz = cbor_int_size(MAC_2_LABEL) + cbor_bytestr_size(context_2_buf_sz) + cbor_int_size(mac_len);
-    uint8_t mac_info[mac_info_buf_sz];
-    size_t mac_info_sz = generate_info(mac_info, context_2, context_2_buf_sz, mac_len, MAC_2_LABEL);
-    LOG_DBG("info MAC_2 (%zu bytes): ", mac_info_sz);
-    print_buff_8_dbg(mac_info, mac_info_sz);
-  
-    int8_t er = edhoc_expand(mac, ctx->session_keys.prk_3e2m, mac_info, mac_info_sz, mac_len);
-    if(er < 0) {
+    /* RH: Use edhoc_kdf to generate MAC_2 */
+    int16_t er = edhoc_kdf(mac, ctx->session_keys.prk_3e2m, MAC_2_LABEL, context_2, context_2_buf_sz, mac_len);
+    if (er < 0) {
       LOG_ERR("Failed to expand MAC_2\n");
       return 0;
     }
+
   } else if(mac_num == MAC_3) {
   
     /* RH: Build context_3 */
@@ -445,15 +440,9 @@ calc_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uin
     LOG_DBG("CONTEXT_3 (%zu bytes): ", context_3_buf_sz);
     print_buff_8_dbg(context_3, context_3_buf_sz);
 
-    /* RH: Create mac_info */
-    size_t mac_info_buf_sz = cbor_int_size(MAC_3_LABEL) + cbor_bytestr_size(context_3_buf_sz) + cbor_int_size(mac_len);
-    uint8_t mac_info[mac_info_buf_sz];
-    size_t mac_info_sz = generate_info(mac_info, context_3, context_3_buf_sz, mac_len, MAC_3_LABEL);
-    LOG_DBG("info MAC_3 (%zu bytes): ", mac_info_sz);
-    print_buff_8_dbg(mac_info, mac_info_sz);
- 
-    int8_t er = edhoc_expand(mac, ctx->session_keys.prk_4e3m, mac_info, mac_info_sz, mac_len);
-     if(er < 0) {
+    /* RH: Use edhoc_kdf to generate MAC_3 */
+    int16_t er = edhoc_kdf(mac, ctx->session_keys.prk_4e3m, MAC_3_LABEL, context_3, context_3_buf_sz, mac_len);
+    if (er < 0) {
       LOG_ERR("Failed to expand MAC_3\n");
       return 0;
     }
@@ -614,20 +603,17 @@ gen_prk_3e2m(edhoc_context_t *ctx, cose_key_t *cose_auth_key, uint8_t gen)
     LOG_ERR("error in generate shared secret for prk_3e2m\n");
     return 0;
   }
-  
-  size_t salt_info_buf_sz = cbor_int_size(SALT_3E2M_LABEL) + cbor_bytestr_size(ctx->session.th.len) + cbor_int_size(HASH_LEN);
-  uint8_t salt_info[salt_info_buf_sz];
-  size_t salt_info_sz = generate_info(salt_info, ctx->session.th.buf, ctx->session.th.len, HASH_LEN, SALT_3E2M_LABEL);
-  LOG_DBG("info SALT_3e2m (%zu bytes): ", salt_info_sz);
-  print_buff_8_dbg(salt_info, salt_info_sz);
+
+  /* Use edhoc_kdf to generate SALT_3e2m */  
   uint8_t salt[HASH_LEN];
-  er = edhoc_expand(salt, ctx->session_keys.prk_2e, salt_info, salt_info_sz, HASH_LEN);
-  if(er < 1) {
-    LOG_ERR("Error calculating salt (%d)\n", er);
+  er = edhoc_kdf(salt, ctx->session_keys.prk_2e, SALT_3E2M_LABEL, ctx->session.th.buf, ctx->session.th.len, HASH_LEN);
+  if (er < 1) {
+    LOG_ERR("Error calculating SALT_3e2m (%d)\n", er);
     return 0;
   }
   LOG_DBG("SALT_3e2m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(salt, HASH_LEN);
+  
   er = hkdf_extract(salt, HASH_LEN, grx, ECC_KEY_LEN, ctx->session_keys.prk_3e2m);
   if(er < 1) {
     LOG_ERR("error in extract for prk_3e2m\n");
@@ -658,20 +644,17 @@ gen_prk_4e3m(edhoc_context_t *ctx, cose_key_t *cose_auth_key, uint8_t gen)
     LOG_ERR("error in generate shared secret for prk_4e3m\n");
     return 0;
   }
-  
-  size_t salt_info_buf_sz = cbor_int_size(SALT_4E3M_LABEL) + cbor_bytestr_size(ctx->session.th.len) + cbor_int_size(HASH_LEN);
-  uint8_t salt_info[salt_info_buf_sz];
-  size_t salt_info_sz = generate_info(salt_info, ctx->session.th.buf, ctx->session.th.len, HASH_LEN, SALT_4E3M_LABEL);
-  LOG_DBG("info SALT_4e3m (%zu bytes): ", salt_info_sz);
-  print_buff_8_dbg(salt_info, salt_info_sz);
+
+  /* Use edhoc_kdf to generate SALT_4e3m */
   uint8_t salt[HASH_LEN];
-  er = edhoc_expand(salt, ctx->session_keys.prk_3e2m, salt_info, salt_info_sz, HASH_LEN);
-  if(er < 1) {
-    LOG_ERR("Error calculating salt (%d)\n", er);
+  er = edhoc_kdf(salt, ctx->session_keys.prk_3e2m, SALT_4E3M_LABEL, ctx->session.th.buf, ctx->session.th.len, HASH_LEN);
+  if (er < 1) {
+    LOG_ERR("Error calculating SALT_4e3m (%d)\n", er);
     return 0;
   }
   LOG_DBG("SALT_4e3m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(salt, HASH_LEN);
+  
   er = hkdf_extract(salt, HASH_LEN, giy, ECC_KEY_LEN, ctx->session_keys.prk_4e3m);
   if(er < 1) {
     LOG_ERR("error in extract for prk_4e3m\n");
