@@ -374,9 +374,9 @@ gen_th4(edhoc_context_t *ctx, uint8_t *cred, uint16_t cred_sz, uint8_t *cipherte
   return 0;
 }
 int16_t
-edhoc_kdf(uint8_t *result, uint8_t *key, uint8_t info_label, bstr context, uint16_t length)
+edhoc_kdf(uint8_t *result, uint8_t *key, uint8_t info_label, uint8_t *context, uint8_t context_sz, uint16_t length)
 {
-  uint16_t info_sz = generate_info(info_buf, context.buf, context.len, length, info_label);
+  uint16_t info_sz = generate_info(info_buf, context, context_sz, length, info_label);
   
   return edhoc_expand(result, key, info_buf, info_sz, length);
 }
@@ -585,7 +585,7 @@ gen_prk_2e(edhoc_context_t *ctx)
 static int16_t
 gen_ks_2e(edhoc_context_t *ctx, uint16_t length)
 {
-  int er = edhoc_kdf(ctx->session_keys.ks_2e, ctx->session_keys.prk_2e, KEYSTREAM_2_LABEL, ctx->session.th, length);
+  int er = edhoc_kdf(ctx->session_keys.ks_2e, ctx->session_keys.prk_2e, KEYSTREAM_2_LABEL, ctx->session.th.buf, ctx->session.th.len, length);
   if(er < 0) {
     return er;
   }
@@ -703,7 +703,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphert
   /* generate K_3 */
   cose->alg = get_edhoc_cose_enc_alg(ctx->session.suite_selected);
   cose->key_sz = get_cose_key_len(cose->alg);
-  int8_t er = edhoc_kdf(cose->key, ctx->session_keys.prk_3e2m, K_3_LABEL, ctx->session.th, cose->key_sz);
+  int8_t er = edhoc_kdf(cose->key, ctx->session_keys.prk_3e2m, K_3_LABEL, ctx->session.th.buf, ctx->session.th.len, cose->key_sz);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
@@ -713,7 +713,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphert
 
   /* generate IV_3 */
   cose->nonce_sz = get_cose_iv_len(cose->alg);
-  er = edhoc_kdf(cose->nonce, ctx->session_keys.prk_3e2m, IV_3_LABEL, ctx->session.th, cose->nonce_sz);
+  er = edhoc_kdf(cose->nonce, ctx->session_keys.prk_3e2m, IV_3_LABEL, ctx->session.th.buf, ctx->session.th.len, cose->nonce_sz);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
@@ -796,7 +796,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
   /* generate K_3 */
   cose->alg = get_edhoc_cose_enc_alg(ctx->session.suite_selected);
   cose->key_sz = get_cose_key_len(cose->alg);
-  er = edhoc_kdf(cose->key, ctx->session_keys.prk_3e2m, K_3_LABEL, ctx->session.th, cose->key_sz);
+  er = edhoc_kdf(cose->key, ctx->session_keys.prk_3e2m, K_3_LABEL, ctx->session.th.buf, ctx->session.th.len, cose->key_sz);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
@@ -806,7 +806,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac
 
   /* generate IV_3 */
   uint8_t iv_len = get_cose_iv_len(cose->alg);
-  er = edhoc_kdf(cose->nonce, ctx->session_keys.prk_3e2m, IV_3_LABEL, ctx->session.th, iv_len);
+  er = edhoc_kdf(cose->nonce, ctx->session_keys.prk_3e2m, IV_3_LABEL, ctx->session.th.buf, ctx->session.th.len, iv_len);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;

@@ -113,7 +113,7 @@ void print_oscore_ctx(oscore_ctx_t *osc);
  * The key derivation is based on the provided label and length. This can be used for exporting keys
  * after the successful completion of the EDHOC protocol.
  */
-int8_t edhoc_exporter(uint8_t *result, uint8_t *in_key, uint8_t exporter_label, bstr context, uint16_t length);
+int8_t edhoc_exporter(uint8_t *result, uint8_t *in_key, uint8_t exporter_label, uint8_t *context, uint8_t context_sz, uint16_t length);
 
 #endif /* _EDHOC_EXPORTER_H_ */
 /** @} */
