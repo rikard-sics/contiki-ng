@@ -1400,30 +1400,6 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, s
 
   return 1;
 }
-static int //RH: Added this
-retrieve_cred_i(edhoc_context_t *ctx, uint8_t *info_buf, bstr *cred_i)
-{
-  // Get the cose_key_t version of the auth cred  
-  uint8_t *auth_key_buf = NULL;
-  cose_key_t auth_cose_key_t;
-  int8_t er = edhoc_get_auth_key(ctx, &auth_key_buf, &auth_cose_key_t);
-  if(er != 1) {
-    return er;
-  }
-
-  // Use info_buf for storing CRED_I
-  cred_i->buf = info_buf;
-  cred_i->len = sizeof(info_buf);
-
-  // Build the CRED_I value
-  int cred_i_size = generate_cred_x(&auth_cose_key_t, cred_i->buf);
-  if(cred_i_size <= 0) {
-    return ERR_ID_CRED_X_MALFORMED;
-  }
-  cred_i->len = cred_i_size;
-
-  return 1;
-}
 int
 edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, uint8_t *ad, cose_key_t *key)
 {
@@ -1481,16 +1457,11 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   cose_sign1_set_header(cose_sign1, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len, NULL, 0);
 
   // External AAD (CRED_I and TH)
-  bstr cred_i_sig;
-  int8_t er2 = retrieve_cred_i(ctx, info_buf, &cred_i_sig);
-  if(er2 != 1) {
-    return ERR_AUTHENTICATION;
-  }
   uint8_t *aad_ptr = cose_sign1->external_aad;
   memcpy(aad_ptr, ctx->session.th.buf, ctx->session.th.len);
   aad_ptr += ctx->session.th.len;
-  memcpy(aad_ptr, cred_i_sig.buf, cred_i_sig.len);
-  cose_sign1->external_aad_sz = cred_i_sig.len + ctx->session.th.len;
+  memcpy(aad_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
+  cose_sign1->external_aad_sz = ctx->session.cred_x.len + ctx->session.th.len;
 
   // Set received signature
   cose_sign1_set_signature(cose_sign1, received_mac, received_mac_sz);
@@ -1505,7 +1476,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   calc_mac(ctx, ad, ad_sz, mac_num, mac_or_sig, HASH_LEN);
   LOG_DBG("MAC_%d (%d bytes): ", mac_num == 2 ? 2 : 3, HASH_LEN); // MAC_2 or 3
   print_buff_8_dbg(mac_or_sig, HASH_LEN);
-  er2 = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
+  int8_t er2 = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
   if(er2 < 0) {
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
     return ERR_AUTHENTICATION;
@@ -1527,15 +1498,8 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 
   /* RH: Compute TH_4 WIP (after verifying MAC_3) */
   if(ROLE == RESPONDER) { 
-    // Start by retrieving CRED_I
-    bstr cred_i;
-    int8_t er = retrieve_cred_i(ctx, info_buf, &cred_i);
-    if(er != 1) {
-      return ERR_AUTHENTICATION;
-    }
-
-    // Actually calculate TH_4
-    gen_th4(ctx, cred_i.buf, cred_i.len, ctx->session.plaintext_3.buf, ctx->session.plaintext_3.len);
+    /* Calculate TH_4 */
+    gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.plaintext_3.buf, ctx->session.plaintext_3.len);
   }  
 
   return ad_sz;
