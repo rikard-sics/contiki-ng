@@ -45,25 +45,25 @@ print_msg_1(edhoc_msg_1 *msg)
 {
   LOG_DBG("Type: %d\n", msg->method);
   LOG_DBG("Suite I: ");
-  print_buff_8_dbg(msg->suites_i, msg->suites_i_sz);
+  print_buff_8_dbg(msg->suites_i.buf, msg->suites_i.len);
   LOG_DBG("Gx: ");
-  print_buff_8_dbg(msg->g_x, ECC_KEY_LEN);
+  print_buff_8_dbg(msg->g_x.buf, msg->g_x.len);
   LOG_DBG("Ci: ");
-  print_buff_8_dbg(msg->c_i, CID_LEN);
+  print_buff_8_dbg(msg->c_i.buf, msg->c_i.len);
   LOG_DBG("EAD (label: %d): ", msg->uad.ead_label);
-  print_buff_8_dbg(msg->uad.ead_value, msg->uad.ead_value_sz);
+  print_buff_8_dbg(msg->uad.ead_value.buf, msg->uad.ead_value.len);
 }
 void
 print_msg_2(edhoc_msg_2 *msg)
 {
-  LOG_DBG("gy_ciphertext_2: ");
-  print_buff_8_dbg(msg->gy_ciphertext_2, msg->gy_ciphertext_2_sz);
+  LOG_DBG("g_y_ciphertext_2: ");
+  print_buff_8_dbg(msg->g_y_ciphertext_2.buf, msg->g_y_ciphertext_2.len);
 }
 void
 print_msg_3(edhoc_msg_3 *msg)
 {
   LOG_DBG("CIPHERTEXT_3: ");
-  print_buff_8_dbg(msg->ciphertext_3, msg->ciphertext_3_sz);
+  print_buff_8_dbg(msg->ciphertext_3.buf, msg->ciphertext_3.len);
 }
 static uint8_t
 get_byte(uint8_t **in)
@@ -232,11 +232,11 @@ size_t
 edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array)
 {
   size_t size = cbor_put_unsigned(&buffer, msg->method);
-  size += edhoc_serialize_suites(&buffer, msg->suites_i, msg->suites_i_sz);
-  size += cbor_put_bytes(&buffer, msg->g_x, ECC_KEY_LEN);
-  size += edhoc_put_byte_identifier(&buffer, msg->c_i, CID_LEN);
-  if(msg->uad.ead_value_sz > 0) {
-    size += cbor_put_bytes(&buffer, msg->uad.ead_value, msg->uad.ead_value_sz);
+  size += edhoc_serialize_suites(&buffer, msg->suites_i.buf, msg->suites_i.len);
+  size += cbor_put_bytes(&buffer, msg->g_x.buf, msg->g_x.len);
+  size += edhoc_put_byte_identifier(&buffer, msg->c_i.buf, msg->c_i.len);
+  if(msg->uad.ead_value.len > 0) {
+    size += cbor_put_bytes(&buffer, msg->uad.ead_value.buf, msg->uad.ead_value.len);
   }
   return size;
 }
@@ -307,7 +307,7 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
   }
   /* Get the suite */
   if(buffer < buff_f) {
-    edhoc_deserialize_suites(&buffer, &msg->suites_i, &msg->suites_i_sz);
+    edhoc_deserialize_suites(&buffer, &msg->suites_i.buf, &msg->suites_i.len);
   }
   /* Get Gx */
   if(buffer < buff_f) {
@@ -316,12 +316,16 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
       LOG_ERR("error code (%d)\n ", ERR_MSG_MALFORMED);
       return ERR_MSG_MALFORMED;
     }
-    msg->g_x = p_out;
+    msg->g_x.buf = p_out;
+    msg->g_x.len = out_sz;
   }
   /* Get the session_id (Ci) */
   if(buffer < buff_f) {
-    edhoc_get_bytes(&buffer, &msg->c_i);
-    msg->c_i = point_byte(&buffer);
+    msg->c_i.len = edhoc_get_bytes(&buffer, &msg->c_i.buf);
+    if(msg->c_i.len == 0) {
+      msg->c_i.buf = point_byte(&buffer);
+      msg->c_i.len = 1;
+    }
   }
   /* Get the decrypted msg */
   if(buffer < buff_f) {
@@ -331,16 +335,16 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
       return ERR_MSG_MALFORMED;
     }
 
-    msg->uad.ead_value = p_out;
-    msg->uad.ead_value_sz = out_sz;
+    msg->uad.ead_value.buf = p_out;
+    msg->uad.ead_value.len = out_sz;
   }
   return 1;
 }
 int8_t
 edhoc_deserialize_msg_2(edhoc_msg_2 *msg, unsigned char *buffer, size_t buff_sz)
 {
-  msg->gy_ciphertext_2_sz = edhoc_get_bytes(&buffer, &msg->gy_ciphertext_2);
-  if(msg->gy_ciphertext_2_sz == 0) {
+  msg->g_y_ciphertext_2.len = edhoc_get_bytes(&buffer, &msg->g_y_ciphertext_2.buf);
+  if(msg->g_y_ciphertext_2.len == 0) {
     LOG_ERR("error code (%d)\n ", ERR_MSG_MALFORMED);
     return ERR_MSG_MALFORMED;
   }
@@ -349,8 +353,8 @@ edhoc_deserialize_msg_2(edhoc_msg_2 *msg, unsigned char *buffer, size_t buff_sz)
 int8_t
 edhoc_deserialize_msg_3(edhoc_msg_3 *msg, unsigned char *buffer, size_t buff_sz)
 {
-  msg->ciphertext_3_sz = edhoc_get_bytes(&buffer, &msg->ciphertext_3);
-  if(msg->ciphertext_3_sz == 0) {
+  msg->ciphertext_3.len = edhoc_get_bytes(&buffer, &msg->ciphertext_3.buf);
+  if(msg->ciphertext_3.len == 0) {
     LOG_ERR("error code (%d)\n ", ERR_MSG_MALFORMED);
     return ERR_MSG_MALFORMED;
   }
