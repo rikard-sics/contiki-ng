@@ -53,7 +53,6 @@ edhoc_context_t *edhoc_ctx;
 /* static rtimer_clock_t time; */
 
 static uint8_t data_buf[MAX_BUFFER / 3];
-static uint8_t info_buf[MAX_BUFFER / 2];
 static uint8_t cred_x[MAX_BUFFER / 2];
 static uint8_t id_cred_x[MAX_BUFFER / 2];
 
@@ -375,12 +374,12 @@ gen_th4(edhoc_context_t *ctx, uint8_t *cred, uint16_t cred_sz, uint8_t *cipherte
 int16_t
 edhoc_kdf(uint8_t *result, uint8_t *key, uint8_t info_label, uint8_t *context, uint8_t context_sz, uint16_t length)
 {
-  size_t buf_info_sz = cbor_int_size(info_label) + cbor_bytestr_size(context_sz) + cbor_int_size(length);
-  uint8_t buf_info[buf_info_sz];
+  size_t info_buf_sz = cbor_int_size(info_label) + cbor_bytestr_size(context_sz) + cbor_int_size(length);
+  uint8_t info_buf[info_buf_sz];
 
-  uint16_t info_sz = generate_info(buf_info, context, context_sz, length, info_label);
+  uint16_t info_sz = generate_info(info_buf, context, context_sz, length, info_label);
   
-  return edhoc_expand(result, key, buf_info, info_sz, length);
+  return edhoc_expand(result, key, info_buf, info_sz, length);
 }
 int16_t
 edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info_sz, uint16_t length)
@@ -1419,7 +1418,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
     ad_sz = 0;
   }
 
-  ctx->session.cred_x.buf = info_buf;
+  ctx->session.cred_x.buf = cred_x;
   ctx->session.cred_x.len = generate_cred_x(key, ctx->session.cred_x.buf);
   LOG_DBG("CRED_R auth (%zu): ", ctx->session.cred_x.len);
   print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
