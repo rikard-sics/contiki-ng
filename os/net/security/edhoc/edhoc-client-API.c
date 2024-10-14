@@ -377,7 +377,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
       er = edhoc_deserialize_err(&err, msg_err, edhoc_ctx->rx_sz);
       if(er > 0) {
         LOG_ERR("RX error code %d, MSG_ERR", err.err_code);
-        print_char_8_err(err.err_info.buf, err.err_info.len);
+        print_char_8_err(err.err_info, err.err_info_sz);
         edhoc_state.val = CL_RESTART;
         cli->state = NON_MSG;
         coap_timer_stop(&timer);

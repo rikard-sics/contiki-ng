@@ -87,14 +87,15 @@ typedef struct edhoc_msg_3 {
 
 typedef struct edhoc_msg_error {
   uint8_t err_code;
-  sstr err_info;
+  char *err_info;
+  size_t err_info_sz;
 } edhoc_msg_error;
 
 void print_msg_1(edhoc_msg_1 *msg);
 void print_msg_2(edhoc_msg_2 *msg);
 void print_msg_3(edhoc_msg_3 *msg);
 
-size_t edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, uint8_t suites_sz);
+size_t edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t suites_sz);
 
 size_t edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array);
 #if 0
@@ -118,7 +119,7 @@ size_t edhoc_get_bytes(uint8_t **in, uint8_t **out);
 int16_t edhoc_get_unsigned(uint8_t **in);
 uint8_t edhoc_get_array_num(uint8_t **in);
 
-void edhoc_deserialize_suites(unsigned char **buffer, bstr *suites);
+void edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *suites_sz);
 
 int edhoc_put_byte_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len);
 

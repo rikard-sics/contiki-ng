@@ -1127,60 +1127,75 @@ edhoc_gen_msg_error(uint8_t *msg_er, edhoc_context_t *ctx, int8_t err)
   msg.err_code = 1;
   switch(err * (-1)) {
   default:
-    msg.err_info = (sstr){ "ERR_UNKNOWN", strlen("ERR_UNKNOWN") };
+    msg.err_info = "ERR_UNKNOWN";
+    msg.err_info_sz = strlen("ERR_UNKNOWN");
     break;
   case (ERR_SUITE_NON_SUPPORT * (-1)):
-    msg.err_info = (sstr){ "ERR_SUITE_NON_SUPPORT", strlen("ERR_SUITE_NON_SUPPORT") };
+    msg.err_info = "ERR_SUITE_NON_SUPPORT";
+    msg.err_info_sz = strlen("ERR_SUITE_NON_SUPPORT");
     break;
   case (ERR_MSG_MALFORMED * (-1)):
-    msg.err_info = (sstr){ "ERR_MSG_MALFORMED", strlen("ERR_MSG_MALFORMED") };
+    msg.err_info = "ERR_MSG_MALFORMED";
+    msg.err_info_sz = strlen("ERR_MSG_MALFORMED");
     break;
   case (ERR_REJECT_METHOD * (-1)):
-    msg.err_info = (sstr){ "ERR_REJECT_METHOD", strlen("ERR_REJECT_METHOD") };
+    msg.err_info = "ERR_REJECT_METHOD";
+    msg.err_info_sz = strlen("ERR_REJECT_METHOD");
     break;
   case (ERR_CID_NOT_VALID * (-1)):
-    msg.err_info = (sstr){ "ERR_CID_NOT_VALID", strlen("ERR_CID_NOT_VALID") };
+    msg.err_info = "ERR_CID_NOT_VALID";
+    msg.err_info_sz = strlen("ERR_CID_NOT_VALID");
     break;
   case (ERR_WRONG_CID_RX * (-1)):
-    msg.err_info = (sstr){ "ERR_WRONG_CID_RX", strlen("ERR_WRONG_CID_RX") };
+    msg.err_info = "ERR_WRONG_CID_RX";
+    msg.err_info_sz = strlen("ERR_WRONG_CID_RX");
     break;
   case (ERR_ID_CRED_X_MALFORMED * (-1)):
-    msg.err_info = (sstr){ "ERR_ID_CRED_X_MALFORMED", strlen("ERR_ID_CRED_X_MALFORMED") };
+    msg.err_info = "ERR_ID_CRED_X_MALFORMED";
+    msg.err_info_sz = strlen("ERR_ID_CRED_X_MALFORMED");
     break;
   case (ERR_AUTHENTICATION * (-1)):
-    msg.err_info = (sstr){ "ERR_AUTHENTICATION", strlen("ERR_AUTHENTICATION") };
+    msg.err_info = "ERR_AUTHENTICATION";
+    msg.err_info_sz = strlen("ERR_AUTHENTICATION");
     break;
   case (ERR_DECRYPT * (-1)):
-    msg.err_info = (sstr){ "ERR_DECRYPT", strlen("ERR_DECRYPT") };
+    msg.err_info = "ERR_DECRYPT";
+    msg.err_info_sz = strlen("ERR_DECRYPT");
     break;
   case (ERR_CODE * (-1)):
-    msg.err_info = (sstr){ "ERR_CODE", strlen("ERR_CODE") };
+    msg.err_info = "ERR_CODE";
+    msg.err_info_sz = strlen("ERR_CODE");
     break;
   case (ERR_NOT_ALLOWED_IDENTITY * (-1)):
-    msg.err_info = (sstr){ "ERR_NOT_ALLOWED_IDENTITY", strlen("ERR_NOT_ALLOWED_IDENTITY") };
+    msg.err_info = "ERR_NOT_ALLOWED_IDENTITY";
+    msg.err_info_sz = strlen("ERR_NOT_ALLOWED_IDENTITY");
     break;
   case (RX_ERR_MSG * (-1)):
-    msg.err_info = (sstr){ "RX_ERR_MSG", strlen("RX_ERR_MSG") };
+    msg.err_info = "RX_ERR_MSG";
+    msg.err_info_sz = strlen("RX_ERR_MSG");
     break;
   case (ERR_TIMEOUT * (-1)):
-    msg.err_info = (sstr){ "ERR_TIMEOUT", strlen("ERR_TIMEOUT") };
+    msg.err_info = "ERR_TIMEOUT";
+    msg.err_info_sz = strlen("ERR_TIMEOUT");
     break;
   case (ERR_CORRELATION * (-1)):
-    msg.err_info = (sstr){ "ERR_CORRELATION", strlen("ERR_CORRELATION") };
+    msg.err_info = "ERR_CORRELATION";
+    msg.err_info_sz = strlen("ERR_CORRELATION");
     break;
-  case (ERR_NEW_SUITE_PROPOSE * (-1)): {
+  case (ERR_NEW_SUITE_PROPOSE * (-1)):
     msg.err_code = 2;
-    msg.err_info = (sstr) { (char *)ctx->session.suite, ctx->session.suite_num * sizeof(ctx->session.suite[0]) };
+    msg.err_info = (char *)ctx->session.suite;
+    msg.err_info_sz = ctx->session.suite_num * sizeof(ctx->session.suite[0]);
     break;
-  }
   case (ERR_RESEND_MSG_1 * (-1)):
-    msg.err_info = (sstr){ "ERR_RESEND_MSG_1", strlen("ERR_RESEND_MSG_1") };
+    msg.err_info = "ERR_RESEND_MSG_1";
+    msg.err_info_sz = strlen("ERR_RESEND_MSG_1");
     break;
   }
 
   LOG_ERR("ERR MSG (%d): ", msg.err_code);
   if(msg.err_code == 1) {
-    print_char_8_err(msg.err_info.buf, msg.err_info.len);
+    print_char_8_err(msg.err_info, msg.err_info_sz);
   } else {
     printf("\n");
   }
@@ -1200,12 +1215,12 @@ edhoc_check_err_rx_msg(uint8_t *payload, uint8_t payload_sz)
   msg_err_sz = edhoc_deserialize_err(&err, msg_err, payload_sz);
   if(msg_err_sz > 0) {
     LOG_ERR("RX MSG_ERR: ");
-    print_char_8_err(err.err_info.buf, err.err_info.len);
+    print_char_8_err(err.err_info, err.err_info_sz);
     return RX_ERR_MSG;
   }
   if(msg_err_sz == -1) {
     LOG_ERR("RX MSG_ERROR WITH SUITE PROPOSE: ");
-    print_char_8_err(err.err_info.buf, err.err_info.len);
+    print_char_8_err(err.err_info, err.err_info_sz);
     return RX_ERR_MSG;
   }
   return 0;
@@ -1220,7 +1235,7 @@ edhoc_check_err_rx_msg_2(uint8_t *payload, uint8_t payload_sz, edhoc_context_t* 
   int8_t msg_err_sz = edhoc_deserialize_err(&err, msg_err, payload_sz);
   if(msg_err_sz < 0) {
     LOG_ERR("RX MSG_ERR: ");
-    print_char_8_err(err.err_info.buf, err.err_info.len);
+    print_char_8_err(err.err_info, err.err_info_sz);
     return RX_ERR_MSG;
   }
   return 0;
