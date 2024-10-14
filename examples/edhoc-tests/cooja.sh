@@ -2,6 +2,7 @@
 
 # Remove old test log
 rm COOJA.testlog
+rm COOJA2.testlog
 
 # Clean old build files
 rm -r edhoc-client/build
@@ -16,7 +17,7 @@ sed -e 's/^1.*/\x1b[38;2;200;200;255m&\x1b[0m/' \
     -e 's/^2.*/\x1b[38;2;200;255;200m&\x1b[0m/' \
     -e 's/^I.*/\x1b[31m&\x1b[0m/' \
     -e 's/^C.*/\x1b[32m&\x1b[0m/'
-
+cp COOJA.testlog COOJA2.testlog
 
 # Check if the log file exists
 file_to_check="COOJA.testlog"
@@ -32,6 +33,14 @@ if grep -q "TEST FAILED" "$file_to_check"; then
   echo "Stopping further execution."
   exit 1
 fi
+
+# Check if the string "TEST OK" exists in the log file (if not fail)
+if ! grep -q "TEST OK" "$file_to_check"; then
+  echo "Error: 'TEST OK' not found in $file_to_check"
+  echo "Stopping further execution."
+  exit 1
+fi
+
 
 # Run Cooja with the specified arguments in no-GUI mode (using Method 3)
 sed -i 's/#define METHOD METH0/#define METHOD METH3/g' /home/user/contiki-ng/os/net/security/edhoc/edhoc-config.h
