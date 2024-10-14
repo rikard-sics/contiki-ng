@@ -166,7 +166,7 @@ cbor_put_negative(uint8_t **buffer, int64_t value)
 }
 
 uint8_t //RH: WIP
-cbor_bstr_size(uint32_t len) {
+cbor_bytestr_size(uint32_t len) {
   if (len <= 23) {
     return 1 + len; // 1 byte total for encoding
   } else if (len <= 255) {
