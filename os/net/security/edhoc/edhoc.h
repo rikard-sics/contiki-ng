@@ -59,17 +59,6 @@
 #include "edhoc-msgs.h"
 
 /**
- * \brief The max size of the buffers
- */
-#define MAX_BUFFER 256
-
-/**
- * \brief The length of connection identifiers
- * TODO: Support other than 1 byte CIDs
- */
-#define CID_LEN 1
-
-/**
  * \brief Set EDHOC connection identifier
  */
 #ifndef EDHOC_CID
