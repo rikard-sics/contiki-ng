@@ -55,10 +55,6 @@ typedef struct bstr {
   uint8_t *buf;
   size_t len;
 } bstr;
-typedef struct sstr {
-  char *buf;
-  size_t len;
-} sstr;
 
 void print_buff(const uint8_t *buff, size_t len);
 void print_char(const char *buff, size_t len);

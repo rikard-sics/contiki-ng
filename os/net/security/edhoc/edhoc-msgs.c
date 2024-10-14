@@ -195,7 +195,7 @@ edhoc_get_byte_identifier(uint8_t **in)
 }
 
 size_t
-edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, uint8_t suites_sz)
+edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t suites_sz)
 {
   if(suites_sz == 1) {
     return cbor_put_unsigned(buffer, suites[0]);
@@ -208,21 +208,25 @@ edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, uint8_t su
 }
 
 void
-edhoc_deserialize_suites(unsigned char **buffer, bstr *suites)
+edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *suites_sz)
 {
-  suites->buf = (uint8_t*)*buffer;
+  *suites_buf = (uint8_t*)*buffer;
   int8_t unint = (int8_t)edhoc_get_unsigned(buffer);
-  if(unint < 0){
+  
+  if (unint < 0) {
     unint = edhoc_get_array_num(buffer);
-    suites->buf = (uint8_t*)*buffer;
-    while(suites->len < unint){
+    *suites_buf = (uint8_t*)*buffer;
+    *suites_sz = 0;
+    
+    while (*suites_sz < unint) {
       edhoc_get_unsigned(buffer);
-      suites->len++;
+      (*suites_sz)++;
     }
-  } else{
-    suites->len = 1;
+  } else {
+    *suites_sz = 1;
   }
 }
+
 
 size_t
 edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array)
@@ -246,11 +250,11 @@ edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer)
       LOG_ERR("edhoc_serialize_err: unknown error code: %d\n", msg->err_code);
       break;
     case 1:
-      size += cbor_put_text(&buffer, msg->err_info.buf, msg->err_info.len);
+      size += cbor_put_text(&buffer, msg->err_info, msg->err_info_sz);
       break;
     case 2:
       // FIXME: strict aliasing violation
-      size += edhoc_serialize_suites(&buffer, (uint8_t *)msg->err_info.buf, msg->err_info.len);
+      size += edhoc_serialize_suites(&buffer, (uint8_t *)msg->err_info, msg->err_info_sz);
       break;
     case 3:
       size += cbor_put_num(&buffer, 0xf5);
@@ -273,19 +277,19 @@ edhoc_deserialize_err(edhoc_msg_error *msg, unsigned char *buffer, uint8_t buff_
   if(buffer < buff_f) {
     if(msg->err_code == 2) {
       // FIXME: strict aliasing violation
-      edhoc_deserialize_suites(&buffer, (bstr *)&msg->err_info);
+      edhoc_deserialize_suites(&buffer, (uint8_t **)&msg->err_info, &msg->err_info_sz);
       return ERR_NEW_SUITE_PROPOSE;
     }
-    int16_t len = get_text(&buffer, &msg->err_info.buf);
+    int16_t len = get_text(&buffer, &msg->err_info);
     if(len > 0) {
-      msg->err_info.len = len;
+      msg->err_info_sz = len;
       LOG_ERR("Is an error msgs\n");
       return RX_ERR_MSG;
     }
     if(len == -1){
       return 0;
     }
-    msg->err_info.len = (size_t)len;
+    msg->err_info_sz = (size_t)len;
   }
   return 0;
 }
@@ -303,7 +307,7 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
   }
   /* Get the suite */
   if(buffer < buff_f) {
-    edhoc_deserialize_suites(&buffer, &msg->suites_i);
+    edhoc_deserialize_suites(&buffer, &msg->suites_i.buf, &msg->suites_i.len);
   }
   /* Get Gx */
   if(buffer < buff_f) {
@@ -409,7 +413,7 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
     }
     break;
 
-  /* (CRED_KID) ID_CRED_R = map(4:KID bstr)  (KID 4 Byte)*/
+  /* (CRED_KID) ID_CRED_R = map(4:KID)  (KID 4 Byte)*/
   case 4:
     key_id_sz = edhoc_get_bytes(p, &ptr);
     key_sz = edhoc_get_cred_x_from_kid(ptr, key_id_sz, &hkey);
