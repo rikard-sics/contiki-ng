@@ -148,6 +148,13 @@ while (true) {
   var device = (id == 1) ? "Client" : (id == 2) ? "Server" : "Unknown";
   device = "[MSG : EDHOC     ] " + device;
   
+  // Check for fail condition
+  if(!msg.contains("edhoc_deserialize_err")) {
+    if (msg.contains("ERR ") || msg.contains("ERR_")) {
+      log.testFailed();
+    }
+  }
+  
   // Check for finish condition
   if (msg.contains("Client time to finish")) {
     log.testOK();

@@ -43,6 +43,11 @@
 #ifndef _EDHOC_CONFIG_H_
 #define _EDHOC_CONFIG_H_
 
+/**
+ * \brief The max size of the buffers
+ */
+#define MAX_BUFFER 256
+
 /* SHA256 types*/
 #define DECC_SH2 0       /* Macro to declare the use of SH2 Software library from Oriol Pinol */
 #define DCC2538_SH2 1    /* Macro to declare the use of SH2 Hardware of the CC2538 module */
@@ -55,6 +60,12 @@
 #else
   #define SH256 DECC_SH2
 #endif
+
+/**
+ * \brief The length of connection identifiers
+ * TODO: Support other than 1 byte CIDs
+ */
+#define CID_LEN 1
 
 /* EDHOC Role definitions */
 #define RESPONDER 0   /* The Responder of the EDHOC protocol */
@@ -85,7 +96,7 @@
 #ifdef EDHOC_CONF_METHOD
   #define METHOD EDHOC_CONF_METHOD
 #else
-  #define METHOD METH3
+  #define METHOD METH0
 #endif
 
 /**
