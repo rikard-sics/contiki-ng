@@ -53,11 +53,8 @@ edhoc_context_t *edhoc_ctx;
 
 /* static rtimer_clock_t time; */
 
-static uint8_t data_buf[MAX_BUFFER / 3];
-static uint8_t cred_x[MAX_BUFFER / 2];
+static uint8_t data_buf[MAX_BUFFER / 2];
 static uint8_t id_cred_x[MAX_BUFFER / 2];
-
-static uint8_t mac_or_sig[MAC_OR_SIG_BUF_LEN];
 
 MEMB(edhoc_context_storage, edhoc_context_t, 1);
 
@@ -401,7 +398,7 @@ calc_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uin
   if(mac_num == MAC_2) {
     
     /* RH: Build context_2 */
-    size_t context_2_buf_sz = CID_LEN + ctx->session.id_cred_x.len + cbor_bytestr_size(ctx->session.th.len) + ctx->session.cred_x.len;
+    size_t context_2_buf_sz = CID_LEN + ctx->session.id_cred_x.len + cbor_bytestr_size(ctx->session.th.len) + ctx->session_keys.cred_x_sz;
     uint8_t context_2[context_2_buf_sz];
     uint8_t *context_2_ptr = context_2;
     /* RH: Add C_R */
@@ -414,8 +411,8 @@ calc_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uin
     memcpy(context_2_ptr, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
     context_2_ptr += ctx->session.id_cred_x.len;
     cbor_put_bytes(&context_2_ptr, ctx->session.th.buf, ctx->session.th.len);
-    memcpy(context_2_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
-    context_2_ptr += ctx->session.cred_x.len;
+    memcpy(context_2_ptr, ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz);
+    context_2_ptr += ctx->session_keys.cred_x_sz;
     LOG_DBG("CONTEXT_2 (%zu bytes): ", context_2_buf_sz);
     print_buff_8_dbg(context_2, context_2_buf_sz);
     
@@ -429,14 +426,14 @@ calc_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uin
   } else if(mac_num == MAC_3) {
   
     /* RH: Build context_3 */
-    size_t context_3_buf_sz = ctx->session.id_cred_x.len + cbor_bytestr_size(ctx->session.th.len) + ctx->session.cred_x.len;
+    size_t context_3_buf_sz = ctx->session.id_cred_x.len + cbor_bytestr_size(ctx->session.th.len) + ctx->session_keys.cred_x_sz;
     uint8_t context_3[context_3_buf_sz];
     uint8_t *context_3_ptr = context_3;
     memcpy(context_3_ptr, ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
     context_3_ptr += ctx->session.id_cred_x.len;
     cbor_put_bytes(&context_3_ptr, ctx->session.th.buf, ctx->session.th.len);
-    memcpy(context_3_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
-    context_3_ptr += ctx->session.cred_x.len;
+    memcpy(context_3_ptr, ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz);
+    context_3_ptr += ctx->session_keys.cred_x_sz;
     LOG_DBG("CONTEXT_3 (%zu bytes): ", context_3_buf_sz);
     print_buff_8_dbg(context_3, context_3_buf_sz);
 
@@ -752,7 +749,7 @@ gen_plaintext(uint8_t *plaintext_buf, edhoc_context_t *ctx, uint8_t *ad, size_t 
     size += ctx->session.id_cred_x.len;
   }
 
-  size += cbor_put_bytes(&buf_ptr, &(mac_or_sig[0]), mac_or_signature_sz);
+  size += cbor_put_bytes(&buf_ptr, &(ctx->session_keys.mac_or_sig[0]), mac_or_signature_sz);
   if(ad_sz != 0) {
     size += cbor_put_bytes(&buf_ptr, ad, ad_sz);
   }
@@ -907,10 +904,9 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   convert_ecc_key_to_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_sz);
 
   /* generate id_cred_x and cred_x */
-  ctx->session.cred_x.buf = cred_x;
-  ctx->session.cred_x.len = generate_cred_x(&cose, ctx->session.cred_x.buf);
-  LOG_DBG("CRED_R (%d bytes): ", (int)ctx->session.cred_x.len);
-  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
+  ctx->session_keys.cred_x_sz = generate_cred_x(&cose, ctx->session_keys.cred_x);
+  LOG_DBG("CRED_R (%d bytes): ", (int)ctx->session_keys.cred_x_sz);
+  print_buff_8_dbg(ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz);
 
   ctx->session.id_cred_x.buf = id_cred_x;
   ctx->session.id_cred_x.len = generate_id_cred_x(&cose, ctx->session.id_cred_x.buf);
@@ -928,9 +924,9 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   gen_prk_3e2m(ctx, &cose, 1);
   
   uint8_t edhoc_mac_len = get_edhoc_mac_len(ctx->session.suite_selected);
-  gen_mac(ctx, ad, ad_sz, mac_or_sig, edhoc_mac_len);
+  gen_mac(ctx, ad, ad_sz, ctx->session_keys.mac_or_sig, edhoc_mac_len);
   LOG_DBG("MAC_2 (%d bytes): ", edhoc_mac_len);
-  print_buff_8_dbg(mac_or_sig, edhoc_mac_len);
+  print_buff_8_dbg(ctx->session_keys.mac_or_sig, edhoc_mac_len);
   mac_or_signature_sz = edhoc_mac_len;
 #endif
 
@@ -940,9 +936,9 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   memcpy(ctx->session_keys.prk_3e2m, ctx->session_keys.prk_2e, HASH_LEN);
 
   // Derive MAC with HASH_LEN size
-  gen_mac(ctx, ad, ad_sz, mac_or_sig, HASH_LEN);
+  gen_mac(ctx, ad, ad_sz, ctx->session_keys.mac_or_sig, HASH_LEN);
   LOG_DBG("MAC_2 (%d bytes): ", HASH_LEN);
-  print_buff_8_dbg(mac_or_sig, HASH_LEN);
+  print_buff_8_dbg(ctx->session_keys.mac_or_sig, HASH_LEN);
 
   /* Create signature from MAC and other data using COSE_Sign1 */
   
@@ -954,11 +950,11 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   uint8_t *aad_ptr = cose_sign1->external_aad;
   memcpy(aad_ptr, ctx->session.th.buf, ctx->session.th.len);
   aad_ptr += ctx->session.th.len;
-  memcpy(aad_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
-  cose_sign1->external_aad_sz = ctx->session.cred_x.len + ctx->session.th.len;
+  memcpy(aad_ptr, ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz);
+  cose_sign1->external_aad_sz = ctx->session_keys.cred_x_sz + ctx->session.th.len;
   
   // Payload
-  uint8_t er = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
+  uint8_t er = cose_sign1_set_payload(cose_sign1, ctx->session_keys.mac_or_sig, HASH_LEN);
   if(er < 0) {
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
     return -1;
@@ -977,7 +973,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   print_buff_8_dbg(cose_sign1->signature, P256_SIGNATURE_LEN);
 
   mac_or_signature_sz = P256_SIGNATURE_LEN;
-  memcpy(mac_or_sig, cose_sign1->signature, cose_sign1->signature_sz);
+  memcpy(ctx->session_keys.mac_or_sig, cose_sign1->signature, cose_sign1->signature_sz);
 #endif
 
   uint16_t p_sz = gen_plaintext(data_buf, ctx, ad, ad_sz, true, mac_or_signature_sz);
@@ -1011,7 +1007,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   ctx->session.th.buf = ctx->session_keys.th;
   ctx->session.th.len = HASH_LEN;
 
-  gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.plaintext_2.buf, ctx->session.plaintext_2.len);
+  gen_th3(ctx, ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz, ctx->session.plaintext_2.buf, ctx->session.plaintext_2.len);
   /* Generate COSE authentication key */
   cose_key_t cose;
   convert_ecc_key_to_cose_key(&ctx->authen_key, &cose, ctx->authen_key.identity, ctx->authen_key.identity_sz);
@@ -1027,10 +1023,9 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   print_buff_8_dbg(ctx->authen_key.public.y, ECC_KEY_LEN);
 
   /* generate cred_x */
-  ctx->session.cred_x.buf = cred_x;
-  ctx->session.cred_x.len = generate_cred_x(&cose, ctx->session.cred_x.buf);
-  LOG_DBG("CRED_I (%d bytes): ", (int)ctx->session.cred_x.len);
-  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
+  ctx->session_keys.cred_x_sz = generate_cred_x(&cose, ctx->session_keys.cred_x);
+  LOG_DBG("CRED_I (%d bytes): ", (int)ctx->session_keys.cred_x_sz);
+  print_buff_8_dbg(ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz);
 
   /* generate id_cred_x */
   ctx->session.id_cred_x.buf = id_cred_x;
@@ -1045,9 +1040,9 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   gen_prk_4e3m(ctx, &cose, 0);
 
   uint8_t edhoc_mac_len = get_edhoc_mac_len(ctx->session.suite_selected);
-  gen_mac(ctx, ad, ad_sz, mac_or_sig, edhoc_mac_len);
+  gen_mac(ctx, ad, ad_sz, ctx->session_keys.mac_or_sig, edhoc_mac_len);
   LOG_DBG("MAC 3 (%d bytes): ", edhoc_mac_len);
-  print_buff_8_dbg(mac_or_sig, edhoc_mac_len);
+  print_buff_8_dbg(ctx->session_keys.mac_or_sig, edhoc_mac_len);
   mac_or_signature_sz = edhoc_mac_len;
 #endif
 
@@ -1057,9 +1052,9 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   memcpy(ctx->session_keys.prk_4e3m, ctx->session_keys.prk_3e2m, HASH_LEN);
 
   // Derive MAC with HASH_LEN size
-  gen_mac(ctx, ad, ad_sz, mac_or_sig, HASH_LEN);
+  gen_mac(ctx, ad, ad_sz, ctx->session_keys.mac_or_sig, HASH_LEN);
   LOG_DBG("MAC_3 (%d bytes): ", HASH_LEN);
-  print_buff_8_dbg(mac_or_sig, HASH_LEN);
+  print_buff_8_dbg(ctx->session_keys.mac_or_sig, HASH_LEN);
 
   /* Create signature from MAC and other data using COSE_Sign1 */
 
@@ -1071,11 +1066,11 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   uint8_t *aad_ptr = cose_sign1->external_aad;
   memcpy(aad_ptr, ctx->session.th.buf, ctx->session.th.len);
   aad_ptr += ctx->session.th.len;
-  memcpy(aad_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
-  cose_sign1->external_aad_sz = ctx->session.cred_x.len + ctx->session.th.len;
+  memcpy(aad_ptr, ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz);
+  cose_sign1->external_aad_sz = ctx->session_keys.cred_x_sz + ctx->session.th.len;
 
   // Payload
-  uint8_t er = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
+  uint8_t er = cose_sign1_set_payload(cose_sign1, ctx->session_keys.mac_or_sig, HASH_LEN);
   if(er < 0) {
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
     return;
@@ -1094,16 +1089,16 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz)
   print_buff_8_dbg(cose_sign1->signature, P256_SIGNATURE_LEN);
 
   mac_or_signature_sz = P256_SIGNATURE_LEN;
-  memcpy(mac_or_sig, cose_sign1->signature, cose_sign1->signature_sz);
+  memcpy(ctx->session_keys.mac_or_sig, cose_sign1->signature, cose_sign1->signature_sz);
 #endif
 
   /* time = RTIMER_NOW(); */
   /* Gen ciphertext_3 */
-  uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac_or_sig, mac_or_signature_sz, ctx->msg_tx);
+  uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, ctx->session_keys.mac_or_sig, mac_or_signature_sz, ctx->msg_tx);
   ctx->tx_sz = ciphertext_sz;
   
   /* Compute TH_4 WIP */
-  gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.plaintext_3.buf, ctx->session.plaintext_3.len);
+  gen_th4(ctx, ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz, ctx->session.plaintext_3.buf, ctx->session.plaintext_3.len);
 }
 
 uint8_t
@@ -1336,9 +1331,10 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
     return er;
   }
   LOG_DBG("cid (%d)\n", (uint8_t)ctx->session.cid_rx);
+  assert(data_buf + cr_sz <= data_buf + ctx->session_keys.cred_x_sz);
   ctx->session.id_cred_x.buf = data_buf + cr_sz;
   LOG_DBG("ID_CRED_R (%d bytes): ", 1);
-  print_buff_8_dbg(ctx->session.id_cred_x.buf, 1);
+  print_buff_8_dbg(ctx->session.id_cred_x.buf, 1); //TODO: Hardcoded
   print_session_info(ctx);
 
   return 1;
@@ -1384,7 +1380,7 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, s
 
   /* generate TH_3 */
   gen_ciphertext_2(ctx, ctx->session.plaintext_2.buf, ctx->session.plaintext_2.len);
-  gen_th3(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.plaintext_2.buf, ctx->session.plaintext_2.len);
+  gen_th3(ctx, ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz, ctx->session.plaintext_2.buf, ctx->session.plaintext_2.len);
 
   /* decrypt msg3 and check the TAG for verify the outer */
   uint16_t plaintext_sz = decrypt_ciphertext_3(ctx, msg3->ciphertext_3, msg3->ciphertext_3_sz, data_buf);
@@ -1423,10 +1419,9 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
     ad_sz = 0;
   }
 
-  ctx->session.cred_x.buf = cred_x;
-  ctx->session.cred_x.len = generate_cred_x(key, ctx->session.cred_x.buf);
-  LOG_DBG("CRED_R auth (%zu): ", ctx->session.cred_x.len);
-  print_buff_8_dbg(ctx->session.cred_x.buf, ctx->session.cred_x.len);
+  ctx->session_keys.cred_x_sz = generate_cred_x(key, ctx->session_keys.cred_x);
+  LOG_DBG("CRED_R auth (%lu): ", ctx->session_keys.cred_x_sz);
+  print_buff_8_dbg(ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz);
 
   ctx->session.id_cred_x.len = reconstruct_id_cred_x(ctx->session.id_cred_x.buf, ctx->session.id_cred_x.len);
   ctx->session.id_cred_x.buf = id_cred_x;
@@ -1439,7 +1434,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
     gen_prk_4e3m(ctx, key, 1);
   }
 
-  if(check_mac(ctx, ad, ad_sz, received_mac, received_mac_sz, mac_or_sig) == 0) {
+  if(check_mac(ctx, ad, ad_sz, received_mac, received_mac_sz, ctx->session_keys.mac_or_sig) == 0) {
     LOG_ERR("error code in handler (%d)\n", ERR_AUTHENTICATION);
     return ERR_AUTHENTICATION;
   }
@@ -1464,8 +1459,8 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   uint8_t *aad_ptr = cose_sign1->external_aad;
   memcpy(aad_ptr, ctx->session.th.buf, ctx->session.th.len);
   aad_ptr += ctx->session.th.len;
-  memcpy(aad_ptr, ctx->session.cred_x.buf, ctx->session.cred_x.len);
-  cose_sign1->external_aad_sz = ctx->session.cred_x.len + ctx->session.th.len;
+  memcpy(aad_ptr, ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz);
+  cose_sign1->external_aad_sz = ctx->session_keys.cred_x_sz + ctx->session.th.len;
 
   // Set received signature
   cose_sign1_set_signature(cose_sign1, received_mac, received_mac_sz);
@@ -1477,10 +1472,10 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   } else {
     mac_num = MAC_3;
   }
-  calc_mac(ctx, ad, ad_sz, mac_num, mac_or_sig, HASH_LEN);
+  calc_mac(ctx, ad, ad_sz, mac_num, ctx->session_keys.mac_or_sig, HASH_LEN);
   LOG_DBG("MAC_%d (%d bytes): ", mac_num == 2 ? 2 : 3, HASH_LEN); // MAC_2 or 3
-  print_buff_8_dbg(mac_or_sig, HASH_LEN);
-  int8_t er2 = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
+  print_buff_8_dbg(ctx->session_keys.mac_or_sig, HASH_LEN);
+  int8_t er2 = cose_sign1_set_payload(cose_sign1, ctx->session_keys.mac_or_sig, HASH_LEN);
   if(er2 < 0) {
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
     return ERR_AUTHENTICATION;
@@ -1503,7 +1498,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   /* RH: Compute TH_4 WIP (after verifying MAC_3) */
   if(ROLE == RESPONDER) { 
     /* Calculate TH_4 */
-    gen_th4(ctx, ctx->session.cred_x.buf, ctx->session.cred_x.len, ctx->session.plaintext_3.buf, ctx->session.plaintext_3.len);
+    gen_th4(ctx, ctx->session_keys.cred_x, ctx->session_keys.cred_x_sz, ctx->session.plaintext_3.buf, ctx->session.plaintext_3.len);
   }  
 
   return ad_sz;

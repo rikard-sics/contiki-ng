@@ -87,6 +87,11 @@ typedef struct session_key_mat {
   uint8_t gx[ECC_KEY_LEN];
   uint8_t gy[ECC_KEY_LEN];
   uint8_t th[HASH_LEN];
+  
+  uint8_t cred_x[MAX_BUFFER];
+  size_t cred_x_sz;
+  
+  uint8_t mac_or_sig[MAX_BUFFER];
 } session_key_mat;
 
 
