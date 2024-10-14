@@ -44,6 +44,7 @@
 #include "edhoc-config.h"
 #include "sys/rtimer.h"
 #include "edhoc-msgs.h"
+#include <assert.h>
 
 #define MAC_2 2
 #define MAC_3 3
@@ -1315,6 +1316,8 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
 
   /* Set ciphertext */
   // TODO: Check why saving in ctx->session.plaintext
+  assert(msg2->gy_ciphertext_2 + ECC_KEY_LEN <= msg2->gy_ciphertext_2 + ciphertext2_sz);
+  assert(msg2->gy_ciphertext_2 + ECC_KEY_LEN <= msg2->gy_ciphertext_2 + msg2->gy_ciphertext_2_sz);
   ctx->session.plaintext_2.buf = msg2->gy_ciphertext_2 + ECC_KEY_LEN;
   ctx->session.plaintext_2.len = ciphertext2_sz;
 
@@ -1409,6 +1412,8 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   /* Get MAC from the decrypt msg*/
   uint16_t received_mac_sz = edhoc_get_sign(ptr, &received_mac);
   uint16_t ad_sz = cipher_len - (*ptr - data_buf);
+  assert(ad_sz <= MAX_BUFFER);
+  assert((*ptr - data_buf) >= 0);
 
   /* Get the ad from the decrypt msg*/
   if(ad_sz) {

@@ -102,10 +102,6 @@ void print_msg_3(edhoc_msg_3 *msg);
 size_t edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t suites_sz);
 
 size_t edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array);
-#if 0
-size_t edhoc_serialize_data_2(edhoc_data_2 *msg, unsigned char *buffer);
-size_t edhoc_serialize_data_3(edhoc_data_3 *msg, unsigned char *buffer);
-#endif
 size_t edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer);
 
 int8_t edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz);
