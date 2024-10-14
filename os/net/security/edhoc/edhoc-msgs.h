@@ -65,24 +65,28 @@
 
 typedef struct ead_data {
   uint8_t ead_label;
-  bstr ead_value;
+  uint8_t *ead_value;
+  size_t ead_value_sz;
 } ead_data;
 
 
 typedef struct edhoc_msg_1 {
   uint8_t method;
-  bstr suites_i; /* FIXME: array of int, or int */
-  bstr g_x;
-  bstr c_i;
+  uint8_t *suites_i;
+  size_t suites_i_sz;
+  uint8_t *g_x;
+  uint8_t *c_i;
   ead_data uad;
 } edhoc_msg_1;
 
 typedef struct edhoc_msg_2 {
-  bstr g_y_ciphertext_2;
+  uint8_t *gy_ciphertext_2;
+  size_t gy_ciphertext_2_sz;
 } edhoc_msg_2;
 
 typedef struct edhoc_msg_3 {
-  bstr ciphertext_3;
+  uint8_t *ciphertext_3;
+  size_t ciphertext_3_sz;
 } edhoc_msg_3;
 
 typedef struct edhoc_msg_error {

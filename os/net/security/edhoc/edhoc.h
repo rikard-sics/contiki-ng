@@ -87,7 +87,6 @@ typedef struct edhoc_session {
   uint8_t suite[5];
   uint8_t suite_num;
   uint8_t suite_selected;
-  bstr    Gx;
   uint8_t cid;
   uint8_t cid_rx;
   bstr    id_cred_x;
