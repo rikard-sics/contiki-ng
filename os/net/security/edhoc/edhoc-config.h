@@ -43,18 +43,16 @@
 #ifndef _EDHOC_CONFIG_H_
 #define _EDHOC_CONFIG_H_
 
-/* SHA256 types*/
-#define DECC_SH2 0       /* Macro to declare the use of SH2 Software library from Oriol Pinol */
-#define DCC2538_SH2 1    /* Macro to declare the use of SH2 Hardware of the CC2538 module */
+/**
+ * \brief The max size of the buffers
+ */
+#define MAX_BUFFER 256
 
 /**
- * \brief Set the SH2 library
+ * \brief The length of connection identifiers
+ * TODO: Support other than 1 byte CIDs
  */
-#ifdef EDHOC_CONF_SH256
-  #define SH256 EDHOC_CONF_SH256
-#else
-  #define SH256 DECC_SH2
-#endif
+#define CID_LEN 1
 
 /* EDHOC Role definitions */
 #define RESPONDER 0   /* The Responder of the EDHOC protocol */
@@ -139,6 +137,19 @@
 #define KEY_TYPE EC2
 #define ECC_KEY_LEN 32
 #define HASH_LEN 32
+
+/* SHA256 types*/
+#define DECC_SH2 0       /* Macro to declare the use of SH2 Software library from Oriol Pinol */
+#define DCC2538_SH2 1    /* Macro to declare the use of SH2 Hardware of the CC2538 module */
+
+/**
+ * \brief Set the SH2 library
+ */
+#ifdef EDHOC_CONF_SH256
+  #define SH256 EDHOC_CONF_SH256
+#else
+  #define SH256 DECC_SH2
+#endif
 
 /**
  * \brief Length of signatures
