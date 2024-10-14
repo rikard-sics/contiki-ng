@@ -65,29 +65,24 @@
 
 typedef struct ead_data {
   uint8_t ead_label;
-  uint8_t *ead_value;
-  size_t ead_value_sz;
+  bstr ead_value;
 } ead_data;
 
 
 typedef struct edhoc_msg_1 {
   uint8_t method;
-  uint8_t *suites_i;
-  size_t suites_i_sz;
-  uint8_t *g_x;
-  uint8_t *c_i;
-  size_t c_i_sz;
+  bstr suites_i; /* FIXME: array of int, or int */
+  bstr g_x;
+  bstr c_i;
   ead_data uad;
 } edhoc_msg_1;
 
 typedef struct edhoc_msg_2 {
-  uint8_t *gy_ciphertext_2;
-  size_t gy_ciphertext_2_sz;
+  bstr g_y_ciphertext_2;
 } edhoc_msg_2;
 
 typedef struct edhoc_msg_3 {
-  uint8_t *ciphertext_3;
-  size_t ciphertext_3_sz;
+  bstr ciphertext_3;
 } edhoc_msg_3;
 
 typedef struct edhoc_msg_error {
@@ -103,6 +98,10 @@ void print_msg_3(edhoc_msg_3 *msg);
 size_t edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t suites_sz);
 
 size_t edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array);
+#if 0
+size_t edhoc_serialize_data_2(edhoc_data_2 *msg, unsigned char *buffer);
+size_t edhoc_serialize_data_3(edhoc_data_3 *msg, unsigned char *buffer);
+#endif
 size_t edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer);
 
 int8_t edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz);
