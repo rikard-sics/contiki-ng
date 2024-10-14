@@ -309,11 +309,10 @@ coap_init_message(coap_message_t *coap_pkt, coap_message_type_t type,
   coap_pkt->mid = mid;
 }
 /*---------------------------------------------------------------------------*/
-#ifdef WITH_OSCORE
-//FIXME: RH: Check when this should be called
 size_t
-oscore_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
+coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
+#ifdef WITH_OSCORE
   if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)) {
     size_t message_len = oscore_prepare_message(coap_pkt, buffer);
     LOG_DBG("Sending OSCORE message, len %zu, full [", message_len);
@@ -321,18 +320,13 @@ oscore_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
     LOG_DBG_("]\n");
     return message_len;
   } else {
+    //TODO: Why use oscore_serializer for a CoAP message?
     size_t message_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
     LOG_DBG("Sending COAP message (size=%zu).\n", message_len);
     return message_len;
   }
-//#else /* WITH_OSCORE */ RH: Restore this
-//  return coap_serialize_message_coap(coap_pkt, buffer);
- // /* WITH_OSCORE */
-}
 #endif
-size_t
-coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
-{
+
   uint8_t *option;
   unsigned int current_number = 0;
 
