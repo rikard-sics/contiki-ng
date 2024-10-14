@@ -195,14 +195,14 @@ edhoc_get_byte_identifier(uint8_t **in)
 }
 
 size_t
-edhoc_serialize_suites(unsigned char **buffer, const bstr *suites)
+edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, uint8_t suites_sz)
 {
-  if(suites->len == 1) {
-    return cbor_put_unsigned(buffer, suites->buf[0]);
+  if(suites_sz == 1) {
+    return cbor_put_unsigned(buffer, suites[0]);
   }
-  size_t size = cbor_put_array(buffer,suites->len);
-  for(uint8_t i = 0; i < suites->len; ++i) {
-    size += cbor_put_unsigned(buffer, suites->buf[i]);
+  size_t size = cbor_put_array(buffer, suites_sz);
+  for(uint8_t i = 0; i < suites_sz; ++i) {
+    size += cbor_put_unsigned(buffer, suites[i]);
   }
   return size;
 }
@@ -228,7 +228,7 @@ size_t
 edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array)
 {
   size_t size = cbor_put_unsigned(&buffer, msg->method);
-  size += edhoc_serialize_suites(&buffer, &msg->suites_i);
+  size += edhoc_serialize_suites(&buffer, msg->suites_i.buf, msg->suites_i.len);
   size += cbor_put_bytes(&buffer, msg->g_x.buf, msg->g_x.len);
   size += edhoc_put_byte_identifier(&buffer, msg->c_i.buf, msg->c_i.len);
   if(msg->uad.ead_value.len > 0) {
@@ -250,7 +250,7 @@ edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer)
       break;
     case 2:
       // FIXME: strict aliasing violation
-      size += edhoc_serialize_suites(&buffer, (bstr *)&msg->err_info);
+      size += edhoc_serialize_suites(&buffer, (uint8_t *)msg->err_info.buf, msg->err_info.len);
       break;
     case 3:
       size += cbor_put_num(&buffer, 0xf5);

@@ -94,22 +94,6 @@
 #endif
 
 /**
- * \brief Buffer struct
- */
-typedef struct bstr_cose {
-  uint8_t *buf;
-  size_t len;
-} bstr_cose;
-
-/**
- * \brief String Buffer struct
- */
-typedef struct sstr_cose {
-  char *buf;
-  size_t len;
-} sstr_cose;
-
-/**
  * \brief COSE_Encrypt0 struct
  */
 typedef struct cose_encrypt0 {

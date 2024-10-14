@@ -53,9 +53,9 @@ print_oscore_ctx(oscore_ctx_t *osc)
   print_buff_8_print(osc->master_salt, OSCORE_SALT_SZ);
 }
 int8_t
-edhoc_exporter(uint8_t *result, uint8_t *in_key, uint8_t exporter_label, bstr context, uint16_t length)
+edhoc_exporter(uint8_t *result, uint8_t *in_key, uint8_t exporter_label, uint8_t *context, uint8_t context_sz, uint16_t length)
 {
-  int8_t er = edhoc_kdf(result, in_key, exporter_label, context, length);
+  int8_t er = edhoc_kdf(result, in_key, exporter_label, context, context_sz, length);
   return er;
 }
 // RH: Actually store PRK_out and PRK_exporter. Then use them in edhoc_exporter above.
@@ -65,7 +65,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   /* RH: WIP Derive prk_out */
   int prk_out_sz = HASH_LEN;
   uint8_t prk_out[prk_out_sz];
-  int8_t er = edhoc_kdf(prk_out, ctx->session_keys.prk_4e3m, PRK_OUT_LABEL, ctx->session.th, prk_out_sz);
+  int8_t er = edhoc_kdf(prk_out, ctx->session_keys.prk_4e3m, PRK_OUT_LABEL, ctx->session.th.buf, ctx->session.th.len, prk_out_sz);
   if(er < 0) {
     return er;
   }
@@ -75,10 +75,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   /* RH: WIP Derive prk_exporter */
   int prk_exporter_sz = HASH_LEN;
   uint8_t prk_exporter[prk_exporter_sz];
-  bstr empty;
-  empty.len = 0;
-  empty.buf = NULL;
-  er = edhoc_kdf(prk_exporter, prk_out, PRK_EXPORTER_LABEL, empty, prk_exporter_sz);
+  er = edhoc_kdf(prk_exporter, prk_out, PRK_EXPORTER_LABEL, NULL, 0, prk_exporter_sz);
   if(er < 0) {
     return er;
   }
@@ -96,12 +93,12 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   }
   
   /* RH: WIP Derive OSCORE Master Secret */
-  er = edhoc_exporter(osc->master_secret, prk_exporter, OSCORE_MASTER_SECRET_LABEL, empty, OSCORE_KEY_SZ);
+  er = edhoc_exporter(osc->master_secret, prk_exporter, OSCORE_MASTER_SECRET_LABEL, NULL, 0, OSCORE_KEY_SZ);
   if(er < 0) {
     return er;
   }
   
-  er = edhoc_exporter(osc->master_salt, prk_exporter, OSCORE_MASTER_SALT_LABEL, empty, OSCORE_SALT_SZ);
+  er = edhoc_exporter(osc->master_salt, prk_exporter, OSCORE_MASTER_SALT_LABEL, NULL, 0, OSCORE_SALT_SZ);
   return er;
 }
 

@@ -94,7 +94,7 @@ void print_msg_1(edhoc_msg_1 *msg);
 void print_msg_2(edhoc_msg_2 *msg);
 void print_msg_3(edhoc_msg_3 *msg);
 
-size_t edhoc_serialize_suites(unsigned char **buffer, const bstr *suites);
+size_t edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, uint8_t suites_sz);
 
 size_t edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array);
 #if 0

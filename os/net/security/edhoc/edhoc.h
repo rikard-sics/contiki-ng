@@ -346,7 +346,7 @@ int edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer
  * Example usage:
  *  - OKM = EDHOC_Expand(PRK, info, length)
  */
-int16_t edhoc_kdf(uint8_t *result, uint8_t *key, uint8_t info_label, bstr context, uint16_t length);
+int16_t edhoc_kdf(uint8_t *result, uint8_t *key, uint8_t info_label, uint8_t *context, uint8_t context_sz, uint16_t length);
 
 /**
  * \brief HMAC-based Key Expansion Function for EDHOC context using HKDF (RFC 5869)
