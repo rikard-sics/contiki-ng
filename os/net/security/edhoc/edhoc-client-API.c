@@ -334,7 +334,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
     }
 
     if(er > 0) {
-      int cipher_sz = msg2.g_y_ciphertext_2.len - ECC_KEY_LEN;
+      int cipher_sz = msg2.gy_ciphertext_2_sz - ECC_KEY_LEN;
       er = edhoc_authenticate_msg(edhoc_ctx, &pt, cipher_sz, (uint8_t *)edhoc_state.ad.ad_2, &key);
     }
     time = RTIMER_NOW() - time;

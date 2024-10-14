@@ -235,7 +235,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         er = edhoc_get_auth_key(edhoc_ctx, &pt, &key);
       }
       if(er > 0) {
-        er = edhoc_authenticate_msg(edhoc_ctx, &pt, msg3.ciphertext_3.len, (uint8_t *)new_ecc.ad.ad_3, &key);
+        er = edhoc_authenticate_msg(edhoc_ctx, &pt, msg3.ciphertext_3_sz, (uint8_t *)new_ecc.ad.ad_3, &key);
         time = RTIMER_NOW() - time;
         LOG_INFO("Server time to authenticate: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
       }

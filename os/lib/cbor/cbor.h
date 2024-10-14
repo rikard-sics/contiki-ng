@@ -67,7 +67,7 @@ int cbor_put_negative(uint8_t **buffer, int64_t value);
  * Get the size of the resulting CBOR byte string which would be produced by wrapping
  * a byte array of len as a CBOR byte string.
  */
-uint8_t cbor_bstr_size(uint32_t len);
+uint8_t cbor_bstring_size(uint32_t len);
 
 uint8_t cbor_int_size(int32_t num);
 

@@ -59,18 +59,8 @@
 #include "edhoc-msgs.h"
 
 /**
- * \brief The max size of the buffers
- */
-#define MAX_BUFFER 256
-
-/**
- * \brief The length of connection identifiers
- * TODO: Support other than 1 byte CIDs
- */
-#define CID_LEN 1
-
-/**
  * \brief Set EDHOC connection identifier
+ * //TODO: Move to edhoc-config.h?
  */
 #ifndef EDHOC_CID
 #define EDHOC_CID 0x1
@@ -98,7 +88,6 @@ typedef struct edhoc_session {
   uint8_t suite[5];
   uint8_t suite_num;
   uint8_t suite_selected;
-  bstr    Gx;
   uint8_t cid;
   uint8_t cid_rx;
   bstr    id_cred_x;
