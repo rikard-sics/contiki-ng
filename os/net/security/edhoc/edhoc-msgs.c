@@ -39,6 +39,7 @@
 #include "contiki-lib.h"
 #include "edhoc-msgs.h"
 #include "lib/random.h"
+#include <assert.h>
 
 void
 print_msg_1(edhoc_msg_1 *msg)
@@ -465,6 +466,8 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t **id_cred_x, cose_key_t *key)
     return 0;
   }
   uint8_t id_cred_x_sz = *p - *id_cred_x;
+  assert(*p - *id_cred_x >= 0);
+  assert(id_cred_x_sz <= MAX_BUFFER);
   return id_cred_x_sz;
 }
 uint8_t

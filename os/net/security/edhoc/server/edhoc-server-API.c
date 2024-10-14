@@ -39,6 +39,7 @@
 #include "edhoc-server-API.h"
 #include "sys/pt.h"
 #include "sys/rtimer.h"
+#include <assert.h>
 
 /* EDHOC Client protocol states */
 #define NON_MSG 0
@@ -116,7 +117,8 @@ edhoc_server_restart()
   serv->rx_msg1 = false;
   serv->rx_msg3 = false;
   serv->state = NON_MSG;
-  memset(&server, 0, sizeof(edhoc_server_t));
+  assert(&server != NULL);
+  //memset(&server, 0, sizeof(edhoc_server_t));
   edhoc_init(edhoc_ctx);
   return edhoc_get_authentication_key(edhoc_ctx);
 }
@@ -125,7 +127,8 @@ edhoc_server_start()
 {
   LOG_INFO("SERVER: EDHOC new\n");
   edhoc_ctx = edhoc_new();
-  memset(&server, 0, sizeof(edhoc_server_t));
+  assert(&server != NULL);
+  //memset(&server, 0, sizeof(edhoc_server_t));
   serv = &server;
   return edhoc_server_restart();
 }
@@ -294,9 +297,11 @@ PROCESS_THREAD(edhoc_server, ev, data){
     response->payload = (uint8_t *)edhoc_ctx->msg_tx;
     response->payload_len = edhoc_ctx->tx_sz;
     coap_set_status_code(response, CHANGED_2_04);
-    memset(&(response->options), 0, 8);
+    assert(&(response->options) != NULL);
+    memset(&(response->options), 0, sizeof(response->options));
     if(response->payload_len == 0) {
-      memset(&(request->options), 0, 8);
+      assert(&(request->options) != NULL);
+      memset(&(request->options), 0, sizeof(request->options));
     } else {
       coap_set_header_block2(response, 0, edhoc_ctx->tx_sz > COAP_MAX_CHUNK_SIZE ? 1 : 0, COAP_MAX_CHUNK_SIZE);
     }

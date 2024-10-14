@@ -43,6 +43,7 @@
 #include "hmac-sha.h"
 #include "contiki-lib.h"
 #include "lib/memb.h"
+#include <assert.h>
 
 MEMB(hmac_context_storage, hmac_context_t, HASH_MAX);
 
@@ -201,6 +202,7 @@ sha256(uint8_t *input, uint8_t input_sz, uint8_t *output)
 int
 hmac_init(hmac_context_t *ctx, const unsigned char *key, size_t k_sz)
 {
+  assert(ctx != NULL);
   memset(ctx, 0, sizeof(hmac_context_t));
   int er = sha_reset(&ctx->sha);
   if(er != 0) {
