@@ -108,7 +108,7 @@ compute_th(uint8_t *in, uint8_t in_sz, uint8_t *hash, uint8_t hash_sz)
   return er;
 }
 int8_t
-hkdf_extract(uint8_t *salt, uint8_t salt_sz, uint8_t *ikm, uint8_t ikm_sz, uint8_t *hmac)
+hkdf_extract(const uint8_t *salt, uint8_t salt_sz, const uint8_t *ikm, uint8_t ikm_sz, uint8_t *hmac)
 {
   hmac_context_t *ctx = hmac_sha256_init(salt, salt_sz);
   if(!ctx) {
@@ -120,7 +120,7 @@ hkdf_extract(uint8_t *salt, uint8_t salt_sz, uint8_t *ikm, uint8_t ikm_sz, uint8
   return 1;
 }
 int8_t
-hkdf_expand(uint8_t *prk, uint16_t prk_sz, uint8_t *info, uint16_t info_sz, uint8_t *okm, uint16_t okm_sz)
+hkdf_expand(const uint8_t *prk, uint16_t prk_sz, const uint8_t *info, uint16_t info_sz, uint8_t *okm, uint16_t okm_sz)
 {
   if(info_sz > HKDF_INFO_MAXLEN) {
     LOG_ERR("error code (%d)\n ", ERR_INFO_SIZE);
@@ -182,7 +182,7 @@ convert_ecc_key_to_cose_key(ecc_key *key, cose_key_t *cose, char *identity, uint
   memcpy(cose->private, key->private_key, ECC_KEY_LEN);
 }
 void
-initialize_ecc_key_from_cose(ecc_key *key, cose_key_t *auth_key, ecc_curve_t curve)
+initialize_ecc_key_from_cose(ecc_key *key, const cose_key_t *auth_key, ecc_curve_t curve)
 {
     if (auth_key->kid_sz == 0) {
         key->kid_sz = 0;

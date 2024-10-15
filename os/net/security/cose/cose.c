@@ -102,7 +102,7 @@ cose_sign1_finalize(cose_sign1 *sign)
 }
 
 uint8_t
-cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, uint8_t *key, uint8_t key_sz, uint8_t *nonce, uint16_t nonce_sz)
+cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, const uint8_t *key, uint8_t key_sz, const uint8_t *nonce, uint16_t nonce_sz)
 {
   if(key_sz != get_cose_key_len(enc->alg)) {
     return 0;
@@ -117,7 +117,7 @@ cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, uint8_t *key, uint8_t key
   return 1;
 }
 uint8_t
-cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, uint8_t *key, uint8_t key_sz)
+cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, const uint8_t *key, uint8_t key_sz)
 {
   if(key_sz > ECC_KEY_LEN * 2) {
     return 0;
@@ -132,19 +132,19 @@ cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, uint8_t *key, uint8_t key_sz)
   return 1;
 }
 uint8_t
-cose_encrypt0_set_content(cose_encrypt0 *enc, uint8_t *plain, uint16_t plain_sz, uint8_t *add, uint8_t add_sz)
+cose_encrypt0_set_content(cose_encrypt0 *enc, const uint8_t *plain, uint16_t plain_sz, const uint8_t *aad, uint8_t aad_sz)
 {
   if(plain_sz > COSE_MAX_BUFFER) {
     return 0;
   }
   memcpy(enc->plaintext, plain, plain_sz);
-  memcpy(enc->external_aad, add, add_sz);
+  memcpy(enc->external_aad, aad, aad_sz);
   enc->plaintext_sz = plain_sz;
-  enc->external_aad_sz = add_sz;
+  enc->external_aad_sz = aad_sz;
   return 1;
 }
 uint8_t
-cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, uint8_t *ciphertext, uint16_t ciphertext_sz)
+cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, const uint8_t *ciphertext, uint16_t ciphertext_sz)
 {
   if(ciphertext_sz > MAX_CIPHER) {
     return 0;
@@ -154,7 +154,7 @@ cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, uint8_t *ciphertext, uint16_t c
   return 1;
 }
 uint8_t
-cose_sign1_set_payload(cose_sign1 *sign1, uint8_t *payload, uint16_t payload_sz)
+cose_sign1_set_payload(cose_sign1 *sign1, const uint8_t *payload, uint16_t payload_sz)
 {
   if(payload_sz > COSE_MAX_BUFFER) {
     return 0;
@@ -164,7 +164,7 @@ cose_sign1_set_payload(cose_sign1 *sign1, uint8_t *payload, uint16_t payload_sz)
   return 1;
 }
 uint8_t
-cose_sign1_set_signature(cose_sign1 *sign1, uint8_t *signature, uint16_t signature_sz)
+cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature, uint16_t signature_sz)
 {
   if(signature_sz > COSE_MAX_BUFFER) {
     return 0;
@@ -174,7 +174,7 @@ cose_sign1_set_signature(cose_sign1 *sign1, uint8_t *signature, uint16_t signatu
   return 1;
 }
 void
-cose_encrypt0_set_header(cose_encrypt0 *enc, uint8_t *prot, uint16_t prot_sz, uint8_t *unp, uint16_t unp_sz)
+cose_encrypt0_set_header(cose_encrypt0 *enc, const uint8_t *prot, uint16_t prot_sz, const uint8_t *unp, uint16_t unp_sz)
 {
   memcpy(enc->protected_header, prot, prot_sz);
   memcpy(enc->unprotected_header, unp, unp_sz);
@@ -182,7 +182,7 @@ cose_encrypt0_set_header(cose_encrypt0 *enc, uint8_t *prot, uint16_t prot_sz, ui
   enc->unprotected_header_sz = unp_sz;
 }
 void
-cose_sign1_set_header(cose_sign1 *sign1, uint8_t *prot, uint16_t prot_sz, uint8_t *unp, uint16_t unp_sz)
+cose_sign1_set_header(cose_sign1 *sign1, const uint8_t *prot, uint16_t prot_sz, const uint8_t *unp, uint16_t unp_sz)
 {
   memcpy(sign1->protected_header, prot, prot_sz);
   //memcpy(sign1->unprotected_header, unp, unp_sz);
@@ -191,7 +191,7 @@ cose_sign1_set_header(cose_sign1 *sign1, uint8_t *prot, uint16_t prot_sz, uint8_
 }
 static char enc_header[] = ENC0;
 static uint8_t
-encode_enc_structure(cose_encrypt0 *enc, uint8_t *cbor)
+encode_enc_structure(const cose_encrypt0 *enc, uint8_t *cbor)
 {
   uint8_t size = 0;
 
@@ -204,7 +204,7 @@ encode_enc_structure(cose_encrypt0 *enc, uint8_t *cbor)
 }
 static char sig_header[] = SIGN1;
 static uint8_t
-encode_sig_structure(cose_sign1 *sign1, uint8_t *cbor)
+encode_sig_structure(const cose_sign1 *sign1, uint8_t *cbor)
 {
   uint8_t size = 0;
 
