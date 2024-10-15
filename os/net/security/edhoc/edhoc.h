@@ -90,8 +90,21 @@ typedef struct edhoc_session {
   uint8_t cid;
   uint8_t cid_rx;
   bstr    id_cred_x;
-  bstr    plaintext_2;
-  bstr    plaintext_3;
+
+  uint8_t plaintext_2[MAX_BUFFER];
+  size_t  plaintext_2_sz;
+  uint8_t plaintext_3[MAX_BUFFER];
+  size_t  plaintext_3_sz;
+  uint8_t cred_x[MAX_BUFFER];
+  size_t  cred_x_sz;
+  
+  uint8_t prk_2e[HASH_LEN];
+  uint8_t prk_3e2m[HASH_LEN];
+  uint8_t prk_4e3m[HASH_LEN];
+  uint8_t gx[ECC_KEY_LEN];
+  uint8_t gy[ECC_KEY_LEN];
+  uint8_t th[HASH_LEN];
+  
 } edhoc_session;
 
 /**
@@ -100,7 +113,6 @@ typedef struct edhoc_session {
 typedef struct edhoc_context_t {
   ecc_key          authen_key;
   ecc_key          ephemeral_key;
-  session_key_mat  session_keys;
   edhoc_session    session;
   ecc_curve_t      curve;
   uint8_t          msg_rx[MAX_PAYLOAD_LEN];

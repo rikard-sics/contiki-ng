@@ -144,6 +144,7 @@ uint8_t cose_verify(cose_sign1 *sign1);
 uint8_t get_cose_key_len(uint8_t alg_id);
 uint8_t get_cose_iv_len(uint8_t alg_id);
 uint8_t get_cose_tag_len(uint8_t alg_id);
+uint8_t cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_aad, uint16_t external_aad_sz);
 
 /**
  * \brief Create a new cose_encrypt0 context
