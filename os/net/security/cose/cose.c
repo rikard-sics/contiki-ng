@@ -173,6 +173,16 @@ cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature, uint16_t s
   sign1->signature_sz = signature_sz;
   return 1;
 }
+uint8_t
+cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_aad, uint16_t external_aad_sz)
+{
+  if(external_aad_sz > COSE_MAX_BUFFER) {
+    return 0;
+  }
+  memcpy(sign1->external_aad, external_aad, external_aad_sz);
+  sign1->external_aad_sz = external_aad_sz;
+  return 1;
+}
 void
 cose_encrypt0_set_header(cose_encrypt0 *enc, const uint8_t *prot, uint16_t prot_sz, const uint8_t *unp, uint16_t unp_sz)
 {

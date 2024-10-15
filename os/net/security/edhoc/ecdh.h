@@ -78,23 +78,6 @@
 #include "ecc-cc2538.h"
 #endif
 
-/* Underlying buffers, used for edhoc_session among other */
-typedef struct session_key_mat {
-  uint8_t ks_2e[MAX_PAYLOAD_LEN];
-  uint8_t prk_2e[HASH_LEN];
-  uint8_t prk_3e2m[HASH_LEN];
-  uint8_t prk_4e3m[HASH_LEN];
-  uint8_t gx[ECC_KEY_LEN];
-  uint8_t gy[ECC_KEY_LEN];
-  uint8_t th[HASH_LEN];
-  
-  uint8_t cred_x[MAX_BUFFER];
-  size_t cred_x_sz;
-  
-  uint8_t mac_or_sig[MAC_OR_SIG_BUF_LEN];
-} session_key_mat;
-
-
 uint8_t generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve);
 uint8_t compute_th(uint8_t *in, uint8_t in_sz, uint8_t *hash, uint8_t hash_sz);
 int8_t hkdf_extract(const uint8_t *salt, uint8_t salt_sz, const uint8_t *ikm, uint8_t ikm_sz, uint8_t *hmac);

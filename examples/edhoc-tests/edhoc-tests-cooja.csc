@@ -160,7 +160,7 @@ while (true) {
     log.testOK();
   }
   
-  if(msg.contains("Using test vector: false") || msg.contains("connection method: 0")) {
+  if(msg.contains("Using test vector: false") || msg.contains("Connection method: 0")) {
     checkingEnabled = false;
   }
   if(checkingEnabled == false) {
