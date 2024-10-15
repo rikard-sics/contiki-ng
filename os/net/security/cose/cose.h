@@ -135,11 +135,11 @@ typedef struct cose_sign1 {
 void sign1_storage_init(void);
 cose_sign1* cose_sign1_new();
 void cose_sign1_finalize(cose_sign1 *sign);
-void cose_sign1_set_header(cose_sign1 *sign1, uint8_t *prot, uint16_t prot_sz, uint8_t *unp, uint16_t unp_sz);
-uint8_t cose_sign1_set_payload(cose_sign1 *sign1, uint8_t *payload, uint16_t payload_sz);
+void cose_sign1_set_header(cose_sign1 *sign1, const uint8_t *prot, uint16_t prot_sz, const uint8_t *unp, uint16_t unp_sz);
+uint8_t cose_sign1_set_payload(cose_sign1 *sign1, const uint8_t *payload, uint16_t payload_sz);
 uint8_t cose_sign(cose_sign1 *sign1);
-uint8_t cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, uint8_t *key, uint8_t key_sz);
-uint8_t cose_sign1_set_signature(cose_sign1 *sign1, uint8_t *signature, uint16_t signature_sz);
+uint8_t cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, const uint8_t *key, uint8_t key_sz);
+uint8_t cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature, uint16_t signature_sz);
 uint8_t cose_verify(cose_sign1 *sign1);
 uint8_t get_cose_key_len(uint8_t alg_id);
 uint8_t get_cose_iv_len(uint8_t alg_id);
@@ -185,7 +185,7 @@ void cose_encrypt0_finalize(cose_encrypt0 *enc);
  *  - the nonce: It is the Initialization Vector (IV) value
  *
  */
-uint8_t cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, uint8_t *key, uint8_t key_sz, uint8_t *nonce, uint16_t nonce_sz);
+uint8_t cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, const uint8_t *key, uint8_t key_sz, const uint8_t *nonce, uint16_t nonce_sz);
 
 /**
  * \brief Set the plaintext and AAD (additional authentication data) of the message
@@ -200,7 +200,7 @@ uint8_t cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, uint8_t *key, uin
  *  - The plaintext or ciphertext contained by the message to encrypt
  *  - Additional Authentication Data (AAD) contained by the message
  */
-uint8_t cose_encrypt0_set_content(cose_encrypt0 *enc, uint8_t *plain, uint16_t plain_sz, uint8_t *add, uint8_t add_sz);
+uint8_t cose_encrypt0_set_content(cose_encrypt0 *enc, const uint8_t *plain, uint16_t plain_sz, const uint8_t *aad, uint8_t aad_sz);
 
 /**
  * \brief Set the ciphertext of the encrypted message
@@ -212,7 +212,7 @@ uint8_t cose_encrypt0_set_content(cose_encrypt0 *enc, uint8_t *plain, uint16_t p
  *  Used before decryption operation to select:
  *  - The plaintext or ciphertext contained by the message to decrypt
  */
-uint8_t cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, uint8_t *ciphertext, uint16_t ciphertext_sz);
+uint8_t cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, const uint8_t *ciphertext, uint16_t ciphertext_sz);
 
 /**
  * \brief Set the protected/unprotected bucket header information of the message
@@ -226,7 +226,7 @@ uint8_t cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, uint8_t *ciphertext, ui
  *  - The protected bucket contains parameters about the current layer that are to be cryptographically protected
  *  - The unprotected bucket contains parameters about the current layer that are not cryptographically protected
  */
-void cose_encrypt0_set_header(cose_encrypt0 *enc, uint8_t *prot, uint16_t prot_sz, uint8_t *unp, uint16_t unp_sz);
+void cose_encrypt0_set_header(cose_encrypt0 *enc, const uint8_t *prot, uint16_t prot_sz, const uint8_t *unp, uint16_t unp_sz);
 
 /**
  * \brief  encrypt the COSE_encrypt0 struct using AEAD algorithm

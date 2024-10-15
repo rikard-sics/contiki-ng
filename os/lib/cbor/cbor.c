@@ -99,7 +99,7 @@ cbor_put_array(uint8_t **buffer, uint8_t elements)
 
 
 int
-cbor_put_bytes(uint8_t **buffer, uint8_t *bytes, uint8_t bytes_len)
+cbor_put_bytes(uint8_t **buffer, const uint8_t *bytes, uint8_t bytes_len)
 {
   uint8_t ret = 0;
   if(bytes_len > 23) {

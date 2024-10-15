@@ -90,7 +90,6 @@ typedef struct edhoc_session {
   uint8_t cid;
   uint8_t cid_rx;
   bstr    id_cred_x;
-  bstr    th;
   bstr    plaintext_2;
   bstr    plaintext_3;
 } edhoc_session;
@@ -190,7 +189,7 @@ void edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite
  * - ctx->MSG2 = (data_2, CIPHERTEXT_2:bstr)
  * - where: data_2 = (?C_I:bstr_identifier, G_Y:bstr)
  */
-uint8_t edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz);
+uint8_t edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz);
 
 /**
  * \brief Generate the EDHOC Message 3 and set it in the EDHOC ctx
@@ -209,7 +208,7 @@ uint8_t edhoc_gen_msg_2(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz);
  * - ctx->MSG3 = (data_3, CIPHERTEXT_3:bstr)
  * - where: data_3 = (?C_R:bstr_identifier)
  */
-void edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz);
+void edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz);
 
 /**
  * \brief Generate the EDHOC ERROR Message
@@ -224,7 +223,7 @@ void edhoc_gen_msg_3(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz);
  * diagnostic message.
  * - msg_er = (?C_x:bstr_identifier, ERR_MSG:tstr)
  */
-uint8_t edhoc_gen_msg_error(uint8_t *msg_er, edhoc_context_t *ctx, int8_t err);
+uint8_t edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t err);
 
 /**
  * \brief Get the authentication key from the rx msg
@@ -276,7 +275,7 @@ int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **pt, uint8_t cipher_le
  * - If any verification step fails to return an EDHOC ERROR code and, if all the steps success
  * - the length of the Application Data receive on the Message 1 is returned.
  */
-int edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz, uint8_t *ad);
+int edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload, size_t payload_sz, uint8_t *ad);
 
 /**
  * \brief Handle the EDHOC Message 2 received
@@ -333,7 +332,7 @@ int edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer
  * Example usage:
  *  - OKM = EDHOC_Expand(PRK, info, length)
  */
-int16_t edhoc_kdf(uint8_t *result, uint8_t *key, uint8_t info_label, uint8_t *context, uint8_t context_sz, uint16_t length);
+int16_t edhoc_kdf(const uint8_t *prk, uint8_t info_label, const uint8_t *context, uint8_t context_sz, uint16_t length, uint8_t *result);
 
 /**
  * \brief HMAC-based Key Expansion Function for EDHOC context using HKDF (RFC 5869)
@@ -356,7 +355,7 @@ int16_t edhoc_kdf(uint8_t *result, uint8_t *key, uint8_t info_label, uint8_t *co
  * Example usage:
  *  - OKM = HKDF-Expand(PRK, info, length)
  */
-int16_t edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info_sz, uint16_t length);
+int16_t edhoc_expand(const uint8_t *prk, const uint8_t *info, uint16_t info_sz, uint16_t length, uint8_t *result);
 
 /**
  * \brief Get the SH-Static authentication pair key from the storage and set in the EDHOC context
@@ -369,7 +368,7 @@ int16_t edhoc_expand(uint8_t *result, uint8_t *key, uint8_t *info, uint16_t info
 uint8_t edhoc_get_authentication_key(edhoc_context_t *ctx);
 
 int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, uint8_t *ad, cose_key_t *key);
-void set_rx_gx(edhoc_context_t *ctx, uint8_t *gx);
+void set_rx_gx(edhoc_context_t *ctx, const uint8_t *gx);
 
 // static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length);
 // static int16_t get_rx_suite_I(const edhoc_context_t *ctx, bstr suite_rx);
