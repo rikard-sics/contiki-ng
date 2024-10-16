@@ -89,7 +89,6 @@ typedef struct edhoc_session {
   uint8_t suite_selected;
   uint8_t cid;
   uint8_t cid_rx;
-  bstr    id_cred_x;
 
   uint8_t plaintext_2[MAX_BUFFER];
   size_t  plaintext_2_sz;
@@ -97,6 +96,8 @@ typedef struct edhoc_session {
   size_t  plaintext_3_sz;
   uint8_t cred_x[MAX_BUFFER];
   size_t  cred_x_sz;
+  uint8_t id_cred_x[MAX_BUFFER];
+  size_t  id_cred_x_sz;
   
   uint8_t prk_2e[HASH_LEN];
   uint8_t prk_3e2m[HASH_LEN];
@@ -176,7 +177,7 @@ void edhoc_finalize(edhoc_context_t *ctx);
  * ctx struct.
  * It is used by Initiator EDHOC role.
  *
- * - ctx->MSG1 = (METHOD_CORR:unsigned, SUITES_I:unsigned, G_X:bstr, C_I:bstr_identifier)
+ * - ctx->MSG1 = (METHOD_CORR:unsigned, SUITES_I:unsigned, G_X, C_I_identifier)
  *
  */
 void edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_array);
@@ -198,8 +199,8 @@ void edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite
  * Compose the EDHOC Message 2 as described in the (RFC9528) reference
  * for EHDOC Authentication with Asymmetric Keys and encoded as a CBOR sequence in the MSG2 element of the
  * ctx struct.
- * - ctx->MSG2 = (data_2, CIPHERTEXT_2:bstr)
- * - where: data_2 = (?C_I:bstr_identifier, G_Y:bstr)
+ * - ctx->MSG2 = (data_2, CIPHERTEXT_2)
+ * - where: data_2 = (?C_I_identifier, G_Y)
  */
 uint8_t edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz);
 
@@ -217,8 +218,8 @@ uint8_t edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz);
  * for EHDOC Authentication with Asymmetric Keys and encoded as a CBOR sequence in the MSG3 element of the
  * ctx struct.
  *
- * - ctx->MSG3 = (data_3, CIPHERTEXT_3:bstr)
- * - where: data_3 = (?C_R:bstr_identifier)
+ * - ctx->MSG3 = (data_3, CIPHERTEXT_3)
+ * - where: data_3 = (?C_R_identifier)
  */
 void edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz);
 
@@ -233,7 +234,7 @@ void edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz);
  * EDHOC message. If any verification step fails on the EDHOC protocol the Initiator
  * or Responder must send an EDHOC error message back that contains a brief human-readable
  * diagnostic message.
- * - msg_er = (?C_x:bstr_identifier, ERR_MSG:tstr)
+ * - msg_er = (?C_x_identifier, ERR_MSG:tstr)
  */
 uint8_t edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t err);
 
@@ -249,7 +250,7 @@ uint8_t edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t 
  *
  * If any verification step fails to return an EDHOC ERROR code and, if all the steps success return 1.
  */
-int edhoc_get_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key);
+int edhoc_get_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool msg2);
 
 /**
  * \brief Authenticate the rx message
@@ -328,7 +329,7 @@ int edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer
  * \param result OKM (Output Keying Material) - the buffer where the derived key will be stored.
  * \param key PRK (Pseudorandom Key) - a pseudorandom key used as input to the key derivation, should be at least `HASH_LEN` bits.
  * \param info_label Label used to generate the CBOR-based info input for key derivation.
- * \param context Context data (in bstr format) used to generate the info input for key derivation.
+ * \param context Context data used to generate the info input for key derivation.
  * \param length Desired length of the output key material (OKM) in bits.
  * \return 1 if key derivation is successful, or a negative error code on failure.
  *
@@ -383,8 +384,8 @@ int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_l
 void set_rx_gx(edhoc_context_t *ctx, const uint8_t *gx);
 
 // static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length);
-// static int16_t get_rx_suite_I(const edhoc_context_t *ctx, bstr suite_rx);
-// static int8_t check_rx_suite_I(edhoc_context_t *ctx, bstr suiterx);
+// static int16_t get_rx_suite_I(const edhoc_context_t *ctx, uint8_t *suite_rx);
+// static int8_t check_rx_suite_I(edhoc_context_t *ctx, uint8_t *suiterx);
 // static int8_t gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz);
 // static int8_t set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz);
 // static int8_t set_rx_method(edhoc_context_t *ctx, uint8_t method);
@@ -408,7 +409,7 @@ void set_rx_gx(edhoc_context_t *ctx, const uint8_t *gx);
 // static void gen_ciphertext_2(edhoc_context_t *ctx, uint8_t *plaintext, uint16_t plaintext_sz);
 // static void print_connection(edhoc_session *con);
 // static void set_rx_msg(edhoc_context_t *ctx, uint8_t *msg, uint8_t msg_sz);
-// static retrieve_cred_i(edhoc_context_t *ctx, uint8_t *inf, bstr *cred_i);
+// static retrieve_cred_i(edhoc_context_t *ctx, uint8_t *inf, uint8_t *cred_i);
 // static uint8_t set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac);
 
 #endif /* _EDHOC_H_ */

@@ -333,7 +333,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
        break;
     }
     else if(er > 0) {
-      er = edhoc_get_auth_key(edhoc_ctx, &pt, &key);
+      er = edhoc_get_auth_key(edhoc_ctx, &pt, &key, true);
     }
 
     if(er > 0) {
