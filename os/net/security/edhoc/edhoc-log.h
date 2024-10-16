@@ -51,11 +51,6 @@
 #define LOG_LEVEL LOG_LEVEL_EDHOC
 #endif
 
-typedef struct bstr {
-  uint8_t *buf;
-  size_t len;
-} bstr;
-
 void print_buff(const uint8_t *buff, size_t len);
 void print_char(const char *buff, size_t len);
 
