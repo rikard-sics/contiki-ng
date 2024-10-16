@@ -283,7 +283,7 @@ gen_th3(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz, const uint8
   uint8_t h[h_buf_sz];
   uint8_t *ptr = h;
   uint16_t h_sz = cbor_put_bytes(&ptr, ctx->session.th, HASH_LEN);
-  LOG_DBG("TH_2 (%u): ", HASH_LEN);
+  LOG_DBG("TH_2 (%d): ", HASH_LEN);
   print_buff_8_dbg(ctx->session.th, HASH_LEN);
   memcpy(h + h_sz, ciphertext, ciphertext_sz);
   h_sz += ciphertext_sz;
@@ -314,7 +314,7 @@ gen_th4(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz, const uint8
   uint8_t h[h_buf_sz];
   uint8_t *ptr = h;
   uint16_t h_sz = cbor_put_bytes(&ptr, ctx->session.th, HASH_LEN);
-  LOG_DBG("TH_3 (%u): ", HASH_LEN);
+  LOG_DBG("TH_3 (%d): ", HASH_LEN);
   print_buff_8_dbg(ctx->session.th, HASH_LEN);
   memcpy(h + h_sz, ciphertext, ciphertext_sz);
   h_sz += ciphertext_sz;
@@ -712,7 +712,7 @@ gen_plaintext(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz, bool msg2, 
   if(num == 1) {
     num = (uint8_t)edhoc_get_unsigned(&pint);
     size_t sz = edhoc_get_bytes(&pint, &pout);
-    if(sz == 0 || num < 0) {
+    if(sz == 0) {
       LOG_ERR("error to get bytes\n");
       return 0;
     }
@@ -930,14 +930,14 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   
   // Payload
   uint8_t er = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
-  if(er < 0) {
+  if(er == 0) {
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
     return -1;
   }
 
   cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key.private_key, ECC_KEY_LEN);
   er = cose_sign(cose_sign1);
-  if(er < 0) {
+  if(er == 0) {
     LOG_ERR("Failed to sign for COSE_Sign1 object\n");
     return -1;
   }
@@ -1048,14 +1048,14 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   // Payload
   uint8_t er = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
-  if(er < 0) {
+  if(er == 0) {
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
     return;
   }
 
   cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key.private_key, ECC_KEY_LEN);
   er = cose_sign(cose_sign1);
-  if(er < 0) {
+  if(er == 0) {
     LOG_ERR("Failed to sign for COSE_Sign1 object\n");
     return;
   }
@@ -1254,8 +1254,6 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload, size_t payload_sz, u
 
   if(msg1.uad.ead_value_sz != 0) {
     memcpy(ad, msg1.uad.ead_value, msg1.uad.ead_value_sz);
-  } else {
-    ad = NULL;
   }
 
   return msg1.uad.ead_value_sz;
@@ -1294,7 +1292,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
   /* Actually decrypt the ciphertext */
   size_t plaint_sz = enc_dec_ciphertext_2(ctx, ks_2e, ctx->session.plaintext_2, ciphertext2_sz);
   ctx->session.plaintext_2_sz = plaint_sz;
-  LOG_DBG("PLAINTEXT_2 (%ld bytes): ", plaint_sz);
+  LOG_DBG("PLAINTEXT_2 (%lu bytes): ", plaint_sz);
   print_buff_8_dbg(ctx->session.plaintext_2 + ECC_KEY_LEN, plaint_sz);
 
   int cr_sz = CID_LEN;
@@ -1379,7 +1377,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 
   /* Get MAC from the decrypt msg*/
   uint16_t received_mac_sz = edhoc_get_sign(ptr, &received_mac);
-  uint16_t ad_sz = 0;
+  uint16_t ad_sz = 0; //TODO
 
   /* Get the ad from the decrypt msg*/
   if(ad_sz) {
