@@ -184,7 +184,6 @@ client_block2_handler(coap_message_t *response, uint8_t *target, size_t *len, si
   if(target && len) {
     memcpy(target + response->block2_offset, payload, pay_len);
     *len = response->block2_offset + pay_len;
-    assert(*len >= 0);
     assert(*len <= MAX_BUFFER);
     print_buff_8_dbg((uint8_t *)payload, (unsigned long)pay_len);
     target = target + pay_len; //RH: FIXME: Pointless assignment. Are things wrong here?
@@ -338,7 +337,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
 
     if(er > 0) {
       assert(msg2.gy_ciphertext_2_sz >= ECC_KEY_LEN);
-      assert(msg2.gy_ciphertext_2_sz - ECC_KEY_LEN >= 0);
+      assert(msg2.gy_ciphertext_2_sz - ECC_KEY_LEN <= MAX_BUFFER);
       int cipher_sz = msg2.gy_ciphertext_2_sz - ECC_KEY_LEN;
       er = edhoc_authenticate_msg(edhoc_ctx, &pt, cipher_sz, (uint8_t *)edhoc_state.ad.ad_2, &key);
     }
