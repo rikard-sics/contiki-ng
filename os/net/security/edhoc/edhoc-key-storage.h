@@ -69,7 +69,7 @@ typedef struct cose_key_t {
   uint8_t private[ECC_KEY_LEN];
   uint8_t x_sz;
   uint8_t y_sz;
-}cose_key_t;
+} cose_key_t;
 
 /**
  * \brief Create the keys repository

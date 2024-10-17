@@ -80,20 +80,7 @@ uint8_t uecc_generate_key(ecc_key *key, ecc_curve_t curve);
  * using the public point coordinates (gx, gy) and the private key. The public point is first uncompressed,
  * and the ECC shared secret is computed using the uECC library. The result is stored in the output buffer `ikm`.
  */
-uint8_t uecc_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve);
-
-/**
- * \brief Uncompress an ECC public key from compressed format
- * \param compressed The compressed public key to be uncompressed
- * \param gx Output buffer where the x-coordinate of the uncompressed key will be stored
- * \param gy Output buffer where the y-coordinate of the uncompressed key will be stored
- * \param curve The ECC curve information used for the operation
- *
- * This function decompresses an ECC public key from the compressed format. The compressed public key only contains
- * the x-coordinate and an indicator of the y-coordinate’s parity. The function reconstructs the full public key by
- * calculating the y-coordinate based on the curve and the compressed key, and stores the result in the provided `gx` and `gy` buffers.
- */
-void uecc_uncompress(uint8_t *compressed, uint8_t *gx, uint8_t *gy, ecc_curve_t *curve);
+uint8_t uecc_generate_IKM(const uint8_t *gx_in, const uint8_t *gy_in, const uint8_t *private_key, uint8_t *ikm, ecc_curve_t crv);
 
 /**
  * \brief Generate random bytes for cryptographic operations

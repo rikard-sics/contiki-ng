@@ -59,7 +59,7 @@ static uint8_t aggregate_buffer[HASH_LEN + HKDF_INFO_MAXLEN + 1];
 static uint8_t out_buffer[HKDF_OUTPUT_MAXLEN + HASH_LEN];
 
 uint8_t
-generate_IKM(ecc_curve_t curve, uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm)
+generate_IKM(ecc_curve_t curve, const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm)
 {
   int er = 0;
 #if ECC == UECC_ECC     /* use GX and Gy */

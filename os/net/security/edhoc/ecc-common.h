@@ -46,7 +46,7 @@ typedef struct ecc_key {
   uint8_t kid_sz;
   uint8_t private_key[ECC_KEY_LEN];
   ecc_point_a public;
-  char *identity;
-  uint8_t identity_sz;
+  char *xyzdentity;
+  //uint8_t xyzdentity_sz;
 } ecc_key;
 
