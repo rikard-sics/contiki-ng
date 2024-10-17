@@ -134,8 +134,8 @@ cose_print_key(cose_key_t *cose)
   LOG_DBG("kty: %d\n", cose->kty);
   LOG_DBG("crv: %d\n", cose->crv);
   LOG_DBG("x: ");
-  LOG_PRINT_EDHOC_BUFF(cose->x, cose->x_sz);
+  LOG_PRINT_EDHOC_BUFF(cose->ecc.pub.x, ECC_KEY_LEN);
   LOG_DBG("y: ");
-  LOG_PRINT_EDHOC_BUFF(cose->y, cose->y_sz);
+  LOG_PRINT_EDHOC_BUFF(cose->ecc.pub.y, ECC_KEY_LEN);
 }
 

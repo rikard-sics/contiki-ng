@@ -35,6 +35,11 @@
  * \author
  *         Rikard Höglund, Marco Tiloca
  */
+ 
+#ifndef _ECC_COMMON_H_
+#define _ECC_COMMON_H_
+
+#include "edhoc-config.h"
 
 typedef struct point_affine {
   uint8_t x[ECC_KEY_LEN];
@@ -44,9 +49,8 @@ typedef struct point_affine {
 typedef struct ecc_key {
   uint8_t kid[4];
   uint8_t kid_sz;
-  uint8_t private_key[ECC_KEY_LEN];
-  ecc_point_a public;
-  char *xyzdentity;
-  //uint8_t xyzdentity_sz;
+  uint8_t priv[ECC_KEY_LEN];
+  ecc_point_a pub;
 } ecc_key;
 
+#endif

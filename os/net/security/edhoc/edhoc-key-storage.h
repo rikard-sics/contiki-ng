@@ -43,6 +43,7 @@
 #define _EDHOC_KEY_STORAGE_H_
 #include "contiki.h"
 #include "contiki-lib.h"
+#include "ecc-common.h"
 #include <stdio.h>
 
 /**
@@ -64,11 +65,7 @@ typedef struct cose_key_t {
   uint8_t identity_sz;
   uint8_t kty;
   uint8_t crv;
-  uint8_t x[ECC_KEY_LEN];
-  uint8_t y[ECC_KEY_LEN];
-  uint8_t private[ECC_KEY_LEN];
-  uint8_t x_sz;
-  uint8_t y_sz;
+  ecc_key ecc;
 } cose_key_t;
 
 /**

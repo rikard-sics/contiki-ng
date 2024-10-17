@@ -103,12 +103,35 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 #endif
 
   /* Set the client authentication credentials and add in the storage */
-  cose_key_t auth_client = { NULL, { 0x2b }, 1,
-                             { "42-50-31-FF-EF-37-32-39" }, strlen("42-50-31-FF-EF-37-32-39"),
-                             KEY_TYPE, KEY_CRV,
-                             { 0xac, 0x75, 0xe9, 0xec, 0xe3, 0xe5, 0x0b, 0xfc, 0x8e, 0xd6, 0x03, 0x99, 0x88, 0x95, 0x22, 0x40, 0x5c, 0x47, 0xbf, 0x16, 0xdf, 0x96, 0x66, 0x0a, 0x41, 0x29, 0x8c, 0xb4, 0x30, 0x7f, 0x7e, 0xb6, },
-                             { 0x6e, 0x5d, 0xe6, 0x11, 0x38, 0x8a, 0x4b, 0x8a, 0x82, 0x11, 0x33, 0x4a, 0xc7, 0xd3, 0x7e, 0xcb, 0x52, 0xa3, 0x87, 0xd2, 0x57, 0xe6, 0xdb, 0x3c, 0x2a, 0x93, 0xdf, 0x21, 0xff, 0x3a, 0xff, 0xc8 },
-                             };
+cose_key_t auth_client = {
+    NULL,                                            // next
+    { 0x2b },                                        // kid[4]
+    1,                                               // kid_sz
+    { "42-50-31-FF-EF-37-32-39" },                   // identity[IDENTITY_MAX_LEN]
+    strlen("42-50-31-FF-EF-37-32-39"),               // identity_sz
+    KEY_TYPE,                                        // kty
+    KEY_CRV,                                         // crv
+    {                                                // ecc_key ecc
+        { 0x00, 0x00, 0x00, 0x00 },                  // ecc.kid[4]
+        0,                                           // ecc.kid_sz
+        { 0 },                                       // ecc.priv[ECC_KEY_LEN]
+        {                                            // ecc_point_a pub
+            { 0xac, 0x75, 0xe9, 0xec, 0xe3, 0xe5,
+              0x0b, 0xfc, 0x8e, 0xd6, 0x03, 0x99,
+              0x88, 0x95, 0x22, 0x40, 0x5c, 0x47,
+              0xbf, 0x16, 0xdf, 0x96, 0x66, 0x0a,
+              0x41, 0x29, 0x8c, 0xb4, 0x30, 0x7f,
+              0x7e, 0xb6 },                          // ecc.pub.x[ECC_KEY_LEN]
+            { 0x6e, 0x5d, 0xe6, 0x11, 0x38, 0x8a,
+              0x4b, 0x8a, 0x82, 0x11, 0x33, 0x4a,
+              0xc7, 0xd3, 0x7e, 0xcb, 0x52, 0xa3,
+              0x87, 0xd2, 0x57, 0xe6, 0xdb, 0x3c,
+              0x2a, 0x93, 0xdf, 0x21, 0xff, 0x3a,
+              0xff, 0xc8 }                           // ecc.pub.y[ECC_KEY_LEN]
+        }
+    }
+};
+
 
 #if 0
   cose_key_t auth_client = { NULL, { 0x2b }, 1,
@@ -121,14 +144,40 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 
 
   /* Set the server authentication credentials and add in the storage */
-  cose_key_t auth_server = { NULL, { 0x32 }, 1,
-                             { "example.edu" }, strlen("example.edu"),
-                             KEY_TYPE, KEY_CRV,
-                             { 0xbb, 0xc3, 0x49, 0x60, 0x52, 0x6e, 0xa4, 0xd3, 0x2e, 0x94, 0x0c, 0xad, 0x2a, 0x23, 0x41, 0x48, 0xdd, 0xc2, 0x17, 0x91, 0xa1, 0x2a, 0xfb, 0xcb, 0xac, 0x93, 0x62, 0x20, 0x46, 0xdd, 0x44, 0xf0 },
-                             { 0x45, 0x19, 0xe2, 0x57, 0x23, 0x6b, 0x2a, 0x0c, 0xe2, 0x02, 0x3f, 0x09, 0x31, 0xf1, 0xf3, 0x86, 0xca, 0x7a, 0xfd, 0xa6, 0x4f, 0xcd, 0xe0,0x10, 0x8c, 0x22, 0x4c, 0x51, 0xea, 0xbf, 0x60, 0x72 },
-                             { 0x72, 0xcc, 0x47, 0x61, 0xdb, 0xd4, 0xc7, 0x8f, 0x75, 0x89, 0x31, 0xaa, 0x58, 0x9d, 0x34, 0x8d, 0x1e, 0xf8, 0x74, 0xa7, 0xe3, 0x03, 0xed,
-                             0xe2, 0xf1, 0x40, 0xdc, 0xf3, 0xe6, 0xaa, 0x4a, 0xac },
-                             };
+cose_key_t auth_server = {
+    NULL,                                          // next
+    { 0x32 },                                      // kid[4]
+    1,                                             // kid_sz
+    { "example.edu" },                             // identity[IDENTITY_MAX_LEN]
+    strlen("example.edu"),                         // identity_sz
+    KEY_TYPE,                                      // kty
+    KEY_CRV,                                       // crv
+    {                                              // ecc_key ecc
+        { 0x00, 0x00, 0x00, 0x00 },                // ecc.kid[4] (initialize as needed)
+        0,                                         // ecc.kid_sz
+        {                                          // ecc.priv[ECC_KEY_LEN]
+            0x72, 0xcc, 0x47, 0x61, 0xdb, 0xd4, 0xc7, 0x8f,
+            0x75, 0x89, 0x31, 0xaa, 0x58, 0x9d, 0x34, 0x8d,
+            0x1e, 0xf8, 0x74, 0xa7, 0xe3, 0x03, 0xed, 0xe2,
+            0xf1, 0x40, 0xdc, 0xf3, 0xe6, 0xaa, 0x4a, 0xac
+        },
+        {                                          // ecc_point_a pub
+            {                                      // ecc.pub.x[ECC_KEY_LEN]
+                0xbb, 0xc3, 0x49, 0x60, 0x52, 0x6e, 0xa4, 0xd3,
+                0x2e, 0x94, 0x0c, 0xad, 0x2a, 0x23, 0x41, 0x48,
+                0xdd, 0xc2, 0x17, 0x91, 0xa1, 0x2a, 0xfb, 0xcb,
+                0xac, 0x93, 0x62, 0x20, 0x46, 0xdd, 0x44, 0xf0
+            },
+            {                                      // ecc.pub.y[ECC_KEY_LEN]
+                0x45, 0x19, 0xe2, 0x57, 0x23, 0x6b, 0x2a, 0x0c,
+                0xe2, 0x02, 0x3f, 0x09, 0x31, 0xf1, 0xf3, 0x86,
+                0xca, 0x7a, 0xfd, 0xa6, 0x4f, 0xcd, 0xe0, 0x10,
+                0x8c, 0x22, 0x4c, 0x51, 0xea, 0xbf, 0x60, 0x72
+            }
+        }
+    }
+};
+
 
 #if 0
   cose_key_t auth_server = { NULL, { 0x32 }, 1,
@@ -154,9 +203,9 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
   t = RTIMER_NOW();
 #if TEST == TEST_VECTOR_TRACE_2
   LOG_INFO("Using test vector\n");
-  memcpy(edhoc_ctx->ephemeral_key.public.x, eph_pub_x_r, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.public.y, eph_pub_y_r, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.private_key, eph_private_r, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.pub.x, eph_pub_x_r, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.pub.y, eph_pub_y_r, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.priv, eph_private_r, ECC_KEY_LEN);
 #if ECC == UECC_ECC
   LOG_INFO("set curve of uEcc\n");
   edhoc_ctx->curve.curve = uECC_secp256r1();
@@ -172,18 +221,18 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
     .curve_info = &nist_p_256,
   };
   PT_SPAWN(&edhoc_example_server.pt, &key.pt, generate_key_hw(&key));
-  memcpy(edhoc_ctx->ephemeral_key.public.x, key.x, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.public.y, key.y, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.private_key, key.private, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.pub.x, key.x, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.pub.y, key.y, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.priv, key.private, ECC_KEY_LEN);
 
 #endif
   t = RTIMER_NOW() - t;
   LOG_INFO("Server time to generate new key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
 
   LOG_DBG("Gy (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.x, ECC_KEY_LEN);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.pub.x, ECC_KEY_LEN);
   LOG_DBG("Y (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->ephemeral_key.private_key, ECC_KEY_LEN);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.priv, ECC_KEY_LEN);
   while(1) {
     PROCESS_WAIT_EVENT();
     uint8_t res = edhoc_server_callback(ev, &data);
@@ -229,9 +278,9 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
       LOG_INFO("Compile time: %s %s\n", __DATE__, __TIME__);
       LOG_INFO("\n");
       LOG_INFO("G_y (%d bytes): ", ECC_KEY_LEN);
-      print_buff_8_info(edhoc_ctx->ephemeral_key.public.x, ECC_KEY_LEN);
+      print_buff_8_info(edhoc_ctx->ephemeral_key.pub.x, ECC_KEY_LEN);
       LOG_INFO("Y (%d bytes): ", ECC_KEY_LEN);
-      print_buff_8_info(edhoc_ctx->ephemeral_key.private_key, ECC_KEY_LEN);
+      print_buff_8_info(edhoc_ctx->ephemeral_key.priv, ECC_KEY_LEN);
     }
   }
   PROCESS_END();
