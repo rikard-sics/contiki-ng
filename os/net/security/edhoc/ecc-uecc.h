@@ -48,25 +48,12 @@
 #include <uECC.h>
 #include <string.h>
 #include <stdio.h>
+#include "ecc-common.h"
 #define uECC_PLATFORM uECC_arm
-
-typedef struct point_affine {
-  uint8_t x[ECC_KEY_LEN];
-  uint8_t y[ECC_KEY_LEN];
-} ecc_point_a;
-
-typedef struct ecc_key {
-  uint8_t kid[4];
-  uint8_t kid_sz;
-  uint8_t private_key[ECC_KEY_LEN];
-  ecc_point_a public;
-  char *identity;
-  uint8_t identity_sz;
-} ecc_key;
 
 typedef struct ecc_curve_t {
   uECC_Curve curve;
-}ecc_curve_t;
+} ecc_curve_t;
 
 /**
  * \brief Generate an ECC key pair using the uECC library
@@ -79,19 +66,6 @@ typedef struct ecc_curve_t {
  * `key->public.x` and `key->public.y`, respectively.
  */
 uint8_t uecc_generate_key(ecc_key *key, ecc_curve_t curve);
-
-/**
- * \brief Uncompress an ECC public key from compressed format
- * \param compressed The compressed public key to be uncompressed
- * \param gx Output buffer where the x-coordinate of the uncompressed key will be stored
- * \param gy Output buffer where the y-coordinate of the uncompressed key will be stored
- * \param curve The ECC curve information used for the operation
- *
- * This function decompresses an ECC public key from the compressed format. The compressed public key only contains
- * the x-coordinate and an indicator of the y-coordinate’s parity. The function reconstructs the full public key by
- * calculating the y-coordinate based on the curve and the compressed key, and stores the result in the provided `gx` and `gy` buffers.
- */
-void uecc_uncompress(uint8_t *compressed, uint8_t *gx, uint8_t *gy, ecc_curve_t *curve);
 
 /**
  * \brief Generate IKM using ECC shared secret
@@ -107,6 +81,19 @@ void uecc_uncompress(uint8_t *compressed, uint8_t *gx, uint8_t *gy, ecc_curve_t 
  * and the ECC shared secret is computed using the uECC library. The result is stored in the output buffer `ikm`.
  */
 uint8_t uecc_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve);
+
+/**
+ * \brief Uncompress an ECC public key from compressed format
+ * \param compressed The compressed public key to be uncompressed
+ * \param gx Output buffer where the x-coordinate of the uncompressed key will be stored
+ * \param gy Output buffer where the y-coordinate of the uncompressed key will be stored
+ * \param curve The ECC curve information used for the operation
+ *
+ * This function decompresses an ECC public key from the compressed format. The compressed public key only contains
+ * the x-coordinate and an indicator of the y-coordinate’s parity. The function reconstructs the full public key by
+ * calculating the y-coordinate based on the curve and the compressed key, and stores the result in the provided `gx` and `gy` buffers.
+ */
+void uecc_uncompress(uint8_t *compressed, uint8_t *gx, uint8_t *gy, ecc_curve_t *curve);
 
 /**
  * \brief Generate random bytes for cryptographic operations
