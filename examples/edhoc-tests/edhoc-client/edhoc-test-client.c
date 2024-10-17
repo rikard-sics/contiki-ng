@@ -84,8 +84,6 @@ cose_key_t auth_client = {
     KEY_TYPE,                                       // kty
     KEY_CRV,                                        // crv
     {                                               // ecc_key ecc
-        { 0x00, 0x00, 0x00, 0x00 },                 // ecc.kid[4] (adjust if needed)
-        0,                                          // ecc.kid_sz
         {                                           // ecc.priv[ECC_KEY_LEN]
             0xfb, 0x13, 0xad, 0xeb, 0x65, 0x18, 0xce, 0xe5,
             0xf8, 0x84, 0x17, 0x66, 0x08, 0x41, 0x14, 0x2e,
@@ -130,14 +128,7 @@ cose_key_t auth_server = {
     KEY_TYPE,                                      // kty
     KEY_CRV,                                       // crv
     {                                              // ecc_key ecc
-        { 0x00, 0x00, 0x00, 0x00 },                // ecc.kid[4] (initialize as needed)
-        0,                                         // ecc.kid_sz
-        {                                          // ecc.priv[ECC_KEY_LEN] //TODO: Remove
-            0x72, 0xcc, 0x47, 0x61, 0xdb, 0xd4, 0xc7, 0x8f,
-            0x75, 0x89, 0x31, 0xaa, 0x58, 0x9d, 0x34, 0x8d,
-            0x1e, 0xf8, 0x74, 0xa7, 0xe3, 0x03, 0xed, 0xe2,
-            0xf1, 0x40, 0xdc, 0xf3, 0xe6, 0xaa, 0x4a, 0xac
-        },
+        { 0 },                                     // ecc.priv[ECC_KEY_LEN]
         {                                          // ecc_point_a pub
             {                                      // ecc.pub.x[ECC_KEY_LEN]
                 0xbb, 0xc3, 0x49, 0x60, 0x52, 0x6e, 0xa4, 0xd3,
