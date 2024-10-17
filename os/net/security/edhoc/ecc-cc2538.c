@@ -46,21 +46,8 @@
 #include "sys/process.h"
 
 #include "dev/pka.h"
-#define CHECK_RESULT(...) \
-  state->result = __VA_ARGS__; \
-  if(state->result) { \
-    printf("Line: %u Error: %u\n", __LINE__, (unsigned int)state->result); \
-    PT_EXIT(&state->pt); \
-  }
 
-static uint32_t _3[1] = { 3 };
 uint32_t expn[8];
-static uint32_t d4[8] =  { 0x40000000, 0x00000000, 0x00000000, 0x00000000,
-                           0x00000000, 0x00000000, 0x00000000, 0x00000000 };
-static uint32_t p1[8] =  { 0x00000001, 0x00000000, 0x00000000, 0x00000000,
-                           0x00000000, 0x00000000, 0x00000000, 0x00000000 };
-static uint32_t p10[8] = { 0x10000000, 0x00000000, 0x00000000, 0x00000000,
-                           0x00000000, 0x00000000, 0x00000000, 0x00000000 };
 
 void
 eccNative_to_bytes(uint8_t *bytes, int num_bytes, const uint32_t *native)
@@ -89,19 +76,6 @@ ecc_set_random_key(uint32_t *secret)
   for(i = 0; i < 8; ++i) {
     secret[i] = (uint32_t)random_rand() | (uint32_t)random_rand() << 16;
   }
-}
-void
-compress_key_hw(uint8_t *compressed, uint8_t *public, ecc_curve_info_t *curve)
-{
-  int8_t i;
-  for(i = 0; i < curve->size * 4; ++i) {
-    compressed[i + 1] = public[i];
-  }
-#if uECC_VLI_NATIVE_LITTLE_ENDIAN
-  compressed[0] = 2 + (curve_info->size * 4] & 0x01);
-#else
-  compressed[0] = 2 + (public[curve->size * 4 * 2 - 1] & 0x01);
-#endif
 }
 PT_THREAD(generate_key_hw(key_gen_t * key)) {
   static ecc_compare_state_t state = {
@@ -139,115 +113,6 @@ PT_THREAD(generate_key_hw(key_gen_t * key)) {
   eccNative_to_bytes(key->x, ECC_KEY_LEN, side_a.point_out.x);
   pka_disable();
   PT_END(&key->pt);
-}
-
-PT_THREAD(ecc_decompress_key(ecc_key_uncompress_t * state)){
-
-  uint32_t point[state->curve_info->size * 2];
-
-  uint32_t *y = point + state->curve_info->size;
-
-  memset(point, 0, sizeof(uint32_t) * 16);
-  eccBytes_to_native(point, state->compressed + 1, ECC_KEY_LEN);
-
-  int8_t num_words = state->curve_info->size;
-
-  uint32_t l_result[16];
-  uint8_t result[64];
-  PT_BEGIN(&state->pt);
-  memset(l_result, 1, sizeof(uint32_t) * 16);
-  watchdog_periodic();
-  CHECK_RESULT(bignum_mul_start(point, state->curve_info->size, point, state->curve_info->size, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  state->len = state->curve_info->size * 2;
-  memset(l_result, 0, sizeof(uint32_t) * 16);
-  CHECK_RESULT(bignum_mul_get_result(l_result, &state->len, state->rv));
-  CHECK_RESULT(bignum_mod_start(l_result, num_words * 2, state->curve_info->prime, num_words, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  memset(l_result, 0, sizeof(uint32_t) * 16);
-  CHECK_RESULT(bignum_mod_get_result(l_result, num_words, state->rv));
-
-  watchdog_periodic();
-  CHECK_RESULT(bignum_subtract_start(l_result, state->curve_info->size, _3, 1, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  memset(l_result, 0, sizeof(uint32_t) * 16);
-  CHECK_RESULT(bignum_subtract_get_result(l_result, &state->len, state->rv));
-
-  CHECK_RESULT(bignum_mod_start(l_result, num_words, state->curve_info->prime, num_words, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  memset(l_result, 0, sizeof(uint32_t) * 16);
-  CHECK_RESULT(bignum_mod_get_result(l_result, num_words, state->rv));
-
-  watchdog_periodic();
-  CHECK_RESULT(bignum_mul_start(l_result, state->curve_info->size, point, state->curve_info->size, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  state->len = state->curve_info->size * 2;
-  memset(l_result, 0, sizeof(uint32_t) * 16);
-  CHECK_RESULT(bignum_mul_get_result(l_result, &state->len, state->rv));
-
-  CHECK_RESULT(bignum_mod_start(l_result, num_words * 2, state->curve_info->prime, num_words, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  memset(l_result, 0, sizeof(uint32_t) * 16);
-  CHECK_RESULT(bignum_mod_get_result(l_result, num_words, state->rv));
-
-  watchdog_periodic();
-  CHECK_RESULT(bignum_add_start(l_result, state->curve_info->size, state->curve_info->b, state->curve_info->size, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  memset(y, 0, sizeof(uint32_t) * 16);
-  CHECK_RESULT(bignum_subtract_get_result(l_result, &state->len, state->rv));
-
-  CHECK_RESULT(bignum_mod_start(l_result, num_words * 2, state->curve_info->prime, num_words, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  memset(l_result, 0, sizeof(uint32_t) * 16);
-  CHECK_RESULT(bignum_mod_get_result(l_result, num_words, state->rv));
-
-  watchdog_periodic();
-  uint32_t expn[8];
-
-  memset(expn, 0, sizeof(uint32_t) * 8);
-
-  CHECK_RESULT(bignum_add_start(state->curve_info->prime, state->curve_info->size, p1, 1, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  state->len = state->curve_info->size + 1;
-  memset(expn, 0, sizeof(uint32_t) * 8);
-  CHECK_RESULT(bignum_add_get_result(expn, &state->len, state->rv));
-
-  CHECK_RESULT(bignum_divide_start(expn, 8, d4, 8, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  state->len = state->curve_info->size;
-  memset(expn, 0, sizeof(uint32_t) * 8);
-  CHECK_RESULT(bignum_divide_get_result(expn, &state->len, state->rv));
-
-
-  CHECK_RESULT(bignum_mul_start(expn, 8, p10, 8, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  state->len = state->curve_info->size;
-  memset(expn, 0, sizeof(uint32_t) * 8);
-  CHECK_RESULT(bignum_divide_get_result(expn, &state->len, state->rv));
-
-  CHECK_RESULT(bignum_exp_mod_start(expn, 8, state->curve_info->prime, num_words, l_result, num_words, &state->rv, state->process));
-  PT_WAIT_UNTIL(&state->pt, pka_check_status());
-  memset(y, 0, sizeof(uint32_t) * 8);
-  CHECK_RESULT(bignum_exp_mod_get_result(y, num_words, state->rv));
-
-  memset(result, 0, ECC_KEY_LEN);
-  eccNative_to_bytes(result, ECC_KEY_LEN, y);
-
-
-  if((result[state->curve_info->size * 4 - 1] & 0x01) != (state->compressed[0] & 0x01)) {
-
-    CHECK_RESULT(bignum_subtract_start(state->curve_info->prime, state->curve_info->size, y, state->curve_info->size, &state->rv, state->process));
-    PT_WAIT_UNTIL(&state->pt, pka_check_status());
-    memset(y, 0, sizeof(uint32_t) * 8);
-    state->len = state->curve_info->size;
-    CHECK_RESULT(bignum_subtract_get_result(y, &state->len, state->rv));
-    memset(result, 0, ECC_KEY_LEN);
-    eccNative_to_bytes(result, ECC_KEY_LEN, y);
-  
-  }
-  memcpy(state->public, state->compressed + 1, sizeof(uint32_t) * state->curve_info->size);
-  memcpy(state->public + (state->curve_info->size * 4), result, sizeof(uint32_t) * state->curve_info->size);
-  PT_END(&state->pt);
 }
 
 uint8_t

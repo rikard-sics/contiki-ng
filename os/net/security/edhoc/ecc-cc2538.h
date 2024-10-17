@@ -71,24 +71,6 @@ typedef struct  {
   struct pt pt;
   struct process *process;
 
-  /* Input Variables */
-  ecc_curve_info_t *curve_info; /** Curve defining the CyclicGroup */
-
-  uint32_t rv;                  /** Address of Next Result in PKA SRAM */
-  uint32_t len;
-  /* Output Variables */
-  uint8_t result;            /** Result Code */
-  uint8_t public[64];
-  uint8_t compressed[33];
-} ecc_key_uncompress_t;
-
-PT_THREAD(ecc_decompress_key(ecc_key_uncompress_t * state));
-
-typedef struct  {
-  /* Containers for the State */
-  struct pt pt;
-  struct process *process;
-
   ecc_curve_info_t *curve_info; /** Curve defining the CyclicGroup */
   /* Output Variables */
   uint8_t x[ECC_KEY_LEN];           /** Result Code */
@@ -100,7 +82,7 @@ PT_THREAD(generate_key_hw(key_gen_t * key));
 
 typedef struct ecc_curve_t {
   ecc_curve_info_t *curve;
-}ecc_curve_t;
+} ecc_curve_t;
 
 /**
  * \brief Generate IKM using ECC point multiplication
@@ -116,21 +98,6 @@ typedef struct ecc_curve_t {
  * The function uses the CC2538 hardware for ECC operations and relies on the NIST P-256 curve for the calculations.
  */
 uint8_t cc2538_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve);
-
-/**
- * \brief Compress an ECC public key using hardware-specific operations
- * \param compressed Output buffer where the compressed key will be stored
- * \param public The uncompressed ECC public key
- * \param curve The ECC curve information, including key size
- *
- * This function compresses a given ECC public key by copying the x-coordinate of the key and
- * determining the parity of the y-coordinate. The compressed key is stored in the provided buffer.
- * The compression method depends on whether the system uses a little-endian or big-endian
- * representation. The compressed key format follows standard ECC key compression where the first byte
- * indicates the parity of the y-coordinate.
- */
-void compress_key_hw(uint8_t *compressed, uint8_t *public, ecc_curve_info_t *curve);
-
 
 void eccBytes_to_native(uint32_t *native, const uint8_t *bytes, int num_bytes);
 void eccNative_to_bytes(uint8_t *bytes, int num_bytes, const uint32_t *native);
