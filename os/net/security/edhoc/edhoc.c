@@ -1292,7 +1292,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
   /* Actually decrypt the ciphertext */
   size_t plaint_sz = enc_dec_ciphertext_2(ctx, ks_2e, ctx->session.plaintext_2, ciphertext2_sz);
   ctx->session.plaintext_2_sz = plaint_sz;
-  LOG_DBG("PLAINTEXT_2 (%lu bytes): ", plaint_sz);
+  //LOG_DBG("PLAINTEXT_2 (%" PRIu64 "bytes): ", plaint_sz);
   print_buff_8_dbg(ctx->session.plaintext_2 + ECC_KEY_LEN, plaint_sz);
 
   int cr_sz = CID_LEN;
@@ -1389,11 +1389,11 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 
   /* generate cred_x and id_cred_x */
   ctx->session.cred_x_sz = generate_cred_x(key, ctx->session.cred_x);
-  LOG_DBG("CRED_R auth (%lu): ", ctx->session.cred_x_sz);
+  //LOG_DBG("CRED_R auth (%" PRIu64 "): ", ctx->session.cred_x_sz);
   print_buff_8_dbg(ctx->session.cred_x, ctx->session.cred_x_sz);
   
   ctx->session.id_cred_x_sz = generate_id_cred_x(key, ctx->session.id_cred_x);
-  LOG_DBG("ID_CRED_R auth (%lu): ", ctx->session.id_cred_x_sz);
+  //LOG_DBG("ID_CRED_R auth (%" PRIu64 "): ", ctx->session.id_cred_x_sz);
   print_buff_8_dbg(ctx->session.id_cred_x, ctx->session.id_cred_x_sz);
 
 #if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
