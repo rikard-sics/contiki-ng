@@ -114,30 +114,34 @@ PT_THREAD(generate_key_hw(key_gen_t * key)) {
   pka_disable();
   PT_END(&key->pt);
 }
-
 uint8_t
-cc2538_generate_IKM(uint8_t *gx, uint8_t *gy, uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve)
+cc2538_generate_IKM(const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve)
 {
   int er = 0;
   static ecc_multiply_state_t shared;
   shared.curve_info = &nist_p_256;
+  uint8_t gy_local[ECC_KEY_LEN]; // Create a local copy of gy
+
   pka_init();
-  
+
+  // Copy gy into gy_local
+  memcpy(gy_local, gy, ECC_KEY_LEN);
+
   /* If just one coordinate is have it we put first byte non zero */
-  if(gy[0] == 0) {
-    gy[0] = 0x01;
+  if(gy_local[0] == 0) {
+    gy_local[0] = 0x01;
   }
-  
+
   eccBytes_to_native(shared.point_in.x, gx, ECC_KEY_LEN);
-  eccBytes_to_native(shared.point_in.y, gy, ECC_KEY_LEN);
+  eccBytes_to_native(shared.point_in.y, gy_local, ECC_KEY_LEN); // Use gy_local
   eccBytes_to_native(shared.secret, private_key, ECC_KEY_LEN);
   watchdog_periodic();
   ecc_mul_start(shared.secret, &shared.point_in, shared.curve_info, &shared.rv, shared.process);
   watchdog_periodic();
-  
+
   while(!pka_check_status()) {
   }
-  
+
   watchdog_periodic();
   ecc_mul_get_result(&shared.point_out, shared.rv);
   watchdog_periodic();

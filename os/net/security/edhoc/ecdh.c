@@ -175,11 +175,9 @@ convert_ecc_key_to_cose_key(ecc_key *key, cose_key_t *cose, char *identity, uint
   cose->kid_sz = key->kid_sz; 
   memcpy(cose->identity, identity, id_sz);
   cose->identity_sz = id_sz;
-  memcpy(cose->x, key->public.x, ECC_KEY_LEN);
-  cose->x_sz = ECC_KEY_LEN;
-  memcpy(cose->y, key->public.y, ECC_KEY_LEN);
-  cose->y_sz = ECC_KEY_LEN;
-  memcpy(cose->private, key->private_key, ECC_KEY_LEN);
+  memcpy(cose->ecc.pub.x, key->pub.x, ECC_KEY_LEN);
+  memcpy(cose->ecc.pub.y, key->pub.y, ECC_KEY_LEN);
+  memcpy(cose->ecc.priv, key->priv, ECC_KEY_LEN);
 }
 void
 initialize_ecc_key_from_cose(ecc_key *key, const cose_key_t *auth_key, ecc_curve_t curve)
@@ -192,7 +190,7 @@ initialize_ecc_key_from_cose(ecc_key *key, const cose_key_t *auth_key, ecc_curve
     }
 
     /* Copy the public ECC key points from the COSE key to the ECC key */
-    memcpy(key->public.x, auth_key->x, ECC_KEY_LEN);
-    memcpy(key->public.y, auth_key->y, ECC_KEY_LEN);
-    memcpy(key->private_key, auth_key->private, ECC_KEY_LEN);
+    memcpy(key->pub.x, auth_key->ecc.pub.x, ECC_KEY_LEN);
+    memcpy(key->pub.y, auth_key->ecc.pub.y, ECC_KEY_LEN);
+    memcpy(key->priv, auth_key->ecc.priv, ECC_KEY_LEN);
 }

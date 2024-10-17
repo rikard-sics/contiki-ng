@@ -365,8 +365,6 @@ edhoc_get_cred_x_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
     LOG_ERR("The authentication key ID is not in the list\n");
     return ERR_NOT_ALLOWED_IDENTITY;
   }
-  auth_key->x_sz = ECC_KEY_LEN;
-  auth_key->y_sz = ECC_KEY_LEN;
   *key = auth_key;
   return ECC_KEY_LEN;
 }
@@ -437,14 +435,14 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
       break;
     }
     key_sz = edhoc_get_bytes(p, &ptr);
-    memcpy(key->x, ptr, ECC_KEY_LEN);
+    memcpy(key->ecc.pub.x, ptr, ECC_KEY_LEN);
 
     param = get_negative(p);
     if(param != 3) {
       break;
     }
     key_sz = edhoc_get_bytes(p, &ptr);
-    memcpy(key->y, ptr, ECC_KEY_LEN);
+    memcpy(key->ecc.pub.y, ptr, ECC_KEY_LEN);
 
     //char *ch = key->identity;
     key->identity_sz = get_text(p, &ch);

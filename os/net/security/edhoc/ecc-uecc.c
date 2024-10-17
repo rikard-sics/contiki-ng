@@ -65,10 +65,10 @@ uecc_generate_key(ecc_key *key, ecc_curve_t curve)
   uECC_set_rng(&RNG);
   uint8_t public_key[64];
   watchdog_periodic();
-  er = uECC_make_key(public_key, key->private_key, curve.curve);
+  er = uECC_make_key(public_key, key->priv, curve.curve);
   watchdog_periodic();
-  memcpy(key->public.x, public_key, 32);
-  memcpy(key->public.y, public_key + 32, 32);
+  memcpy(key->pub.x, public_key, 32);
+  memcpy(key->pub.y, public_key + 32, 32);
   watchdog_periodic();
   return er;
 }

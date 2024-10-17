@@ -144,10 +144,10 @@ generate_cred_x(cose_key_t *cose, uint8_t *cred)
   size += cbor_put_negative(&cred, 1);
   size += cbor_put_unsigned(&cred, cose->crv);
   size += cbor_put_negative(&cred, 2);
-  size += cbor_put_bytes(&cred, cose->x, cose->x_sz);
+  size += cbor_put_bytes(&cred, cose->ecc.pub.x, ECC_KEY_LEN);
   if(cose->crv == 1) {
     size += cbor_put_negative(&cred, 3);
-    size += cbor_put_bytes(&cred, cose->y, cose->y_sz);
+    size += cbor_put_bytes(&cred, cose->ecc.pub.y, ECC_KEY_LEN);
   }
   return size;
 }
@@ -514,7 +514,7 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac, uint16_t rece
 static uint8_t
 gen_gxy(edhoc_context_t *ctx, uint8_t *ikm)
 {
-  uint8_t er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, ctx->ephemeral_key.private_key, ikm);
+  uint8_t er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, ctx->ephemeral_key.priv, ikm);
   if(er == 0) {
     LOG_ERR("error in generate shared secret\n");
     return 0;
@@ -564,9 +564,9 @@ gen_prk_3e2m(edhoc_context_t *ctx, cose_key_t *cose_auth_key, uint8_t gen)
   int8_t er = 0;
 
   if(gen) {
-    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, cose_auth_key->private, grx);
+    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, cose_auth_key->ecc.priv, grx);
   } else {
-    er = generate_IKM(ctx->curve, cose_auth_key->x, cose_auth_key->y, ctx->ephemeral_key.private_key, grx);
+    er = generate_IKM(ctx->curve, cose_auth_key->ecc.pub.x, cose_auth_key->ecc.pub.y, ctx->ephemeral_key.priv, grx);
   }
   if(er == 0) {
     LOG_ERR("error in generate shared secret for prk_3e2m\n");
@@ -599,9 +599,9 @@ gen_prk_4e3m(edhoc_context_t *ctx, const cose_key_t *cose_auth_key, uint8_t gen)
   int8_t er = 0;
 
   if(gen) {
-    er = generate_IKM(ctx->curve, cose_auth_key->x, cose_auth_key->y, ctx->ephemeral_key.private_key, giy);
+    er = generate_IKM(ctx->curve, cose_auth_key->ecc.pub.x, cose_auth_key->ecc.pub.y, ctx->ephemeral_key.priv, giy);
   } else {
-    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, cose_auth_key->private, giy);
+    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, cose_auth_key->ecc.priv, giy);
   }
   LOG_DBG("G_IY (ECDH shared secret) (%d bytes): ", ECC_KEY_LEN);
   print_buff_8_dbg(giy, ECC_KEY_LEN);
@@ -787,11 +787,9 @@ edhoc_get_authentication_key(edhoc_context_t *ctx)
 #ifdef AUTH_SUBJECT_NAME
   cose_key_t *key;
   if(edhoc_check_key_list_identity(AUTH_SUBJECT_NAME, strlen(AUTH_SUBJECT_NAME), &key)) {
-    memcpy(ctx->authen_key_new.private, key->private, ECC_KEY_LEN);
-    memcpy(ctx->authen_key_new.x, key->x, ECC_KEY_LEN);
-    ctx->authen_key_new.x_sz = ECC_KEY_LEN;
-    ctx->authen_key_new.y_sz = ECC_KEY_LEN;
-    memcpy(ctx->authen_key_new.y, key->y, ECC_KEY_LEN);
+    memcpy(ctx->authen_key_new.ecc.priv, key->ecc.priv, ECC_KEY_LEN);
+    memcpy(ctx->authen_key_new.ecc.pub.x, key->ecc.pub.x, ECC_KEY_LEN);
+    memcpy(ctx->authen_key_new.ecc.pub.y, key->ecc.pub.y, ECC_KEY_LEN);
     memcpy(ctx->authen_key_new.kid, key->kid, key->kid_sz);
     ctx->authen_key_new.kid_sz = key->kid_sz;
     memcpy(ctx->authen_key_new.identity, key->identity, key->identity_sz);
@@ -817,11 +815,9 @@ edhoc_get_authentication_key(edhoc_context_t *ctx)
   memcpy(key_id, (uint8_t *)&kid, key_id_sz);
 
   if(edhoc_check_key_list_kid(key_id, key_id_sz, &key)) {
-    memcpy(ctx->authen_key_new.private, key->private, ECC_KEY_LEN);
-    memcpy(ctx->authen_key_new.x, key->x, ECC_KEY_LEN);
-    ctx->authen_key_new.x_sz = ECC_KEY_LEN;
-    ctx->authen_key_new.y_sz = ECC_KEY_LEN;
-    memcpy(ctx->authen_key_new.y, key->y, ECC_KEY_LEN);
+    memcpy(ctx->authen_key_new.ecc.priv, key->ecc.priv, ECC_KEY_LEN);
+    memcpy(ctx->authen_key_new.ecc.pub.x, key->ecc.pub.x, ECC_KEY_LEN);
+    memcpy(ctx->authen_key_new.ecc.pub.y, key->ecc.pub.y, ECC_KEY_LEN);
     memcpy(ctx->authen_key_new.kid, key->kid, key->kid_sz);
     ctx->authen_key_new.kid_sz = key->kid_sz;
     memcpy(ctx->authen_key_new.identity, key->identity, key->identity_sz);
@@ -843,7 +839,7 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
     .method = ctx->session.method,
     .suites_i = ctx->session.suite,
     .suites_i_sz = ctx->session.suite_num,
-    .g_x = (uint8_t *)&ctx->ephemeral_key.public.x,
+    .g_x = (uint8_t *)&ctx->ephemeral_key.pub.x,
     .c_i = (uint8_t *)&ctx->session.cid,
     .uad = (ead_data){ .ead_label = 0, .ead_value = ad, .ead_value_sz = ad_sz },
   };
@@ -866,7 +862,7 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
 uint8_t
 edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 {
-  int8_t rv = gen_th2(ctx, ctx->ephemeral_key.public.x, ctx->msg_rx, ctx->rx_sz);
+  int8_t rv = gen_th2(ctx, ctx->ephemeral_key.pub.x, ctx->msg_rx, ctx->rx_sz);
   if(rv < 0) {
     LOG_ERR("Failed to generate TH_2 (%d)\n", rv);
     return -1;
@@ -930,7 +926,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
     return -1;
   }
 
-  cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key_new.private, ECC_KEY_LEN);
+  cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key_new.ecc.priv, ECC_KEY_LEN);
   er = cose_sign(cose_sign1);
   if(er == 0) {
     LOG_ERR("Failed to sign for COSE_Sign1 object\n");
@@ -965,7 +961,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   /* Set x and ciphertext in msg_tx */
   uint8_t *ptr = &(ctx->msg_tx[0]);
-  int sz = cbor_put_bytes(&ptr, ctx->ephemeral_key.public.x, ECC_KEY_LEN);
+  int sz = cbor_put_bytes(&ptr, ctx->ephemeral_key.pub.x, ECC_KEY_LEN);
   memcpy(ptr, ciphertext, plaint_sz);
   ctx->tx_sz = sz + plaint_sz;
   ctx->msg_tx[1] = ctx->tx_sz - 2;
@@ -981,13 +977,13 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   cose_print_key(&ctx->authen_key_new);
   LOG_DBG("SK_I (Initiator's private authentication key) (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(ctx->authen_key_new.private, ECC_KEY_LEN);
+  print_buff_8_dbg(ctx->authen_key_new.ecc.priv, ECC_KEY_LEN);
 
   LOG_DBG("G_I (x)(Initiator's public authentication key) (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(ctx->authen_key_new.x, ECC_KEY_LEN);
+  print_buff_8_dbg(ctx->authen_key_new.ecc.pub.x, ECC_KEY_LEN);
 
   LOG_DBG("(y) (Initiator's public authentication key) (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(ctx->authen_key_new.y, ECC_KEY_LEN);
+  print_buff_8_dbg(ctx->authen_key_new.ecc.pub.y, ECC_KEY_LEN);
 
   /* generate cred_x */
   ctx->session.cred_x_sz = generate_cred_x(&ctx->authen_key_new, ctx->session.cred_x);
@@ -1044,7 +1040,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
     return;
   }
 
-  cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key_new.private, ECC_KEY_LEN);
+  cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key_new.ecc.priv, ECC_KEY_LEN);
   er = cose_sign(cose_sign1);
   if(er == 0) {
     LOG_ERR("Failed to sign for COSE_Sign1 object\n");
@@ -1444,8 +1440,8 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   }
 
   uint8_t other_public_key[ECC_KEY_LEN * 2];
-  memcpy(other_public_key, key->x, key->x_sz);
-  memcpy(other_public_key + key->x_sz, key->y, key->y_sz);
+  memcpy(other_public_key, key->ecc.pub.x, ECC_KEY_LEN);
+  memcpy(other_public_key + ECC_KEY_LEN, key->ecc.pub.y, ECC_KEY_LEN);
 
   // Set other peer public key and verify
   cose_sign1_set_key(cose_sign1, ES256, other_public_key, ECC_KEY_LEN * 2);

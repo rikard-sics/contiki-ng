@@ -450,9 +450,9 @@ PROCESS_THREAD(edhoc_client, ev, data)
   time = RTIMER_NOW();
 #if TEST == TEST_VECTOR_TRACE_2
   LOG_DBG("Using test vector\n");
-  memcpy(edhoc_ctx->ephemeral_key.public.x, eph_pub_x_i, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.public.y, eph_pub_y_i, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.private_key, eph_private_i, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.pub.x, eph_pub_x_i, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.pub.y, eph_pub_y_i, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.priv, eph_private_i, ECC_KEY_LEN);
 #if ECC == UECC_ECC
   LOG_DBG("set curve of uEcc\n");
   edhoc_ctx->curve.curve = uECC_secp256r1();
@@ -469,17 +469,17 @@ PROCESS_THREAD(edhoc_client, ev, data)
   };
   PT_SPAWN(&edhoc_client.pt, &key.pt, generate_key_hw(&key));
 
-  memcpy(edhoc_ctx->ephemeral_key.public.x, key.x, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.public.y, key.y, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.private_key, key.private, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.pub.x, key.x, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.pub.y, key.y, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->ephemeral_key.priv, key.private, ECC_KEY_LEN);
 #endif
 
   LOG_DBG("X (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->ephemeral_key.private_key, ECC_KEY_LEN);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.priv, ECC_KEY_LEN);
   LOG_DBG("G_X x (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.x, ECC_KEY_LEN);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.pub.x, ECC_KEY_LEN);
   LOG_DBG("y: ");
-  print_buff_8_dbg(edhoc_ctx->ephemeral_key.public.y, ECC_KEY_LEN);
+  print_buff_8_dbg(edhoc_ctx->ephemeral_key.pub.y, ECC_KEY_LEN);
 
   time_total = RTIMER_NOW();
   time = RTIMER_NOW() - time;
