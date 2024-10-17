@@ -168,29 +168,4 @@ hkdf_expand(const uint8_t *prk, uint16_t prk_sz, const uint8_t *info, uint16_t i
   hmac_sha256_free(ctx);
   return 1;
 }
-void
-convert_ecc_key_to_cose_key(ecc_key *key, cose_key_t *cose, char *identity, uint8_t id_sz)
-{
-  memcpy(cose->kid, key->kid, key->kid_sz);
-  cose->kid_sz = key->kid_sz; 
-  memcpy(cose->identity, identity, id_sz);
-  cose->identity_sz = id_sz;
-  memcpy(cose->ecc.pub.x, key->pub.x, ECC_KEY_LEN);
-  memcpy(cose->ecc.pub.y, key->pub.y, ECC_KEY_LEN);
-  memcpy(cose->ecc.priv, key->priv, ECC_KEY_LEN);
-}
-void
-initialize_ecc_key_from_cose(ecc_key *key, const cose_key_t *auth_key, ecc_curve_t curve)
-{
-    if (auth_key->kid_sz == 0) {
-        key->kid_sz = 0;
-    } else {
-        key->kid_sz = auth_key->kid_sz;
-        memcpy(key->kid, auth_key->kid, auth_key->kid_sz);
-    }
 
-    /* Copy the public ECC key points from the COSE key to the ECC key */
-    memcpy(key->pub.x, auth_key->ecc.pub.x, ECC_KEY_LEN);
-    memcpy(key->pub.y, auth_key->ecc.pub.y, ECC_KEY_LEN);
-    memcpy(key->priv, auth_key->ecc.priv, ECC_KEY_LEN);
-}
