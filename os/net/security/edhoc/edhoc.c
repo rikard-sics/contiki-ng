@@ -121,9 +121,6 @@ edhoc_finalize(edhoc_context_t *ctx)
 static size_t
 generate_cred_x(cose_key_t *cose, uint8_t *cred)
 {
-  cose->kty = KEY_TYPE;
-  cose->crv = KEY_CRV;
-
   size_t size = 0;
   size += cbor_put_map(&cred, 2);
   size += cbor_put_unsigned(&cred, 2);
@@ -815,13 +812,16 @@ edhoc_get_authentication_key(edhoc_context_t *ctx)
 
   if (key != NULL) {
     // Common code to copy key data
-    memcpy(ctx->authen_key.ecc.priv, key->ecc.priv, ECC_KEY_LEN);
-    memcpy(ctx->authen_key.ecc.pub.x, key->ecc.pub.x, ECC_KEY_LEN);
-    memcpy(ctx->authen_key.ecc.pub.y, key->ecc.pub.y, ECC_KEY_LEN);
     memcpy(ctx->authen_key.kid, key->kid, key->kid_sz);
     ctx->authen_key.kid_sz = key->kid_sz;
     memcpy(ctx->authen_key.identity, key->identity, key->identity_sz);
     ctx->authen_key.identity_sz = key->identity_sz;
+    ctx->authen_key.kty = key->kty;
+    ctx->authen_key.crv = key->crv;
+    memcpy(ctx->authen_key.ecc.priv, key->ecc.priv, ECC_KEY_LEN);
+    memcpy(ctx->authen_key.ecc.pub.x, key->ecc.pub.x, ECC_KEY_LEN);
+    memcpy(ctx->authen_key.ecc.pub.y, key->ecc.pub.y, ECC_KEY_LEN);
+    
     return 1;
   }
 

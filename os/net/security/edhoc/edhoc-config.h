@@ -80,10 +80,6 @@
   #define ROLE INITIATOR
 #endif
 
-/* COSE_key parameters */
-#define OKP 1  /* not implemented yet */
-#define EC2 2
-
 /* EDHOC Authentication Method Types: Initiator (I) | Responder (R) */
 #define METH0 0                  /* Signature Key  | Signature Key  */
 #define METH1 1                  /* Signature Key  | Static DH Key  */
@@ -146,8 +142,6 @@
 #define MAX_MAC_LEN 16
 
 /* Common settings for supported cipher suites */
-#define KEY_CRV 1
-#define KEY_TYPE EC2
 #define ECC_KEY_LEN 32
 #define HASH_LEN 32
 
