@@ -152,7 +152,7 @@ edhoc_context_t *edhoc_new();
  * reset the initial values to prepare for a new EDHOC connection
  */
 
-void edhoc_init(edhoc_context_t *ctx);
+void setup_suites(edhoc_context_t *ctx);
 
 /**
  * \brief Close the EDHOC context

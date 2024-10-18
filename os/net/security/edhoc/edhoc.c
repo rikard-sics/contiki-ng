@@ -71,8 +71,23 @@ edhoc_storage_init(void)
   memb_init(&edhoc_context_storage);
   hmac_storage_init();
 }
+edhoc_context_t *
+edhoc_new()
+{
+  edhoc_context_t *ctx;
+  ctx = context_new();
+  if(ctx) {
+   setup_suites(ctx);
+  }
+  return ctx;
+}
 void
-edhoc_init(edhoc_context_t *ctx)
+edhoc_finalize(edhoc_context_t *ctx)
+{
+  context_free(ctx);
+}
+void
+setup_suites(edhoc_context_t *ctx)
 {
   ctx->session.cid = EDHOC_CID;
   
@@ -102,21 +117,6 @@ edhoc_init(edhoc_context_t *ctx)
   
   ctx->session.role = ROLE;  /* initiator I (U) or responder (V) */
   ctx->session.method = METHOD;
-}
-edhoc_context_t *
-edhoc_new()
-{
-  edhoc_context_t *ctx;
-  ctx = context_new();
-  if(ctx) {
-   edhoc_init(ctx);
-  }
-  return ctx;
-}
-void
-edhoc_finalize(edhoc_context_t *ctx)
-{
-  context_free(ctx);
 }
 static size_t
 generate_cred_x(cose_key_t *cose, uint8_t *cred)
@@ -776,7 +776,6 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz, const 
   cose_encrypt0_finalize(cose);
   return ext;
 }
-// TODO: No need to copy?
 uint8_t
 edhoc_get_authentication_key(edhoc_context_t *ctx)
 {
@@ -1361,7 +1360,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 
   /* Get MAC from the decrypt msg*/
   uint16_t received_mac_sz = edhoc_get_sign(ptr, &received_mac);
-  uint16_t ad_sz = 0; //TODO
+  uint16_t ad_sz = 0;
 
   /* Get the ad from the decrypt msg*/
   if(ad_sz) {
