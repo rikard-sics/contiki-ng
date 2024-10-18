@@ -119,7 +119,7 @@ edhoc_server_restart()
   serv->state = NON_MSG;
   assert(&server != NULL);
   //memset(&server, 0, sizeof(edhoc_server_t));
-  edhoc_init(edhoc_ctx);
+  setup_suites(edhoc_ctx);
   return edhoc_get_authentication_key(edhoc_ctx);
 }
 uint8_t
