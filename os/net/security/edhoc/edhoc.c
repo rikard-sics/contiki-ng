@@ -76,9 +76,6 @@ edhoc_new()
 {
   edhoc_context_t *ctx;
   ctx = context_new();
-  if(ctx) {
-   setup_suites(ctx);
-  }
   return ctx;
 }
 void
@@ -732,6 +729,7 @@ gen_plaintext(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz, bool msg2, 
       LOG_ERR("error to get bytes\n");
       return 0;
     }
+    /* Check if to use compact encoding */
     if(sz == 1 && (pout[0] < 0x18 || (0x20 <= pout[0] && pout[0] <= 0x37))) {
       size += cbor_put_num(&buf_ptr, pout[0]);
     } else {
@@ -822,6 +820,9 @@ edhoc_initialize_context(edhoc_context_t *ctx)
   memcpy(ctx->authen_key.ecc.priv, key->ecc.priv, ECC_KEY_LEN);
   memcpy(ctx->authen_key.ecc.pub.x, key->ecc.pub.x, ECC_KEY_LEN);
   memcpy(ctx->authen_key.ecc.pub.y, key->ecc.pub.y, ECC_KEY_LEN);
+
+  /* Set up the cipher suites selection logic */
+  setup_suites(ctx);
 
   return 1;
 }
@@ -1340,6 +1341,7 @@ edhoc_get_msg_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool
     LOG_ERR("error code1 (%d)\n", ERR_CID_NOT_VALID);
     return ERR_CID_NOT_VALID;
   }
+  
   ctx->session.id_cred_x_sz = len;
   LOG_DBG("ID_CRED_X (for MAC) (%zu): ", ctx->session.id_cred_x_sz);
   print_buff_8_dbg(ctx->session.id_cred_x, ctx->session.id_cred_x_sz);
