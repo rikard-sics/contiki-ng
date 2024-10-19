@@ -370,18 +370,10 @@ int16_t edhoc_kdf(const uint8_t *prk, uint8_t info_label, const uint8_t *context
  */
 int16_t edhoc_expand(const uint8_t *prk, const uint8_t *info, uint16_t info_sz, uint16_t length, uint8_t *result);
 
-/**
- * \brief Get the SH-Static authentication pair key from the storage and set in the EDHOC context
- * \param ctx EDHOC Context struct
- *
- * Used by both Initiator and Responder EDHOC roles to set the EDHOC context with their
- * own authentication key from the EDHOC key storage. The authentication keys must be
- * established at the EDHOC key storage before running the EDHOC protocol.
- */
-uint8_t edhoc_get_authentication_key(edhoc_context_t *ctx);
-
 int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, uint8_t *ad, cose_key_t *key);
 void set_rx_gx(edhoc_context_t *ctx, const uint8_t *gx);
+uint8_t edhoc_initialize_context(edhoc_context_t *ctx);
+uint8_t edhoc_get_authentication_key(edhoc_context_t *ctx, cose_key_t **key);
 
 // static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length);
 // static int16_t get_rx_suite_I(const edhoc_context_t *ctx, uint8_t *suite_rx);

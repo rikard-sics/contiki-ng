@@ -471,7 +471,7 @@ PROCESS_THREAD(edhoc_client, ev, data)
   time_total = RTIMER_NOW();
   time = RTIMER_NOW() - time;
   LOG_INFO("Client time to gen eph key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
-  if(!edhoc_get_authentication_key(edhoc_ctx)) {
+  if(!edhoc_initialize_context(edhoc_ctx)) {
     PROCESS_EXIT();
   }
   time = RTIMER_NOW();
