@@ -112,12 +112,12 @@
 #define INITIATOR_METH1 (METHOD == METH1 && ROLE == INITIATOR)
 #define RESPONDER_METH2 (METHOD == METH2 && ROLE == RESPONDER)
 
-/* Credential Types */
+/* Types and ways to use the credential */
 #define CRED_KID 2
 #define CRED_INCLUDE 3
 
 /**
- * \brief Set the authentication credential type
+ * \brief Set the authentication credential type/usage
  */
 #ifdef EDHOC_CONF_AUTHENT_TYPE
   #define AUTHENT_TYPE EDHOC_CONF_AUTHENT_TYPE
@@ -137,8 +137,8 @@
 #define EDHOC_CIPHERSUITE_25 25 /* ChaCha20/Poly1305,  (HMAC 256/256) SHAKE256, MAC LEN 16, X448,   EdDSA, Ed448,   ChaCha20/Poly1305, SHAKE256 */
 
 /* EDHOC MAC lengths */
-#define SUITE_1_3_4_5_6_24_25_MAC_LEN 16
-#define SUITE_0_2_MAC_LEN 8
+#define MAC_LEN_16  16
+#define MAC_LEN_8   8
 #define MAX_MAC_LEN 16
 
 /* Curves for EDHOC key exchange algorithm (ECDH curve) */
