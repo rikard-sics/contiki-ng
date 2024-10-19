@@ -581,15 +581,15 @@ gen_ks_2e(edhoc_context_t *ctx, uint16_t length, uint8_t *ks_2e)
   return 1;
 }
 static uint8_t
-gen_prk_3e2m(edhoc_context_t *ctx, cose_key_t *auth_key, uint8_t gen)
+gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key *auth_key, uint8_t gen)
 {
   uint8_t grx[ECC_KEY_LEN];
   int8_t er = 0;
 
   if(gen) {
-    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, auth_key->ecc.priv, grx);
+    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, auth_key->priv, grx);
   } else {
-    er = generate_IKM(ctx->curve, auth_key->ecc.pub.x, auth_key->ecc.pub.y, ctx->ephemeral_key.priv, grx);
+    er = generate_IKM(ctx->curve, auth_key->pub.x, auth_key->pub.y, ctx->ephemeral_key.priv, grx);
   }
   if(er == 0) {
     LOG_ERR("error in generate shared secret for prk_3e2m\n");
@@ -616,15 +616,15 @@ gen_prk_3e2m(edhoc_context_t *ctx, cose_key_t *auth_key, uint8_t gen)
   return 1;
 }
 static uint8_t
-gen_prk_4e3m(edhoc_context_t *ctx, const cose_key_t *auth_key, uint8_t gen)
+gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key *auth_key, uint8_t gen)
 {
   uint8_t giy[ECC_KEY_LEN];
   int8_t er = 0;
 
   if(gen) {
-    er = generate_IKM(ctx->curve, auth_key->ecc.pub.x, auth_key->ecc.pub.y, ctx->ephemeral_key.priv, giy);
+    er = generate_IKM(ctx->curve, auth_key->pub.x, auth_key->pub.y, ctx->ephemeral_key.priv, giy);
   } else {
-    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, auth_key->ecc.priv, giy);
+    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, auth_key->priv, giy);
   }
   LOG_DBG("G_IY (ECDH shared secret) (%d bytes): ", ECC_KEY_LEN);
   print_buff_8_dbg(giy, ECC_KEY_LEN);
@@ -915,7 +915,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
 #if ((METHOD == METH1) || (METHOD == METH3))
   /* generate prk_3e2m */
-  gen_prk_3e2m(ctx, &ctx->authen_key, 1);
+  gen_prk_3e2m(ctx, &ctx->authen_key.ecc, 1);
   
   uint8_t edhoc_mac_len = get_edhoc_mac_len(ctx->session.suite_selected);
   uint8_t mac_or_sig[edhoc_mac_len];
@@ -1029,7 +1029,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
 #if ((METHOD == METH2) || (METHOD == METH3))
   /* Generate prk_4e3m */
-  gen_prk_4e3m(ctx, &ctx->authen_key, 0);
+  gen_prk_4e3m(ctx, &ctx->authen_key.ecc, 0);
 
   uint8_t edhoc_mac_len = get_edhoc_mac_len(ctx->session.suite_selected);
   uint8_t mac_or_sig[edhoc_mac_len];
@@ -1413,9 +1413,9 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 #if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
   /* Generate prk_3e2m or prk_4e3m */
   if(ROLE == INITIATOR) {
-    gen_prk_3e2m(ctx, key, 0);
+    gen_prk_3e2m(ctx, &key->ecc, 0);
   } else if(ROLE == RESPONDER) {
-    gen_prk_4e3m(ctx, key, 1);
+    gen_prk_4e3m(ctx, &key->ecc, 1);
   }
 
   if(check_mac(ctx, received_mac, received_mac_sz) == 0) {
