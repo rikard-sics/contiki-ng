@@ -237,7 +237,7 @@ static void
 print_session_info(const edhoc_context_t *ctx)
 {
   LOG_DBG("Session info print:\n");
-  LOG_DBG("Using test vector: %s\n", TEST != 0 ? "true" : "false");
+  LOG_DBG("Using test vector: %s\n", TEST == TEST_VECTOR_TRACE_DH ? "true (DH)" : "false");
   LOG_DBG("Connection role: %d\n", (int)ctx->session.role);
   LOG_DBG("Connection method: %d\n", (int)ctx->session.method);
   LOG_DBG("Selected cipher suite: %d\n", ctx->session.suite_selected);

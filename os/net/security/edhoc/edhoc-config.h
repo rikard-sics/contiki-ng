@@ -183,6 +183,17 @@
   #define SUPPORTED_SUITE_4 -1
 #endif
 
+/* Handle settings for test vectors */
+#define NO_TEST 0
+#define TEST_VECTOR_TRACE_DH 1
+#define TEST_VECTOR_TRACE_SIG 2
+
+#ifdef EDHOC_CONF_TEST
+#define TEST EDHOC_CONF_TEST
+#else
+#define TEST NO_TEST
+#endif
+
 /**
  * \brief Set the EDHOC peer as RPL node. By default deselected
  */

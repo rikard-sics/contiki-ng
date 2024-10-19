@@ -51,16 +51,6 @@
 #define CC2238_ECC 1
 #define UECC_ECC 2
 
-/* Handle settings for test vectors */
-#define NO_TEST 0
-#define TEST_VECTOR_TRACE_2 1
-
-#ifdef EDHOC_CONF_TEST
-#define TEST EDHOC_CONF_TEST
-#else
-#define TEST NO_TEST
-#endif
-
 #define ERR_INFO_SIZE -1
 #define ERR_OKM_SIZE -2
 

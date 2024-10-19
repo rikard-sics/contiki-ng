@@ -19,7 +19,7 @@
 #define EDHOC_CONF_ROLE RESPONDER /* Server */
 
 /* To run with the test vector DH ephemeral keys used on the interoperability session */
-#define EDHOC_CONF_TEST TEST_VECTOR_TRACE_2
+#define EDHOC_CONF_TEST TEST_VECTOR_TRACE_DH
 
 /* Define the authentication method */
 #define EDHOC_CONF_AUTHENT_TYPE CRED_KID
