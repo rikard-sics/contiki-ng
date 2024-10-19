@@ -358,7 +358,7 @@ edhoc_deserialize_msg_3(edhoc_msg_3 *msg, unsigned char *buffer, size_t buff_sz)
   return 1;
 }
 uint8_t
-edhoc_get_cred_x_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
+edhoc_get_auth_key_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
 {
   cose_key_t *auth_key;
   if(edhoc_check_key_list_kid(kid, kid_sz, &auth_key) == 0) {
@@ -369,7 +369,7 @@ edhoc_get_cred_x_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
   return ECC_KEY_LEN;
 }
 int8_t
-edhoc_get_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
+edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
 {
   uint8_t *id_cred_x = *p;
 
@@ -402,7 +402,7 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
   
   /* ID_CRED_R = KID (compact encoding)*/
   case 0:
-    key_sz = edhoc_get_cred_x_from_kid(key->kid, key->kid_sz, &hkey);
+    key_sz = edhoc_get_auth_key_from_kid(key->kid, key->kid_sz, &hkey);
     memcpy(key, hkey, sizeof(cose_key_t));
     if(key_sz == 0) {
       return 0;
@@ -414,7 +414,7 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
   /* ID_CRED_R = map(4:KID)  (KID 4 Byte)*/
   case 4:
     key_id_sz = edhoc_get_bytes(p, &ptr);
-    key_sz = edhoc_get_cred_x_from_kid(ptr, key_id_sz, &hkey);
+    key_sz = edhoc_get_auth_key_from_kid(ptr, key_id_sz, &hkey);
     memcpy(key, hkey, sizeof(cose_key_t));
     if(key_sz == 0) {
       return 0;
@@ -467,9 +467,12 @@ edhoc_get_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
     return 0;
   }
   uint8_t id_cred_x_sz = *p - id_cred_x;
-  memcpy(out_id_cred_x, *p, id_cred_x_sz);  
-  assert(*p - id_cred_x >= 0);
-  assert(id_cred_x_sz <= MAX_BUFFER);
+  /* Check if id_cred_x is also to be filled */
+  if (out_id_cred_x != NULL) {
+    memcpy(out_id_cred_x, *p, id_cred_x_sz);  
+    assert(*p - id_cred_x >= 0);
+    assert(id_cred_x_sz <= MAX_BUFFER);
+  }
   return id_cred_x_sz;
 }
 uint8_t
