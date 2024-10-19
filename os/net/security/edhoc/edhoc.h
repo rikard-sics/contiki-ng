@@ -83,7 +83,10 @@ typedef struct edhoc_config_t {
   uint8_t method;
   uint8_t suite[5];
   uint8_t suite_num;
-  uint8_t curve;
+  uint8_t aead_alg;
+  uint8_t mac_len;
+  uint8_t ecdh_curve;
+  uint8_t sign_alg;
 } edhoc_config_t;
 
 typedef struct edhoc_state_t {
@@ -375,7 +378,11 @@ int16_t edhoc_expand(const uint8_t *prk, const uint8_t *info, uint16_t info_sz, 
 void set_rx_gx(edhoc_context_t *ctx, const uint8_t *gx);
 uint8_t edhoc_initialize_context(edhoc_context_t *ctx);
 uint8_t edhoc_get_authentication_key(edhoc_context_t *ctx, cose_key_t **key);
-uint8_t get_edhoc_curve(uint8_t ciphersuite_id);
+int8_t set_config_from_suite(edhoc_context_t *ctx, uint8_t suite);
+int8_t get_edhoc_curve(uint8_t ciphersuite_id);
+int8_t get_edhoc_mac_len(uint8_t ciphersuite_id);
+int8_t get_edhoc_aead_enc_alg(uint8_t ciphersuite_id);
+int8_t get_edhoc_sign_alg(uint8_t ciphersuite_id);
 
 // static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length);
 // static int16_t get_rx_suite_I(const edhoc_context_t *ctx, uint8_t *suite_rx);
