@@ -1326,14 +1326,15 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
 int
 edhoc_get_msg_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool msg2)
 {
-  /* Point to decrypted plaintext for id_cred_x retrieval */
+  /* Point to decrypted plaintext for key retrieval */
   if(msg2) {
     *pt = ctx->session.plaintext + CID_LEN;
   } else {
     *pt = ctx->session.plaintext;
   }
 
-  int len = edhoc_get_id_cred_x(pt, ctx->session.id_cred_x, key);
+  // FIXME: Fill id_cred_x when it can't be calculated?
+  int len = edhoc_get_key_id_cred_x(pt, NULL, key);
   if(len == 0) {
     LOG_ERR("error code (%d)\n", ERR_ID_CRED_X_MALFORMED);
     return ERR_ID_CRED_X_MALFORMED;
@@ -1341,10 +1342,6 @@ edhoc_get_msg_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool
     LOG_ERR("error code1 (%d)\n", ERR_CID_NOT_VALID);
     return ERR_CID_NOT_VALID;
   }
-  
-  ctx->session.id_cred_x_sz = len;
-  LOG_DBG("ID_CRED_X (for MAC) (%zu): ", ctx->session.id_cred_x_sz);
-  print_buff_8_dbg(ctx->session.id_cred_x, ctx->session.id_cred_x_sz);
   return 1;
 }
 int
