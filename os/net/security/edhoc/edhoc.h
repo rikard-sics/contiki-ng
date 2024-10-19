@@ -90,10 +90,8 @@ typedef struct edhoc_session {
   uint8_t cid;
   uint8_t cid_rx;
 
-  uint8_t plaintext_2[MAX_BUFFER];
-  size_t  plaintext_2_sz;
-  uint8_t plaintext_3[MAX_BUFFER];
-  size_t  plaintext_3_sz;
+  uint8_t plaintext[MAX_BUFFER];
+  size_t  plaintext_sz;
   uint8_t cred_x[MAX_BUFFER];
   size_t  cred_x_sz;
   uint8_t id_cred_x[MAX_BUFFER];

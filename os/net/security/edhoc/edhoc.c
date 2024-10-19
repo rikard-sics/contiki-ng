@@ -765,8 +765,8 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz, const 
   print_buff_8_dbg(cose->plaintext, cose->plaintext_sz);
 
   /* RH: Save plaintext_3 for TH_3 */
-  memcpy(ctx->session.plaintext_3, cose->plaintext, cose->plaintext_sz);
-  ctx->session.plaintext_3_sz = cose->plaintext_sz;
+  memcpy(ctx->session.plaintext, cose->plaintext, cose->plaintext_sz);
+  ctx->session.plaintext_sz = cose->plaintext_sz;
 
   /* generate K_3 */
   cose->alg = get_edhoc_cose_enc_alg(ctx->session.suite_selected);
@@ -973,10 +973,10 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 #endif
 
   /* Generate and store the plaintext in the session */
-  uint16_t plaint_sz = gen_plaintext(ctx, ad, ad_sz, true, mac_or_sig, mac_or_signature_sz, ctx->session.plaintext_2);
+  uint16_t plaint_sz = gen_plaintext(ctx, ad, ad_sz, true, mac_or_sig, mac_or_signature_sz, ctx->session.plaintext);
   LOG_DBG("PLAINTEXT_2 (%d bytes): ", (int)plaint_sz);
-  print_buff_8_dbg(ctx->session.plaintext_2, plaint_sz);
-  ctx->session.plaintext_2_sz = plaint_sz;
+  print_buff_8_dbg(ctx->session.plaintext, plaint_sz);
+  ctx->session.plaintext_sz = plaint_sz;
 
   /* Derive KEYSTREAM_2 */
   uint8_t ks_2e[plaint_sz];
@@ -984,7 +984,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   /* Encrypt the plaintext */
   uint8_t ciphertext[plaint_sz];
-  memcpy(ciphertext, ctx->session.plaintext_2, plaint_sz);
+  memcpy(ciphertext, ctx->session.plaintext, plaint_sz);
   enc_dec_ciphertext_2(ctx, ks_2e, ciphertext, plaint_sz);
   LOG_DBG("CIPHERTEXT_2 (%d bytes): ", (int)plaint_sz);
   print_buff_8_dbg(ciphertext, plaint_sz);
@@ -1003,7 +1003,7 @@ void
 edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 {
   /* gen TH_3 */
-  gen_th3(ctx, ctx->session.cred_x, ctx->session.cred_x_sz, ctx->session.plaintext_2, ctx->session.plaintext_2_sz);
+  gen_th3(ctx, ctx->session.cred_x, ctx->session.cred_x_sz, ctx->session.plaintext, ctx->session.plaintext_sz);
 
   cose_print_key(&ctx->authen_key);
   LOG_DBG("SK_I (Initiator's private authentication key) (%d bytes): ", ECC_KEY_LEN);
@@ -1092,7 +1092,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   ctx->tx_sz = ciphertext_sz;
   
   /* Compute TH_4 WIP */
-  gen_th4(ctx, ctx->session.cred_x, ctx->session.cred_x_sz, ctx->session.plaintext_3, ctx->session.plaintext_3_sz);
+  gen_th4(ctx, ctx->session.cred_x, ctx->session.cred_x_sz, ctx->session.plaintext, ctx->session.plaintext_sz);
 }
 
 uint8_t
@@ -1302,18 +1302,18 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
   gen_ks_2e(ctx, ciphertext2_sz, ks_2e);
 
   /* Prepare ciphertext for decryption */
-  memcpy(ctx->session.plaintext_2, msg2->gy_ciphertext_2 + ECC_KEY_LEN, ciphertext2_sz);
+  memcpy(ctx->session.plaintext, msg2->gy_ciphertext_2 + ECC_KEY_LEN, ciphertext2_sz);
   LOG_DBG("CIPHERTEXT_2 (%d bytes): ", ciphertext2_sz);
-  print_buff_8_dbg(ctx->session.plaintext_2, ciphertext2_sz);
+  print_buff_8_dbg(ctx->session.plaintext, ciphertext2_sz);
 
   /* Actually decrypt the ciphertext */
-  size_t plaint_sz = enc_dec_ciphertext_2(ctx, ks_2e, ctx->session.plaintext_2, ciphertext2_sz);
-  ctx->session.plaintext_2_sz = plaint_sz;
+  size_t plaint_sz = enc_dec_ciphertext_2(ctx, ks_2e, ctx->session.plaintext, ciphertext2_sz);
+  ctx->session.plaintext_sz = plaint_sz;
   LOG_DBG("PLAINTEXT_2 (%zu bytes): ", plaint_sz);
-  print_buff_8_dbg(ctx->session.plaintext_2 + ECC_KEY_LEN, plaint_sz);
+  print_buff_8_dbg(ctx->session.plaintext + ECC_KEY_LEN, plaint_sz);
 
   int cr_sz = CID_LEN;
-  er = set_rx_cid(ctx, ctx->session.plaintext_2, cr_sz);
+  er = set_rx_cid(ctx, ctx->session.plaintext, cr_sz);
   if(er < 0) {
       return er;
   }
@@ -1327,9 +1327,9 @@ edhoc_get_msg_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool
 {
   /* Point to decrypted plaintext for id_cred_x retrieval */
   if(msg2) {
-    *pt = ctx->session.plaintext_2 + CID_LEN;
+    *pt = ctx->session.plaintext + CID_LEN;
   } else {
-    *pt = ctx->session.plaintext_3;
+    *pt = ctx->session.plaintext;
   }
 
   int len = edhoc_get_id_cred_x(pt, ctx->session.id_cred_x, key);
@@ -1367,17 +1367,17 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, s
   print_buff_8_dbg(msg3->ciphertext_3, msg3->ciphertext_3_sz);
   
   /* generate TH_3 */
-  gen_th3(ctx, ctx->session.cred_x, ctx->session.cred_x_sz, ctx->session.plaintext_2, ctx->session.plaintext_2_sz);
+  gen_th3(ctx, ctx->session.cred_x, ctx->session.cred_x_sz, ctx->session.plaintext, ctx->session.plaintext_sz);
 
   /* decrypt msg3 and check the TAG for verify the outer */
-  uint16_t plaintext_sz = decrypt_ciphertext_3(ctx, msg3->ciphertext_3, msg3->ciphertext_3_sz, ctx->session.plaintext_3);
-  ctx->session.plaintext_3_sz = plaintext_sz;
+  uint16_t plaintext_sz = decrypt_ciphertext_3(ctx, msg3->ciphertext_3, msg3->ciphertext_3_sz, ctx->session.plaintext);
+  ctx->session.plaintext_sz = plaintext_sz;
   if(plaintext_sz == 0) {
     LOG_ERR("Error in decrypt ciphertext 3\n");
     return ERR_DECRYPT;
   }
   LOG_DBG("PLAINTEXT_3 (%d): ", (int)plaintext_sz);
-  print_buff_8_dbg(ctx->session.plaintext_3, plaintext_sz);
+  print_buff_8_dbg(ctx->session.plaintext, plaintext_sz);
 
   return 1;
 }
@@ -1483,7 +1483,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
   /* RH: Compute TH_4 WIP (after verifying MAC_3) */
   if(ROLE == RESPONDER) { 
     /* Calculate TH_4 */
-    gen_th4(ctx, ctx->session.cred_x, ctx->session.cred_x_sz, ctx->session.plaintext_3, ctx->session.plaintext_3_sz);
+    gen_th4(ctx, ctx->session.cred_x, ctx->session.cred_x_sz, ctx->session.plaintext, ctx->session.plaintext_sz);
   }  
 
   return ad_sz;
