@@ -115,7 +115,7 @@ typedef struct edhoc_context_t {
   cose_key_t       authen_key;
   ecc_key          ephemeral_key;
   edhoc_session    session;
-  uint8_t          curve_new;
+  uint8_t          curve;
   uint8_t          msg_rx[MAX_PAYLOAD_LEN];
   uint8_t          msg_tx[MAX_PAYLOAD_LEN];
   uint16_t         rx_sz;
@@ -250,7 +250,7 @@ uint8_t edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t 
  *
  * If any verification step fails to return an EDHOC ERROR code and, if all the steps success return 1.
  */
-int edhoc_get_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool msg2);
+int edhoc_get_msg_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool msg2);
 
 /**
  * \brief Authenticate the rx message
