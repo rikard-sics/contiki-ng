@@ -116,7 +116,7 @@ cose_key_t auth_client = {
     strlen("42-50-31-FF-EF-37-32-39"),               // identity_sz
     2,                                               // kty
     1,                                               // crv
-    {                                                // ecc_key ecc
+    {                                                // ecc_key_t ecc
         { 0 },                                       // ecc.priv[ECC_KEY_LEN]
         {                                            // ecc_point_a pub
             { 0xac, 0x75, 0xe9, 0xec, 0xe3, 0xe5,
@@ -144,7 +144,7 @@ cose_key_t auth_server = {
     strlen("example.edu"),                         // identity_sz
     2,                                             // kty
     1,                                             // crv
-    {                                              // ecc_key ecc
+    {                                              // ecc_key_t ecc
         {                                          // ecc.priv[ECC_KEY_LEN]
             0x72, 0xcc, 0x47, 0x61, 0xdb, 0xd4, 0xc7, 0x8f,
             0x75, 0x89, 0x31, 0xaa, 0x58, 0x9d, 0x34, 0x8d,
@@ -181,20 +181,20 @@ cose_key_t auth_server = {
   t = RTIMER_NOW();
 
 #if TEST == TEST_VECTOR_TRACE_DH
-  memcpy(edhoc_ctx->ephemeral_key.pub.x, eph_pub_x_r, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.pub.y, eph_pub_y_r, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.priv, eph_private_r, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->creds.ephemeral_key.pub.x, eph_pub_x_r, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->creds.ephemeral_key.pub.y, eph_pub_y_r, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->creds.ephemeral_key.priv, eph_private_r, ECC_KEY_LEN);
 #else
-  generate_ephemeral_key(edhoc_ctx->ephemeral_key.pub.x, edhoc_ctx->ephemeral_key.pub.y, edhoc_ctx->ephemeral_key.priv);
+  generate_ephemeral_key(edhoc_ctx->creds.ephemeral_key.pub.x, edhoc_ctx->creds.ephemeral_key.pub.y, edhoc_ctx->creds.ephemeral_key.priv);
 #endif
 
   t = RTIMER_NOW() - t;
   LOG_INFO("Server time to generate new key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
 
   LOG_DBG("Gy (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->ephemeral_key.pub.x, ECC_KEY_LEN);
+  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.x, ECC_KEY_LEN);
   LOG_DBG("Y (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->ephemeral_key.priv, ECC_KEY_LEN);
+  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
   while(1) {
     PROCESS_WAIT_EVENT();
     uint8_t res = edhoc_server_callback(ev, &data);
@@ -217,11 +217,11 @@ cose_key_t auth_server = {
       t = RTIMER_NOW();
       
 #if TEST == TEST_VECTOR_TRACE_DH
-      memcpy(edhoc_ctx->ephemeral_key.pub.x, eph_pub_x_r, ECC_KEY_LEN);
-      memcpy(edhoc_ctx->ephemeral_key.pub.y, eph_pub_y_r, ECC_KEY_LEN);
-      memcpy(edhoc_ctx->ephemeral_key.priv, eph_private_r, ECC_KEY_LEN);
+      memcpy(edhoc_ctx->creds.ephemeral_key.pub.x, eph_pub_x_r, ECC_KEY_LEN);
+      memcpy(edhoc_ctx->creds.ephemeral_key.pub.y, eph_pub_y_r, ECC_KEY_LEN);
+      memcpy(edhoc_ctx->creds.ephemeral_key.priv, eph_private_r, ECC_KEY_LEN);
 #else
-      generate_ephemeral_key(edhoc_ctx->ephemeral_key.pub.x, edhoc_ctx->ephemeral_key.pub.y, edhoc_ctx->ephemeral_key.priv);
+      generate_ephemeral_key(edhoc_ctx->creds.ephemeral_key.pub.x, edhoc_ctx->creds.ephemeral_key.pub.y, edhoc_ctx->creds.ephemeral_key.priv);
 #endif
 
       t = RTIMER_NOW() - t;
@@ -229,9 +229,9 @@ cose_key_t auth_server = {
       LOG_INFO("Compile time: %s %s\n", __DATE__, __TIME__);
       LOG_INFO("\n");
       LOG_INFO("G_y (%d bytes): ", ECC_KEY_LEN);
-      print_buff_8_info(edhoc_ctx->ephemeral_key.pub.x, ECC_KEY_LEN);
+      print_buff_8_info(edhoc_ctx->creds.ephemeral_key.pub.x, ECC_KEY_LEN);
       LOG_INFO("Y (%d bytes): ", ECC_KEY_LEN);
-      print_buff_8_info(edhoc_ctx->ephemeral_key.priv, ECC_KEY_LEN);
+      print_buff_8_info(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
     }
   }
   PROCESS_END();
