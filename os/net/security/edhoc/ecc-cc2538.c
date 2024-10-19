@@ -119,7 +119,7 @@ cc2538_generate_IKM(const uint8_t *gx, const uint8_t *gy, const uint8_t *private
 {
   int er = 0;
   static ecc_multiply_state_t shared;
-  shared.curve_info = &nist_p_256;
+  shared.curve_info = curve.curve;
   uint8_t gy_local[ECC_KEY_LEN]; // Create a local copy of gy
 
   pka_init();

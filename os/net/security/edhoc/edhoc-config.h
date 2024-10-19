@@ -141,6 +141,9 @@
 #define SUITE_0_2_MAC_LEN 8
 #define MAX_MAC_LEN 16
 
+/* Curves for EDHOC key exchange algorithm (ECDH curve) */
+#define P256 1
+
 /* Common settings for supported cipher suites */
 #define ECC_KEY_LEN 32
 #define HASH_LEN 32

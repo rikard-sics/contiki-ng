@@ -189,11 +189,6 @@ cose_key_t auth_server = {
   generate_ephemeral_key(edhoc_ctx->ephemeral_key.pub.x, edhoc_ctx->ephemeral_key.pub.y, edhoc_ctx->ephemeral_key.priv);
 #endif
 
-#if ECC == UECC_ECC
-  LOG_INFO("Set curve of uEcc\n");
-  edhoc_ctx->curve.curve = uECC_secp256r1();
-#endif
-
   t = RTIMER_NOW() - t;
   LOG_INFO("Server time to generate new key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
 
@@ -226,11 +221,6 @@ cose_key_t auth_server = {
       LOG_INFO("Using test vector\n");
 #else
       generate_ephemeral_key(edhoc_ctx->ephemeral_key.pub.x, edhoc_ctx->ephemeral_key.pub.y, edhoc_ctx->ephemeral_key.priv);
-#endif
-
-#if ECC == UECC_ECC
-      LOG_INFO("Set curve of uEcc\n");
-      edhoc_ctx->curve.curve = uECC_secp256r1();
 #endif
 
       t = RTIMER_NOW() - t;
