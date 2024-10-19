@@ -120,7 +120,7 @@ edhoc_server_restart()
   assert(&server != NULL);
   //memset(&server, 0, sizeof(edhoc_server_t));
   setup_suites(edhoc_ctx);
-  return edhoc_get_authentication_key(edhoc_ctx);
+  return edhoc_initialize_context(edhoc_ctx);
 }
 uint8_t
 edhoc_server_start()

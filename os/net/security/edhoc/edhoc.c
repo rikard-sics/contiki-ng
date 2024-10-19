@@ -777,20 +777,41 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz, const 
   return ext;
 }
 uint8_t
-edhoc_get_authentication_key(edhoc_context_t *ctx)
+edhoc_initialize_context(edhoc_context_t *ctx)
 {
+  /* Retrieve a pointer to the auth key */
   cose_key_t *key = NULL;
+  if (!edhoc_get_authentication_key(ctx, &key)) {
+    return 0;
+  }
 
+  /* Fill key data to be used for this context */
+  memcpy(ctx->authen_key.kid, key->kid, key->kid_sz);
+  ctx->authen_key.kid_sz = key->kid_sz;
+  memcpy(ctx->authen_key.identity, key->identity, key->identity_sz);
+  ctx->authen_key.identity_sz = key->identity_sz;
+  ctx->authen_key.kty = key->kty;
+  ctx->authen_key.crv = key->crv;
+  memcpy(ctx->authen_key.ecc.priv, key->ecc.priv, ECC_KEY_LEN);
+  memcpy(ctx->authen_key.ecc.pub.x, key->ecc.pub.x, ECC_KEY_LEN);
+  memcpy(ctx->authen_key.ecc.pub.y, key->ecc.pub.y, ECC_KEY_LEN);
+
+  return 1;
+}
+uint8_t
+edhoc_get_authentication_key(edhoc_context_t *ctx, cose_key_t **key)
+{
 #ifdef AUTH_SUBJECT_NAME
-  if(edhoc_check_key_list_identity(AUTH_SUBJECT_NAME, strlen(AUTH_SUBJECT_NAME), &key)) {
+  if(edhoc_check_key_list_identity(AUTH_SUBJECT_NAME, strlen(AUTH_SUBJECT_NAME), key)) {
     // Key found using identity
+    return 1;
   } else {
     LOG_ERR("Does not contain a key for the authentication key identity\n");
   }
 #endif
 
 #ifdef AUTH_KID
-  if (key == NULL) {
+  if (*key == NULL) {
     uint8_t key_id[sizeof(int)];
     int kid = AUTH_KID;
     int quotient = (AUTH_KID / 256);
@@ -801,28 +822,14 @@ edhoc_get_authentication_key(edhoc_context_t *ctx)
     }
     memcpy(key_id, (uint8_t *)&kid, key_id_sz);
 
-    if (edhoc_check_key_list_kid(key_id, key_id_sz, &key)) {
+    if (edhoc_check_key_list_kid(key_id, key_id_sz, key)) {
       // Key found using KID
+      return 1;
     } else {
       LOG_ERR("Does not contain a key for the key ID\n");
     }
   }
 #endif
-
-  if (key != NULL) {
-    // Common code to copy key data
-    memcpy(ctx->authen_key.kid, key->kid, key->kid_sz);
-    ctx->authen_key.kid_sz = key->kid_sz;
-    memcpy(ctx->authen_key.identity, key->identity, key->identity_sz);
-    ctx->authen_key.identity_sz = key->identity_sz;
-    ctx->authen_key.kty = key->kty;
-    ctx->authen_key.crv = key->crv;
-    memcpy(ctx->authen_key.ecc.priv, key->ecc.priv, ECC_KEY_LEN);
-    memcpy(ctx->authen_key.ecc.pub.x, key->ecc.pub.x, ECC_KEY_LEN);
-    memcpy(ctx->authen_key.ecc.pub.y, key->ecc.pub.y, ECC_KEY_LEN);
-    
-    return 1;
-  }
 
   LOG_ERR("No matching key found in the storage\n");
   return 0;
