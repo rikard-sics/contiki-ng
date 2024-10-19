@@ -49,6 +49,24 @@ rtimer_clock_t t;
 
 oscore_ctx_t osc;
 
+void generate_ephemeral_key(uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv) {
+#if ECC == UECC_ECC
+  LOG_DBG("Generate key with uEcc\n");
+  uECC_Curve curve = uECC_secp256r1();
+  uECC_make_key(pub_x, priv, curve);
+#elif ECC == CC2538_ECC
+  LOG_DBG("Generate key with CC2538 HW modules\n");
+  static key_gen_t key = {
+    .process = &edhoc_example_server,
+    .curve_info = &nist_p_256,
+  };
+  PT_SPAWN(&edhoc_example_server.pt, &key.pt, generate_key_hw(&key));
+  memcpy(pub_x, key.x, ECC_KEY_LEN);
+  memcpy(pub_y, key.y, ECC_KEY_LEN);
+  memcpy(priv, key.private, ECC_KEY_LEN);
+#endif
+}
+
 PROCESS(edhoc_example_server, "EDHOC Example Server");
 AUTOSTART_PROCESSES(&edhoc_example_server);
 
@@ -161,31 +179,21 @@ cose_key_t auth_server = {
   }
 
   t = RTIMER_NOW();
+
 #if TEST == TEST_VECTOR_TRACE_2
   LOG_INFO("Using test vector\n");
   memcpy(edhoc_ctx->ephemeral_key.pub.x, eph_pub_x_r, ECC_KEY_LEN);
   memcpy(edhoc_ctx->ephemeral_key.pub.y, eph_pub_y_r, ECC_KEY_LEN);
   memcpy(edhoc_ctx->ephemeral_key.priv, eph_private_r, ECC_KEY_LEN);
-#if ECC == UECC_ECC
-  LOG_INFO("set curve of uEcc\n");
-  edhoc_ctx->curve.curve = uECC_secp256r1();
+#else
+  generate_ephemeral_key(edhoc_ctx->ephemeral_key.pub.x, edhoc_ctx->ephemeral_key.pub.y, edhoc_ctx->ephemeral_key.priv);
 #endif
-#elif ECC == UECC_ECC
-  LOG_INFO("generate key with uEcc\n");
-  edhoc_ctx->curve.curve = uECC_secp256r1();
-  uecc_generate_key(&edhoc_ctx->ephemeral_key, edhoc_ctx->curve);
-#elif ECC == CC2538_ECC
-  LOG_INFO("generate key with CC2538 HW modules\n");
-  static key_gen_t key = {
-    .process = &edhoc_example_server,
-    .curve_info = &nist_p_256,
-  };
-  PT_SPAWN(&edhoc_example_server.pt, &key.pt, generate_key_hw(&key));
-  memcpy(edhoc_ctx->ephemeral_key.pub.x, key.x, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.pub.y, key.y, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.priv, key.private, ECC_KEY_LEN);
 
+#if ECC == UECC_ECC
+  LOG_INFO("Set curve of uEcc\n");
+  edhoc_ctx->curve.curve = uECC_secp256r1();
 #endif
+
   t = RTIMER_NOW() - t;
   LOG_INFO("Server time to generate new key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
 
@@ -213,26 +221,18 @@ cose_key_t auth_server = {
       edhoc_server_restart();
       LOG_INFO("Server restarting\n");
       t = RTIMER_NOW();
+      
 #if TEST == TEST_VECTOR_TRACE_2
       LOG_INFO("Using test vector\n");
-
-#elif ECC == UECC_ECC
-      LOG_INFO("generate key with uEcc\n");
-      edhoc_ctx->curve.curve = uECC_secp256r1();
-      uecc_generate_key(&edhoc_ctx->ephemeral_key, edhoc_ctx->curve);
-#elif ECC == CC2538_ECC
-      LOG_INFO("generate key with CC2538 HW modules\n");
-      static key_gen_t key = {
-        .process = &edhoc_example_server,
-        .curve_info = &nist_p_256,
-      };
-      PT_SPAWN(&edhoc_example_server.pt, &key.pt, generate_key_hw(&key));
-
-      memcpy(edhoc_ctx->ephemeral_key.public.x, key.x, ECC_KEY_LEN);
-      memcpy(edhoc_ctx->ephemeral_key.public.y, key.y, ECC_KEY_LEN);
-      memcpy(edhoc_ctx->ephemeral_key.private_key, key.private, ECC_KEY_LEN);
-
+#else
+      generate_ephemeral_key(edhoc_ctx->ephemeral_key.pub.x, edhoc_ctx->ephemeral_key.pub.y, edhoc_ctx->ephemeral_key.priv);
 #endif
+
+#if ECC == UECC_ECC
+      LOG_INFO("Set curve of uEcc\n");
+      edhoc_ctx->curve.curve = uECC_secp256r1();
+#endif
+
       t = RTIMER_NOW() - t;
       LOG_INFO("Server time to generate new key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
       LOG_INFO("Compile time: %s %s\n", __DATE__, __TIME__);

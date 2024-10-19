@@ -70,6 +70,7 @@ generate_IKM(ecc_curve_t curve, const uint8_t *gx, const uint8_t *gy, const uint
 #endif
   return er;
 }
+
 static hmac_context_t *
 hmac_sha256_init(const uint8_t *key, uint8_t key_sz)
 {
