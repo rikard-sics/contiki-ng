@@ -110,7 +110,7 @@ typedef struct edhoc_session {
  * \brief EDHOC context struct
  */
 typedef struct edhoc_context_t {
-  cose_key_t       authen_key;
+  cose_key_t       *authen_key; // Points to key in cred storage
   ecc_key          ephemeral_key;
   edhoc_session    session;
   uint8_t          curve;
