@@ -810,17 +810,9 @@ edhoc_initialize_context(edhoc_context_t *ctx)
     return 0;
   }
 
-  /* Fill key data to be used for this context */
-  memcpy(ctx->authen_key.kid, key->kid, key->kid_sz);
-  ctx->authen_key.kid_sz = key->kid_sz;
-  memcpy(ctx->authen_key.identity, key->identity, key->identity_sz);
-  ctx->authen_key.identity_sz = key->identity_sz;
-  ctx->authen_key.kty = key->kty;
-  ctx->authen_key.crv = key->crv;
-  memcpy(ctx->authen_key.ecc.priv, key->ecc.priv, ECC_KEY_LEN);
-  memcpy(ctx->authen_key.ecc.pub.x, key->ecc.pub.x, ECC_KEY_LEN);
-  memcpy(ctx->authen_key.ecc.pub.y, key->ecc.pub.y, ECC_KEY_LEN);
-
+  /* Set pointer to found key */
+  ctx->authen_key = key;
+  
   /* Set up the cipher suites selection logic */
   setup_suites(ctx);
 
@@ -900,11 +892,11 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   }
 
   /* generate cred_x and id_cred_x */
-  ctx->session.cred_x_sz = generate_cred_x(&ctx->authen_key, ctx->session.cred_x);
+  ctx->session.cred_x_sz = generate_cred_x(ctx->authen_key, ctx->session.cred_x);
   LOG_DBG("CRED_R (%d bytes): ", (int)ctx->session.cred_x_sz);
   print_buff_8_dbg(ctx->session.cred_x, ctx->session.cred_x_sz);
 
-  ctx->session.id_cred_x_sz = generate_id_cred_x(&ctx->authen_key, ctx->session.id_cred_x);
+  ctx->session.id_cred_x_sz = generate_id_cred_x(ctx->authen_key, ctx->session.id_cred_x);
   LOG_DBG("ID_CRED_R (%d bytes): ", (int)ctx->session.id_cred_x_sz);
   print_buff_8_dbg(ctx->session.id_cred_x, ctx->session.id_cred_x_sz);
 
@@ -916,7 +908,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
 #if ((METHOD == METH1) || (METHOD == METH3))
   /* generate prk_3e2m */
-  gen_prk_3e2m(ctx, &ctx->authen_key.ecc, 1);
+  gen_prk_3e2m(ctx, &ctx->authen_key->ecc, 1);
   
   uint8_t edhoc_mac_len = get_edhoc_mac_len(ctx->session.suite_selected);
   uint8_t mac_or_sig[edhoc_mac_len];
@@ -957,7 +949,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
     return -1;
   }
 
-  cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key.ecc.priv, ECC_KEY_LEN);
+  cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key->ecc.priv, ECC_KEY_LEN);
   er = cose_sign(cose_sign1);
   if(er == 0) {
     LOG_ERR("Failed to sign for COSE_Sign1 object\n");
@@ -1006,23 +998,23 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   /* gen TH_3 */
   gen_th3(ctx, ctx->session.cred_x, ctx->session.cred_x_sz, ctx->session.plaintext, ctx->session.plaintext_sz);
 
-  cose_print_key(&ctx->authen_key);
+  cose_print_key(ctx->authen_key);
   LOG_DBG("SK_I (Initiator's private authentication key) (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(ctx->authen_key.ecc.priv, ECC_KEY_LEN);
+  print_buff_8_dbg(ctx->authen_key->ecc.priv, ECC_KEY_LEN);
 
   LOG_DBG("G_I (x)(Initiator's public authentication key) (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(ctx->authen_key.ecc.pub.x, ECC_KEY_LEN);
+  print_buff_8_dbg(ctx->authen_key->ecc.pub.x, ECC_KEY_LEN);
 
   LOG_DBG("(y) (Initiator's public authentication key) (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(ctx->authen_key.ecc.pub.y, ECC_KEY_LEN);
+  print_buff_8_dbg(ctx->authen_key->ecc.pub.y, ECC_KEY_LEN);
 
   /* generate cred_x */
-  ctx->session.cred_x_sz = generate_cred_x(&ctx->authen_key, ctx->session.cred_x);
+  ctx->session.cred_x_sz = generate_cred_x(ctx->authen_key, ctx->session.cred_x);
   LOG_DBG("CRED_I (%d bytes): ", (int)ctx->session.cred_x_sz);
   print_buff_8_dbg(ctx->session.cred_x, ctx->session.cred_x_sz);
 
   /* generate id_cred_x */
-  ctx->session.id_cred_x_sz = generate_id_cred_x(&ctx->authen_key, ctx->session.id_cred_x);
+  ctx->session.id_cred_x_sz = generate_id_cred_x(ctx->authen_key, ctx->session.id_cred_x);
   LOG_DBG("ID_CRED_I (%d bytes): ", (int)ctx->session.id_cred_x_sz);
   print_buff_8_dbg(ctx->session.id_cred_x, ctx->session.id_cred_x_sz);
 
@@ -1030,7 +1022,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
 #if ((METHOD == METH2) || (METHOD == METH3))
   /* Generate prk_4e3m */
-  gen_prk_4e3m(ctx, &ctx->authen_key.ecc, 0);
+  gen_prk_4e3m(ctx, &ctx->authen_key->ecc, 0);
 
   uint8_t edhoc_mac_len = get_edhoc_mac_len(ctx->session.suite_selected);
   uint8_t mac_or_sig[edhoc_mac_len];
@@ -1071,7 +1063,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
     return;
   }
 
-  cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key.ecc.priv, ECC_KEY_LEN);
+  cose_sign1_set_key(cose_sign1, ES256, ctx->authen_key->ecc.priv, ECC_KEY_LEN);
   er = cose_sign(cose_sign1);
   if(er == 0) {
     LOG_ERR("Failed to sign for COSE_Sign1 object\n");
