@@ -117,6 +117,9 @@ setup_suites(edhoc_context_t *ctx)
   
   ctx->session.role = ROLE;  /* initiator I (U) or responder (V) */
   ctx->session.method = METHOD;
+  
+  /* Initiator sets curve to use in context */
+  ctx->curve_new = get_edhoc_curve(ctx->session.suite_selected);
 }
 static size_t
 generate_cred_x(cose_key_t *cose, uint8_t *cred)
@@ -204,6 +207,9 @@ check_rx_suite_i(edhoc_context_t *ctx, const uint8_t *suite_rx, size_t suite_rx_
           return 0;
       }
   }
+  
+  /* Responder sets curve to use in context */
+  ctx->curve_new = get_edhoc_curve(ctx->session.suite_selected);
 
   LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
   return ERR_NEW_SUITE_PROPOSE;  
@@ -454,6 +460,26 @@ get_edhoc_cose_enc_alg(uint8_t ciphersuite_id)
       return -1;
   }
 }
+uint8_t //RH: Added
+get_edhoc_curve(uint8_t ciphersuite_id)
+{
+  switch (ciphersuite_id) {
+    case EDHOC_CIPHERSUITE_0:
+    case EDHOC_CIPHERSUITE_1:
+    case EDHOC_CIPHERSUITE_2:
+      return P256;
+    case EDHOC_CIPHERSUITE_3:
+      return P256;
+    case EDHOC_CIPHERSUITE_4:
+    case EDHOC_CIPHERSUITE_5:
+    case EDHOC_CIPHERSUITE_6:
+    case EDHOC_CIPHERSUITE_24:
+    case EDHOC_CIPHERSUITE_25:
+    default:
+      LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC curve (%d)\n", ERR_SUITE_NON_SUPPORT);        
+      return -1;
+  }
+}
 static uint8_t
 gen_mac(const edhoc_context_t *ctx, uint8_t mac_len, uint8_t *mac)
 {
@@ -511,7 +537,7 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac, uint16_t rece
 static uint8_t
 gen_gxy(edhoc_context_t *ctx, uint8_t *ikm)
 {
-  uint8_t er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, ctx->ephemeral_key.priv, ikm);
+  uint8_t er = generate_IKM(ctx->curve_new, ctx->session.gx, ctx->session.gy, ctx->ephemeral_key.priv, ikm);
   if(er == 0) {
     LOG_ERR("error in generate shared secret\n");
     return 0;
@@ -560,9 +586,9 @@ gen_prk_3e2m(edhoc_context_t *ctx, cose_key_t *auth_key, uint8_t gen)
   int8_t er = 0;
 
   if(gen) {
-    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, auth_key->ecc.priv, grx);
+    er = generate_IKM(ctx->curve_new, ctx->session.gx, ctx->session.gy, auth_key->ecc.priv, grx);
   } else {
-    er = generate_IKM(ctx->curve, auth_key->ecc.pub.x, auth_key->ecc.pub.y, ctx->ephemeral_key.priv, grx);
+    er = generate_IKM(ctx->curve_new, auth_key->ecc.pub.x, auth_key->ecc.pub.y, ctx->ephemeral_key.priv, grx);
   }
   if(er == 0) {
     LOG_ERR("error in generate shared secret for prk_3e2m\n");
@@ -595,9 +621,9 @@ gen_prk_4e3m(edhoc_context_t *ctx, const cose_key_t *auth_key, uint8_t gen)
   int8_t er = 0;
 
   if(gen) {
-    er = generate_IKM(ctx->curve, auth_key->ecc.pub.x, auth_key->ecc.pub.y, ctx->ephemeral_key.priv, giy);
+    er = generate_IKM(ctx->curve_new, auth_key->ecc.pub.x, auth_key->ecc.pub.y, ctx->ephemeral_key.priv, giy);
   } else {
-    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, auth_key->ecc.priv, giy);
+    er = generate_IKM(ctx->curve_new, ctx->session.gx, ctx->session.gy, auth_key->ecc.priv, giy);
   }
   LOG_DBG("G_IY (ECDH shared secret) (%d bytes): ", ECC_KEY_LEN);
   print_buff_8_dbg(giy, ECC_KEY_LEN);

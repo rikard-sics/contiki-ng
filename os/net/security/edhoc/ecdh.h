@@ -78,9 +78,10 @@
 #include "ecc-cc2538.h"
 #endif
 
-uint8_t generate_IKM(ecc_curve_t curve, const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm);
+uint8_t generate_IKM(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm);
 uint8_t compute_th(uint8_t *in, uint8_t in_sz, uint8_t *hash, uint8_t hash_sz);
 int8_t hkdf_extract(const uint8_t *salt, uint8_t salt_sz, const uint8_t *ikm, uint8_t ikm_sz, uint8_t *hmac);
 int8_t hkdf_expand(const uint8_t *prk, uint16_t prk_sz, const uint8_t *info, uint16_t info_sz, uint8_t *okm, uint16_t okm_sz);
+int get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve);
 
 #endif /* _ECDH_H_ */

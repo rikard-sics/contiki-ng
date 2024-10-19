@@ -59,16 +59,52 @@ static uint8_t aggregate_buffer[HASH_LEN + HKDF_INFO_MAXLEN + 1];
 static uint8_t out_buffer[HKDF_OUTPUT_MAXLEN + HASH_LEN];
 
 uint8_t
-generate_IKM(ecc_curve_t curve, const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm)
+generate_IKM(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm)
 {
-  int er = 0;
-#if ECC == UECC_ECC     /* use GX and Gy */
-  er = uecc_generate_IKM(gx, gy, private_key, ikm, curve);
-#endif
-#if ECC == CC2538_ECC
-  er = cc2538_generate_IKM(gx, gy, private_key, ikm, curve);
-#endif
+  ecc_curve_t curve;
+  int er = get_ecc_curve(curve_id, &curve);
+  if(er != 1) {
+    return er;
+  }
+
+  #if ECC == UECC_ECC
+    er = uecc_generate_IKM(gx, gy, private_key, ikm, curve);
+  #endif
+  #if ECC == CC2538_ECC
+    er = cc2538_generate_IKM(gx, gy, private_key, ikm, curve);
+  #endif
   return er;
+}
+
+int
+get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve)
+{
+#if ECC == UECC_ECC
+  switch(curve_id)
+  {
+    case P256:
+      curve->curve = uECC_secp256r1();
+      return 1;
+    default:
+      LOG_ERR("Invalid curve when trying to derive IKM with uECC\n");
+      return 0;
+  }
+#endif
+
+#if ECC == CC2538_ECC
+  switch(curve_id)
+  {
+    case P256:
+      curve->curve = &nist_p_256;
+      return 1;
+    default:
+      LOG_ERR("Invalid curve when trying to derive IKM with CC2538 ECC\n");
+      return 0
+  }
+#endif
+
+  LOG_ERR("No ECC implementation defined\n");
+  return 0;
 }
 
 static hmac_context_t *

@@ -115,7 +115,7 @@ typedef struct edhoc_context_t {
   cose_key_t       authen_key;
   ecc_key          ephemeral_key;
   edhoc_session    session;
-  ecc_curve_t      curve;
+  uint8_t          curve_new;
   uint8_t          msg_rx[MAX_PAYLOAD_LEN];
   uint8_t          msg_tx[MAX_PAYLOAD_LEN];
   uint16_t         rx_sz;
@@ -374,6 +374,7 @@ int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_l
 void set_rx_gx(edhoc_context_t *ctx, const uint8_t *gx);
 uint8_t edhoc_initialize_context(edhoc_context_t *ctx);
 uint8_t edhoc_get_authentication_key(edhoc_context_t *ctx, cose_key_t **key);
+uint8_t get_edhoc_curve(uint8_t ciphersuite_id);
 
 // static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length);
 // static int16_t get_rx_suite_I(const edhoc_context_t *ctx, uint8_t *suite_rx);

@@ -420,7 +420,7 @@ edhoc_client_start(uint8_t *ad, uint8_t ad_sz)
   coap_timer_set_callback(&timer, client_timeout_callback);
   coap_timer_set(&timer, CL_TIMEOUT_VAL);
   
-  return edhoc_send_msg1(ad,ad_sz,false);
+  return edhoc_send_msg1(ad, ad_sz, false);
 }
 static void
 generate_ephemeral_key(uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv) {
@@ -461,11 +461,6 @@ PROCESS_THREAD(edhoc_client, ev, data)
   memcpy(edhoc_ctx->ephemeral_key.priv, eph_private_i, ECC_KEY_LEN);
 #else
   generate_ephemeral_key(edhoc_ctx->ephemeral_key.pub.x, edhoc_ctx->ephemeral_key.pub.y, edhoc_ctx->ephemeral_key.priv);
-#endif
-
-#if ECC == UECC_ECC
-  LOG_DBG("Set curve of uEcc\n");
-  edhoc_ctx->curve.curve = uECC_secp256r1();
 #endif
 
   LOG_DBG("X (%d bytes): ", ECC_KEY_LEN);
