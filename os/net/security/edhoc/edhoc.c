@@ -118,8 +118,8 @@ setup_suites(edhoc_context_t *ctx)
   ctx->session.role = ROLE;  /* initiator I (U) or responder (V) */
   ctx->session.method = METHOD;
   
-  /* Initiator sets curve to use in context */
-  ctx->curve_new = get_edhoc_curve(ctx->session.suite_selected);
+  /* Initiator sets ECDH curve to use in context */
+  ctx->curve = get_edhoc_curve(ctx->session.suite_selected);
 }
 static size_t
 generate_cred_x(cose_key_t *cose, uint8_t *cred)
@@ -164,6 +164,7 @@ generate_id_cred_x(cose_key_t *cose, uint8_t *cred)
     size += cbor_put_unsigned(&cred, 4);
     size += cbor_put_bytes(&cred, cose->kid, cose->kid_sz);
   }
+  
   /* Include directly the credential used for authentication ID_CRED_X = CRED_X */
   if(AUTHENT_TYPE == CRED_INCLUDE) {
     size = generate_cred_x(cose, cred);
@@ -209,7 +210,7 @@ check_rx_suite_i(edhoc_context_t *ctx, const uint8_t *suite_rx, size_t suite_rx_
   }
   
   /* Responder sets curve to use in context */
-  ctx->curve_new = get_edhoc_curve(ctx->session.suite_selected);
+  ctx->curve = get_edhoc_curve(ctx->session.suite_selected);
 
   LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
   return ERR_NEW_SUITE_PROPOSE;  
@@ -279,19 +280,19 @@ gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub, uint8_t *msg, uint16_t msg
   return 0;
 }
 static uint8_t
-gen_th3(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz, const uint8_t *ciphertext, uint16_t ciphertext_sz)
+gen_th3(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz, const uint8_t *plaintext, uint16_t plaintext_sz)
 {
   /* TH_3 = H(TH_2, PLAINTEXT_2, CRED_R) */
-  int h_buf_sz = cbor_bytestr_size(HASH_LEN) + ciphertext_sz + cred_sz;
+  int h_buf_sz = cbor_bytestr_size(HASH_LEN) + plaintext_sz + cred_sz;
   uint8_t h[h_buf_sz];
   uint8_t *ptr = h;
   uint16_t h_sz = cbor_put_bytes(&ptr, ctx->session.th, HASH_LEN);
   LOG_DBG("TH_2 (%d): ", HASH_LEN);
   print_buff_8_dbg(ctx->session.th, HASH_LEN);
-  memcpy(h + h_sz, ciphertext, ciphertext_sz);
-  h_sz += ciphertext_sz;
-  LOG_DBG("PLAINTEXT_2 (%d): ", ciphertext_sz);
-  print_buff_8_dbg(ciphertext, ciphertext_sz);
+  memcpy(h + h_sz, plaintext, plaintext_sz);
+  h_sz += plaintext_sz;
+  LOG_DBG("PLAINTEXT_2 (%d): ", plaintext_sz);
+  print_buff_8_dbg(plaintext, plaintext_sz);
   memcpy(h + h_sz, cred, cred_sz);
   h_sz += cred_sz;
   LOG_DBG("CRED_R (%d): ", cred_sz);
@@ -310,19 +311,19 @@ gen_th3(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz, const uint8
   return 0;
 }
 static uint8_t
-gen_th4(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz, const uint8_t *ciphertext, uint16_t ciphertext_sz)
+gen_th4(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz, const uint8_t *plaintext, uint16_t plaintext_sz)
 {
   /* TH_4 = H(TH_3, PLAINTEXT_3, CRED_I) */
-  int h_buf_sz = cbor_bytestr_size(HASH_LEN) + ciphertext_sz + cred_sz;
+  int h_buf_sz = cbor_bytestr_size(HASH_LEN) + plaintext_sz + cred_sz;
   uint8_t h[h_buf_sz];
   uint8_t *ptr = h;
   uint16_t h_sz = cbor_put_bytes(&ptr, ctx->session.th, HASH_LEN);
   LOG_DBG("TH_3 (%d): ", HASH_LEN);
   print_buff_8_dbg(ctx->session.th, HASH_LEN);
-  memcpy(h + h_sz, ciphertext, ciphertext_sz);
-  h_sz += ciphertext_sz;
-  LOG_DBG("PLAINTEXT_3 (%d): ", ciphertext_sz);
-  print_buff_8_dbg(ciphertext, ciphertext_sz);
+  memcpy(h + h_sz, plaintext, plaintext_sz);
+  h_sz += plaintext_sz;
+  LOG_DBG("PLAINTEXT_3 (%d): ", plaintext_sz);
+  print_buff_8_dbg(plaintext, plaintext_sz);
   memcpy(h + h_sz, cred, cred_sz);
   h_sz += cred_sz;
   LOG_DBG("CRED_I (%d): ", cred_sz);
@@ -537,7 +538,7 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac, uint16_t rece
 static uint8_t
 gen_gxy(edhoc_context_t *ctx, uint8_t *ikm)
 {
-  uint8_t er = generate_IKM(ctx->curve_new, ctx->session.gx, ctx->session.gy, ctx->ephemeral_key.priv, ikm);
+  uint8_t er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, ctx->ephemeral_key.priv, ikm);
   if(er == 0) {
     LOG_ERR("error in generate shared secret\n");
     return 0;
@@ -586,9 +587,9 @@ gen_prk_3e2m(edhoc_context_t *ctx, cose_key_t *auth_key, uint8_t gen)
   int8_t er = 0;
 
   if(gen) {
-    er = generate_IKM(ctx->curve_new, ctx->session.gx, ctx->session.gy, auth_key->ecc.priv, grx);
+    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, auth_key->ecc.priv, grx);
   } else {
-    er = generate_IKM(ctx->curve_new, auth_key->ecc.pub.x, auth_key->ecc.pub.y, ctx->ephemeral_key.priv, grx);
+    er = generate_IKM(ctx->curve, auth_key->ecc.pub.x, auth_key->ecc.pub.y, ctx->ephemeral_key.priv, grx);
   }
   if(er == 0) {
     LOG_ERR("error in generate shared secret for prk_3e2m\n");
@@ -621,9 +622,9 @@ gen_prk_4e3m(edhoc_context_t *ctx, const cose_key_t *auth_key, uint8_t gen)
   int8_t er = 0;
 
   if(gen) {
-    er = generate_IKM(ctx->curve_new, auth_key->ecc.pub.x, auth_key->ecc.pub.y, ctx->ephemeral_key.priv, giy);
+    er = generate_IKM(ctx->curve, auth_key->ecc.pub.x, auth_key->ecc.pub.y, ctx->ephemeral_key.priv, giy);
   } else {
-    er = generate_IKM(ctx->curve_new, ctx->session.gx, ctx->session.gy, auth_key->ecc.priv, giy);
+    er = generate_IKM(ctx->curve, ctx->session.gx, ctx->session.gy, auth_key->ecc.priv, giy);
   }
   LOG_DBG("G_IY (ECDH shared secret) (%d bytes): ", ECC_KEY_LEN);
   print_buff_8_dbg(giy, ECC_KEY_LEN);
@@ -1322,7 +1323,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
 }
 
 int
-edhoc_get_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool msg2)
+edhoc_get_msg_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool msg2)
 {
   /* Point to decrypted plaintext for id_cred_x retrieval */
   if(msg2) {
@@ -1365,9 +1366,6 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, s
   LOG_DBG("CIPHERTEXT_3 (%d bytes): ", (int)msg3->ciphertext_3_sz);
   print_buff_8_dbg(msg3->ciphertext_3, msg3->ciphertext_3_sz);
   
-  LOG_DBG("MYSTERY DATA (%d bytes): ", (int)ctx->session.plaintext_2_sz);
-  print_buff_8_dbg(ctx->session.plaintext_2, ctx->session.plaintext_2_sz);
-
   /* generate TH_3 */
   gen_th3(ctx, ctx->session.cred_x, ctx->session.cred_x_sz, ctx->session.plaintext_2, ctx->session.plaintext_2_sz);
 
