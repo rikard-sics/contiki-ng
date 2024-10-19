@@ -165,7 +165,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
   if(serv->state == EXP_READY) {
     LOG_DBG("process exit\n");
   }
-  /*Check the 5-tuple information before retrieve the state protocol */
+  /* Check the 5-tuple information before retrieve the state protocol */
   if((serv->state != NON_MSG) && (memcmp(&serv->con_ipaddr, &request->src_ep->ipaddr, sizeof(uip_ipaddr_t)) != 0)) {
     LOG_ERR("rx request from an error ipaddr\n");
     coap_set_payload(response, NULL, 0);

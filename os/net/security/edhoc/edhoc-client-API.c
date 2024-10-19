@@ -422,6 +422,25 @@ edhoc_client_start(uint8_t *ad, uint8_t ad_sz)
   
   return edhoc_send_msg1(ad,ad_sz,false);
 }
+static void
+generate_ephemeral_key(uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv) {
+#if ECC == UECC_ECC
+  LOG_DBG("generate key with uEcc\n");
+  uECC_Curve curve = uECC_secp256r1();
+  uECC_make_key(pub_x, priv, curve);
+#elif ECC == CC2538_ECC
+  LOG_DBG("generate key with CC2538\n");
+  static key_gen_t key = {
+    .process = &edhoc_client,
+    .curve_info = &nist_p_256,
+  };
+  PT_SPAWN(&edhoc_client.pt, &key.pt, generate_key_hw(&key));
+
+  memcpy(pub_x, key.x, ECC_KEY_LEN);
+  memcpy(pub_y, key.y, ECC_KEY_LEN);
+  memcpy(priv, key.private, ECC_KEY_LEN);
+#endif
+}
 void
 edhoc_client_close()
 {
@@ -440,25 +459,13 @@ PROCESS_THREAD(edhoc_client, ev, data)
   memcpy(edhoc_ctx->ephemeral_key.pub.x, eph_pub_x_i, ECC_KEY_LEN);
   memcpy(edhoc_ctx->ephemeral_key.pub.y, eph_pub_y_i, ECC_KEY_LEN);
   memcpy(edhoc_ctx->ephemeral_key.priv, eph_private_i, ECC_KEY_LEN);
-#if ECC == UECC_ECC
-  LOG_DBG("set curve of uEcc\n");
-  edhoc_ctx->curve.curve = uECC_secp256r1();
+#else
+  generate_ephemeral_key(edhoc_ctx->ephemeral_key.pub.x, edhoc_ctx->ephemeral_key.pub.y, edhoc_ctx->ephemeral_key.priv);
 #endif
-#elif ECC == UECC_ECC
-  LOG_DBG("generate key with uEcc\n");
-  edhoc_ctx->curve.curve = uECC_secp256r1();
-  uecc_generate_key(&edhoc_ctx->ephemeral_key, edhoc_ctx->curve);
-#elif ECC == CC2538_ECC
-  LOG_DBG("generate key with CC2538\n");
-  static key_gen_t key = {
-    .process = &edhoc_client,
-    .curve_info = &nist_p_256,
-  };
-  PT_SPAWN(&edhoc_client.pt, &key.pt, generate_key_hw(&key));
 
-  memcpy(edhoc_ctx->ephemeral_key.pub.x, key.x, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.pub.y, key.y, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->ephemeral_key.priv, key.private, ECC_KEY_LEN);
+#if ECC == UECC_ECC
+  LOG_DBG("Set curve of uEcc\n");
+  edhoc_ctx->curve.curve = uECC_secp256r1();
 #endif
 
   LOG_DBG("X (%d bytes): ", ECC_KEY_LEN);
