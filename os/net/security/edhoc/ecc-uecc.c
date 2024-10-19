@@ -58,7 +58,7 @@ RNG(uint8_t *dest, unsigned size)
 #endif
 
 uint8_t
-uecc_generate_key(ecc_key *key, ecc_curve_t curve)
+uecc_generate_key(ecc_key_t *key, ecc_curve_t curve)
 {
   int er = 0;
   watchdog_periodic();

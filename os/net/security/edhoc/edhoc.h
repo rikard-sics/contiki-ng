@@ -78,47 +78,51 @@
 #define IV_4_LABEL           9
 #define PRK_EXPORTER_LABEL   10
 
-/**
- * \brief EDHOC session struct
- */
-typedef struct edhoc_session {
+typedef struct edhoc_config_t {
   uint8_t role;
   uint8_t method;
   uint8_t suite[5];
   uint8_t suite_num;
+  uint8_t curve;
+} edhoc_config_t;
+
+typedef struct edhoc_state_t {
   uint8_t suite_selected;
   uint8_t cid;
   uint8_t cid_rx;
-
-  uint8_t plaintext[MAX_BUFFER];
-  size_t  plaintext_sz;
-  uint8_t cred_x[MAX_BUFFER];
-  size_t  cred_x_sz;
-  uint8_t id_cred_x[MAX_BUFFER];
-  size_t  id_cred_x_sz;
-  
+  uint8_t th[HASH_LEN];
   uint8_t prk_2e[HASH_LEN];
   uint8_t prk_3e2m[HASH_LEN];
   uint8_t prk_4e3m[HASH_LEN];
   uint8_t gx[ECC_KEY_LEN];
   uint8_t gy[ECC_KEY_LEN];
-  uint8_t th[HASH_LEN];
-  
-} edhoc_session;
+} edhoc_state_t;
 
-/**
- * \brief EDHOC context struct
- */
+typedef struct edhoc_buffers_t {
+  uint8_t  msg_rx[MAX_PAYLOAD_LEN];
+  uint8_t  msg_tx[MAX_PAYLOAD_LEN];
+  uint16_t rx_sz;
+  uint16_t tx_sz;
+  uint8_t  plaintext[MAX_BUFFER];
+  size_t   plaintext_sz;
+  uint8_t  cred_x[MAX_BUFFER];
+  size_t   cred_x_sz;
+  uint8_t  id_cred_x[MAX_BUFFER];
+  size_t   id_cred_x_sz;
+} edhoc_buffers_t;
+
+typedef struct edhoc_creds_t {
+  cose_key_t *authen_key; // Points to key in cred storage
+  ecc_key_t  ephemeral_key;
+} edhoc_creds_t;
+
 typedef struct edhoc_context_t {
-  cose_key_t       *authen_key; // Points to key in cred storage
-  ecc_key          ephemeral_key;
-  edhoc_session    session;
-  uint8_t          curve;
-  uint8_t          msg_rx[MAX_PAYLOAD_LEN];
-  uint8_t          msg_tx[MAX_PAYLOAD_LEN];
-  uint16_t         rx_sz;
-  uint16_t         tx_sz;
+  edhoc_config_t  config;
+  edhoc_state_t   state;
+  edhoc_creds_t   creds;
+  edhoc_buffers_t buffers;
 } edhoc_context_t;
+
 
 /**
  * \brief EDHOC context struct used in the EDHOC protocol
@@ -390,8 +394,8 @@ uint8_t get_edhoc_curve(uint8_t ciphersuite_id);
 // static uint8_t gen_gxy(edhoc_context_t *ctx);
 // static uint8_t gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac);
 // static uint8_t gen_prk_2e(edhoc_context_t *ctx);
-// static uint8_t gen_prk_3e2m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen);
-// static uint8_t gen_prk_4e3m(edhoc_context_t *ctx, ecc_key *key_authenticate, uint8_t gen);
+// static uint8_t gen_prk_3e2m(edhoc_context_t *ctx, ecc_key_t *key_authenticate, uint8_t gen);
+// static uint8_t gen_prk_4e3m(edhoc_context_t *ctx, ecc_key_t *key_authenticate, uint8_t gen);
 // static uint8_t gen_th3(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz);
 // static uint8_t gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz);
 // static uint8_t int_sz(int num);

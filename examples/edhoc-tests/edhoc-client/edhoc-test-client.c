@@ -83,7 +83,7 @@ cose_key_t auth_client = {
     strlen("42-50-31-FF-EF-37-32-39"),              // identity_sz
     2,                                              // kty
     1,                                              // crv
-    {                                               // ecc_key ecc
+    {                                               // ecc_key_t ecc
         {                                           // ecc.priv[ECC_KEY_LEN]
             0xfb, 0x13, 0xad, 0xeb, 0x65, 0x18, 0xce, 0xe5,
             0xf8, 0x84, 0x17, 0x66, 0x08, 0x41, 0x14, 0x2e,
@@ -116,7 +116,7 @@ cose_key_t auth_server = {
     strlen("example.edu"),                         // identity_sz
     2,                                             // kty
     1,                                             // crv
-    {                                              // ecc_key ecc
+    {                                              // ecc_key_t ecc
         { 0 },                                     // ecc.priv[ECC_KEY_LEN]
         {                                          // ecc_point_a pub
             {                                      // ecc.pub.x[ECC_KEY_LEN]

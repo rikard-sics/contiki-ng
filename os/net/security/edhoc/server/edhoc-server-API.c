@@ -197,7 +197,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         process_post(PROCESS_BROADCAST, new_ecc_event, &new_ecc);
       } else if(er < RX_ERR_MSG) {
         LOG_WARN("Send MSG error with code (%d)\n", er);
-        edhoc_ctx->tx_sz = edhoc_gen_msg_error(edhoc_ctx->msg_tx, edhoc_ctx, er);
+        edhoc_ctx->buffers.tx_sz = edhoc_gen_msg_error(edhoc_ctx->buffers.msg_tx, edhoc_ctx, er);
         serv->state = TX_MSG_ERR;
         if(er != ERR_NEW_SUITE_PROPOSE){
           coap_timer_stop(&timer);
@@ -220,8 +220,8 @@ PROCESS_THREAD(edhoc_server, ev, data){
         edhoc_gen_msg_2(edhoc_ctx, (uint8_t *)new_ecc.ad.ad_2, new_ecc.ad.ad_2_sz);
         time = RTIMER_NOW() - time;
         LOG_INFO("Server time to gen MSG2: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
-        LOG_DBG("message_2 (CBOR Sequence) (%d bytes): ", edhoc_ctx->tx_sz);
-        print_buff_8_dbg(edhoc_ctx->msg_tx, edhoc_ctx->tx_sz);
+        LOG_DBG("message_2 (CBOR Sequence) (%d bytes): ", edhoc_ctx->buffers.tx_sz);
+        print_buff_8_dbg(edhoc_ctx->buffers.msg_tx, edhoc_ctx->buffers.tx_sz);
         serv->state = RX_MSG3;
       }
       break;
@@ -251,7 +251,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         process_post(PROCESS_BROADCAST, new_ecc_event, &new_ecc);
         break;
       } else if(er < RX_ERR_MSG) {
-        edhoc_ctx->tx_sz = edhoc_gen_msg_error(edhoc_ctx->msg_tx, edhoc_ctx, er);
+        edhoc_ctx->buffers.tx_sz = edhoc_gen_msg_error(edhoc_ctx->buffers.msg_tx, edhoc_ctx, er);
         coap_timer_stop(&timer);
         edhoc_server_close();
         new_ecc.val = SERV_RESTART;
@@ -273,7 +273,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
     case EXP_READY:
       if(serv->rx_msg1 && serv->rx_msg3) {
         LOG_DBG("--------------EXPORTER------------------------\n");
-        edhoc_ctx->tx_sz = 0;
+        edhoc_ctx->buffers.tx_sz = 0;
         new_ecc.val = SERV_FINISHED;
         time_total = RTIMER_NOW() - time_total;
         LOG_INFO("Server time to finish: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)(time_total * 1000 / RTIMER_SECOND), (uint32_t)time_total);
@@ -294,8 +294,8 @@ PROCESS_THREAD(edhoc_server, ev, data){
     coap_set_payload(response, NULL, 0);
     coap_set_status_code(response, DELETED_2_02);
   } else {
-    response->payload = (uint8_t *)edhoc_ctx->msg_tx;
-    response->payload_len = edhoc_ctx->tx_sz;
+    response->payload = (uint8_t *)edhoc_ctx->buffers.msg_tx;
+    response->payload_len = edhoc_ctx->buffers.tx_sz;
     coap_set_status_code(response, CHANGED_2_04);
     assert(&(response->options) != NULL);
     memset(&(response->options), 0, sizeof(response->options));
@@ -303,7 +303,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
       assert(&(request->options) != NULL);
       memset(&(request->options), 0, sizeof(request->options));
     } else {
-      coap_set_header_block2(response, 0, edhoc_ctx->tx_sz > COAP_MAX_CHUNK_SIZE ? 1 : 0, COAP_MAX_CHUNK_SIZE);
+      coap_set_header_block2(response, 0, edhoc_ctx->buffers.tx_sz > COAP_MAX_CHUNK_SIZE ? 1 : 0, COAP_MAX_CHUNK_SIZE);
     }
     if(serv->state == TX_MSG_ERR) {
       serv->state = NON_MSG;

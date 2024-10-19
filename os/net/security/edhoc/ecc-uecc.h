@@ -65,7 +65,7 @@ typedef struct ecc_curve_t {
  * The private key is stored in the `key->private_key`, and the public key is split into x and y coordinates and stored in
  * `key->public.x` and `key->public.y`, respectively.
  */
-uint8_t uecc_generate_key(ecc_key *key, ecc_curve_t curve);
+uint8_t uecc_generate_key(ecc_key_t *key, ecc_curve_t curve);
 
 /**
  * \brief Generate IKM using ECC shared secret
