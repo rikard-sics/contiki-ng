@@ -214,9 +214,12 @@ PROCESS_THREAD(edhoc_server, ev, data){
           print_char_8_dbg((char *)new_ecc.ad.ad_1, new_ecc.ad.ad_1_sz);
         }
         serv->rx_msg1 = true;
+        
+        
+        
         /*Generate MSG2 */
         time = RTIMER_NOW();
-        LOG_DBG("---------------------------------generate message_2-----------------------------\n");
+        LOG_DBG("---------------------------------Generate message_2-----------------------------\n");
         edhoc_gen_msg_2(edhoc_ctx, (uint8_t *)new_ecc.ad.ad_2, new_ecc.ad.ad_2_sz);
         time = RTIMER_NOW() - time;
         LOG_INFO("Server time to gen MSG2: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);

@@ -346,7 +346,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
         LOG_DBG("AD_2 (%d bytes): ", edhoc_state.ad.ad_2_sz);
         print_char_8_dbg((char *)edhoc_state.ad.ad_2, edhoc_state.ad.ad_2_sz);
       }
-      LOG_DBG("-----------------gen MSG3---------------------\n");
+      LOG_DBG("--------------Generate message_3------------------\n");
       /* Generate MSG3 */
       time = RTIMER_NOW();
       edhoc_gen_msg_3(edhoc_ctx, (uint8_t *)edhoc_state.ad.ad_3, edhoc_state.ad.ad_3_sz);
@@ -423,16 +423,17 @@ edhoc_client_start(uint8_t *ad, uint8_t ad_sz)
   return edhoc_send_msg1(ad, ad_sz, false);
 }
 static void
-generate_ephemeral_key(uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv) {
+generate_ephemeral_key(ecc_curve_t curve, uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv) {
+  rtimer_clock_t drv_time = RTIMER_NOW();
+
 #if ECC == UECC_ECC
   LOG_DBG("generate key with uEcc\n");
-  uECC_Curve curve = uECC_secp256r1();
-  uECC_make_key(pub_x, priv, curve);
+  uECC_make_key(pub_x, priv, curve.curve);
 #elif ECC == CC2538_ECC
   LOG_DBG("generate key with CC2538\n");
   static key_gen_t key = {
     .process = &edhoc_client,
-    .curve_info = &nist_p_256,
+    .curve_info = curve.curve,
   };
   PT_SPAWN(&edhoc_client.pt, &key.pt, generate_key_hw(&key));
 
@@ -440,6 +441,21 @@ generate_ephemeral_key(uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv) {
   memcpy(pub_y, key.y, ECC_KEY_LEN);
   memcpy(priv, key.private, ECC_KEY_LEN);
 #endif
+
+#if TEST == TEST_VECTOR_TRACE_DH
+  memcpy(edhoc_ctx->creds.ephemeral_key.pub.x, eph_pub_x_i, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->creds.ephemeral_key.pub.y, eph_pub_y_i, ECC_KEY_LEN);
+  memcpy(edhoc_ctx->creds.ephemeral_key.priv, eph_private_i, ECC_KEY_LEN);
+#endif
+
+  drv_time = RTIMER_NOW() - drv_time;
+  LOG_INFO("Client time to gen eph key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)drv_time * 1000 / RTIMER_SECOND), (uint32_t)drv_time);
+  LOG_DBG("X (%d bytes): ", ECC_KEY_LEN);
+  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
+  LOG_DBG("G_X x (%d bytes): ", ECC_KEY_LEN);
+  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.x, ECC_KEY_LEN);
+  LOG_DBG("y: ");
+  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.y, ECC_KEY_LEN);
 }
 void
 edhoc_client_close()
@@ -453,29 +469,17 @@ PROCESS_THREAD(edhoc_client, ev, data)
   PROCESS_BEGIN();
   static struct etimer wait_timer;
   edhoc_client_init();
-  time = RTIMER_NOW();
-#if TEST == TEST_VECTOR_TRACE_DH
-  memcpy(edhoc_ctx->creds.ephemeral_key.pub.x, eph_pub_x_i, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->creds.ephemeral_key.pub.y, eph_pub_y_i, ECC_KEY_LEN);
-  memcpy(edhoc_ctx->creds.ephemeral_key.priv, eph_private_i, ECC_KEY_LEN);
-#else
-  generate_ephemeral_key(edhoc_ctx->creds.ephemeral_key.pub.x, edhoc_ctx->creds.ephemeral_key.pub.y, edhoc_ctx->creds.ephemeral_key.priv);
-#endif
-
-  LOG_DBG("X (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
-  LOG_DBG("G_X x (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.x, ECC_KEY_LEN);
-  LOG_DBG("y: ");
-  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.y, ECC_KEY_LEN);
-
-  time_total = RTIMER_NOW();
-  time = RTIMER_NOW() - time;
-  LOG_INFO("Client time to gen eph key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
+  
   if(!edhoc_initialize_context(edhoc_ctx)) {
     PROCESS_EXIT();
   }
-  time = RTIMER_NOW();
+  
+  /* Generate ephemeral keys */
+  ecc_curve_t curve;
+  get_ecc_curve(edhoc_ctx->config.ecdh_curve, &curve);
+  generate_ephemeral_key(curve, edhoc_ctx->creds.ephemeral_key.pub.x, edhoc_ctx->creds.ephemeral_key.pub.y, edhoc_ctx->creds.ephemeral_key.priv);
+  
+  time_total = RTIMER_NOW();
   edhoc_client_start((uint8_t *)edhoc_state.ad.ad_1, edhoc_state.ad.ad_1_sz);
 
   while(1) {
