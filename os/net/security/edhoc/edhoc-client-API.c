@@ -75,8 +75,6 @@ static rtimer_clock_t time;
 static rtimer_clock_t time_total;
 static uint8_t attempt = 0;
 static int er = 0;
-static cose_key_t key;
-static uint8_t *pt = NULL;
 static edhoc_msg_2 msg2;
 PROCESS(edhoc_client, "EDHOC Client");
 PROCESS(edhoc_client_protocol, "EDHOC Client Protocol");
@@ -318,15 +316,11 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
        edhoc_send_msg1((uint8_t*) edhoc_state.ad.ad_1, edhoc_state.ad.ad_1_sz, true);
        break;
     }
-    else if(er > 0) {
-      er = edhoc_get_msg_auth_key(edhoc_ctx, &pt, &key, true);
-    }
 
     if(er > 0) {
       assert(msg2.gy_ciphertext_2_sz >= ECC_KEY_LEN);
       assert(msg2.gy_ciphertext_2_sz - ECC_KEY_LEN <= MAX_BUFFER);
-      int cipher_sz = msg2.gy_ciphertext_2_sz - ECC_KEY_LEN;
-      er = edhoc_authenticate_msg(edhoc_ctx, &pt, cipher_sz, (uint8_t *)edhoc_state.ad.ad_2, &key);
+      er = edhoc_authenticate_msg(edhoc_ctx, (uint8_t *)edhoc_state.ad.ad_2, true);
     }
     time = RTIMER_NOW() - time;
     LOG_DBG("Client time to authenticate MSG2: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
@@ -423,8 +417,11 @@ edhoc_client_start(uint8_t *ad, uint8_t ad_sz)
   return edhoc_send_msg1(ad, ad_sz, false);
 }
 static void
-generate_ephemeral_key(ecc_curve_t curve, uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv) {
+generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv) {
   rtimer_clock_t drv_time = RTIMER_NOW();
+
+  ecc_curve_t curve;
+  get_ecc_curve(curve_id, &curve);
 
 #if ECC == UECC_ECC
   LOG_DBG("generate key with uEcc\n");
@@ -474,10 +471,8 @@ PROCESS_THREAD(edhoc_client, ev, data)
     PROCESS_EXIT();
   }
   
-  /* Generate ephemeral keys */
-  ecc_curve_t curve;
-  get_ecc_curve(edhoc_ctx->config.ecdh_curve, &curve);
-  generate_ephemeral_key(curve, edhoc_ctx->creds.ephemeral_key.pub.x, edhoc_ctx->creds.ephemeral_key.pub.y, edhoc_ctx->creds.ephemeral_key.priv);
+  /* Generate ephemeral key */
+  generate_ephemeral_key(edhoc_ctx->config.ecdh_curve, edhoc_ctx->creds.ephemeral_key.pub.x, edhoc_ctx->creds.ephemeral_key.pub.y, edhoc_ctx->creds.ephemeral_key.priv);
   
   time_total = RTIMER_NOW();
   edhoc_client_start((uint8_t *)edhoc_state.ad.ad_1, edhoc_state.ad.ad_1_sz);
