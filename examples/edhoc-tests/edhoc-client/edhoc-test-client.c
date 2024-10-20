@@ -139,6 +139,7 @@ cose_key_t auth_server = {
   edhoc_add_key(&auth_server);
 
   edhoc_client_run();
+
   while(1) {
     watchdog_periodic();
     PROCESS_WAIT_EVENT();

@@ -112,7 +112,7 @@
 #define INITIATOR_METH1 (METHOD == METH1 && ROLE == INITIATOR)
 #define RESPONDER_METH2 (METHOD == METH2 && ROLE == RESPONDER)
 
-/* Types and ways to use the credential */
+/* Credential type/usage */
 #define CRED_KID 2
 #define CRED_INCLUDE 3
 

@@ -830,9 +830,9 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz, const 
 uint8_t
 edhoc_initialize_context(edhoc_context_t *ctx)
 {
-  /* Retrieve a pointer to the auth key */
+  /* Retrieve a pointer to own auth key */
   cose_key_t *key = NULL;
-  if (!edhoc_get_authentication_key(ctx, &key)) {
+  if (!edhoc_get_own_auth_key(ctx, &key)) {
     return 0;
   }
 
@@ -858,7 +858,7 @@ edhoc_initialize_context(edhoc_context_t *ctx)
   return 1;
 }
 uint8_t
-edhoc_get_authentication_key(edhoc_context_t *ctx, cose_key_t **key)
+edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key)
 {
 #ifdef AUTH_SUBJECT_NAME
   if(edhoc_check_key_list_identity(AUTH_SUBJECT_NAME, strlen(AUTH_SUBJECT_NAME), key)) {
@@ -1433,11 +1433,11 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, 
 
   /* generate cred_x and id_cred_x */
   ctx->buffers.cred_x_sz = generate_cred_x(key, ctx->buffers.cred_x);
-  LOG_DBG("CRED_R auth (%zu): ", ctx->buffers.cred_x_sz);
+  LOG_DBG("CRED_X auth (%zu): ", ctx->buffers.cred_x_sz);
   print_buff_8_dbg(ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
   
   ctx->buffers.id_cred_x_sz = generate_id_cred_x(key, ctx->buffers.id_cred_x);
-  LOG_DBG("ID_CRED_R auth (%zu): ", ctx->buffers.id_cred_x_sz);
+  LOG_DBG("ID_CRED_X auth (%zu): ", ctx->buffers.id_cred_x_sz);
   print_buff_8_dbg(ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
 
 #if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
