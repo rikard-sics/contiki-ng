@@ -244,20 +244,6 @@ void edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz);
 uint8_t edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t err);
 
 /**
- * \brief Get the authentication key from the rx msg
- * \param ctx EDHOC Context struct
- * \param pt A pointer to the ID_CRED_X on the Rx msg buffer.
- * \param key A pointer to a cose key struct
- * \retval ERR_CODE when an EDHOC ERROR is detected return a negative number corresponding to the specific error code
- * \retval 1 when EDHOC get success the authentication key
- *
- * Used by Initiator and Responder EDHOC role to get the authentication key from the received msg.
- *
- * If any verification step fails to return an EDHOC ERROR code and, if all the steps success return 1.
- */
-int edhoc_get_msg_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool msg2);
-
-/**
  * \brief Authenticate the rx message
  * \param ctx EDHOC Context struct
  * \param pt A pointer to the SIGN on the Rx msg buffer.
@@ -275,7 +261,7 @@ int edhoc_get_msg_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, 
  * If any verification step fails to return an EDHOC ERROR code and, if all the steps success
  * the length of the Application Data receive on the Message is returned.
  */
-int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **pt, uint8_t cipher_len, uint8_t *ad, cose_key_t *key);
+int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2);
 
 /**
  * \brief Handle the EDHOC Message 1 received

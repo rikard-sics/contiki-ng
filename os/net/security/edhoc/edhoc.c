@@ -163,7 +163,7 @@ static size_t
 generate_id_cred_x(cose_key_t *cose, uint8_t *cred)
 {
   size_t size = 0;
-  LOG_DBG("kid (%i bytes): ", cose->kid_sz);
+  LOG_DBG("kid (CHECK PRINT) (%i bytes): ", cose->kid_sz);
   print_buff_8_dbg(cose->kid, cose->kid_sz);
  
   /* Include KID */
@@ -1353,28 +1353,6 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
   
   return 1;
 }
-
-int
-edhoc_get_msg_auth_key(edhoc_context_t *ctx, uint8_t **pt, cose_key_t *key, bool msg2)
-{
-  /* Point to decrypted plaintext for key retrieval */
-  if(msg2) {
-    *pt = ctx->buffers.plaintext + CID_LEN;
-  } else {
-    *pt = ctx->buffers.plaintext;
-  }
-
-  // FIXME: Fill id_cred_x when it can't be calculated?
-  int len = edhoc_get_key_id_cred_x(pt, NULL, key);
-  if(len == 0) {
-    LOG_ERR("error code (%d)\n", ERR_ID_CRED_X_MALFORMED);
-    return ERR_ID_CRED_X_MALFORMED;
-  } else if(len < 0) {
-    LOG_ERR("error code1 (%d)\n", ERR_CID_NOT_VALID);
-    return ERR_CID_NOT_VALID;
-  }
-  return 1;
-}
 int
 edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, size_t payload_sz)
 {
@@ -1412,23 +1390,31 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, s
   return 1;
 }
 int
-edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t **ptr, uint8_t cipher_len, uint8_t *ad, cose_key_t *key)
+edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
 {
-  uint8_t *in_ptr = *ptr;
-  LOG_DBG("msg (%d bytes): ", cipher_len);
-  print_buff_8_dbg(in_ptr, cipher_len);
+  // Point to decrypted plaintext for key retrieval
+  uint8_t *plaintext_ptr = NULL;
+  if (msg2) {
+    plaintext_ptr = ctx->buffers.plaintext + CID_LEN;
+  } else {
+    plaintext_ptr = ctx->buffers.plaintext;
+  }
+
+  /* Retrieve the peer credential from msg info and cred storage */
+  cose_key_t peer_key;
+  cose_key_t *key = &peer_key;
+  edhoc_get_key_id_cred_x(&plaintext_ptr, NULL, key);
+  
+  // Get MAC from the decrypted message
   uint8_t *received_mac = NULL;
+  uint16_t received_mac_sz = edhoc_get_sign(&plaintext_ptr, &received_mac);
 
-  /* Get MAC from the decrypt msg*/
-  uint16_t received_mac_sz = edhoc_get_sign(ptr, &received_mac);
+  // Get the additional data from the decrypted message if present
   uint16_t ad_sz = 0;
-
-  /* Get the ad from the decrypt msg*/
-  if(ad_sz) {
-    ad_sz = edhoc_get_ad(ptr, ad);
+  if (ad_sz) {
+    ad_sz = edhoc_get_ad(&plaintext_ptr, ad);
   } else {
     ad = NULL;
-    ad_sz = 0;
   }
 
   /* generate cred_x and id_cred_x */

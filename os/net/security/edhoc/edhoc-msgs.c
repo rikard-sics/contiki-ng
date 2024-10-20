@@ -368,113 +368,112 @@ edhoc_get_auth_key_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
   *key = auth_key;
   return ECC_KEY_LEN;
 }
-int8_t
-edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
+int8_t edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
 {
-  uint8_t *id_cred_x = *p;
-
+  uint8_t *start = *p;
   uint8_t num = edhoc_get_maps_num(p);
-  uint8_t label;
+  uint8_t label = 0;
   int8_t key_sz = 0;
   uint8_t key_id_sz = 0;
   uint8_t *ptr = NULL;
-  char* ch = NULL;
+  char *ch = NULL;
+  cose_key_t *hkey = NULL;
 
-  cose_key_t *hkey;
-
-  if(num > 0) {
-    label = (uint8_t) edhoc_get_unsigned(p);
+  if (num > 0) {
+    label = (uint8_t)edhoc_get_unsigned(p);
   } else {
+    // Compact encoding case
     key->kid[0] = **p;
     (*p)++;
     key->kid_sz = 1;
     ptr = key->kid;
-    if(key->kid[0] == 0) {
+
+    if (key->kid[0] == 0) {
+      // Read variable-length KID
       key->kid_sz = edhoc_get_bytes(p, &ptr);
       memcpy(key->kid, ptr, key->kid_sz);
     }
     label = 0;
   }
 
-  switch(label) {
-  /* TODO: include cases for each different support authentication case */
-  /* TODO: Use defines for values in switch, and where they are set */
-  
-  /* ID_CRED_R = KID (compact encoding)*/
-  case 0:
-    key_sz = edhoc_get_auth_key_from_kid(key->kid, key->kid_sz, &hkey);
-    memcpy(key, hkey, sizeof(cose_key_t));
-    if(key_sz == 0) {
-      return 0;
-    } else if(key_sz < 0) {
-      return key_sz;
-    }
-    break;
-
-  /* ID_CRED_R = map(4:KID)  (KID 4 Byte)*/
-  case 4:
-    key_id_sz = edhoc_get_bytes(p, &ptr);
-    key_sz = edhoc_get_auth_key_from_kid(ptr, key_id_sz, &hkey);
-    memcpy(key, hkey, sizeof(cose_key_t));
-    if(key_sz == 0) {
-      return 0;
-    } else if(key_sz < 0) {
-      return key_sz;
-    }
-    break;
-
-  /* ID_CRED_R = CRED_R */
-  case 1:
-    key->kty = edhoc_get_unsigned(p);
-    int param = get_negative(p);
-    if(param != 1) {
+  switch (label) {
+    case 0:
+      // ID_CRED_R = KID (compact encoding)
+      key_sz = edhoc_get_auth_key_from_kid(key->kid, key->kid_sz, &hkey);
+      memcpy(key, hkey, sizeof(cose_key_t));
+      if (key_sz <= 0) {
+        return key_sz;
+      }
       break;
-    }
-    key->crv = (uint8_t) edhoc_get_unsigned(p);
 
-    param = get_negative(p);
-    if(param != 2) {
+    case 4:
+      // ID_CRED_R = map(4:KID)
+      key_id_sz = edhoc_get_bytes(p, &ptr);
+      key_sz = edhoc_get_auth_key_from_kid(ptr, key_id_sz, &hkey);
+      memcpy(key, hkey, sizeof(cose_key_t));
+      if (key_sz <= 0) {
+        return key_sz;
+      }
       break;
-    }
-    key_sz = edhoc_get_bytes(p, &ptr);
-    memcpy(key->ecc.pub.x, ptr, ECC_KEY_LEN);
 
-    param = get_negative(p);
-    if(param != 3) {
-      break;
-    }
-    key_sz = edhoc_get_bytes(p, &ptr);
-    memcpy(key->ecc.pub.y, ptr, ECC_KEY_LEN);
+    case 1:
+      // ID_CRED_R = CRED_R
+      key->kty = edhoc_get_unsigned(p);
 
-    //char *ch = key->identity;
-    key->identity_sz = get_text(p, &ch);
-    memcpy(key->identity, ch, key->identity_sz);
-    ch = NULL;
-    if(!memcmp(key->identity, "subject name", strlen("subject name"))) {
+      if (get_negative(p) != 1) {
+        break;
+      }
+      key->crv = (uint8_t)edhoc_get_unsigned(p);
+
+      if (get_negative(p) != 2) {
+        break;
+      }
+      key_sz = edhoc_get_bytes(p, &ptr);
+      memcpy(key->ecc.pub.x, ptr, ECC_KEY_LEN);
+
+      if (get_negative(p) != 3) {
+        break;
+      }
+      key_sz = edhoc_get_bytes(p, &ptr);
+      memcpy(key->ecc.pub.y, ptr, ECC_KEY_LEN);
+
       key->identity_sz = get_text(p, &ch);
       memcpy(key->identity, ch, key->identity_sz);
-    }
+      ch = NULL;
 
-    if(key_sz == 0) {
-      return 0;
-    } else if(key_sz < 0) {
-      return key_sz;
-    }
-    break;
+      if (key_sz <= 0) {
+        return key_sz;
+      }
+      break;
+
+    default:
+      LOG_ERR("Unknown label %d\n", label);
+      return -1;
   }
-  if(key_sz != ECC_KEY_LEN) {
-    LOG_ERR("incorrect key size\n ");
-    return 0;
+
+  if (key_sz != ECC_KEY_LEN) {
+    LOG_ERR("Incorrect key size\n");
+    return -1;
   }
-  uint8_t id_cred_x_sz = *p - id_cred_x;
-  /* Check if id_cred_x is also to be filled */
+
+  uint8_t id_cred_x_sz = *p - start;
   if (out_id_cred_x != NULL) {
-    memcpy(out_id_cred_x, *p, id_cred_x_sz);  
-    assert(*p - id_cred_x >= 0);
+    memcpy(out_id_cred_x, start, id_cred_x_sz);
+    assert(*p - start >= 0);
     assert(id_cred_x_sz <= MAX_BUFFER);
   }
+
+  /* Rebuild from compact encoding if needed */
+  if(out_id_cred_x != NULL && id_cred_x_sz == 1) {
+    id_cred_x_sz = 0;
+    id_cred_x_sz += cbor_put_map(&out_id_cred_x, 1);
+    id_cred_x_sz += cbor_put_unsigned(&out_id_cred_x, 4);
+    id_cred_x_sz += cbor_put_bytes(&out_id_cred_x, key->kid, 1);
+  }
+
   return id_cred_x_sz;
 }
+
 uint8_t
 edhoc_get_sign(uint8_t **p, uint8_t **sign)
 {
