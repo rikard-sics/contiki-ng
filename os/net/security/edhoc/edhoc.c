@@ -163,7 +163,7 @@ static size_t
 generate_id_cred_x(cose_key_t *cose, uint8_t *cred)
 {
   size_t size = 0;
-  LOG_DBG("kid (CHECK PRINT) (%i bytes): ", cose->kid_sz);
+  LOG_DBG("kid (%i bytes): ", cose->kid_sz);
   print_buff_8_dbg(cose->kid, cose->kid_sz);
  
   /* Include KID */
@@ -1428,9 +1428,9 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
 
 #if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
   /* Generate prk_3e2m or prk_4e3m */
-  if(ROLE == INITIATOR) {
+  if(msg2 == true) {
     gen_prk_3e2m(ctx, &key->ecc, 0);
-  } else if(ROLE == RESPONDER) {
+  } else { // msg3
     gen_prk_4e3m(ctx, &key->ecc, 1);
   }
 
@@ -1441,10 +1441,10 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
 #endif
 
 #if (METHOD == METH0) || INITIATOR_METH2 || RESPONDER_METH1
-  if(ROLE == INITIATOR) {
+  if(msg2 == true) {
     /* prk_3e2m is prk_2e */
     memcpy(ctx->state.prk_3e2m, ctx->state.prk_2e, HASH_LEN);
-  } else if(ROLE == RESPONDER) {
+  } else { // msg3
     /* prk_4e3m is prk_3e2m */
     memcpy(ctx->state.prk_4e3m, ctx->state.prk_3e2m, HASH_LEN);
   }
@@ -1467,11 +1467,12 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
 
   // Payload (MAC)
   uint8_t mac_num = -1;
-  if(ROLE == INITIATOR) {
+  if(msg2 == true) {
     mac_num = MAC_2;
-  } else {
+  } else { // msg3
     mac_num = MAC_3;
   }
+
   uint8_t mac[HASH_LEN];
   calc_mac(ctx, mac_num, HASH_LEN, mac);
   LOG_DBG("MAC_%d (%d bytes): ", mac_num == 2 ? 2 : 3, HASH_LEN); // MAC_2 or 3
@@ -1497,7 +1498,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
 #endif
 
   /* RH: Compute TH_4 WIP (after verifying MAC_3) */
-  if(ROLE == RESPONDER) { 
+  if(msg2 == false) { // msg 3 
     /* Calculate TH_4 */
     gen_th4(ctx, ctx->buffers.cred_x, ctx->buffers.cred_x_sz, ctx->buffers.plaintext, ctx->buffers.plaintext_sz);
   }  
