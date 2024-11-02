@@ -3,17 +3,33 @@
 
 #define LPM_CONF_MAX_PM 1
 
-
 #define EDHOC_CONF_TIMEOUT 100000
 
 /* Mandatory EDHOC definitions on Client */
 /* Define one kind of the following kind of identification for the authentication key */
 //#define AUTH_SUBJECT_NAME "Node_101"
-#define AUTH_KID 0x2b
+//#define AUTH_KID 0x2b
 
 /* Define a value for the Connection Identifier */
 // #define EDHOC_CID -24
 #define EDHOC_CID 0x37
+
+
+#define COAP_MAX_CHUNK_SIZE 300
+#define DEFAULT_CREDS 1
+
+#if DEFAULT_CREDS == 1
+#define AUTH_KID 0x2b
+#elif INTEROP_CREDS_SIGN == 1
+#define AUTH_KID 0x02
+#elif INTEROP_CREDS_DH == 1
+#define AUTH_KID 0x03
+#elif INTEROP_CREDS_CA == 1
+#define AUTH_KID 0x2b
+#endif
+
+//#define EDHOC_CONF_METHOD METH3
+
 
 /* Define the coap server to connect with */
 //#define EDHOC_CONF_SERVER_EP "coap://[fe80::212:4b00:615:9fec]"
@@ -38,7 +54,7 @@
 #define EDHOC_CONF_ECC UECC_ECC
 
 /* To run EDHOC client as RPL node */
-#define EDHOC_CONF_RPL_NODE 1
+//#define EDHOC_CONF_RPL_NODE 1
 
 /* Set the supported cipher suites */
 #define EDHOC_CONF_SUPPORTED_SUITE_1 EDHOC_CIPHERSUITE_2

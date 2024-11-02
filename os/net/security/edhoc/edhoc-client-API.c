@@ -255,6 +255,11 @@ edhoc_client_post()
 {
   coap_init_message(state.state.request, COAP_TYPE_CON, COAP_POST, 0);
   coap_set_header_uri_path(state.state.request, EDHOC_WELL_KNOWN);
+  
+#if INTEROP_CREDS_CA == 1
+coap_set_header_uri_host(state.state.request, "demo.coap.amsuess.com");
+#endif
+  
   send_sz = 0;
   msg_num = 0;
   state.state.block_num = 0;
