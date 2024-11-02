@@ -188,6 +188,8 @@ edhoc_get_byte_identifier(uint8_t **in)
   // or in the range 0x20 to 0x37 (negative integers -1 to -24)
   if ((input_byte <= 0x17) || (input_byte >= 0x20 && input_byte <= 0x37)) {
     return input_byte;
+  } else {
+    LOG_ERR("Unsupported connection identifier received from peer\n");
   }
 
   // Else: TODO: handle CBOR byte string CIDs
@@ -228,7 +230,6 @@ edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *s
   }
 }
 
-
 size_t
 edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array)
 {
@@ -266,16 +267,16 @@ edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer)
 int8_t
 edhoc_deserialize_err(edhoc_msg_error *msg, unsigned char *buffer, uint8_t buff_sz)
 {
-  uint8_t *buff_f = buffer + buff_sz;
-  if(buffer < buff_f) {
+  uint8_t *buff_end = buffer + buff_sz;
+  if(buffer < buff_end) {
     int16_t rv = edhoc_get_unsigned(&buffer);
     if(rv < 0) {
-      LOG_ERR("edhoc_deserialize_err got invalid error code\n");
+      LOG_ERR("edhoc_deserialize_err got invalid error code or not error message\n");
       return 0;
     }
     msg->err_code = (uint8_t)rv;
   }
-  if(buffer < buff_f) {
+  if(buffer < buff_end) {
     if(msg->err_code == 2) {
       // FIXME: strict aliasing violation
       edhoc_deserialize_suites(&buffer, (uint8_t **)&msg->err_info, &msg->err_info_sz);
@@ -300,18 +301,18 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
   /* Get the METHOD */
   uint8_t *p_out = NULL;
   size_t out_sz;
-  uint8_t *buff_f = buffer + buff_sz;
+  uint8_t *buff_end = buffer + buff_sz;
 
-  if(buffer < buff_f) {
+  if(buffer < buff_end) {
     int8_t unint = (int8_t)edhoc_get_unsigned(&buffer);
     msg->method = unint;
   }
   /* Get the suite */
-  if(buffer < buff_f) {
+  if(buffer < buff_end) {
     edhoc_deserialize_suites(&buffer, &msg->suites_i, &msg->suites_i_sz);
   }
   /* Get Gx */
-  if(buffer < buff_f) {
+  if(buffer < buff_end) {
     out_sz = edhoc_get_bytes(&buffer, &p_out);
     if(out_sz == 0) {
       LOG_ERR("error code (%d)\n ", ERR_MSG_MALFORMED);
@@ -320,12 +321,12 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
     msg->g_x = p_out;
   }
   /* Get the session_id (Ci) */
-  if(buffer < buff_f) {
+  if(buffer < buff_end) {
     edhoc_get_bytes(&buffer, &msg->c_i);
     msg->c_i = point_byte(&buffer);
   }
   /* Get the decrypted msg */
-  if(buffer < buff_f) {
+  if(buffer < buff_end) {
     out_sz = edhoc_get_bytes(&buffer, &p_out);
     if(out_sz == 0) {
       LOG_ERR("error code (%d)\n ", ERR_MSG_MALFORMED);
@@ -418,6 +419,7 @@ int8_t edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *
 
     case 1:
       // ID_CRED_R = CRED_R
+      LOG_DBG("**** ID_CRED_R = CRED_R");
       key->kty = edhoc_get_unsigned(p);
 
       if (get_negative(p) != 1) {

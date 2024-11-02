@@ -277,7 +277,7 @@ gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub, uint8_t *msg, uint16_t msg
   print_buff_8_dbg(msg, msg_sz);
   
   uint8_t msg_1_hash[HASH_LEN];
-  compute_th(msg, msg_sz, msg_1_hash, HASH_LEN);
+  compute_th(msg + 1, msg_sz - 1, msg_1_hash, HASH_LEN); //FIXME F5 WIP, do in client/server?
   
   cbor_put_bytes(&h_ptr, eph_pub, ECC_KEY_LEN);
   cbor_put_bytes(&h_ptr, msg_1_hash, HASH_LEN);
@@ -362,7 +362,7 @@ edhoc_kdf(const uint8_t *prk, uint8_t info_label, const uint8_t *context, uint8_
 {
   size_t info_buf_sz = cbor_int_size(info_label) + cbor_bytestr_size(context_sz) + cbor_int_size(length);
   uint8_t info_buf[info_buf_sz];
-
+  
   uint16_t info_sz = generate_info(info_label, context, context_sz, length, info_buf);
   if(info_sz == 0) {
     LOG_ERR("Error generating INFO");
@@ -678,9 +678,19 @@ gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
 static int16_t
 enc_dec_ciphertext_2(const edhoc_context_t *ctx, const uint8_t *ks_2e, uint8_t *plaintext, uint16_t plaintext_sz)
 {
+  LOG_DBG("**** Cipher/Plaintext in enc func (%d bytes): ", plaintext_sz);
+  print_buff_8_dbg(plaintext, plaintext_sz);
+
+  LOG_DBG("**** ks_2e in enc func (%d bytes): ", plaintext_sz);
+  print_buff_8_dbg(ks_2e, plaintext_sz);
+
   for(int i = 0; i < plaintext_sz; i++) {
     plaintext[i] = plaintext[i] ^ ks_2e[i];
   }
+  
+  LOG_DBG("**** Plain/Ciphertext in enc func (%d bytes): ", plaintext_sz);
+  print_buff_8_dbg(plaintext, plaintext_sz);
+  
   return plaintext_sz;
 }
 static uint16_t
@@ -907,8 +917,9 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
   };
 
   /* CBOR encode message in the buffer */
-  size_t size = edhoc_serialize_msg_1(&msg1, ctx->buffers.msg_tx, suite_array);
-  ctx->buffers.tx_sz = size;
+  size_t size = edhoc_serialize_msg_1(&msg1, (ctx->buffers.msg_tx) + 1, suite_array);
+  ctx->buffers.tx_sz = size + 1;
+  (ctx->buffers.msg_tx)[0] = 0xF5; //FIXME F5 WIP, do in client/server?
 
   LOG_DBG("C_I chosen by Initiator (%d bytes): 0x", CID_LEN);
   print_buff_8_dbg(msg1.c_i, CID_LEN);
@@ -917,6 +928,7 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
   for(int i = 0; i < msg1.suites_i_sz; ++i) {
       LOG_DBG("SUITES_I[%d]: %d\n", i, (int) msg1.suites_i[i]);
   }
+  
   LOG_DBG("message_1 (CBOR Sequence) (%d bytes): ", (int)ctx->buffers.tx_sz);
   print_buff_8_dbg(ctx->buffers.msg_tx, ctx->buffers.tx_sz);
   LOG_INFO("MSG1 sz: %d\n", (int)ctx->buffers.tx_sz);
@@ -1120,8 +1132,10 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   /* time = RTIMER_NOW(); */
   /* Gen ciphertext_3 */
-  uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac_or_sig, mac_or_signature_sz, ctx->buffers.msg_tx);
-  ctx->buffers.tx_sz = ciphertext_sz;
+  uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac_or_sig, mac_or_signature_sz, (ctx->buffers.msg_tx) + 1);
+  //FIXME Prepending
+  (ctx->buffers.msg_tx)[0] = (uint8_t) ctx->state.cid_rx;
+  ctx->buffers.tx_sz = ciphertext_sz + 1;
   
   /* Compute TH_4 WIP */
   gen_th4(ctx, ctx->buffers.cred_x, ctx->buffers.cred_x_sz, ctx->buffers.plaintext, ctx->buffers.plaintext_sz);
@@ -1250,7 +1264,6 @@ edhoc_check_err_rx_msg_2(uint8_t *payload, uint8_t payload_sz, const edhoc_conte
 int
 edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload, size_t payload_sz, uint8_t *ad)
 {
-
   edhoc_msg_1 msg1 = { 0 };
   int er = 0;
   /* Decode MSG1 */
@@ -1264,9 +1277,9 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload, size_t payload_sz, u
     return ERR_NEW_SUITE_PROPOSE;
   }
 
-  LOG_DBG("MSG1 (%d bytes): ", (int)ctx->buffers.rx_sz);
-  print_buff_8_dbg(ctx->buffers.msg_rx, ctx->buffers.rx_sz);
-  er = edhoc_deserialize_msg_1(&msg1, ctx->buffers.msg_rx, ctx->buffers.rx_sz);
+  LOG_DBG("MSG1 (%d bytes): ", (int)ctx->buffers.rx_sz - 1);
+  print_buff_8_dbg((ctx->buffers.msg_rx) + 1, ctx->buffers.rx_sz - 1);
+  er = edhoc_deserialize_msg_1(&msg1, (ctx->buffers.msg_rx) + 1, ctx->buffers.rx_sz - 1);
   if(er < 0) {
     LOG_ERR("MSG1 malformed\n");
     return er;
@@ -1329,6 +1342,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
   gen_prk_2e(ctx);
   
   /* Gen KS_2e */
+  assert(msg2->gy_ciphertext_2_sz > ECC_KEY_LEN);
   int ciphertext2_sz = msg2->gy_ciphertext_2_sz - ECC_KEY_LEN;
   uint8_t ks_2e[ciphertext2_sz];
   gen_ks_2e(ctx, ciphertext2_sz, ks_2e);
@@ -1342,7 +1356,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
   size_t plaint_sz = enc_dec_ciphertext_2(ctx, ks_2e, ctx->buffers.plaintext, ciphertext2_sz);
   ctx->buffers.plaintext_sz = plaint_sz;
   LOG_DBG("PLAINTEXT_2 (%zu bytes): ", plaint_sz);
-  print_buff_8_dbg(ctx->buffers.plaintext + ECC_KEY_LEN, plaint_sz);
+  print_buff_8_dbg(ctx->buffers.plaintext, plaint_sz);
 
   int cr_sz = CID_LEN;
   er = set_rx_cid(ctx, ctx->buffers.plaintext, cr_sz);
@@ -1364,7 +1378,8 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, s
     return RX_ERR_MSG;
   }
 
-  int8_t er = edhoc_deserialize_msg_3(msg3, ctx->buffers.msg_rx, ctx->buffers.rx_sz);
+  //FIXME Deserialize, skipping C_R
+  int8_t er = edhoc_deserialize_msg_3(msg3, (ctx->buffers.msg_rx) + 1, ctx->buffers.rx_sz - 1);
   if(er < 0) {
     LOG_ERR("MSG3 malformed\n");
     return er;

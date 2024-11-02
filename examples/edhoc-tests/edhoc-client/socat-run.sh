@@ -5,8 +5,10 @@
 
 # Server IP address (internal or external)
 # DEST_IP="23.97.187.154"
-DEST_IP="172.17.0.1" # To host system
+# DEST_IP="10.200.192.35" # To host system
 # DEST_IP="[fe80::42:26ff:fe66:461d]" # To host system IPv6
+# DEST_IP="[2a01:4f8:190:3064::6]"
+DEST_IP="5.9.147.112"
 
 # Trap SIGINT (CTRL-C) and exit gracefully
 trap "echo 'Exiting...'; exit" SIGINT
