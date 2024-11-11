@@ -21,7 +21,7 @@ static size_t big_msg_len = 0;
 static void
 res_edhoc_post_handler(coap_message_t *request, coap_message_t *response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  int block_size = 300; //FIXME
+  int block_size = 300; //FIXME: Make configurable
   
   if(*offset == 0) {
     if(coap_block1_handler(request, response, msg_rx, &msg_rx_len, MAX_PAYLOAD_LEN)) {

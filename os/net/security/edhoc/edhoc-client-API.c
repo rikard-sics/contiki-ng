@@ -171,7 +171,7 @@ client_block2_handler(coap_message_t *response, uint8_t *target, size_t *len, si
     *len = response->block2_offset + pay_len;
     assert(*len <= MAX_BUFFER);
     print_buff_8_dbg((uint8_t *)payload, (unsigned long)pay_len);
-    target = target + pay_len; //RH: FIXME: Pointless assignment. Are things wrong here?
+    target = target + pay_len; // FIXME: Pointless assignment. Are things wrong here?
   }
   return 0;
 }
@@ -255,10 +255,6 @@ edhoc_client_post()
 {
   coap_init_message(state.state.request, COAP_TYPE_CON, COAP_POST, 0);
   coap_set_header_uri_path(state.state.request, EDHOC_WELL_KNOWN);
-  
-#if INTEROP_CREDS_CA == 1
-coap_set_header_uri_host(state.state.request, "demo.coap.amsuess.com");
-#endif
   
   send_sz = 0;
   msg_num = 0;

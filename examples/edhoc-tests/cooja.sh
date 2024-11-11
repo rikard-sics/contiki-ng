@@ -10,7 +10,7 @@ rm COOJA-m3.testlog
 rm -r edhoc-client/build
 rm -r edhoc-server/build
 
-# Run Cooja with the specified arguments in no-GUI mode (using Method 0)
+# Run Cooja in no-GUI mode (using Method 0)
 cooja --args="--no-gui edhoc-tests-cooja.csc" && \
 # After Cooja finishes, process the log file COOJA.testlog
 cat COOJA.testlog | \
@@ -44,7 +44,7 @@ if ! grep -q "TEST OK" "$file_to_check"; then
 fi
 
 
-# Run Cooja with the specified arguments in no-GUI mode (using Method 3)
+# Run Cooja in no-GUI mode (using Method 3)
 sed -i 's/#define METHOD METH0/#define METHOD METH3/g' /home/user/contiki-ng/os/net/security/edhoc/edhoc-config.h
 cooja --args="--no-gui edhoc-tests-cooja.csc" && \
 # After Cooja finishes, process the log file COOJA.testlog

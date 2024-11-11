@@ -15,8 +15,10 @@
 // #define EDHOC_CID -8
 #define EDHOC_CID 0x27
 
-
+// Large size to avoid usage of block-wise
 #define COAP_MAX_CHUNK_SIZE 300
+
+// Set default creds (not interoping)
 #define DEFAULT_CREDS 1
 
 #if DEFAULT_CREDS == 1
@@ -26,9 +28,6 @@
 #elif INTEROP_CREDS_DH == 1
 #define AUTH_KID 0x0a
 #endif
-
-// #define EDHOC_CONF_METHOD METH0
-
 
 /* Define the party role on the EDHOC protocol as responder and the correlation method */
 #define EDHOC_CONF_ROLE RESPONDER /* Server */
