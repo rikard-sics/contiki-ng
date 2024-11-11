@@ -58,11 +58,11 @@ edhoc_exporter(const uint8_t *in_key, uint8_t exporter_label, const uint8_t *con
   int8_t er = edhoc_kdf(in_key, exporter_label, context, context_sz, length, result);
   return er;
 }
-// RH: Actually store PRK_out and PRK_exporter. Then use them in edhoc_exporter above.
+// TODO: May be better to actually store PRK_out & PRK_exporter and then use them in edhoc_exporter above
 int8_t
 edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
 {
-  /* RH: WIP Derive prk_out */
+  /* Derive prk_out */
   int prk_out_sz = HASH_LEN;
   uint8_t prk_out[prk_out_sz];
   int8_t er = edhoc_kdf(ctx->state.prk_4e3m, PRK_OUT_LABEL, ctx->state.th, HASH_LEN, prk_out_sz, prk_out);
@@ -72,7 +72,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   LOG_DBG("PRK_out (%d bytes): ", prk_out_sz);
   print_buff_8_dbg(prk_out, prk_out_sz);
   
-  /* RH: WIP Derive prk_exporter */
+  /* Derive prk_exporter */
   int prk_exporter_sz = HASH_LEN;
   uint8_t prk_exporter[prk_exporter_sz];
   er = edhoc_kdf(prk_out, PRK_EXPORTER_LABEL, NULL, 0, prk_exporter_sz, prk_exporter);
@@ -92,7 +92,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
     osc->server_ID = ctx->state.cid;
   }
   
-  /* RH: WIP Derive OSCORE Master Secret */
+  /* Derive OSCORE Master Secret */
   er = edhoc_exporter(prk_exporter, OSCORE_MASTER_SECRET_LABEL, NULL, 0, OSCORE_KEY_SZ, osc->master_secret);
   if(er < 0) {
     return er;

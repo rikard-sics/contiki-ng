@@ -277,7 +277,7 @@ gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub, uint8_t *msg, uint16_t msg
   print_buff_8_dbg(msg, msg_sz);
   
   uint8_t msg_1_hash[HASH_LEN];
-  compute_th(msg + 1, msg_sz - 1, msg_1_hash, HASH_LEN); //FIXME F5 WIP, do in client/server?
+  compute_th(msg + 1, msg_sz - 1, msg_1_hash, HASH_LEN); //FIXME: Improve skipping of CBOR true for TH
   
   cbor_put_bytes(&h_ptr, eph_pub, ECC_KEY_LEN);
   cbor_put_bytes(&h_ptr, msg_1_hash, HASH_LEN);
@@ -389,11 +389,11 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num, uint8_t mac_len, uint8_t *
 
   if(mac_num == MAC_2) {
     
-    /* RH: Build context_2 */
+    /* Build context_2 */
     size_t context_2_buf_sz = CID_LEN + ctx->buffers.id_cred_x_sz + cbor_bytestr_size(HASH_LEN) + ctx->buffers.cred_x_sz;
     uint8_t context_2[context_2_buf_sz];
     uint8_t *context_2_ptr = context_2;
-    /* RH: Add C_R */
+    /* Add C_R */
     if(ROLE == INITIATOR) {
       context_2_ptr[0] = (uint8_t) ctx->state.cid_rx;
     } else {
@@ -408,7 +408,7 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num, uint8_t mac_len, uint8_t *
     LOG_DBG("CONTEXT_2 (%zu bytes): ", context_2_buf_sz);
     print_buff_8_dbg(context_2, context_2_buf_sz);
     
-    /* RH: Use edhoc_kdf to generate MAC_2 */
+    /* Use edhoc_kdf to generate MAC_2 */
     int16_t er = edhoc_kdf(ctx->state.prk_3e2m, MAC_2_LABEL, context_2, context_2_buf_sz, mac_len, mac);
     if (er < 0) {
       LOG_ERR("Failed to expand MAC_2\n");
@@ -417,7 +417,7 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num, uint8_t mac_len, uint8_t *
 
   } else if(mac_num == MAC_3) {
   
-    /* RH: Build context_3 */
+    /* Build context_3 */
     size_t context_3_buf_sz = ctx->buffers.id_cred_x_sz + cbor_bytestr_size(HASH_LEN) + ctx->buffers.cred_x_sz;
     uint8_t context_3[context_3_buf_sz];
     uint8_t *context_3_ptr = context_3;
@@ -429,7 +429,7 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num, uint8_t mac_len, uint8_t *
     LOG_DBG("CONTEXT_3 (%zu bytes): ", context_3_buf_sz);
     print_buff_8_dbg(context_3, context_3_buf_sz);
 
-    /* RH: Use edhoc_kdf to generate MAC_3 */
+    /* Use edhoc_kdf to generate MAC_3 */
     int16_t er = edhoc_kdf(ctx->state.prk_4e3m, MAC_3_LABEL, context_3, context_3_buf_sz, mac_len, mac);
     if (er < 0) {
       LOG_ERR("Failed to expand MAC_3\n");
@@ -442,7 +442,7 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num, uint8_t mac_len, uint8_t *
 
   return 1;
 }
-int8_t //RH: Added
+int8_t // Added
 get_edhoc_mac_len(uint8_t ciphersuite_id)
 {
   switch (ciphersuite_id) {
@@ -462,7 +462,7 @@ get_edhoc_mac_len(uint8_t ciphersuite_id)
       return 0;
   }
 }
-int8_t //RH: Added
+int8_t // Added
 get_edhoc_aead_enc_alg(uint8_t ciphersuite_id)
 {
   switch (ciphersuite_id) {
@@ -477,7 +477,7 @@ get_edhoc_aead_enc_alg(uint8_t ciphersuite_id)
       return 0;
   }
 }
-int8_t //RH: Added
+int8_t // Added
 get_edhoc_curve(uint8_t ciphersuite_id)
 {
   switch (ciphersuite_id) {
@@ -490,7 +490,7 @@ get_edhoc_curve(uint8_t ciphersuite_id)
       return 0;
   }
 }
-int8_t //RH: Added
+int8_t // Added
 get_edhoc_sign_alg(uint8_t ciphersuite_id)
 {
   switch (ciphersuite_id) {
@@ -544,7 +544,7 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac, uint16_t rece
   LOG_DBG("Recalculated MAC (%d): ", (int)edhoc_mac_len);
   print_buff_8_dbg(mac, edhoc_mac_len);
   
-  /* RH: Verify the MAC value */
+  /* Verify the MAC value */
   uint16_t mac_sz = edhoc_mac_len;
   uint8_t diff = 0;
   for(int i = 0 ; i < edhoc_mac_len ; i++) {
@@ -798,7 +798,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz, const 
   LOG_DBG("PLAINTEXT_3 (%d bytes): ", (int)cose->plaintext_sz);
   print_buff_8_dbg(cose->plaintext, cose->plaintext_sz);
 
-  /* RH: Save plaintext_3 for TH_3 */
+  /* Save plaintext_3 for TH_3 */
   memcpy(ctx->buffers.plaintext, cose->plaintext, cose->plaintext_sz);
   ctx->buffers.plaintext_sz = cose->plaintext_sz;
 
@@ -919,7 +919,7 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
   /* CBOR encode message in the buffer */
   size_t size = edhoc_serialize_msg_1(&msg1, (ctx->buffers.msg_tx) + 1, suite_array);
   ctx->buffers.tx_sz = size + 1;
-  (ctx->buffers.msg_tx)[0] = 0xF5; //FIXME F5 WIP, do in client/server?
+  (ctx->buffers.msg_tx)[0] = 0xF5; //FIXME: Improve pre-pending of CBOR true (do in client/server?)
 
   LOG_DBG("C_I chosen by Initiator (%d bytes): 0x", CID_LEN);
   print_buff_8_dbg(msg1.c_i, CID_LEN);
@@ -1131,9 +1131,10 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 #endif
 
   /* time = RTIMER_NOW(); */
+  
   /* Gen ciphertext_3 */
   uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac_or_sig, mac_or_signature_sz, (ctx->buffers.msg_tx) + 1);
-  //FIXME Prepending
+  //FIXME: Improve prepending of C_R
   (ctx->buffers.msg_tx)[0] = (uint8_t) ctx->state.cid_rx;
   ctx->buffers.tx_sz = ciphertext_sz + 1;
   
@@ -1378,7 +1379,7 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, s
     return RX_ERR_MSG;
   }
 
-  //FIXME Deserialize, skipping C_R
+  // FIXME: Improve skipping of C_R
   int8_t er = edhoc_deserialize_msg_3(msg3, (ctx->buffers.msg_rx) + 1, ctx->buffers.rx_sz - 1);
   if(er < 0) {
     LOG_ERR("MSG3 malformed\n");
@@ -1512,7 +1513,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   }
 #endif
 
-  /* RH: Compute TH_4 WIP (after verifying MAC_3) */
+  /* Compute TH_4 WIP (after verifying MAC_3) */
   if(msg2 == false) { // msg 3 
     /* Calculate TH_4 */
     gen_th4(ctx, ctx->buffers.cred_x, ctx->buffers.cred_x_sz, ctx->buffers.plaintext, ctx->buffers.plaintext_sz);

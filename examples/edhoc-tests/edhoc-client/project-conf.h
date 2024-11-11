@@ -14,10 +14,11 @@
 // #define EDHOC_CID -24
 #define EDHOC_CID 0x37
 
-
+// Large size to avoid block-wise
 #define COAP_MAX_CHUNK_SIZE 300
 #define DEFAULT_CREDS 1
 
+// Use default creds (not interoping)
 #if DEFAULT_CREDS == 1
 #define AUTH_KID 0x2b
 #elif INTEROP_CREDS_SIGN == 1
@@ -27,9 +28,6 @@
 #elif INTEROP_CREDS_CA == 1
 #define AUTH_KID 0x2b
 #endif
-
-//#define EDHOC_CONF_METHOD METH3
-
 
 /* Define the coap server to connect with */
 //#define EDHOC_CONF_SERVER_EP "coap://[fe80::212:4b00:615:9fec]"
