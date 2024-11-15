@@ -12,18 +12,21 @@ CoAP server is the EDHOC Responder. The MSG1 and MSG3 are transferred in POST re
 Notice that the authentication keys must be established at the EDHOC key storage before running the EDHOC protocol. For this reason, an edhoc-key-storage.h() API function is provided in order to set the COSE_key with the correct struct format.
 At the configuration file, the credential type used for authentication must be selected. Two types have been implemented:
 - `CRED_KID` : The EDHOC exchanging a unique identity of the public authentication key to be retrieved. Before running the EDHOC protocol each party need at least a DH-static public key and a set of identities which is allowed to communicate with.
-- `CRED_INCLUDE` : The EDHOC exchanging messages which include directly the actual credential (DH-static public key) formatted as a COSE_Key of type EC2. The EDHOC protocol can runs without prior knowledge of the other peer. Each peer provisionally accepts the RPK of the other party until posterior authentication.
+- `CRED_INCLUDE` : The EDHOC exchanging messages which include directly the actual credential (DH-static public key) formatted as a CCS (CWT Claims Set). The EDHOC protocol can runs without prior knowledge of the other peer. Each peer provisionally accepts the credentials of the other party until posterior authentication and verification.
 
 ### Supported functionality
 
 The implementation supports the following features of EDHOC:
-
-- Ciphersuite: 2, 3
-- Method: 0, 1, 2, 3
-- Credential identifier: KID
-- Credential type: CCS of type EC2
-- Message_4: No
-- EAD items: None
+- Cipher Suites: 2, 3
+- Methods: 0, 1, 2, 3 
+- Credential Details:
+   - Identifier: KID (single byte) 
+   - Inclusion: By reference 
+   - Type: CCS 
+- Message_4: No 
+- EAD Items: None 
+- Message flows: Only forward message flow 
+- Connection Identifiers: Only single bytes (excluding empty CBOR byte string)
 
 ### EDHOC configuration
 The following macro must be defined on the configuration file:
