@@ -418,7 +418,8 @@ int8_t edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *
       break;
 
     case 1:
-      // ID_CRED_R = CRED_R
+      // ID_CRED_R = CRED_R (inclusion of credentials)
+      // FIXME: Does note seem to correctly rebuild the CCS and/or the CRED_X
       LOG_DBG("**** ID_CRED_R = CRED_R");
       key->kty = edhoc_get_unsigned(p);
 
