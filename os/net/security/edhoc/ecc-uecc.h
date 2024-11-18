@@ -91,6 +91,6 @@ uint8_t uecc_generate_IKM(const uint8_t *gx_in, const uint8_t *gy_in, const uint
  * This function generates `size` random bytes using the system's random number generator and stores
  * them in the output buffer `dest`.
  */
-// static int RNG(uint8_t *dest, unsigned size);
+/* static int RNG(uint8_t *dest, unsigned size); */
 
 #endif

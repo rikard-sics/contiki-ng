@@ -197,8 +197,7 @@ uint8_t edhoc_server_get_ad_1(char *buff);
  */
 uint8_t edhoc_server_get_ad_3(char *buff);
 
-
-// static void server_timeout_callback(coap_timer_t *timer);
+/* static void server_timeout_callback(coap_timer_t *timer); */
 
 #endif /* _EDHOC_SERVER_API_H_ */
 /** @} */

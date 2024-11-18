@@ -69,17 +69,19 @@ static edhoc_msg_3 msg3;
 PROCESS(edhoc_server, "EDHOC Server");
 
 #if TEST == TEST_VECTOR_TRACE_DH
-  uint8_t eph_pub_x_r[ECC_KEY_LEN] = { 0x41, 0x97, 0x01, 0xd7, 0xf0, 0x0a, 0x26, 0xc2, 0xdc, 0x58, 0x7a, 0x36, 0xdd, 0x75, 0x25, 0x49, 0xf3, 0x37, 0x63, 0xc8, 0x93, 0x42, 0x2c,
-    0x8e, 0xa0, 0xf9, 0x55, 0xa1, 0x3a, 0x4f, 0xf5, 0xd5 };
+uint8_t eph_pub_x_r[ECC_KEY_LEN] = { 0x41, 0x97, 0x01, 0xd7, 0xf0, 0x0a, 0x26, 0xc2, 0xdc, 0x58, 0x7a, 0x36, 0xdd, 0x75, 0x25, 0x49, 0xf3, 0x37, 0x63, 0xc8, 0x93, 0x42, 0x2c,
+                                     0x8e, 0xa0, 0xf9, 0x55, 0xa1, 0x3a, 0x4f, 0xf5, 0xd5 };
 
-  uint8_t eph_pub_y_r[ECC_KEY_LEN] = { 0x5e, 0x4f, 0x0d, 0xd8, 0xa3, 0xda, 0x0b, 0xaa, 0x16, 0xb9, 0xd3, 0xad, 0x56, 0xa0, 0xc1, 0x86, 0x0a, 0x94, 0x0a, 0xf8, 0x59, 0x14, 0x91,
-    0x5e, 0x25, 0x01, 0x9b, 0x40, 0x24, 0x17, 0xe9, 0x9d };
+uint8_t eph_pub_y_r[ECC_KEY_LEN] = { 0x5e, 0x4f, 0x0d, 0xd8, 0xa3, 0xda, 0x0b, 0xaa, 0x16, 0xb9, 0xd3, 0xad, 0x56, 0xa0, 0xc1, 0x86, 0x0a, 0x94, 0x0a, 0xf8, 0x59, 0x14, 0x91,
+                                     0x5e, 0x25, 0x01, 0x9b, 0x40, 0x24, 0x17, 0xe9, 0x9d };
 
-  uint8_t eph_private_r[ECC_KEY_LEN] = { 0xe2, 0xf4, 0x12, 0x67, 0x77, 0x20, 0x5e, 0x85, 0x3b, 0x43, 0x7d, 0x6e, 0xac, 0xa1, 0xe1, 0xf7, 0x53, 0xcd, 0xcc, 0x3e, 0x2c, 0x69, 0xfa,
-    0x88, 0x4b, 0x0a, 0x1a, 0x64, 0x09, 0x77, 0xe4, 0x18 };
+uint8_t eph_private_r[ECC_KEY_LEN] = { 0xe2, 0xf4, 0x12, 0x67, 0x77, 0x20, 0x5e, 0x85, 0x3b, 0x43, 0x7d, 0x6e, 0xac, 0xa1, 0xe1, 0xf7, 0x53, 0xcd, 0xcc, 0x3e, 0x2c, 0x69, 0xfa,
+                                       0x88, 0x4b, 0x0a, 0x1a, 0x64, 0x09, 0x77, 0xe4, 0x18 };
 #endif
 
-void generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv) {
+void
+generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv)
+{
   rtimer_clock_t drv_time = RTIMER_NOW();
 
   ecc_curve_t curve;
@@ -113,7 +115,6 @@ void generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, ui
   LOG_DBG("Y (%d bytes): ", ECC_KEY_LEN);
   print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
 }
-
 int8_t
 edhoc_server_callback(process_event_t ev, void *data)
 {
@@ -162,7 +163,7 @@ edhoc_server_restart()
   serv->rx_msg3 = false;
   serv->state = NON_MSG;
   assert(&server != NULL);
-  //memset(&server, 0, sizeof(edhoc_server_t));
+  /*memset(&server, 0, sizeof(edhoc_server_t)); */
   setup_suites(edhoc_ctx);
   return edhoc_initialize_context(edhoc_ctx);
 }
@@ -172,7 +173,7 @@ edhoc_server_start()
   LOG_INFO("SERVER: EDHOC new\n");
   edhoc_ctx = edhoc_new();
   assert(&server != NULL);
-  //memset(&server, 0, sizeof(edhoc_server_t));
+  /*memset(&server, 0, sizeof(edhoc_server_t)); */
   serv = &server;
   return edhoc_server_restart();
 }
@@ -220,7 +221,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
     case NON_MSG:
       coap_timer_set_callback(&timer, server_timeout_callback);
       coap_timer_set(&timer, SERV_TIMEOUT_VAL);
-      /* FIXME: missing break? */
+    /* FIXME: missing break? */
     case RX_MSG1:
       LOG_DBG("----------------------------------Handler message_1-----------------------------\n");
       LOG_DBG("RX message_1 (CBOR Sequence) (%d bytes):\n", (int)msg_rx_len);
@@ -243,7 +244,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         LOG_WARN("Send MSG error with code (%d)\n", er);
         edhoc_ctx->buffers.tx_sz = edhoc_gen_msg_error(edhoc_ctx->buffers.msg_tx, edhoc_ctx, er);
         serv->state = TX_MSG_ERR;
-        if(er != ERR_NEW_SUITE_PROPOSE){
+        if(er != ERR_NEW_SUITE_PROPOSE) {
           coap_timer_stop(&timer);
           edhoc_server_close();
           new_ecc.val = SERV_RESTART;
@@ -258,7 +259,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
           print_char_8_dbg((char *)new_ecc.ad.ad_1, new_ecc.ad.ad_1_sz);
         }
         serv->rx_msg1 = true;
-        
+
         /* Generate MSG2 */
         time = RTIMER_NOW();
         LOG_DBG("---------------------------------Generate message_2-----------------------------\n");
@@ -312,7 +313,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         serv->state = EXP_READY;
         serv->rx_msg3 = true;
       }
-      /* FIXME: missing break? */
+    /* FIXME: missing break? */
     case EXP_READY:
       if(serv->rx_msg1 && serv->rx_msg3) {
         LOG_DBG("--------------EXPORTER------------------------\n");

@@ -131,9 +131,9 @@ typedef struct cose_sign1 {
   uint8_t external_aad_sz;
 } cose_sign1;
 
-//TODO: Comment below. Merge with encrypt0 ones?
+/*TODO: Comment below. Merge with encrypt0 ones? */
 void sign1_storage_init(void);
-cose_sign1* cose_sign1_new();
+cose_sign1 *cose_sign1_new(void);
 void cose_sign1_finalize(cose_sign1 *sign);
 void cose_sign1_set_header(cose_sign1 *sign1, const uint8_t *prot, uint16_t prot_sz, const uint8_t *unp, uint16_t unp_sz);
 uint8_t cose_sign1_set_payload(cose_sign1 *sign1, const uint8_t *payload, uint16_t payload_sz);
@@ -152,7 +152,7 @@ uint8_t cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_a
  *
  * Used to create a new cose_encrypt0 and allocate at the memory reserved dynamically
  */
-cose_encrypt0 *cose_encrypt0_new();
+cose_encrypt0 *cose_encrypt0_new(void);
 
 /**
  * \brief Create a new cose_sign1 context
@@ -160,7 +160,7 @@ cose_encrypt0 *cose_encrypt0_new();
  *
  * Used to create a new cose_sign1 and allocate at the memory reserved dynamically
  */
-cose_sign1 *cose_sign1_new();
+cose_sign1 *cose_sign1_new(void);
 
 /**
  * \brief Close the cose_encrypt0 context

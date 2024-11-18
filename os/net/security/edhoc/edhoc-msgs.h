@@ -69,7 +69,6 @@ typedef struct ead_data {
   size_t ead_value_sz;
 } ead_data;
 
-
 typedef struct edhoc_msg_1 {
   uint8_t method;
   uint8_t *suites_i;
@@ -123,9 +122,8 @@ void edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size
 
 int edhoc_put_byte_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len);
 
-
-// static int16_t get_text(uint8_t **in, char **out);
-// static int64_t get_negative(uint8_t **in);
-// static uint8_t get_byte(uint8_t **in);
+/* static int16_t get_text(uint8_t **in, char **out); */
+/* static int64_t get_negative(uint8_t **in); */
+/* static uint8_t get_byte(uint8_t **in); */
 
 #endif

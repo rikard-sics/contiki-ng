@@ -55,15 +55,15 @@ void print_buff(const uint8_t *buff, size_t len);
 void print_char(const char *buff, size_t len);
 
 #define LOG_EDHOC_BUFF(level, data, len) do { \
-    if(level <= (LOG_LEVEL)) { \
-      print_buff(data, len); \
-    } \
+          if(level <= (LOG_LEVEL)) { \
+            print_buff(data, len); \
+          } \
 } while(0)
 
 #define LOG_EDHOC_STR(level, data, len) do { \
-    if(level <= (LOG_LEVEL)) { \
-      print_char(data, len); \
-    } \
+          if(level <= (LOG_LEVEL)) { \
+            print_char(data, len); \
+          } \
 } while(0)
 
 #define LOG_ERR_EDHOC_BUFF(data, len)  LOG_EDHOC_BUFF(LOG_LEVEL_ERR, data, len)

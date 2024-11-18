@@ -38,7 +38,7 @@
  *         Rikard Höglund
  *         Marco Tiloca
  */
- 
+
 #include "edhoc.h"
 #include "contiki-lib.h"
 #include "edhoc-config.h"
@@ -88,46 +88,48 @@ setup_suites(edhoc_context_t *ctx)
 {
   /* Reverse order for the suite values */
   ctx->config.suite_num = 0;
-  if (SUPPORTED_SUITE_4 > -1) {
-      ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_4;
-      ctx->config.suite_num++;
+  if(SUPPORTED_SUITE_4 > -1) {
+    ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_4;
+    ctx->config.suite_num++;
   }
-  if (SUPPORTED_SUITE_3 > -1) {
-      ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_3;
-      ctx->config.suite_num++;
+  if(SUPPORTED_SUITE_3 > -1) {
+    ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_3;
+    ctx->config.suite_num++;
   }
-  if (SUPPORTED_SUITE_2 > -1) {
-      ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_2;
-      ctx->config.suite_num++;
+  if(SUPPORTED_SUITE_2 > -1) {
+    ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_2;
+    ctx->config.suite_num++;
   }
-  if (SUPPORTED_SUITE_1 > -1) {
-      ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_1;
-      ctx->state.suite_selected = SUPPORTED_SUITE_1;
-      ctx->config.suite_num++;
+  if(SUPPORTED_SUITE_1 > -1) {
+    ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_1;
+    ctx->state.suite_selected = SUPPORTED_SUITE_1;
+    ctx->config.suite_num++;
   }
 
-  if (ctx->config.suite_num == 0) {
+  if(ctx->config.suite_num == 0) {
     LOG_ERR("No supported cipher suites set (%d)\n", ERR_SUITE_NON_SUPPORT);
   }
 }
-int8_t set_config_from_suite(edhoc_context_t *ctx, uint8_t suite) {
-    if ((ctx->config.ecdh_curve = get_edhoc_curve(suite)) == 0) {
-        return 0;
-    }
+int8_t
+set_config_from_suite(edhoc_context_t *ctx, uint8_t suite)
+{
+  if((ctx->config.ecdh_curve = get_edhoc_curve(suite)) == 0) {
+    return 0;
+  }
 
-    if ((ctx->config.mac_len = get_edhoc_mac_len(ctx->state.suite_selected)) == 0) {
-        return 0;
-    }
+  if((ctx->config.mac_len = get_edhoc_mac_len(ctx->state.suite_selected)) == 0) {
+    return 0;
+  }
 
-    if ((ctx->config.aead_alg = get_edhoc_aead_enc_alg(ctx->state.suite_selected)) == 0) {
-        return 0;
-    }
+  if((ctx->config.aead_alg = get_edhoc_aead_enc_alg(ctx->state.suite_selected)) == 0) {
+    return 0;
+  }
 
-    if ((ctx->config.sign_alg = get_edhoc_sign_alg(ctx->state.suite_selected)) == 0) {
-        return 0;
-    }
+  if((ctx->config.sign_alg = get_edhoc_sign_alg(ctx->state.suite_selected)) == 0) {
+    return 0;
+  }
 
-    return 1;
+  return 1;
 }
 static size_t
 generate_cred_x(cose_key_t *cose, uint8_t *cred)
@@ -165,14 +167,14 @@ generate_id_cred_x(cose_key_t *cose, uint8_t *cred)
   size_t size = 0;
   LOG_DBG("kid (%i bytes): ", cose->kid_sz);
   print_buff_8_dbg(cose->kid, cose->kid_sz);
- 
+
   /* Include KID */
   if(AUTHENT_TYPE == CRED_KID) {
     size += cbor_put_map(&cred, 1);
     size += cbor_put_unsigned(&cred, 4);
     size += cbor_put_bytes(&cred, cose->kid, cose->kid_sz);
   }
-  
+
   /* Include directly the credential used for authentication ID_CRED_X = CRED_X */
   if(AUTHENT_TYPE == CRED_INCLUDE) {
     size = generate_cred_x(cose, cred);
@@ -194,7 +196,7 @@ set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz)
   if(cidrx_sz == 1) {
     ctx->state.cid_rx = (uint8_t)edhoc_get_byte_identifier(&cidrx);
   }
-  
+
   if(ctx->state.cid_rx == ctx->state.cid) {
     LOG_ERR("error code2 (%d)\n", ERR_CID_NOT_VALID);
     return ERR_CID_NOT_VALID;
@@ -210,26 +212,26 @@ check_rx_suite_i(edhoc_context_t *ctx, const uint8_t *suite_rx, size_t suite_rx_
 
   /* Check if the selected suite is supported */
   ctx->state.suite_selected = -1;
-  for (uint8_t i = 0; i < ctx->config.suite_num; i++) {
-      if (ctx->config.suite[i] == peer_selected_suite) {
-          ctx->state.suite_selected = peer_selected_suite;
-          LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
-          break;
-      }
+  for(uint8_t i = 0; i < ctx->config.suite_num; i++) {
+    if(ctx->config.suite[i] == peer_selected_suite) {
+      ctx->state.suite_selected = peer_selected_suite;
+      LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
+      break;
+    }
   }
-  
+
   /* Responder sets config to use based on selected suite */
   if(ctx->state.suite_selected != -1) {
     int8_t er = set_config_from_suite(ctx, ctx->state.suite_selected);
     if(er != 1) {
       LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
-      return ERR_NEW_SUITE_PROPOSE;  
+      return ERR_NEW_SUITE_PROPOSE;
     }
     return 0;
   }
-  
+
   LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
-  return ERR_NEW_SUITE_PROPOSE;  
+  return ERR_NEW_SUITE_PROPOSE;
 }
 void
 set_rx_gx(edhoc_context_t *ctx, const uint8_t *gx)
@@ -272,16 +274,16 @@ gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub, uint8_t *msg, uint16_t msg
   int h_buf_sz = cbor_bytestr_size(HASH_LEN) + cbor_bytestr_size(ECC_KEY_LEN);
   uint8_t h[h_buf_sz];
   uint8_t *h_ptr = h;
-  
+
   LOG_DBG("Input to calculate H(msg1) (%d bytes): ", (int)msg_sz);
   print_buff_8_dbg(msg, msg_sz);
-  
+
   uint8_t msg_1_hash[HASH_LEN];
-  compute_th(msg + 1, msg_sz - 1, msg_1_hash, HASH_LEN); //FIXME: Improve skipping of CBOR true for TH
-  
+  compute_th(msg + 1, msg_sz - 1, msg_1_hash, HASH_LEN); /*FIXME: Improve skipping of CBOR true for TH */
+
   cbor_put_bytes(&h_ptr, eph_pub, ECC_KEY_LEN);
   cbor_put_bytes(&h_ptr, msg_1_hash, HASH_LEN);
-  
+
   /* Compute TH */
   LOG_DBG("Input to TH_2 (%d): ", h_buf_sz);
   print_buff_8_dbg(h, h_buf_sz);
@@ -290,7 +292,7 @@ gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub, uint8_t *msg, uint16_t msg
     LOG_ERR("ERR COMPUTED H(G_Y, H(msg1))\n");
     return ERR_CODE;
   }
-  
+
   LOG_DBG("TH_2 (%d bytes): ", (int)HASH_LEN);
   print_buff_8_dbg(ctx->state.th, HASH_LEN);
   return 0;
@@ -362,13 +364,13 @@ edhoc_kdf(const uint8_t *prk, uint8_t info_label, const uint8_t *context, uint8_
 {
   size_t info_buf_sz = cbor_int_size(info_label) + cbor_bytestr_size(context_sz) + cbor_int_size(length);
   uint8_t info_buf[info_buf_sz];
-  
+
   uint16_t info_sz = generate_info(info_label, context, context_sz, length, info_buf);
   if(info_sz == 0) {
     LOG_ERR("Error generating INFO");
     return info_sz;
   }
-  
+
   return edhoc_expand(prk, info_buf, info_sz, length, result);
 }
 int16_t
@@ -388,16 +390,16 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num, uint8_t mac_len, uint8_t *
 {
 
   if(mac_num == MAC_2) {
-    
+
     /* Build context_2 */
     size_t context_2_buf_sz = CID_LEN + ctx->buffers.id_cred_x_sz + cbor_bytestr_size(HASH_LEN) + ctx->buffers.cred_x_sz;
     uint8_t context_2[context_2_buf_sz];
     uint8_t *context_2_ptr = context_2;
     /* Add C_R */
     if(ROLE == INITIATOR) {
-      context_2_ptr[0] = (uint8_t) ctx->state.cid_rx;
+      context_2_ptr[0] = (uint8_t)ctx->state.cid_rx;
     } else {
-      context_2_ptr[0] = (uint8_t) ctx->state.cid;
+      context_2_ptr[0] = (uint8_t)ctx->state.cid;
     }
     context_2_ptr += CID_LEN;
     memcpy(context_2_ptr, ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
@@ -407,16 +409,15 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num, uint8_t mac_len, uint8_t *
     context_2_ptr += ctx->buffers.cred_x_sz;
     LOG_DBG("CONTEXT_2 (%zu bytes): ", context_2_buf_sz);
     print_buff_8_dbg(context_2, context_2_buf_sz);
-    
+
     /* Use edhoc_kdf to generate MAC_2 */
     int16_t er = edhoc_kdf(ctx->state.prk_3e2m, MAC_2_LABEL, context_2, context_2_buf_sz, mac_len, mac);
-    if (er < 0) {
+    if(er < 0) {
       LOG_ERR("Failed to expand MAC_2\n");
       return 0;
     }
-
   } else if(mac_num == MAC_3) {
-  
+
     /* Build context_3 */
     size_t context_3_buf_sz = ctx->buffers.id_cred_x_sz + cbor_bytestr_size(HASH_LEN) + ctx->buffers.cred_x_sz;
     uint8_t context_3[context_3_buf_sz];
@@ -431,7 +432,7 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num, uint8_t mac_len, uint8_t *
 
     /* Use edhoc_kdf to generate MAC_3 */
     int16_t er = edhoc_kdf(ctx->state.prk_4e3m, MAC_3_LABEL, context_3, context_3_buf_sz, mac_len, mac);
-    if (er < 0) {
+    if(er < 0) {
       LOG_ERR("Failed to expand MAC_3\n");
       return 0;
     }
@@ -442,66 +443,70 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num, uint8_t mac_len, uint8_t *
 
   return 1;
 }
-int8_t // Added
+int8_t
+/* Added */
 get_edhoc_mac_len(uint8_t ciphersuite_id)
 {
-  switch (ciphersuite_id) {
-    case EDHOC_CIPHERSUITE_1:
-    case EDHOC_CIPHERSUITE_3:
-    case EDHOC_CIPHERSUITE_4:
-    case EDHOC_CIPHERSUITE_5:
-    case EDHOC_CIPHERSUITE_6:
-    case EDHOC_CIPHERSUITE_24:
-    case EDHOC_CIPHERSUITE_25:
-      return MAC_LEN_16;
-    case EDHOC_CIPHERSUITE_0:
-    case EDHOC_CIPHERSUITE_2:
-      return MAC_LEN_8;
-    default:
-      LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC MAC length (%d)\n", ERR_SUITE_NON_SUPPORT);        
-      return 0;
+  switch(ciphersuite_id) {
+  case EDHOC_CIPHERSUITE_1:
+  case EDHOC_CIPHERSUITE_3:
+  case EDHOC_CIPHERSUITE_4:
+  case EDHOC_CIPHERSUITE_5:
+  case EDHOC_CIPHERSUITE_6:
+  case EDHOC_CIPHERSUITE_24:
+  case EDHOC_CIPHERSUITE_25:
+    return MAC_LEN_16;
+  case EDHOC_CIPHERSUITE_0:
+  case EDHOC_CIPHERSUITE_2:
+    return MAC_LEN_8;
+  default:
+    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC MAC length (%d)\n", ERR_SUITE_NON_SUPPORT);
+    return 0;
   }
 }
-int8_t // Added
+int8_t
+/* Added */
 get_edhoc_aead_enc_alg(uint8_t ciphersuite_id)
 {
-  switch (ciphersuite_id) {
-    case EDHOC_CIPHERSUITE_1:
-    case EDHOC_CIPHERSUITE_3:
-      return COSE_ALG_AES_CCM_16_128_128;
-    case EDHOC_CIPHERSUITE_0:
-    case EDHOC_CIPHERSUITE_2:
-      return COSE_ALG_AES_CCM_16_64_128;
-    default:
-      LOG_ERR("Invalid EDHOC cipher suite specified when retrieving COSE encryption algorithm (%d)\n", ERR_SUITE_NON_SUPPORT);        
-      return 0;
+  switch(ciphersuite_id) {
+  case EDHOC_CIPHERSUITE_1:
+  case EDHOC_CIPHERSUITE_3:
+    return COSE_ALG_AES_CCM_16_128_128;
+  case EDHOC_CIPHERSUITE_0:
+  case EDHOC_CIPHERSUITE_2:
+    return COSE_ALG_AES_CCM_16_64_128;
+  default:
+    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving COSE encryption algorithm (%d)\n", ERR_SUITE_NON_SUPPORT);
+    return 0;
   }
 }
-int8_t // Added
+int8_t
+/* Added */
 get_edhoc_curve(uint8_t ciphersuite_id)
 {
-  switch (ciphersuite_id) {
-    case EDHOC_CIPHERSUITE_2:
-    case EDHOC_CIPHERSUITE_3:
-    case EDHOC_CIPHERSUITE_5:
-      return P256;
-    default:
-      LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC curve (%d)\n", ERR_SUITE_NON_SUPPORT);        
-      return 0;
+  switch(ciphersuite_id) {
+  case EDHOC_CIPHERSUITE_2:
+  case EDHOC_CIPHERSUITE_3:
+  case EDHOC_CIPHERSUITE_5:
+    return P256;
+  default:
+    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC curve (%d)\n", ERR_SUITE_NON_SUPPORT);
+    return 0;
   }
 }
-int8_t // Added
+int8_t
+/* Added */
 get_edhoc_sign_alg(uint8_t ciphersuite_id)
 {
-  switch (ciphersuite_id) {
-    case EDHOC_CIPHERSUITE_2:
-    case EDHOC_CIPHERSUITE_3:
-    case EDHOC_CIPHERSUITE_5:
-    case EDHOC_CIPHERSUITE_6:
-      return ES256;
-    default:
-      LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC curve (%d)\n", ERR_SUITE_NON_SUPPORT);        
-      return 0;
+  switch(ciphersuite_id) {
+  case EDHOC_CIPHERSUITE_2:
+  case EDHOC_CIPHERSUITE_3:
+  case EDHOC_CIPHERSUITE_5:
+  case EDHOC_CIPHERSUITE_6:
+    return ES256;
+  default:
+    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC curve (%d)\n", ERR_SUITE_NON_SUPPORT);
+    return 0;
   }
 }
 static uint8_t
@@ -537,25 +542,25 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac, uint16_t rece
     LOG_ERR("Set MAC error\n");
     return 0;
   }
-  
+
   LOG_DBG("Received MAC (%d): ", (int)received_mac_sz);
   print_buff_8_dbg(received_mac, received_mac_sz);
 
   LOG_DBG("Recalculated MAC (%d): ", (int)edhoc_mac_len);
   print_buff_8_dbg(mac, edhoc_mac_len);
-  
+
   /* Verify the MAC value */
   uint16_t mac_sz = edhoc_mac_len;
   uint8_t diff = 0;
-  for(int i = 0 ; i < edhoc_mac_len ; i++) {
+  for(int i = 0; i < edhoc_mac_len; i++) {
     diff |= (mac[i] ^ received_mac[i]);
-  } 
-  
+  }
+
   if(diff != 0) {
     LOG_ERR("error code in check mac (%d)\n", ERR_AUTHENTICATION);
     return 0;
   }
-  
+
   return mac_sz;
 }
 static uint8_t
@@ -575,7 +580,7 @@ gen_prk_2e(edhoc_context_t *ctx)
 {
   uint8_t ikm[ECC_KEY_LEN];
   uint8_t er = 0;
-  
+
   watchdog_periodic();
   er = gen_gxy(ctx, ikm);
   watchdog_periodic();
@@ -619,16 +624,16 @@ gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
     return 0;
   }
 
-  /* Use edhoc_kdf to generate SALT_3e2m */  
+  /* Use edhoc_kdf to generate SALT_3e2m */
   uint8_t salt[HASH_LEN];
   er = edhoc_kdf(ctx->state.prk_2e, SALT_3E2M_LABEL, ctx->state.th, HASH_LEN, HASH_LEN, salt);
-  if (er < 1) {
+  if(er < 1) {
     LOG_ERR("Error calculating SALT_3e2m (%d)\n", er);
     return 0;
   }
   LOG_DBG("SALT_3e2m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(salt, HASH_LEN);
-  
+
   er = hkdf_extract(salt, HASH_LEN, grx, ECC_KEY_LEN, ctx->state.prk_3e2m);
   if(er < 1) {
     LOG_ERR("error in extract for prk_3e2m\n");
@@ -659,13 +664,13 @@ gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
   /* Use edhoc_kdf to generate SALT_4e3m */
   uint8_t salt[HASH_LEN];
   er = edhoc_kdf(ctx->state.prk_3e2m, SALT_4E3M_LABEL, ctx->state.th, HASH_LEN, HASH_LEN, salt);
-  if (er < 1) {
+  if(er < 1) {
     LOG_ERR("Error calculating SALT_4e3m (%d)\n", er);
     return 0;
   }
   LOG_DBG("SALT_4e3m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(salt, HASH_LEN);
-  
+
   er = hkdf_extract(salt, HASH_LEN, giy, ECC_KEY_LEN, ctx->state.prk_4e3m);
   if(er < 1) {
     LOG_ERR("error in extract for prk_4e3m\n");
@@ -687,17 +692,17 @@ enc_dec_ciphertext_2(const edhoc_context_t *ctx, const uint8_t *ks_2e, uint8_t *
   for(int i = 0; i < plaintext_sz; i++) {
     plaintext[i] = plaintext[i] ^ ks_2e[i];
   }
-  
+
   LOG_DBG("**** Plain/Ciphertext in enc func (%d bytes): ", plaintext_sz);
   print_buff_8_dbg(plaintext, plaintext_sz);
-  
+
   return plaintext_sz;
 }
 static uint16_t
 decrypt_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ciphertext, uint16_t ciphertext_sz, uint8_t *plaintext)
 {
   cose_encrypt0 *cose = cose_encrypt0_new();
-  
+
   /* set external AAD in cose */
   cose_encrypt0_set_content(cose, NULL, 0, NULL, 0);
   uint8_t *th3_ptr = cose->external_aad;
@@ -707,7 +712,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ciphertext, uint16_t c
   cose_encrypt0_set_ciphertext(cose, ciphertext, ciphertext_sz);
   /* COSE encrypt0 set header */
   cose_encrypt0_set_header(cose, NULL, 0, NULL, 0);
-  
+
   /* generate K_3 */
   cose->alg = ctx->config.aead_alg;
   cose->key_sz = get_cose_key_len(cose->alg);
@@ -752,10 +757,10 @@ gen_plaintext(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz, bool msg2, 
   uint8_t *buf_ptr = &(plaintext_buf[0]);
 
   size_t size;
-  if (msg2) {
-      size = edhoc_put_byte_identifier(&buf_ptr, (uint8_t *)&ctx->state.cid, CID_LEN);
+  if(msg2) {
+    size = edhoc_put_byte_identifier(&buf_ptr, (uint8_t *)&ctx->state.cid, CID_LEN);
   } else {
-      size = 0;
+    size = 0;
   }
 
   if(num == 1) {
@@ -788,7 +793,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz, const 
 {
   int8_t er = 0;
   cose_encrypt0 *cose = cose_encrypt0_new();
-  
+
   /* set external AAD in cose */
   uint8_t *th3_ptr = cose->external_aad;
   cose->external_aad_sz = HASH_LEN;
@@ -842,23 +847,23 @@ edhoc_initialize_context(edhoc_context_t *ctx)
 {
   /* Retrieve a pointer to own auth key */
   cose_key_t *key = NULL;
-  if (!edhoc_get_own_auth_key(ctx, &key)) {
+  if(!edhoc_get_own_auth_key(ctx, &key)) {
     return 0;
   }
 
   /* Set pointer to found key */
   ctx->creds.authen_key = key;
-  
+
   /* Set up the cipher suites selection logic */
   setup_suites(ctx);
-  
+
   /* Set CID */
   ctx->state.cid = EDHOC_CID;
-  
+
   /* Set role and method */
   ctx->config.role = ROLE;
   ctx->config.method = METHOD;
-  
+
   /* Initiator sets config to use based on selected suite */
   int8_t er = set_config_from_suite(ctx, ctx->state.suite_selected);
   if(er != 1) {
@@ -872,7 +877,7 @@ edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key)
 {
 #ifdef AUTH_SUBJECT_NAME
   if(edhoc_check_key_list_identity(AUTH_SUBJECT_NAME, strlen(AUTH_SUBJECT_NAME), key)) {
-    // Key found using identity
+    /* Key found using identity */
     return 1;
   } else {
     LOG_ERR("Does not contain a key for the authentication key identity\n");
@@ -880,7 +885,7 @@ edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key)
 #endif
 
 #ifdef AUTH_KID
-  if (*key == NULL) {
+  if(*key == NULL) {
     uint8_t key_id[sizeof(int)];
     int kid = AUTH_KID;
     int quotient = (AUTH_KID / 256);
@@ -891,8 +896,8 @@ edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key)
     }
     memcpy(key_id, (uint8_t *)&kid, key_id_sz);
 
-    if (edhoc_check_key_list_kid(key_id, key_id_sz, key)) {
-      // Key found using KID
+    if(edhoc_check_key_list_kid(key_id, key_id_sz, key)) {
+      /* Key found using KID */
       return 1;
     } else {
       LOG_ERR("Does not contain a key for the key ID\n");
@@ -919,16 +924,16 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
   /* CBOR encode message in the buffer */
   size_t size = edhoc_serialize_msg_1(&msg1, (ctx->buffers.msg_tx) + 1, suite_array);
   ctx->buffers.tx_sz = size + 1;
-  (ctx->buffers.msg_tx)[0] = 0xF5; //FIXME: Improve pre-pending of CBOR true (do in client/server?)
+  (ctx->buffers.msg_tx)[0] = 0xF5; /*FIXME: Improve pre-pending of CBOR true (do in client/server?) */
 
   LOG_DBG("C_I chosen by Initiator (%d bytes): 0x", CID_LEN);
   print_buff_8_dbg(msg1.c_i, CID_LEN);
   LOG_DBG("AD_1 (%d bytes): ", (int)ad_sz);
   print_char_8_dbg((char *)ad, ad_sz);
   for(int i = 0; i < msg1.suites_i_sz; ++i) {
-      LOG_DBG("SUITES_I[%d]: %d\n", i, (int) msg1.suites_i[i]);
+    LOG_DBG("SUITES_I[%d]: %d\n", i, (int)msg1.suites_i[i]);
   }
-  
+
   LOG_DBG("message_1 (CBOR Sequence) (%d bytes): ", (int)ctx->buffers.tx_sz);
   print_buff_8_dbg(ctx->buffers.msg_tx, ctx->buffers.tx_sz);
   LOG_INFO("MSG1 sz: %d\n", (int)ctx->buffers.tx_sz);
@@ -960,7 +965,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 #if ((METHOD == METH1) || (METHOD == METH3))
   /* generate prk_3e2m */
   gen_prk_3e2m(ctx, &ctx->creds.authen_key->ecc, 1);
-  
+
   uint8_t edhoc_mac_len = ctx->config.mac_len;
   uint8_t mac_or_sig[edhoc_mac_len];
   gen_mac(ctx, edhoc_mac_len, mac_or_sig);
@@ -970,30 +975,30 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 #endif
 
 #if ((METHOD == METH0) || (METHOD == METH2))
-  
+
   /* prk_3e2m is prk_2e */
   memcpy(ctx->state.prk_3e2m, ctx->state.prk_2e, HASH_LEN);
 
-  // Derive MAC with HASH_LEN size (buf fits later signature)
+  /* Derive MAC with HASH_LEN size (buf fits later signature) */
   uint8_t mac_or_sig[MAC_OR_SIG_BUF_LEN];
   gen_mac(ctx, HASH_LEN, mac_or_sig);
   LOG_DBG("MAC_2 (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(mac_or_sig, HASH_LEN);
 
   /* Create signature from MAC and other data using COSE_Sign1 */
-  
-  // Protected
+
+  /* Protected */
   cose_sign1 *cose_sign1 = cose_sign1_new();
   cose_sign1_set_header(cose_sign1, ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz, NULL, 0);
-  
-  // External AAD
+
+  /* External AAD */
   uint8_t *aad_ptr = cose_sign1->external_aad;
   memcpy(aad_ptr, ctx->state.th, HASH_LEN);
   aad_ptr += HASH_LEN;
   memcpy(aad_ptr, ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
   cose_sign1->external_aad_sz = ctx->buffers.cred_x_sz + HASH_LEN;
-  
-  // Payload
+
+  /* Payload */
   uint8_t er = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
   if(er == 0) {
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
@@ -1088,7 +1093,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   /* prk_4e3m is prk_3e2m */
   memcpy(ctx->state.prk_4e3m, ctx->state.prk_3e2m, HASH_LEN);
 
-  // Derive MAC with HASH_LEN size (buf fits later signature)
+  /* Derive MAC with HASH_LEN size (buf fits later signature) */
   uint8_t mac_or_sig[MAC_OR_SIG_BUF_LEN];
   gen_mac(ctx, HASH_LEN, mac_or_sig);
   LOG_DBG("MAC_3 (%d bytes): ", HASH_LEN);
@@ -1096,18 +1101,18 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   /* Create signature from MAC and other data using COSE_Sign1 */
 
-  // Protected
+  /* Protected */
   cose_sign1 *cose_sign1 = cose_sign1_new();
   cose_sign1_set_header(cose_sign1, ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz, NULL, 0);
 
-  // External AAD
+  /* External AAD */
   uint8_t *aad_ptr = cose_sign1->external_aad;
   memcpy(aad_ptr, ctx->state.th, HASH_LEN);
   aad_ptr += HASH_LEN;
   memcpy(aad_ptr, ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
   cose_sign1->external_aad_sz = ctx->buffers.cred_x_sz + HASH_LEN;
 
-  // Payload
+  /* Payload */
   uint8_t er = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
   if(er == 0) {
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
@@ -1131,17 +1136,16 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 #endif
 
   /* time = RTIMER_NOW(); */
-  
+
   /* Gen ciphertext_3 */
   uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac_or_sig, mac_or_signature_sz, (ctx->buffers.msg_tx) + 1);
-  //FIXME: Improve prepending of C_R
-  (ctx->buffers.msg_tx)[0] = (uint8_t) ctx->state.cid_rx;
+  /*FIXME: Improve prepending of C_R */
+  (ctx->buffers.msg_tx)[0] = (uint8_t)ctx->state.cid_rx;
   ctx->buffers.tx_sz = ciphertext_sz + 1;
-  
+
   /* Compute TH_4 WIP */
   gen_th4(ctx, ctx->buffers.cred_x, ctx->buffers.cred_x_sz, ctx->buffers.plaintext, ctx->buffers.plaintext_sz);
 }
-
 uint8_t
 edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t err)
 {
@@ -1248,7 +1252,7 @@ edhoc_check_err_rx_msg(uint8_t *payload, uint8_t payload_sz)
   return 0;
 }
 static int8_t
-edhoc_check_err_rx_msg_2(uint8_t *payload, uint8_t payload_sz, const edhoc_context_t* ctx)
+edhoc_check_err_rx_msg_2(uint8_t *payload, uint8_t payload_sz, const edhoc_context_t *ctx)
 {
   /* Check if the rx msg is an msg_err */
   uint8_t *msg_err = payload;
@@ -1274,7 +1278,7 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload, size_t payload_sz, u
   er = edhoc_check_err_rx_msg(payload, payload_sz);
   if(er < 0) {
     return RX_ERR_MSG;
-  } else if(er == 2){
+  } else if(er == 2) {
     return ERR_NEW_SUITE_PROPOSE;
   }
 
@@ -1327,7 +1331,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
   int er = 0;
   set_rx_msg(ctx, payload, payload_sz);
   er = edhoc_check_err_rx_msg_2(payload, payload_sz, ctx);
-  if(er < 0){
+  if(er < 0) {
     LOG_DBG("MSG2 err: %d\n", er);
     return er;
   }
@@ -1341,7 +1345,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
   set_rx_gx(ctx, msg2->gy_ciphertext_2);
   gen_th2(ctx, msg2->gy_ciphertext_2, ctx->buffers.msg_tx, ctx->buffers.tx_sz);
   gen_prk_2e(ctx);
-  
+
   /* Gen KS_2e */
   assert(msg2->gy_ciphertext_2_sz > ECC_KEY_LEN);
   int ciphertext2_sz = msg2->gy_ciphertext_2_sz - ECC_KEY_LEN;
@@ -1362,10 +1366,10 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *payload, s
   int cr_sz = CID_LEN;
   er = set_rx_cid(ctx, ctx->buffers.plaintext, cr_sz);
   if(er < 0) {
-      return er;
+    return er;
   }
   LOG_DBG("cid (%d)\n", (uint8_t)ctx->state.cid_rx);
-  
+
   return 1;
 }
 int
@@ -1379,7 +1383,7 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, s
     return RX_ERR_MSG;
   }
 
-  // FIXME: Improve skipping of C_R
+  /* FIXME: Improve skipping of C_R */
   int8_t er = edhoc_deserialize_msg_3(msg3, (ctx->buffers.msg_rx) + 1, ctx->buffers.rx_sz - 1);
   if(er < 0) {
     LOG_ERR("MSG3 malformed\n");
@@ -1389,7 +1393,7 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, s
 
   LOG_DBG("CIPHERTEXT_3 (%d bytes): ", (int)msg3->ciphertext_3_sz);
   print_buff_8_dbg(msg3->ciphertext_3, msg3->ciphertext_3_sz);
-  
+
   /* generate TH_3 */
   gen_th3(ctx, ctx->buffers.cred_x, ctx->buffers.cred_x_sz, ctx->buffers.plaintext, ctx->buffers.plaintext_sz);
 
@@ -1408,9 +1412,9 @@ edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *payload, s
 int
 edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
 {
-  // Point to decrypted plaintext for key retrieval
+  /* Point to decrypted plaintext for key retrieval */
   uint8_t *plaintext_ptr = NULL;
-  if (msg2) {
+  if(msg2) {
     plaintext_ptr = ctx->buffers.plaintext + CID_LEN;
   } else {
     plaintext_ptr = ctx->buffers.plaintext;
@@ -1420,14 +1424,14 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   cose_key_t peer_key;
   cose_key_t *key = &peer_key;
   edhoc_get_key_id_cred_x(&plaintext_ptr, NULL, key);
-  
-  // Get MAC from the decrypted message
+
+  /* Get MAC from the decrypted message */
   uint8_t *received_mac = NULL;
   uint16_t received_mac_sz = edhoc_get_sign(&plaintext_ptr, &received_mac);
 
-  // Get the additional data from the decrypted message if present
+  /* Get the additional data from the decrypted message if present */
   uint16_t ad_sz = 0;
-  if (ad_sz) {
+  if(ad_sz) {
     ad_sz = edhoc_get_ad(&plaintext_ptr, ad);
   } else {
     ad = NULL;
@@ -1437,7 +1441,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   ctx->buffers.cred_x_sz = generate_cred_x(key, ctx->buffers.cred_x);
   LOG_DBG("CRED_X auth (%zu): ", ctx->buffers.cred_x_sz);
   print_buff_8_dbg(ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
-  
+
   ctx->buffers.id_cred_x_sz = generate_id_cred_x(key, ctx->buffers.id_cred_x);
   LOG_DBG("ID_CRED_X auth (%zu): ", ctx->buffers.id_cred_x_sz);
   print_buff_8_dbg(ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
@@ -1446,7 +1450,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   /* Generate prk_3e2m or prk_4e3m */
   if(msg2 == true) {
     gen_prk_3e2m(ctx, &key->ecc, 0);
-  } else { // msg3
+  } else { /* msg3 */
     gen_prk_4e3m(ctx, &key->ecc, 1);
   }
 
@@ -1460,38 +1464,38 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   if(msg2 == true) {
     /* prk_3e2m is prk_2e */
     memcpy(ctx->state.prk_3e2m, ctx->state.prk_2e, HASH_LEN);
-  } else { // msg3
+  } else { /* msg3 */
     /* prk_4e3m is prk_3e2m */
     memcpy(ctx->state.prk_4e3m, ctx->state.prk_3e2m, HASH_LEN);
   }
 
   /* Create signature from MAC and other data using COSE_Sign1 */
 
-  // Protected
+  /* Protected */
   cose_sign1 *cose_sign1 = cose_sign1_new();
   cose_sign1_set_header(cose_sign1, ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz, NULL, 0);
 
-  // External AAD (CRED_I and TH)
+  /* External AAD (CRED_I and TH) */
   uint8_t *aad_ptr = cose_sign1->external_aad;
   memcpy(aad_ptr, ctx->state.th, HASH_LEN);
   aad_ptr += HASH_LEN;
   memcpy(aad_ptr, ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
   cose_sign1->external_aad_sz = ctx->buffers.cred_x_sz + HASH_LEN;
 
-  // Set received signature
+  /* Set received signature */
   cose_sign1_set_signature(cose_sign1, received_mac, received_mac_sz);
 
-  // Payload (MAC)
+  /* Payload (MAC) */
   uint8_t mac_num = -1;
   if(msg2 == true) {
     mac_num = MAC_2;
-  } else { // msg3
+  } else { /* msg3 */
     mac_num = MAC_3;
   }
 
   uint8_t mac[HASH_LEN];
   calc_mac(ctx, mac_num, HASH_LEN, mac);
-  LOG_DBG("MAC_%d (%d bytes): ", mac_num == 2 ? 2 : 3, HASH_LEN); // MAC_2 or 3
+  LOG_DBG("MAC_%d (%d bytes): ", mac_num == 2 ? 2 : 3, HASH_LEN); /* MAC_2 or 3 */
   print_buff_8_dbg(mac, HASH_LEN);
   int8_t er2 = cose_sign1_set_payload(cose_sign1, mac, HASH_LEN);
   if(er2 < 0) {
@@ -1503,7 +1507,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   memcpy(other_public_key, key->ecc.pub.x, ECC_KEY_LEN);
   memcpy(other_public_key + ECC_KEY_LEN, key->ecc.pub.y, ECC_KEY_LEN);
 
-  // Set other peer public key and verify
+  /* Set other peer public key and verify */
   cose_sign1_set_key(cose_sign1, ctx->config.sign_alg, other_public_key, ECC_KEY_LEN * 2);
   er2 = cose_verify(cose_sign1);
   cose_sign1_finalize(cose_sign1);
@@ -1514,11 +1518,10 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
 #endif
 
   /* Compute TH_4 WIP (after verifying MAC_3) */
-  if(msg2 == false) { // msg 3 
+  if(msg2 == false) { /* msg 3 */
     /* Calculate TH_4 */
     gen_th4(ctx, ctx->buffers.cred_x, ctx->buffers.cred_x_sz, ctx->buffers.plaintext, ctx->buffers.plaintext_sz);
-  }  
+  }
 
   return ad_sz;
 }
-

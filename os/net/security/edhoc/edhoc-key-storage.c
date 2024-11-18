@@ -123,7 +123,6 @@ edhoc_remove_key(cose_key_t *auth_key)
 {
   list_remove(key_list, auth_key);
 }
-
 void
 cose_print_key(cose_key_t *cose)
 {
@@ -138,4 +137,3 @@ cose_print_key(cose_key_t *cose)
   LOG_DBG("y: ");
   LOG_PRINT_EDHOC_BUFF(cose->ecc.pub.y, ECC_KEY_LEN);
 }
-
