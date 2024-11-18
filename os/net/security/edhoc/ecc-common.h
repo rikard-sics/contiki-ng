@@ -35,7 +35,7 @@
  * \author
  *         Rikard Höglund, Marco Tiloca
  */
- 
+
 #ifndef _ECC_COMMON_H_
 #define _ECC_COMMON_H_
 

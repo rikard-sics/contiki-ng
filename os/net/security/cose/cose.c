@@ -50,23 +50,27 @@ encrypt0_storage_new()
 {
   return (cose_encrypt0 *)memb_alloc(&encrypt0_storage);
 }
+
 static inline void
 encrypt0_free(cose_encrypt0 *enc)
 {
   memb_free(&encrypt0_storage, enc);
 }
+
 void
 encrypt0_storage_init(void)
 {
   memb_init(&encrypt0_storage);
 }
+
 cose_encrypt0 *
-cose_encrypt0_new()
+cose_encrypt0_new(void)
 {
   cose_encrypt0 *enc;
   enc = encrypt0_storage_new();
   return enc;
 }
+
 void
 cose_encrypt0_finalize(cose_encrypt0 *enc)
 {
@@ -78,23 +82,27 @@ sign1_storage_new()
 {
   return (cose_sign1 *)memb_alloc(&sign1_storage);
 }
+
 static inline void
 sign1_free(cose_sign1 *sign)
 {
   memb_free(&sign1_storage, sign);
 }
+
 void
 sign1_storage_init(void)
 {
   memb_init(&sign1_storage);
 }
+
 cose_sign1 *
-cose_sign1_new()
+cose_sign1_new(void)
 {
   cose_sign1 *sign;
   sign = sign1_storage_new();
   return sign;
 }
+
 void
 cose_sign1_finalize(cose_sign1 *sign)
 {
@@ -116,6 +124,7 @@ cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, const uint8_t *key, uint8
   memcpy(enc->nonce, nonce, nonce_sz);
   return 1;
 }
+
 uint8_t
 cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, const uint8_t *key, uint8_t key_sz)
 {
@@ -126,11 +135,12 @@ cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, const uint8_t *key, uint8_t ke
   if(alg != ES256) {
     LOG_ERR("Unknown COSE signing algorithm specified\n");
   }
-  
+
   sign1->key_sz = key_sz;
   memcpy(sign1->key, key, key_sz);
   return 1;
 }
+
 uint8_t
 cose_encrypt0_set_content(cose_encrypt0 *enc, const uint8_t *plain, uint16_t plain_sz, const uint8_t *aad, uint8_t aad_sz)
 {
@@ -143,6 +153,7 @@ cose_encrypt0_set_content(cose_encrypt0 *enc, const uint8_t *plain, uint16_t pla
   enc->external_aad_sz = aad_sz;
   return 1;
 }
+
 uint8_t
 cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, const uint8_t *ciphertext, uint16_t ciphertext_sz)
 {
@@ -153,6 +164,7 @@ cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, const uint8_t *ciphertext, uint
   enc->ciphertext_sz = ciphertext_sz;
   return 1;
 }
+
 uint8_t
 cose_sign1_set_payload(cose_sign1 *sign1, const uint8_t *payload, uint16_t payload_sz)
 {
@@ -163,6 +175,7 @@ cose_sign1_set_payload(cose_sign1 *sign1, const uint8_t *payload, uint16_t paylo
   sign1->payload_sz = payload_sz;
   return 1;
 }
+
 uint8_t
 cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature, uint16_t signature_sz)
 {
@@ -173,6 +186,7 @@ cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature, uint16_t s
   sign1->signature_sz = signature_sz;
   return 1;
 }
+
 uint8_t
 cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_aad, uint16_t external_aad_sz)
 {
@@ -183,6 +197,7 @@ cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_aad, uint
   sign1->external_aad_sz = external_aad_sz;
   return 1;
 }
+
 void
 cose_encrypt0_set_header(cose_encrypt0 *enc, const uint8_t *prot, uint16_t prot_sz, const uint8_t *unp, uint16_t unp_sz)
 {
@@ -191,15 +206,18 @@ cose_encrypt0_set_header(cose_encrypt0 *enc, const uint8_t *prot, uint16_t prot_
   enc->protected_header_sz = prot_sz;
   enc->unprotected_header_sz = unp_sz;
 }
+
 void
 cose_sign1_set_header(cose_sign1 *sign1, const uint8_t *prot, uint16_t prot_sz, const uint8_t *unp, uint16_t unp_sz)
 {
   memcpy(sign1->protected_header, prot, prot_sz);
-  //memcpy(sign1->unprotected_header, unp, unp_sz);
+  /*memcpy(sign1->unprotected_header, unp, unp_sz); */
   sign1->protected_header_sz = prot_sz;
-  //sign1->unprotected_header_sz = unp_sz;
+  /*sign1->unprotected_header_sz = unp_sz; */
 }
+
 static char enc_header[] = ENC0;
+
 static uint8_t
 encode_enc_structure(const cose_encrypt0 *enc, uint8_t *cbor)
 {
@@ -212,7 +230,9 @@ encode_enc_structure(const cose_encrypt0 *enc, uint8_t *cbor)
 
   return size;
 }
+
 static char sig_header[] = SIGN1;
+
 static uint8_t
 encode_sig_structure(const cose_sign1 *sign1, uint8_t *cbor)
 {
@@ -226,6 +246,7 @@ encode_sig_structure(const cose_sign1 *sign1, uint8_t *cbor)
 
   return size;
 }
+
 uint8_t
 cose_decrypt(cose_encrypt0 *enc)
 {
@@ -238,26 +259,27 @@ cose_decrypt(cose_encrypt0 *enc)
   uint8_t key_len = get_cose_key_len(enc->alg);
   uint8_t iv_len = get_cose_iv_len(enc->alg);
   uint8_t tag_len = get_cose_tag_len(enc->alg);
-  if (enc->key_sz != key_len || enc->nonce_sz != iv_len || enc->plaintext_sz > COSE_MAX_BUFFER || str_sz > (2 * COSE_MAX_BUFFER)) {
+  if(enc->key_sz != key_len || enc->nonce_sz != iv_len || enc->plaintext_sz > COSE_MAX_BUFFER || str_sz > (2 * COSE_MAX_BUFFER)) {
     LOG_ERR("The COSE parameters are not corresponding with the selected algorithm or buffer sizes\n");
     return 0;
   }
 
   uint8_t tag[tag_len];
-  
+
   CCM_STAR.set_key(enc->key);
   enc->plaintext_sz = enc->ciphertext_sz - tag_len;
 
   CCM_STAR.aead(enc->nonce, enc->ciphertext, enc->plaintext_sz, enc_struct_bytes, str_sz, tag, tag_len, 0);
   memcpy(enc->plaintext, enc->ciphertext, enc->plaintext_sz);
 
-  if (memcmp(tag, &(enc->ciphertext[enc->plaintext_sz]), tag_len) != 0) {
+  if(memcmp(tag, &(enc->ciphertext[enc->plaintext_sz]), tag_len) != 0) {
     LOG_ERR("Decrypt msg error\n");
     return 0;  /* Decryption failure */
   }
-  
+
   return 1;
 }
+
 uint8_t
 cose_encrypt(cose_encrypt0 *enc)
 {
@@ -270,22 +292,23 @@ cose_encrypt(cose_encrypt0 *enc)
   uint8_t key_len = get_cose_key_len(enc->alg);
   uint8_t iv_len = get_cose_iv_len(enc->alg);
   uint8_t tag_len = get_cose_tag_len(enc->alg);
-  
-  if (enc->key_sz != key_len || enc->nonce_sz != iv_len || enc->plaintext_sz > COSE_MAX_BUFFER || str_sz > (2 * COSE_MAX_BUFFER)) {
+
+  if(enc->key_sz != key_len || enc->nonce_sz != iv_len || enc->plaintext_sz > COSE_MAX_BUFFER || str_sz > (2 * COSE_MAX_BUFFER)) {
     LOG_ERR("The COSE parameters are not corresponding with the selected algorithm or buffer sizes\n");
     return 0;
   }
 
-  // Set the key and copy plaintext to ciphertext buffer
+  /* Set the key and copy plaintext to ciphertext buffer */
   CCM_STAR.set_key(enc->key);
   memcpy(enc->ciphertext, enc->plaintext, enc->plaintext_sz);
 
-  // Perform encryption
+  /* Perform encryption */
   CCM_STAR.aead(enc->nonce, enc->ciphertext, enc->plaintext_sz, enc_struct_bytes, str_sz, &enc->ciphertext[enc->plaintext_sz], tag_len, 1);
   enc->ciphertext_sz = enc->plaintext_sz + tag_len;
 
   return enc->ciphertext_sz;
 }
+
 uint8_t
 cose_sign(cose_sign1 *sign1)
 {
@@ -299,27 +322,28 @@ cose_sign(cose_sign1 *sign1)
 
   uint8_t hash[HASH_LEN];
   sha256(sig_struct_bytes, sig_str_sz, hash);
-  
-  if (uECC_sign(sign1->key, hash, sizeof(hash), sign1->signature, uECC_secp256r1())) {
+
+  if(uECC_sign(sign1->key, hash, sizeof(hash), sign1->signature, uECC_secp256r1())) {
     sign1->signature_sz = P256_SIGNATURE_LEN;
-    // LOG_DBG("Signature for COSE_Sign1 (%d bytes): ", sign1->signature_sz);
-    // cose_print_buff_8_dbg(sign1->signature, sign1->signature_sz);
+    /* LOG_DBG("Signature for COSE_Sign1 (%d bytes): ", sign1->signature_sz); */
+    /* cose_print_buff_8_dbg(sign1->signature, sign1->signature_sz); */
   } else {
     LOG_ERR("Error signing for COSE_Sign1");
     return 0;
   }
   return sign1->signature_sz;
 }
+
 uint8_t
 cose_verify(cose_sign1 *sign1)
 {
-  // The other peer's public key must be in key (x concatenated with y making 64 bytes)
+  /* The other peer's public key must be in key (x concatenated with y making 64 bytes) */
   uint8_t *public_key = sign1->key;
 
   LOG_DBG("Using peer's public key for COSE_Sign1 signature verification: ");
   cose_print_buff_8_dbg(public_key, ECC_KEY_LEN * 2);
 
-  // Recreate the sig_structure
+  /* Recreate the sig_structure */
   uint8_t sig_struct_bytes[2 * COSE_MAX_BUFFER];
   uint8_t sig_str_sz = encode_sig_structure(sign1, sig_struct_bytes);
   LOG_DBG("CBOR-encoded sig_structure for COSE_Sign1 verification (%d bytes): ", sig_str_sz);
@@ -328,10 +352,10 @@ cose_verify(cose_sign1 *sign1)
   uint8_t hash[HASH_LEN];
   sha256(sig_struct_bytes, sig_str_sz, hash);
 
-  // Verify the signature using the peer's public key
+  /* Verify the signature using the peer's public key */
   int verify = uECC_verify(public_key, hash, sizeof(hash), sign1->signature, uECC_secp256r1());
 
-  if (verify == 1) {
+  if(verify == 1) {
     LOG_DBG("Signature verification succeeded for COSE_Sign1\n");
     return 1;
   } else {
@@ -339,42 +363,45 @@ cose_verify(cose_sign1 *sign1)
     return 0;
   }
 }
+
 uint8_t
 get_cose_key_len(uint8_t alg_id)
 {
-  switch (alg_id) {
-    case COSE_ALG_AES_CCM_16_64_128:
-      return COSE_ALG_AES_CCM_16_64_128_KEY_LEN;
-    case COSE_ALG_AES_CCM_16_128_128:
-      return COSE_ALG_AES_CCM_16_128_128_KEY_LEN;
-    default:
-      LOG_ERR("Invalid COSE algorithm specified\n");
-      return -1;
-  }
-}
-uint8_t
-get_cose_iv_len(uint8_t alg_id)
-{
-  switch (alg_id) {
-    case COSE_ALG_AES_CCM_16_64_128:
-      return COSE_ALG_AES_CCM_16_64_128_IV_LEN;
-    case COSE_ALG_AES_CCM_16_128_128:
-      return COSE_ALG_AES_CCM_16_128_128_IV_LEN;
-    default:
-      LOG_ERR("Invalid COSE algorithm specified\n");
-      return -1;
-  }
-}
-uint8_t
-get_cose_tag_len(uint8_t alg_id) {
-  switch (alg_id) {
-    case COSE_ALG_AES_CCM_16_64_128:
-      return COSE_ALG_AES_CCM_16_64_128_TAG_LEN;
-    case COSE_ALG_AES_CCM_16_128_128:
-      return COSE_ALG_AES_CCM_16_128_128_TAG_LEN;
-    default:
-      LOG_ERR("Invalid COSE algorithm specified\n");
-      return -1;
+  switch(alg_id) {
+  case COSE_ALG_AES_CCM_16_64_128:
+    return COSE_ALG_AES_CCM_16_64_128_KEY_LEN;
+  case COSE_ALG_AES_CCM_16_128_128:
+    return COSE_ALG_AES_CCM_16_128_128_KEY_LEN;
+  default:
+    LOG_ERR("Invalid COSE algorithm specified\n");
+    return -1;
   }
 }
 
+uint8_t
+get_cose_iv_len(uint8_t alg_id)
+{
+  switch(alg_id) {
+  case COSE_ALG_AES_CCM_16_64_128:
+    return COSE_ALG_AES_CCM_16_64_128_IV_LEN;
+  case COSE_ALG_AES_CCM_16_128_128:
+    return COSE_ALG_AES_CCM_16_128_128_IV_LEN;
+  default:
+    LOG_ERR("Invalid COSE algorithm specified\n");
+    return -1;
+  }
+}
+
+uint8_t
+get_cose_tag_len(uint8_t alg_id)
+{
+  switch(alg_id) {
+  case COSE_ALG_AES_CCM_16_64_128:
+    return COSE_ALG_AES_CCM_16_64_128_TAG_LEN;
+  case COSE_ALG_AES_CCM_16_128_128:
+    return COSE_ALG_AES_CCM_16_128_128_TAG_LEN;
+  default:
+    LOG_ERR("Invalid COSE algorithm specified\n");
+    return -1;
+  }
+}

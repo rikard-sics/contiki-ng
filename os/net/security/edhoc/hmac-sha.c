@@ -208,7 +208,7 @@ hmac_init(hmac_context_t *ctx, const unsigned char *key, size_t k_sz)
   if(er != 0) {
     LOG_ERR("sha_reset failed (%d)\n", er);
     return er;
-  };
+  }
   if(k_sz > HMAC_BLOCKSIZE) {
     er = sha_input(&ctx->sha, (uint8_t *)key, k_sz);
     if(er != 0) {

@@ -58,7 +58,7 @@ edhoc_exporter(const uint8_t *in_key, uint8_t exporter_label, const uint8_t *con
   int8_t er = edhoc_kdf(in_key, exporter_label, context, context_sz, length, result);
   return er;
 }
-// TODO: May be better to actually store PRK_out & PRK_exporter and then use them in edhoc_exporter above
+/* TODO: May be better to actually store PRK_out & PRK_exporter and then use them in edhoc_exporter above */
 int8_t
 edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
 {
@@ -71,7 +71,7 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   }
   LOG_DBG("PRK_out (%d bytes): ", prk_out_sz);
   print_buff_8_dbg(prk_out, prk_out_sz);
-  
+
   /* Derive prk_exporter */
   int prk_exporter_sz = HASH_LEN;
   uint8_t prk_exporter[prk_exporter_sz];
@@ -91,14 +91,13 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
     osc->client_ID = ctx->state.cid_rx;
     osc->server_ID = ctx->state.cid;
   }
-  
+
   /* Derive OSCORE Master Secret */
   er = edhoc_exporter(prk_exporter, OSCORE_MASTER_SECRET_LABEL, NULL, 0, OSCORE_KEY_SZ, osc->master_secret);
   if(er < 0) {
     return er;
   }
-  
+
   er = edhoc_exporter(prk_exporter, OSCORE_MASTER_SALT_LABEL, NULL, 0, OSCORE_SALT_SZ, osc->master_salt);
   return er;
 }
-

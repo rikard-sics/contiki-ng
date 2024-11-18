@@ -47,6 +47,7 @@ cose_print_buff(uint8_t *buff, size_t len)
   }
   LOG_OUTPUT("\n");
 }
+
 void
 cose_print_char(uint8_t *buff, size_t len)
 {

@@ -67,50 +67,46 @@ generate_IKM(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy, const uint8
     return er;
   }
 
-  #if ECC == UECC_ECC
-    er = uecc_generate_IKM(gx, gy, private_key, ikm, curve);
-  #endif
-  #if ECC == CC2538_ECC
-    er = cc2538_generate_IKM(gx, gy, private_key, ikm, curve);
-  #endif
+#if ECC == UECC_ECC
+  er = uecc_generate_IKM(gx, gy, private_key, ikm, curve);
+#endif
+#if ECC == CC2538_ECC
+  er = cc2538_generate_IKM(gx, gy, private_key, ikm, curve);
+#endif
   return er;
 }
-
 int
 get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve)
 {
 #if ECC == UECC_ECC
-  switch(curve_id)
-  {
-    case P256:
-      curve->curve = uECC_secp256r1();
-      return 1;
-    default:
-      LOG_ERR("Invalid curve when trying to derive IKM with uECC\n");
-      return 0;
+  switch(curve_id) {
+  case P256:
+    curve->curve = uECC_secp256r1();
+    return 1;
+  default:
+    LOG_ERR("Invalid curve when trying to derive IKM with uECC\n");
+    return 0;
   }
 #endif
 
 #if ECC == CC2538_ECC
-  switch(curve_id)
-  {
-    case P256:
-      curve->curve = &nist_p_256;
-      return 1;
-    default:
-      LOG_ERR("Invalid curve when trying to derive IKM with CC2538 ECC\n");
-      return 0
+  switch(curve_id) {
+  case P256:
+    curve->curve = &nist_p_256;
+    return 1;
+  default:
+    LOG_ERR("Invalid curve when trying to derive IKM with CC2538 ECC\n");
+    return 0
   }
 #endif
 
   LOG_ERR("No ECC implementation defined\n");
   return 0;
 }
-
 static hmac_context_t *
 hmac_sha256_init(const uint8_t *key, uint8_t key_sz)
 {
-  // hmac_storage_init();
+  /* hmac_storage_init(); */
   return hmac_new(key, key_sz);
 }
 static int
@@ -184,7 +180,7 @@ hkdf_expand(const uint8_t *prk, uint16_t prk_sz, const uint8_t *info, uint16_t i
   int er = hmac_sha256_create(&ctx, prk, prk_sz, aggregate_buffer, info_sz + 1, &(out_buffer[0]));
   if(er != 0) {
     LOG_ERR("hmac_sha256_create error code (%d)\n", er);
-    return ERR_INFO_SIZE; // FIXME: make unique error code
+    return ERR_INFO_SIZE; /* FIXME: make unique error code */
   }
 
   /*Compose T(2) ... T(N) */
@@ -196,7 +192,7 @@ hkdf_expand(const uint8_t *prk, uint16_t prk_sz, const uint8_t *info, uint16_t i
     er = hmac_sha256_create(&ctx, prk, prk_sz, aggregate_buffer, hash_sz + info_sz + 1, &(out_buffer[i * hash_sz]));
     if(er != 0) {
       LOG_ERR("hmac_sha256_create error code (%d)\n", er);
-      return ERR_INFO_SIZE; // FIXME: make unique error code
+      return ERR_INFO_SIZE; /* FIXME: make unique error code */
     }
     memcpy(aggregate_buffer, &(out_buffer[i * hash_sz]), hash_sz);
   }
@@ -205,4 +201,3 @@ hkdf_expand(const uint8_t *prk, uint16_t prk_sz, const uint8_t *info, uint16_t i
   hmac_sha256_free(ctx);
   return 1;
 }
-

@@ -88,7 +88,7 @@ uint8_t cc2538_generate_IKM(const uint8_t *gx, const uint8_t *gy, const uint8_t 
 
 void eccBytes_to_native(uint32_t *native, const uint8_t *bytes, int num_bytes);
 void eccNative_to_bytes(uint8_t *bytes, int num_bytes, const uint32_t *native);
-// static void ecc_set_random_key(uint32_t *secret);
+/* static void ecc_set_random_key(uint32_t *secret); */
 
 #endif
 #endif /* _ECDH_H_ */

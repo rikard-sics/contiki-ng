@@ -56,9 +56,9 @@
  * \brief Set the SH2 library
  */
 #ifdef EDHOC_CONF_SH256
-  #define SH256 EDHOC_CONF_SH256
+#define SH256 EDHOC_CONF_SH256
 #else
-  #define SH256 DECC_SH2
+#define SH256 DECC_SH2
 #endif
 
 /**
@@ -75,9 +75,9 @@
  * \brief Set the EDHOC Protocol role
  */
 #ifdef EDHOC_CONF_ROLE
-  #define ROLE EDHOC_CONF_ROLE
+#define ROLE EDHOC_CONF_ROLE
 #else
-  #define ROLE INITIATOR
+#define ROLE INITIATOR
 #endif
 
 /* EDHOC Authentication Method Types: Initiator (I) | Responder (R) */
@@ -90,18 +90,18 @@
  * \brief Set the Authentication method
  */
 #ifdef EDHOC_CONF_METHOD
-  #define METHOD EDHOC_CONF_METHOD
+#define METHOD EDHOC_CONF_METHOD
 #else
-  #define METHOD METH0
+#define METHOD METH0
 #endif
 
 /**
  * \brief Buffer size for mac_or_sig
  */
 #if METHOD == METH3
-  #define MAC_OR_SIG_BUF_LEN MAX_MAC_LEN
+#define MAC_OR_SIG_BUF_LEN MAX_MAC_LEN
 #else
-  #define MAC_OR_SIG_BUF_LEN P256_SIGNATURE_LEN
+#define MAC_OR_SIG_BUF_LEN P256_SIGNATURE_LEN
 #endif
 
 /**
@@ -120,16 +120,16 @@
  * \brief Set the authentication credential type/usage
  */
 #ifdef EDHOC_CONF_AUTHENT_TYPE
-  #define AUTHENT_TYPE EDHOC_CONF_AUTHENT_TYPE
+#define AUTHENT_TYPE EDHOC_CONF_AUTHENT_TYPE
 #else
-  #define AUTHENT_TYPE CRED_KID
+#define AUTHENT_TYPE CRED_KID
 #endif
 
 /* cipher suites */
 #define EDHOC_CIPHERSUITE_0 0   /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256,  MAC LEN 8,  X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
 #define EDHOC_CIPHERSUITE_1 1   /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, EdDSA, Ed25519, AES-CCM-16-64-128, SHA-256 */
-#define EDHOC_CIPHERSUITE_2 2   /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256,  MAC LEN 8,  P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */ // Supported
-#define EDHOC_CIPHERSUITE_3 3   /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256,  MAC LEN 16, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */ // Supported
+#define EDHOC_CIPHERSUITE_2 2 /* AES-CCM-16-64-128,  (HMAC 256/256) SHA-256,  MAC LEN 8,  P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */   /* Supported */
+#define EDHOC_CIPHERSUITE_3 3 /* AES-CCM-16-128-128, (HMAC 256/256) SHA-256,  MAC LEN 16, P-256,  ES256, P-256,   AES-CCM-16-64-128, SHA-256 */   /* Supported */
 #define EDHOC_CIPHERSUITE_4 4   /* ChaCha20/Poly1305,  (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, EdDSA, Ed25519, ChaCha20/Poly1305, SHA-256 */
 #define EDHOC_CIPHERSUITE_5 5   /* ChaCha20/Poly1305,  (HMAC 256/256) SHA-256,  MAC LEN 16, P-256,  ES256, P-256,   ChaCha20/Poly1305, SHA-256 */
 #define EDHOC_CIPHERSUITE_6 6   /* A128GCM,            (HMAC 256/256) SHA-256,  MAC LEN 16, X25519, ES256, P-256,   A128GCM,           SHA-256 */
@@ -160,27 +160,27 @@
  * \brief Set EDHOC cipher suite config
  */
 #ifdef EDHOC_CONF_SUPPORTED_SUITE_1
-  #define SUPPORTED_SUITE_1 EDHOC_CONF_SUPPORTED_SUITE_1
+#define SUPPORTED_SUITE_1 EDHOC_CONF_SUPPORTED_SUITE_1
 #else
-  #define SUPPORTED_SUITE_1 -1
+#define SUPPORTED_SUITE_1 -1
 #endif
 
 #ifdef EDHOC_CONF_SUPPORTED_SUITE_2
-  #define SUPPORTED_SUITE_2 EDHOC_CONF_SUPPORTED_SUITE_2
+#define SUPPORTED_SUITE_2 EDHOC_CONF_SUPPORTED_SUITE_2
 #else
-  #define SUPPORTED_SUITE_2 -1
+#define SUPPORTED_SUITE_2 -1
 #endif
 
 #ifdef EDHOC_CONF_SUPPORTED_SUITE_3
-  #define SUPPORTED_SUITE_3 EDHOC_CONF_SUPPORTED_SUITE_3
+#define SUPPORTED_SUITE_3 EDHOC_CONF_SUPPORTED_SUITE_3
 #else
-  #define SUPPORTED_SUITE_3 -1
+#define SUPPORTED_SUITE_3 -1
 #endif
 
 #ifdef EDHOC_CONF_SUPPORTED_SUITE_4
-  #define SUPPORTED_SUITE_4 EDHOC_CONF_SUPPORTED_SUITE_4
+#define SUPPORTED_SUITE_4 EDHOC_CONF_SUPPORTED_SUITE_4
 #else
-  #define SUPPORTED_SUITE_4 -1
+#define SUPPORTED_SUITE_4 -1
 #endif
 
 /* Handle settings for test vectors */
@@ -198,16 +198,16 @@
  * \brief Set the EDHOC peer as RPL node. By default deselected
  */
 #ifdef EDHOC_CONF_RPL_NODE
-  #define RPL_NODE EDHOC_CONF_RPL_NODE
+#define RPL_NODE EDHOC_CONF_RPL_NODE
 #else
-  #define RPL_NODE 0
+#define RPL_NODE 0
 #endif
 
 /**
  * \brief The number of attempts to try to connect with the EDHOC server successfully
  */
 #ifndef EDHOC_CONF_ATTEMPTS
-  #define EDHOC_CONF_ATTEMPTS 2
+#define EDHOC_CONF_ATTEMPTS 2
 #endif
 
 /**
@@ -223,9 +223,9 @@
  * \brief The max length of the Application Data
  */
 #ifdef EDHOC_CONF_MAX_AD_SZ
-  #define MAX_AD_SZ EDHOC_CONF_MAX_AD_SZ
+#define MAX_AD_SZ EDHOC_CONF_MAX_AD_SZ
 #else
-  #define MAX_AD_SZ 8
+#define MAX_AD_SZ 8
 #endif
 
 /**

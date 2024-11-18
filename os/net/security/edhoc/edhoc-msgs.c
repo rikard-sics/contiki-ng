@@ -84,7 +84,7 @@ edhoc_get_unsigned(uint8_t **in)
   } else if(byte == 0x18) {
     return get_byte(in);
   } else {
-     (*in)--;
+    (*in)--;
     return -1;
   }
 }
@@ -184,19 +184,18 @@ edhoc_get_byte_identifier(uint8_t **in)
   uint8_t input_byte = **in;
   (*in)++;
 
-  // Check if the byte is in the range 0x00 to 0x17 (positive integers 0 to 23)
-  // or in the range 0x20 to 0x37 (negative integers -1 to -24)
-  if ((input_byte <= 0x17) || (input_byte >= 0x20 && input_byte <= 0x37)) {
+  /* Check if the byte is in the range 0x00 to 0x17 (positive integers 0 to 23) */
+  /* or in the range 0x20 to 0x37 (negative integers -1 to -24) */
+  if((input_byte <= 0x17) || (input_byte >= 0x20 && input_byte <= 0x37)) {
     return input_byte;
   } else {
     LOG_ERR("Unsupported connection identifier received from peer\n");
   }
 
-  // Else: TODO: handle CBOR byte string CIDs
-  // int out_sz = cbor_get_bytes(in, out);
+  /* Else: TODO: handle CBOR byte string CIDs */
+  /* int out_sz = cbor_get_bytes(in, out); */
   return 0;
 }
-
 size_t
 edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t suites_sz)
 {
@@ -209,19 +208,18 @@ edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t sui
   }
   return size;
 }
-
 void
 edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *suites_sz)
 {
-  *suites_buf = (uint8_t*)*buffer;
+  *suites_buf = (uint8_t *)*buffer;
   int8_t unint = (int8_t)edhoc_get_unsigned(buffer);
-  
-  if (unint < 0) {
+
+  if(unint < 0) {
     unint = edhoc_get_array_num(buffer);
-    *suites_buf = (uint8_t*)*buffer;
+    *suites_buf = (uint8_t *)*buffer;
     *suites_sz = 0;
-    
-    while (*suites_sz < unint) {
+
+    while(*suites_sz < unint) {
       edhoc_get_unsigned(buffer);
       (*suites_sz)++;
     }
@@ -229,7 +227,6 @@ edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *s
     *suites_sz = 1;
   }
 }
-
 size_t
 edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array)
 {
@@ -242,25 +239,24 @@ edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array)
   }
   return size;
 }
-
 size_t
 edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer)
 {
   int size = cbor_put_unsigned(&buffer, msg->err_code);
   switch(msg->err_code) {
-    default:
-      LOG_ERR("edhoc_serialize_err: unknown error code: %d\n", msg->err_code);
-      break;
-    case 1:
-      size += cbor_put_text(&buffer, msg->err_info, msg->err_info_sz);
-      break;
-    case 2:
-      // FIXME: strict aliasing violation
-      size += edhoc_serialize_suites(&buffer, (uint8_t *)msg->err_info, msg->err_info_sz);
-      break;
-    case 3:
-      size += cbor_put_num(&buffer, 0xf5);
-      break;
+  default:
+    LOG_ERR("edhoc_serialize_err: unknown error code: %d\n", msg->err_code);
+    break;
+  case 1:
+    size += cbor_put_text(&buffer, msg->err_info, msg->err_info_sz);
+    break;
+  case 2:
+    /* FIXME: strict aliasing violation */
+    size += edhoc_serialize_suites(&buffer, (uint8_t *)msg->err_info, msg->err_info_sz);
+    break;
+  case 3:
+    size += cbor_put_num(&buffer, 0xf5);
+    break;
   }
   return size;
 }
@@ -278,7 +274,7 @@ edhoc_deserialize_err(edhoc_msg_error *msg, unsigned char *buffer, uint8_t buff_
   }
   if(buffer < buff_end) {
     if(msg->err_code == 2) {
-      // FIXME: strict aliasing violation
+      /* FIXME: strict aliasing violation */
       edhoc_deserialize_suites(&buffer, (uint8_t **)&msg->err_info, &msg->err_info_sz);
       return ERR_NEW_SUITE_PROPOSE;
     }
@@ -288,7 +284,7 @@ edhoc_deserialize_err(edhoc_msg_error *msg, unsigned char *buffer, uint8_t buff_
       LOG_ERR("Is an error msgs\n");
       return RX_ERR_MSG;
     }
-    if(len == -1){
+    if(len == -1) {
       return 0;
     }
     msg->err_info_sz = (size_t)len;
@@ -369,7 +365,8 @@ edhoc_get_auth_key_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
   *key = auth_key;
   return ECC_KEY_LEN;
 }
-int8_t edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
+int8_t
+edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
 {
   uint8_t *start = *p;
   uint8_t num = edhoc_get_maps_num(p);
@@ -380,87 +377,87 @@ int8_t edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *
   char *ch = NULL;
   cose_key_t *hkey = NULL;
 
-  if (num > 0) {
+  if(num > 0) {
     label = (uint8_t)edhoc_get_unsigned(p);
   } else {
-    // Compact encoding case
+    /* Compact encoding case */
     key->kid[0] = **p;
     (*p)++;
     key->kid_sz = 1;
     ptr = key->kid;
 
-    if (key->kid[0] == 0) {
-      // Read variable-length KID
+    if(key->kid[0] == 0) {
+      /* Read variable-length KID */
       key->kid_sz = edhoc_get_bytes(p, &ptr);
       memcpy(key->kid, ptr, key->kid_sz);
     }
     label = 0;
   }
 
-  switch (label) {
-    case 0:
-      // ID_CRED_R = KID (compact encoding)
-      key_sz = edhoc_get_auth_key_from_kid(key->kid, key->kid_sz, &hkey);
-      memcpy(key, hkey, sizeof(cose_key_t));
-      if (key_sz <= 0) {
-        return key_sz;
-      }
+  switch(label) {
+  case 0:
+    /* ID_CRED_R = KID (compact encoding) */
+    key_sz = edhoc_get_auth_key_from_kid(key->kid, key->kid_sz, &hkey);
+    memcpy(key, hkey, sizeof(cose_key_t));
+    if(key_sz <= 0) {
+      return key_sz;
+    }
+    break;
+
+  case 4:
+    /* ID_CRED_R = map(4:KID) */
+    key_id_sz = edhoc_get_bytes(p, &ptr);
+    key_sz = edhoc_get_auth_key_from_kid(ptr, key_id_sz, &hkey);
+    memcpy(key, hkey, sizeof(cose_key_t));
+    if(key_sz <= 0) {
+      return key_sz;
+    }
+    break;
+
+  case 1:
+    /* ID_CRED_R = CRED_R (inclusion of credentials) */
+    /* FIXME: Does note seem to correctly rebuild the CCS and/or the CRED_X */
+    LOG_DBG("**** ID_CRED_R = CRED_R");
+    key->kty = edhoc_get_unsigned(p);
+
+    if(get_negative(p) != 1) {
       break;
+    }
+    key->crv = (uint8_t)edhoc_get_unsigned(p);
 
-    case 4:
-      // ID_CRED_R = map(4:KID)
-      key_id_sz = edhoc_get_bytes(p, &ptr);
-      key_sz = edhoc_get_auth_key_from_kid(ptr, key_id_sz, &hkey);
-      memcpy(key, hkey, sizeof(cose_key_t));
-      if (key_sz <= 0) {
-        return key_sz;
-      }
+    if(get_negative(p) != 2) {
       break;
+    }
+    key_sz = edhoc_get_bytes(p, &ptr);
+    memcpy(key->ecc.pub.x, ptr, ECC_KEY_LEN);
 
-    case 1:
-      // ID_CRED_R = CRED_R (inclusion of credentials)
-      // FIXME: Does note seem to correctly rebuild the CCS and/or the CRED_X
-      LOG_DBG("**** ID_CRED_R = CRED_R");
-      key->kty = edhoc_get_unsigned(p);
-
-      if (get_negative(p) != 1) {
-        break;
-      }
-      key->crv = (uint8_t)edhoc_get_unsigned(p);
-
-      if (get_negative(p) != 2) {
-        break;
-      }
-      key_sz = edhoc_get_bytes(p, &ptr);
-      memcpy(key->ecc.pub.x, ptr, ECC_KEY_LEN);
-
-      if (get_negative(p) != 3) {
-        break;
-      }
-      key_sz = edhoc_get_bytes(p, &ptr);
-      memcpy(key->ecc.pub.y, ptr, ECC_KEY_LEN);
-
-      key->identity_sz = get_text(p, &ch);
-      memcpy(key->identity, ch, key->identity_sz);
-      ch = NULL;
-
-      if (key_sz <= 0) {
-        return key_sz;
-      }
+    if(get_negative(p) != 3) {
       break;
+    }
+    key_sz = edhoc_get_bytes(p, &ptr);
+    memcpy(key->ecc.pub.y, ptr, ECC_KEY_LEN);
 
-    default:
-      LOG_ERR("Unknown label %d\n", label);
-      return -1;
+    key->identity_sz = get_text(p, &ch);
+    memcpy(key->identity, ch, key->identity_sz);
+    ch = NULL;
+
+    if(key_sz <= 0) {
+      return key_sz;
+    }
+    break;
+
+  default:
+    LOG_ERR("Unknown label %d\n", label);
+    return -1;
   }
 
-  if (key_sz != ECC_KEY_LEN) {
+  if(key_sz != ECC_KEY_LEN) {
     LOG_ERR("Incorrect key size\n");
     return -1;
   }
 
   uint8_t id_cred_x_sz = *p - start;
-  if (out_id_cred_x != NULL) {
+  if(out_id_cred_x != NULL) {
     memcpy(out_id_cred_x, start, id_cred_x_sz);
     assert(*p - start >= 0);
     assert(id_cred_x_sz <= MAX_BUFFER);
@@ -476,7 +473,6 @@ int8_t edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *
 
   return id_cred_x_sz;
 }
-
 uint8_t
 edhoc_get_sign(uint8_t **p, uint8_t **sign)
 {
@@ -491,23 +487,22 @@ edhoc_get_ad(uint8_t **p, uint8_t *ad)
   memcpy(ad, ptr, ad_sz);
   return ad_sz;
 }
-int 
+int
 edhoc_put_byte_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len)
 {
-  // For single byte values check whether they are a valid CBOR integer
-  if (len == 1) {
+  /* For single byte values check whether they are a valid CBOR integer */
+  if(len == 1) {
     uint8_t byte = bytes[0];
 
-    // Check if the byte is in the range 0x00 to 0x17 (positive integers 0 to 23)
-    // or in the range 0x20 to 0x37 (negative integers -1 to -24)
-    if ((byte <= 0x17) || (byte >= 0x20 && byte <= 0x37)) {
+    /* Check if the byte is in the range 0x00 to 0x17 (positive integers 0 to 23) */
+    /* or in the range 0x20 to 0x37 (negative integers -1 to -24) */
+    if((byte <= 0x17) || (byte >= 0x20 && byte <= 0x37)) {
       **buffer = byte;
       (*buffer)++;
       return 1;
     }
   }
-  
-  // Else encode as a CBOR byte string
+
+  /* Else encode as a CBOR byte string */
   return cbor_put_bytes(buffer, bytes, len);
 }
-

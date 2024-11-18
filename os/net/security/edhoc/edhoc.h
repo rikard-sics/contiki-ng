@@ -102,30 +102,29 @@ typedef struct edhoc_state_t {
 } edhoc_state_t;
 
 typedef struct edhoc_buffers_t {
-  uint8_t  msg_rx[MAX_PAYLOAD_LEN];
-  uint8_t  msg_tx[MAX_PAYLOAD_LEN];
+  uint8_t msg_rx[MAX_PAYLOAD_LEN];
+  uint8_t msg_tx[MAX_PAYLOAD_LEN];
   uint16_t rx_sz;
   uint16_t tx_sz;
-  uint8_t  plaintext[MAX_BUFFER];
-  size_t   plaintext_sz;
-  uint8_t  cred_x[MAX_BUFFER];
-  size_t   cred_x_sz;
-  uint8_t  id_cred_x[MAX_BUFFER];
-  size_t   id_cred_x_sz;
+  uint8_t plaintext[MAX_BUFFER];
+  size_t plaintext_sz;
+  uint8_t cred_x[MAX_BUFFER];
+  size_t cred_x_sz;
+  uint8_t id_cred_x[MAX_BUFFER];
+  size_t id_cred_x_sz;
 } edhoc_buffers_t;
 
 typedef struct edhoc_creds_t {
-  cose_key_t *authen_key; // Points to key in cred storage
-  ecc_key_t  ephemeral_key;
+  cose_key_t *authen_key; /* Points to key in cred storage */
+  ecc_key_t ephemeral_key;
 } edhoc_creds_t;
 
 typedef struct edhoc_context_t {
-  edhoc_config_t  config;
-  edhoc_state_t   state;
-  edhoc_creds_t   creds;
+  edhoc_config_t config;
+  edhoc_state_t state;
+  edhoc_creds_t creds;
   edhoc_buffers_t buffers;
 } edhoc_context_t;
-
 
 /**
  * \brief EDHOC context struct used in the EDHOC protocol
@@ -173,8 +172,8 @@ void edhoc_finalize(edhoc_context_t *ctx);
  * \param ctx EDHOC Context struct
  * \param ad Application data to include in MSG1
  * \param ad_sz Application data length
- * \param suite_array If true the msg1 include an array of suites if have more than one suite if 0 msg1 includes an 
- * unique unsigned suite independently of the number of suites supported by the initiator 
+ * \param suite_array If true the msg1 include an array of suites if have more than one suite if 0 msg1 includes an
+ * unique unsigned suite independently of the number of suites supported by the initiator
  *
  * Generate an ephemeral ECDH key pair, determinate the cipher suite to use and the
  * connection identifier. Compose the EDHOC Message 1 as described in the (RFC9528) reference
@@ -325,14 +324,14 @@ int edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer
  * \return 1 if key derivation is successful, or a negative error code on failure.
  *
  * This function combines the PRK, info_label, and context to generate an input info
- * parameter that is used for HKDF-Expand as defined in RFC 5869. It is used by both 
- * the Initiator and Responder in the EDHOC protocol to generate keying material. 
+ * parameter that is used for HKDF-Expand as defined in RFC 5869. It is used by both
+ * the Initiator and Responder in the EDHOC protocol to generate keying material.
  * Internally, this function calls `edhoc_expand` to compute the final OKM.
- * 
+ *
  * The function performs the following steps:
  *  - Calls `generate_info` to prepare the `info` input.
  *  - Passes the PRK, generated `info`, and length to `edhoc_expand`.
- * 
+ *
  * Example usage:
  *  - OKM = EDHOC_Expand(PRK, info, length)
  */
@@ -347,7 +346,7 @@ int16_t edhoc_kdf(const uint8_t *prk, uint8_t info_label, const uint8_t *context
  * \param length The desired length of the output key material (OKM) in bits.
  * \return 1 if key derivation is successful, or a negative error code on failure.
  *
- * This function implements the HKDF-Expand function as described in RFC 5869. 
+ * This function implements the HKDF-Expand function as described in RFC 5869.
  * It takes the PRK, context info, and the desired length to produce the final key material.
  * It calls hkdf_expand internally to perform the HMAC-based key expansion using SHA-256.
  *
@@ -370,34 +369,34 @@ int8_t get_edhoc_mac_len(uint8_t ciphersuite_id);
 int8_t get_edhoc_aead_enc_alg(uint8_t ciphersuite_id);
 int8_t get_edhoc_sign_alg(uint8_t ciphersuite_id);
 
-// static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length);
-// static int16_t get_rx_suite_I(const edhoc_context_t *ctx, uint8_t *suite_rx);
-// static int8_t check_rx_suite_I(edhoc_context_t *ctx, uint8_t *suiterx);
-// static int8_t gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz);
-// static int8_t set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz);
-// static int8_t set_rx_method(edhoc_context_t *ctx, uint8_t method);
-// static size_t generate_cred_x(cose_key_t *cose, uint8_t *cred);
-// static size_t generate_id_cred_x(cose_key_t *cose, uint8_t *cred);
-// static size_t generate_info(uint8_t *info, uint8_t *th, uint8_t th_sz, uint8_t length, uint8_t value);
-// static size_t reconstruct_id_cred_x(uint8_t *cred_in, size_t cred_in_sz);
-// static uint16_t check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher, uint16_t cipher_sz, uint8_t *mac);
-// static uint16_t decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphertext_sz, uint8_t *plaintext);
-// static uint16_t gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac, uint16_t mac_sz, uint8_t *ciphertext);
-// static uint16_t gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool msg2);
-// static uint8_t gen_gxy(edhoc_context_t *ctx);
-// static uint8_t gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac);
-// static uint8_t gen_prk_2e(edhoc_context_t *ctx);
-// static uint8_t gen_prk_3e2m(edhoc_context_t *ctx, ecc_key_t *key_authenticate, uint8_t gen);
-// static uint8_t gen_prk_4e3m(edhoc_context_t *ctx, ecc_key_t *key_authenticate, uint8_t gen);
-// static uint8_t gen_th3(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz);
-// static uint8_t gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz);
-// static uint8_t int_sz(int num);
-// static void context_free(edhoc_context_t *ctx);
-// static void gen_ciphertext_2(edhoc_context_t *ctx, uint8_t *plaintext, uint16_t plaintext_sz);
-// static void print_connection(edhoc_session *con);
-// static void set_rx_msg(edhoc_context_t *ctx, uint8_t *msg, uint8_t msg_sz);
-// static retrieve_cred_i(edhoc_context_t *ctx, uint8_t *inf, uint8_t *cred_i);
-// static uint8_t set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac);
+/* static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length); */
+/* static int16_t get_rx_suite_I(const edhoc_context_t *ctx, uint8_t *suite_rx); */
+/* static int8_t check_rx_suite_I(edhoc_context_t *ctx, uint8_t *suiterx); */
+/* static int8_t gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz); */
+/* static int8_t set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz); */
+/* static int8_t set_rx_method(edhoc_context_t *ctx, uint8_t method); */
+/* static size_t generate_cred_x(cose_key_t *cose, uint8_t *cred); */
+/* static size_t generate_id_cred_x(cose_key_t *cose, uint8_t *cred); */
+/* static size_t generate_info(uint8_t *info, uint8_t *th, uint8_t th_sz, uint8_t length, uint8_t value); */
+/* static size_t reconstruct_id_cred_x(uint8_t *cred_in, size_t cred_in_sz); */
+/* static uint16_t check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher, uint16_t cipher_sz, uint8_t *mac); */
+/* static uint16_t decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphertext_sz, uint8_t *plaintext); */
+/* static uint16_t gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac, uint16_t mac_sz, uint8_t *ciphertext); */
+/* static uint16_t gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool msg2); */
+/* static uint8_t gen_gxy(edhoc_context_t *ctx); */
+/* static uint8_t gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac); */
+/* static uint8_t gen_prk_2e(edhoc_context_t *ctx); */
+/* static uint8_t gen_prk_3e2m(edhoc_context_t *ctx, ecc_key_t *key_authenticate, uint8_t gen); */
+/* static uint8_t gen_prk_4e3m(edhoc_context_t *ctx, ecc_key_t *key_authenticate, uint8_t gen); */
+/* static uint8_t gen_th3(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz); */
+/* static uint8_t gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz); */
+/* static uint8_t int_sz(int num); */
+/* static void context_free(edhoc_context_t *ctx); */
+/* static void gen_ciphertext_2(edhoc_context_t *ctx, uint8_t *plaintext, uint16_t plaintext_sz); */
+/* static void print_connection(edhoc_session *con); */
+/* static void set_rx_msg(edhoc_context_t *ctx, uint8_t *msg, uint8_t msg_sz); */
+/* static retrieve_cred_i(edhoc_context_t *ctx, uint8_t *inf, uint8_t *cred_i); */
+/* static uint8_t set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac); */
 
 #endif /* _EDHOC_H_ */
 /** @} */

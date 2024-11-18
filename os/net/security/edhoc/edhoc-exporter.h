@@ -63,7 +63,6 @@
 #define OSCORE_MASTER_SECRET_LABEL 0
 #define OSCORE_MASTER_SALT_LABEL   1
 
-
 /**
  * \brief OSCORE context struct
  */

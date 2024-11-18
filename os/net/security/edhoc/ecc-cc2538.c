@@ -120,11 +120,11 @@ cc2538_generate_IKM(const uint8_t *gx, const uint8_t *gy, const uint8_t *private
   int er = 0;
   static ecc_multiply_state_t shared;
   shared.curve_info = curve.curve;
-  uint8_t gy_local[ECC_KEY_LEN]; // Create a local copy of gy
+  uint8_t gy_local[ECC_KEY_LEN]; /* Create a local copy of gy */
 
   pka_init();
 
-  // Copy gy into gy_local
+  /* Copy gy into gy_local */
   memcpy(gy_local, gy, ECC_KEY_LEN);
 
   /* If just one coordinate is have it we put first byte non zero */
@@ -133,7 +133,7 @@ cc2538_generate_IKM(const uint8_t *gx, const uint8_t *gy, const uint8_t *private
   }
 
   eccBytes_to_native(shared.point_in.x, gx, ECC_KEY_LEN);
-  eccBytes_to_native(shared.point_in.y, gy_local, ECC_KEY_LEN); // Use gy_local
+  eccBytes_to_native(shared.point_in.y, gy_local, ECC_KEY_LEN); /* Use gy_local */
   eccBytes_to_native(shared.secret, private_key, ECC_KEY_LEN);
   watchdog_periodic();
   ecc_mul_start(shared.secret, &shared.point_in, shared.curve_info, &shared.rv, shared.process);

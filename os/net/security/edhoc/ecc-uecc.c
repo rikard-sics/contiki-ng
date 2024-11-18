@@ -72,33 +72,31 @@ uecc_generate_key(ecc_key_t *key, ecc_curve_t curve)
   watchdog_periodic();
   return er;
 }
-//TODO: Check further
+/*TODO: Check further */
 uint8_t
 uecc_generate_IKM(const uint8_t *gx_in, const uint8_t *gy_in, const uint8_t *private_key, uint8_t *ikm, ecc_curve_t crv)
 {
-    int er = 0;
-    uint8_t compressed[ECC_KEY_LEN + 1];
-    static uint8_t pub[2 * ECC_KEY_LEN];
-    uint8_t *gy;
+  int er = 0;
+  uint8_t compressed[ECC_KEY_LEN + 1];
+  static uint8_t pub[2 * ECC_KEY_LEN];
+  uint8_t *gy;
 
-    // Prepare the compressed format (first byte is 0x03, followed by gx)
-    compressed[0] = 0x03;
-    memcpy(compressed + 1, gx_in, ECC_KEY_LEN);  // Use gx_in for input gx
+  /* Prepare the compressed format (first byte is 0x03, followed by gx) */
+  compressed[0] = 0x03;
+  memcpy(compressed + 1, gx_in, ECC_KEY_LEN);    /* Use gx_in for input gx */
 
-    // Decompress
-    uECC_decompress(compressed, pub, crv.curve);
-    gy = pub + ECC_KEY_LEN;
+  /* Decompress */
+  uECC_decompress(compressed, pub, crv.curve);
+  gy = pub + ECC_KEY_LEN;
 
-    // Now prepare the public key using gx and gy
-    uint8_t public[2 * ECC_KEY_LEN];
-    memcpy(public, gx_in, ECC_KEY_LEN);
-    memcpy(public + ECC_KEY_LEN, gy, ECC_KEY_LEN);
+  /* Now prepare the public key using gx and gy */
+  uint8_t public[2 * ECC_KEY_LEN];
+  memcpy(public, gx_in, ECC_KEY_LEN);
+  memcpy(public + ECC_KEY_LEN, gy, ECC_KEY_LEN);
 
-    watchdog_periodic();
-    er = uECC_shared_secret(public, private_key, ikm, crv.curve);
-    watchdog_periodic();
+  watchdog_periodic();
+  er = uECC_shared_secret(public, private_key, ikm, crv.curve);
+  watchdog_periodic();
 
-    return er;
+  return er;
 }
-
-
