@@ -46,3 +46,6 @@
 [submodule "os/net/security/micro-ecc"]
 	path = os/net/security/micro-ecc
 	url = https://github.com/kmackay/micro-ecc.git
+[submodule "os/services/zcbor/zcbor"]
+	path = os/services/zcbor/zcbor
+	url = https://github.com/contiki-ng/zcbor.git

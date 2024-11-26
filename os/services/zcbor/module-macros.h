@@ -1,0 +1,2 @@
+#define ZCBOR_STOP_ON_ERROR 1
+#define ZCBOR_CANONICAL 1

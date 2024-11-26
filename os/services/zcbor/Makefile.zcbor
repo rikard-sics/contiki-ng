@@ -1,0 +1,14 @@
+ZCBOR_PATH = os/services/zcbor/zcbor
+ZCBOR_REL = ${addprefix $(CONTIKI)/, ${ZCBOR_PATH}}
+
+ifeq (,$(wildcard $(ZCBOR_REL)/*))
+    $(warning $(ZCBOR_REL) does not exist or is empty.)
+    $(warning Did you run 'git submodule update --init' ?)
+    $(error "")
+endif
+
+# MODULES += ${addprefix ${ZCBOR_PATH}/,include src}
+
+ZCBOR_SOURCES = ${subst $(ZCBOR_REL)/src/,,${wildcard $(ZCBOR_REL)/src/*.c}}
+CONTIKI_SOURCEFILES += $(ZCBOR_SOURCES)
+EXTERNALDIRS += $(addprefix $(ZCBOR_REL)/,include src)
