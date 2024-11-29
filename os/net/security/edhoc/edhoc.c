@@ -987,18 +987,17 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   /* Create signature from MAC and other data using COSE_Sign1 */
 
-  /* Protected */
+  /* Protected (ID_CRED_R) */
   cose_sign1 *cose_sign1 = cose_sign1_new();
   cose_sign1_set_header(cose_sign1, ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz, NULL, 0);
 
-  /* External AAD */
+  /* External AAD (TH_2, CRED_R, ? EAD_2) */
   uint8_t *aad_ptr = cose_sign1->external_aad;
-  memcpy(aad_ptr, ctx->state.th, HASH_LEN);
-  aad_ptr += HASH_LEN;
+  uint8_t th_sz = cbor_put_bytes(&aad_ptr, ctx->state.th, HASH_LEN);
   memcpy(aad_ptr, ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
-  cose_sign1->external_aad_sz = ctx->buffers.cred_x_sz + HASH_LEN;
+  cose_sign1->external_aad_sz = ctx->buffers.cred_x_sz + th_sz;
 
-  /* Payload */
+  /* Payload (MAC_2) */
   uint8_t er = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
   if(er == 0) {
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
@@ -1101,18 +1100,17 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   /* Create signature from MAC and other data using COSE_Sign1 */
 
-  /* Protected */
+  /* Protected (ID_CRED_I) */
   cose_sign1 *cose_sign1 = cose_sign1_new();
   cose_sign1_set_header(cose_sign1, ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz, NULL, 0);
 
-  /* External AAD */
+  /* External AAD (TH_3, CRED_I, ? EAD_3) */
   uint8_t *aad_ptr = cose_sign1->external_aad;
-  memcpy(aad_ptr, ctx->state.th, HASH_LEN);
-  aad_ptr += HASH_LEN;
+  uint8_t th_sz = cbor_put_bytes(&aad_ptr, ctx->state.th, HASH_LEN);
   memcpy(aad_ptr, ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
-  cose_sign1->external_aad_sz = ctx->buffers.cred_x_sz + HASH_LEN;
+  cose_sign1->external_aad_sz = ctx->buffers.cred_x_sz + th_sz;
 
-  /* Payload */
+  /* Payload (MAC_3) */
   uint8_t er = cose_sign1_set_payload(cose_sign1, mac_or_sig, HASH_LEN);
   if(er == 0) {
     LOG_ERR("Failed to set payload in COSE_Sign1 object\n");
@@ -1471,16 +1469,15 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
 
   /* Create signature from MAC and other data using COSE_Sign1 */
 
-  /* Protected */
+  /* Protected (ID_CRED_X) */
   cose_sign1 *cose_sign1 = cose_sign1_new();
   cose_sign1_set_header(cose_sign1, ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz, NULL, 0);
 
-  /* External AAD (CRED_I and TH) */
+  /* External AAD (TH_2/3, CRED_X, ? EAD_2/3) */
   uint8_t *aad_ptr = cose_sign1->external_aad;
-  memcpy(aad_ptr, ctx->state.th, HASH_LEN);
-  aad_ptr += HASH_LEN;
+  uint8_t th_sz = cbor_put_bytes(&aad_ptr, ctx->state.th, HASH_LEN);
   memcpy(aad_ptr, ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
-  cose_sign1->external_aad_sz = ctx->buffers.cred_x_sz + HASH_LEN;
+  cose_sign1->external_aad_sz = ctx->buffers.cred_x_sz + th_sz;
 
   /* Set received signature */
   cose_sign1_set_signature(cose_sign1, received_mac, received_mac_sz);
