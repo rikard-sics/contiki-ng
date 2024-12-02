@@ -156,16 +156,21 @@ int8_t
 hkdf_expand(const uint8_t *prk, uint16_t prk_sz, const uint8_t *info, uint16_t info_sz, uint8_t *okm, uint16_t okm_sz)
 {
   if(info_sz > HKDF_INFO_MAXLEN) {
-    LOG_ERR("error code (%d)\n ", ERR_INFO_SIZE);
+    LOG_ERR("Too large info size in HKDF Expand (%d)\n ", ERR_INFO_SIZE);
     return ERR_INFO_SIZE;
   }
   if(okm_sz > HKDF_OUTPUT_MAXLEN) {
-    LOG_ERR("error code (%d)\n ", ERR_OKM_SIZE);
+    LOG_ERR("Too large output size in HKDF expand (%d)\n ", ERR_OKM_SIZE);
     return ERR_OKM_SIZE;
   }
   int hash_sz = HASH_LEN;
+  /* This function only supports SHA256 */
+  if(hash_sz != 32) {
+    LOG_ERR("Invalid hash size for HKDF Expand with SHA256 (%d)\n", ERR_HASH_SIZE);
+    return ERR_HASH_SIZE;
+  }
 
-  /*ceil */
+  /* ceil */
   int N = (okm_sz + hash_sz - 1) / hash_sz;
 
   /* Compose T(1) */
@@ -180,24 +185,25 @@ hkdf_expand(const uint8_t *prk, uint16_t prk_sz, const uint8_t *info, uint16_t i
   int er = hmac_sha256_create(&ctx, prk, prk_sz, aggregate_buffer, info_sz + 1, &(out_buffer[0]));
   if(er != 0) {
     LOG_ERR("hmac_sha256_create error code (%d)\n", er);
-    return ERR_INFO_SIZE; /* FIXME: make unique error code */
+    return ERR_HMAC_CREATE;
   }
 
-  /*Compose T(2) ... T(N) */
+  /* Compose T(2) ... T(N) */
   memcpy(aggregate_buffer, &(out_buffer[0]), hash_sz);
   for(int i = 1; i < N; i++) {
     hmac_sha256_reset(&ctx, prk, prk_sz);
     memcpy(&(aggregate_buffer[hash_sz]), info, info_sz);
     aggregate_buffer[hash_sz + info_sz] = i + 1;
+
     er = hmac_sha256_create(&ctx, prk, prk_sz, aggregate_buffer, hash_sz + info_sz + 1, &(out_buffer[i * hash_sz]));
     if(er != 0) {
       LOG_ERR("hmac_sha256_create error code (%d)\n", er);
-      return ERR_INFO_SIZE; /* FIXME: make unique error code */
+      return ERR_HMAC_CREATE;
     }
     memcpy(aggregate_buffer, &(out_buffer[i * hash_sz]), hash_sz);
   }
 
-  memcpy(okm, aggregate_buffer, okm_sz);
+  memcpy(okm, out_buffer, okm_sz);
   hmac_sha256_free(ctx);
   return 1;
 }

@@ -53,6 +53,8 @@
 
 #define ERR_INFO_SIZE -1
 #define ERR_OKM_SIZE -2
+#define ERR_HASH_SIZE -3
+#define ERR_HMAC_CREATE -3
 
 #ifdef EDHOC_CONF_ECC
 #define ECC EDHOC_CONF_ECC
