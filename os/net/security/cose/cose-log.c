@@ -39,7 +39,7 @@
 #include "cose-log.h"
 
 void
-cose_print_buff(uint8_t *buff, size_t len)
+cose_print_buff(const uint8_t *buff, size_t len)
 {
 
   for(int i = 0; i < len; i++) {
@@ -49,7 +49,7 @@ cose_print_buff(uint8_t *buff, size_t len)
 }
 
 void
-cose_print_char(uint8_t *buff, size_t len)
+cose_print_char(const uint8_t *buff, size_t len)
 {
 
   for(int i = 0; i < len; i++) {

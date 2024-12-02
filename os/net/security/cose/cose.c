@@ -45,18 +45,6 @@
 MEMB(encrypt0_storage, cose_encrypt0, 1);
 MEMB(sign1_storage, cose_sign1, 1);
 
-static inline cose_encrypt0 *
-encrypt0_storage_new()
-{
-  return (cose_encrypt0 *)memb_alloc(&encrypt0_storage);
-}
-
-static inline void
-encrypt0_free(cose_encrypt0 *enc)
-{
-  memb_free(&encrypt0_storage, enc);
-}
-
 void
 encrypt0_storage_init(void)
 {
@@ -66,27 +54,13 @@ encrypt0_storage_init(void)
 cose_encrypt0 *
 cose_encrypt0_new(void)
 {
-  cose_encrypt0 *enc;
-  enc = encrypt0_storage_new();
-  return enc;
+  return (cose_encrypt0 *)memb_alloc(&encrypt0_storage);
 }
 
 void
 cose_encrypt0_finalize(cose_encrypt0 *enc)
 {
-  encrypt0_free(enc);
-}
-
-static inline cose_sign1 *
-sign1_storage_new()
-{
-  return (cose_sign1 *)memb_alloc(&sign1_storage);
-}
-
-static inline void
-sign1_free(cose_sign1 *sign)
-{
-  memb_free(&sign1_storage, sign);
+  memb_free(&encrypt0_storage, enc);
 }
 
 void
@@ -98,19 +72,19 @@ sign1_storage_init(void)
 cose_sign1 *
 cose_sign1_new(void)
 {
-  cose_sign1 *sign;
-  sign = sign1_storage_new();
-  return sign;
+  return (cose_sign1 *)memb_alloc(&sign1_storage);
 }
 
 void
 cose_sign1_finalize(cose_sign1 *sign)
 {
-  sign1_free(sign);
+  memb_free(&sign1_storage, sign);
 }
 
 uint8_t
-cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, const uint8_t *key, uint8_t key_sz, const uint8_t *nonce, uint16_t nonce_sz)
+cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg,
+                      const uint8_t *key, uint8_t key_sz,
+                      const uint8_t *nonce, uint16_t nonce_sz)
 {
   if(key_sz != get_cose_key_len(enc->alg)) {
     return 0;
@@ -126,7 +100,8 @@ cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg, const uint8_t *key, uint8
 }
 
 uint8_t
-cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, const uint8_t *key, uint8_t key_sz)
+cose_sign1_set_key(cose_sign1 *sign1, int8_t alg,
+                   const uint8_t *key, uint8_t key_sz)
 {
   if(key_sz > ECC_KEY_LEN * 2) {
     return 0;
@@ -142,7 +117,9 @@ cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, const uint8_t *key, uint8_t ke
 }
 
 uint8_t
-cose_encrypt0_set_content(cose_encrypt0 *enc, const uint8_t *plain, uint16_t plain_sz, const uint8_t *aad, uint8_t aad_sz)
+cose_encrypt0_set_content(cose_encrypt0 *enc,
+                          const uint8_t *plain, uint16_t plain_sz,
+                          const uint8_t *aad, uint8_t aad_sz)
 {
   if(plain_sz > COSE_MAX_BUFFER) {
     return 0;
@@ -155,7 +132,8 @@ cose_encrypt0_set_content(cose_encrypt0 *enc, const uint8_t *plain, uint16_t pla
 }
 
 uint8_t
-cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, const uint8_t *ciphertext, uint16_t ciphertext_sz)
+cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, const uint8_t *ciphertext,
+                             uint16_t ciphertext_sz)
 {
   if(ciphertext_sz > MAX_CIPHER) {
     return 0;
@@ -166,7 +144,8 @@ cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, const uint8_t *ciphertext, uint
 }
 
 uint8_t
-cose_sign1_set_payload(cose_sign1 *sign1, const uint8_t *payload, uint16_t payload_sz)
+cose_sign1_set_payload(cose_sign1 *sign1, const uint8_t *payload,
+                       uint16_t payload_sz)
 {
   if(payload_sz > COSE_MAX_BUFFER) {
     return 0;
@@ -177,7 +156,8 @@ cose_sign1_set_payload(cose_sign1 *sign1, const uint8_t *payload, uint16_t paylo
 }
 
 uint8_t
-cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature, uint16_t signature_sz)
+cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature,
+                         uint16_t signature_sz)
 {
   if(signature_sz > COSE_MAX_BUFFER) {
     return 0;
@@ -188,7 +168,8 @@ cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature, uint16_t s
 }
 
 uint8_t
-cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_aad, uint16_t external_aad_sz)
+cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_aad,
+                            uint16_t external_aad_sz)
 {
   if(external_aad_sz > COSE_MAX_BUFFER) {
     return 0;
@@ -199,7 +180,9 @@ cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_aad, uint
 }
 
 void
-cose_encrypt0_set_header(cose_encrypt0 *enc, const uint8_t *prot, uint16_t prot_sz, const uint8_t *unp, uint16_t unp_sz)
+cose_encrypt0_set_header(cose_encrypt0 *enc,
+                         const uint8_t *prot, uint16_t prot_sz,
+                         const uint8_t *unp, uint16_t unp_sz)
 {
   memcpy(enc->protected_header, prot, prot_sz);
   memcpy(enc->unprotected_header, unp, unp_sz);
@@ -208,7 +191,9 @@ cose_encrypt0_set_header(cose_encrypt0 *enc, const uint8_t *prot, uint16_t prot_
 }
 
 void
-cose_sign1_set_header(cose_sign1 *sign1, const uint8_t *prot, uint16_t prot_sz, const uint8_t *unp, uint16_t unp_sz)
+cose_sign1_set_header(cose_sign1 *sign1,
+                      const uint8_t *prot, uint16_t prot_sz,
+                      const uint8_t *unp, uint16_t unp_sz)
 {
   memcpy(sign1->protected_header, prot, prot_sz);
   /*memcpy(sign1->unprotected_header, unp, unp_sz); */
@@ -314,7 +299,9 @@ cose_sign(cose_sign1 *sign1)
 {
   uint8_t sig_struct_bytes[2 * COSE_MAX_BUFFER];
   uint8_t sig_str_sz = encode_sig_structure(sign1, sig_struct_bytes);
-  LOG_DBG("CBOR-encoded sig_structure for COSE_Sign1 signing (%d bytes): ", sig_str_sz);
+
+  LOG_DBG("CBOR-encoded sig_structure for COSE_Sign1 signing (%d bytes): ",
+          sig_str_sz);
   cose_print_buff_8_dbg(sig_struct_bytes, sig_str_sz);
 
   LOG_DBG("Using own private key for COSE_Sign1 signing: ");
@@ -323,7 +310,8 @@ cose_sign(cose_sign1 *sign1)
   uint8_t hash[HASH_LEN];
   sha256(sig_struct_bytes, sig_str_sz, hash);
 
-  if(uECC_sign(sign1->key, hash, sizeof(hash), sign1->signature, uECC_secp256r1())) {
+  if(uECC_sign(sign1->key, hash, sizeof(hash), sign1->signature,
+               uECC_secp256r1())) {
     sign1->signature_sz = P256_SIGNATURE_LEN;
     /* LOG_DBG("Signature for COSE_Sign1 (%d bytes): ", sign1->signature_sz); */
     /* cose_print_buff_8_dbg(sign1->signature, sign1->signature_sz); */
@@ -346,22 +334,25 @@ cose_verify(cose_sign1 *sign1)
   /* Recreate the sig_structure */
   uint8_t sig_struct_bytes[2 * COSE_MAX_BUFFER];
   uint8_t sig_str_sz = encode_sig_structure(sign1, sig_struct_bytes);
-  LOG_DBG("CBOR-encoded sig_structure for COSE_Sign1 verification (%d bytes): ", sig_str_sz);
+
+  LOG_DBG("CBOR-encoded sig_structure for COSE_Sign1 verification (%d bytes): ",
+          sig_str_sz);
   cose_print_buff_8_dbg(sig_struct_bytes, sig_str_sz);
 
   uint8_t hash[HASH_LEN];
   sha256(sig_struct_bytes, sig_str_sz, hash);
 
   /* Verify the signature using the peer's public key */
-  int verify = uECC_verify(public_key, hash, sizeof(hash), sign1->signature, uECC_secp256r1());
+  int verify = uECC_verify(public_key, hash, sizeof(hash), sign1->signature,
+                           uECC_secp256r1());
 
   if(verify == 1) {
     LOG_DBG("Signature verification succeeded for COSE_Sign1\n");
     return 1;
-  } else {
-    LOG_ERR("Signature verification failed for COSE_Sign1\n");
-    return 0;
   }
+
+  LOG_ERR("Signature verification failed for COSE_Sign1\n");
+  return 0;
 }
 
 uint8_t

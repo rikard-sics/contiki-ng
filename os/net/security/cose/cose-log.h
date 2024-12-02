@@ -52,8 +52,8 @@
 #define LOG_LEVEL LOG_LEVEL_EDHOC
 #endif
 
-void cose_print_buff(uint8_t *buff, size_t len);
-void cose_print_char(uint8_t *buff, size_t len);
+void cose_print_buff(const uint8_t *buff, size_t len);
+void cose_print_char(const uint8_t *buff, size_t len);
 
 #define LOG_COSE_BUFF(level, data, len) do { \
           if(level <= (LOG_LEVEL)) { \
@@ -78,32 +78,33 @@ void cose_print_char(uint8_t *buff, size_t len);
 #define LOG_DBG_COSE_STR(data, len)  LOG_COSE_STR(LOG_LEVEL_DBG, data, len)
 
 static inline void
-cose_print_buff_8_dbg(uint8_t *buf, uint8_t len)
+cose_print_buff_8_dbg(const uint8_t *buff, uint8_t len)
 {
-  LOG_DBG_COSE_BUFF(buf, len);
+  LOG_DBG_COSE_BUFF(buff, len);
 }
 
 static inline void
-cose_print_buff_8_info(uint8_t *buf, uint8_t len)
+cose_print_buff_8_info(const uint8_t *buff, uint8_t len)
 {
-  LOG_INFO_COSE_BUFF(buf, len);
+  LOG_INFO_COSE_BUFF(buff, len);
 }
 
 static inline void
-cose_print_buff_8_err(uint8_t *buf, uint8_t len)
+cose_print_buff_8_err(const uint8_t *buff, uint8_t len)
 {
-  LOG_ERR_COSE_BUFF(buf, len);
+  LOG_ERR_COSE_BUFF(buff, len);
 }
 
 static inline void
-cose_print_char_8_info(uint8_t *buf, uint8_t len)
+cose_print_char_8_info(const uint8_t *buff, uint8_t len)
 {
-  LOG_INFO_COSE_STR(buf, len);
+  LOG_INFO_COSE_STR(buff, len);
 }
 
 static inline void
-cose_print_char_8_dbg(uint8_t *buf, uint8_t len)
+cose_print_char_8_dbg(const uint8_t *buff, uint8_t len)
 {
-  LOG_DBG_COSE_STR(buf, len);
+  LOG_DBG_COSE_STR(buff, len);
 }
-#endif /*COSE_LOG_H*/
+
+#endif /* _COSE_LOG_H_ */
