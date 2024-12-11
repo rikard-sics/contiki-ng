@@ -365,7 +365,7 @@ get_cose_key_len(uint8_t alg_id)
     return COSE_ALG_AES_CCM_16_128_128_KEY_LEN;
   default:
     LOG_ERR("Invalid COSE algorithm specified\n");
-    return -1;
+    return 0;
   }
 }
 
@@ -379,7 +379,7 @@ get_cose_iv_len(uint8_t alg_id)
     return COSE_ALG_AES_CCM_16_128_128_IV_LEN;
   default:
     LOG_ERR("Invalid COSE algorithm specified\n");
-    return -1;
+    return 0;
   }
 }
 
@@ -393,6 +393,6 @@ get_cose_tag_len(uint8_t alg_id)
     return COSE_ALG_AES_CCM_16_128_128_TAG_LEN;
   default:
     LOG_ERR("Invalid COSE algorithm specified\n");
-    return -1;
+    return 0;
   }
 }
