@@ -94,10 +94,10 @@ typedef struct edhoc_server_ad {
 /**
  * \brief EDHOC server data event struct
  */
-typedef struct ecc_data_even {
+typedef struct ecc_data_event {
   uint8_t val;
   edhoc_server_ad_t ad;
-}ecc_data_even_t;
+} ecc_data_event_t;
 
 typedef struct serv_data {
   coap_message_t *request;

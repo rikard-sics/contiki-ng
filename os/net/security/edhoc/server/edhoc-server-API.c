@@ -60,7 +60,7 @@ static size_t msg_rx_len;
 static edhoc_server_t server;
 static edhoc_server_t *serv;
 static process_event_t new_ecc_event;
-static ecc_data_even_t new_ecc;
+static ecc_data_event_t new_ecc;
 
 static coap_message_t *request;
 static coap_message_t *response;
