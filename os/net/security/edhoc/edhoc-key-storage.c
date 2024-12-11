@@ -59,7 +59,7 @@ edhoc_check_key_list_identity(char *identity, uint8_t identity_sz, cose_key_t **
   cose_key_t *key = list_head(key_list);
   while(n > 0) {
     if(memcmp(key->identity, identity, (size_t)identity_sz) == 0) {
-      if((key->identity_sz == identity_sz)) {
+      if(key->identity_sz == identity_sz) {
         *auth_key = key;
         return 1;
       }
