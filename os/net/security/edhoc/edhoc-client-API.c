@@ -295,7 +295,7 @@ edhoc_send_msg1(uint8_t *ad, uint8_t ad_sz, bool suite_array)
   time = RTIMER_NOW() - time;
   LOG_INFO("Client time to gen MSG1: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
   time = RTIMER_NOW();
-  edhoc_client_post(&cli->server_ep, state.state.request, edhoc_ctx->buffers.msg_tx, edhoc_ctx->buffers.tx_sz);
+  edhoc_client_post();
   cli->state = RX_MSG2;
   return edhoc_client_post_blocks();
 }
