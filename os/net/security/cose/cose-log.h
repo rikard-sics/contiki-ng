@@ -78,31 +78,31 @@ void cose_print_char(const uint8_t *buff, size_t len);
 #define LOG_DBG_COSE_STR(data, len)  LOG_COSE_STR(LOG_LEVEL_DBG, data, len)
 
 static inline void
-cose_print_buff_8_dbg(const uint8_t *buff, uint8_t len)
+cose_print_buff_8_dbg(const uint8_t *buff, size_t len)
 {
   LOG_DBG_COSE_BUFF(buff, len);
 }
 
 static inline void
-cose_print_buff_8_info(const uint8_t *buff, uint8_t len)
+cose_print_buff_8_info(const uint8_t *buff, size_t len)
 {
   LOG_INFO_COSE_BUFF(buff, len);
 }
 
 static inline void
-cose_print_buff_8_err(const uint8_t *buff, uint8_t len)
+cose_print_buff_8_err(const uint8_t *buff, size_t len)
 {
   LOG_ERR_COSE_BUFF(buff, len);
 }
 
 static inline void
-cose_print_char_8_info(const uint8_t *buff, uint8_t len)
+cose_print_char_8_info(const uint8_t *buff, size_t len)
 {
   LOG_INFO_COSE_STR(buff, len);
 }
 
 static inline void
-cose_print_char_8_dbg(const uint8_t *buff, uint8_t len)
+cose_print_char_8_dbg(const uint8_t *buff, size_t len)
 {
   LOG_DBG_COSE_STR(buff, len);
 }
