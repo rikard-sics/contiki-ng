@@ -188,9 +188,8 @@ cbor_int_size(int32_t num) {
     return 2;
   } else if (num >= -32768 && num <= 65535) {
     return 3;
-  } else if (num >= -2147483648 && num <= 4294967295) {
+  } else {
+    /* 32 bit signed num is always >= -2147483648 and <= 4294967295 */
     return 5;
   }
-  return 0;
 }
-
