@@ -254,7 +254,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
         /* Set the 5-tuple to identify the connection */
         memcpy(&serv->con_ipaddr, &request->src_ep->ipaddr, sizeof(uip_ipaddr_t));
         new_ecc.ad.ad_1_sz = er;
-        if(new_ecc.ad.ad_1_sz > 0 && new_ecc.ad.ad_1) {
+        if(new_ecc.ad.ad_1_sz > 0) {
           LOG_DBG("AD_1 (%d bytes): ", new_ecc.ad.ad_1_sz);
           print_char_8_dbg((char *)new_ecc.ad.ad_1, new_ecc.ad.ad_1_sz);
         }
@@ -305,7 +305,7 @@ PROCESS_THREAD(edhoc_server, ev, data){
       } else {
         /*TODO: Include a way to pass application msgs. */
         new_ecc.ad.ad_3_sz = er;
-        if(new_ecc.ad.ad_3_sz > 0 && new_ecc.ad.ad_3) {
+        if(new_ecc.ad.ad_3_sz > 0) {
           LOG_DBG("AD_3 (%d bytes): ", new_ecc.ad.ad_3_sz);
           print_char_8_dbg((char *)new_ecc.ad.ad_3, new_ecc.ad.ad_3_sz);
         }
