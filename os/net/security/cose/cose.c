@@ -316,7 +316,7 @@ cose_sign(cose_sign1 *sign1)
     /* LOG_DBG("Signature for COSE_Sign1 (%d bytes): ", sign1->signature_sz); */
     /* cose_print_buff_8_dbg(sign1->signature, sign1->signature_sz); */
   } else {
-    LOG_ERR("Error signing for COSE_Sign1");
+    LOG_ERR("Error signing for COSE_Sign1\n");
     return 0;
   }
   return sign1->signature_sz;
