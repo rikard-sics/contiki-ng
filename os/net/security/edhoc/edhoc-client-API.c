@@ -67,7 +67,7 @@ static size_t rx_sz;
 static int pro;
 static edhoc_client_t *cli;
 static coap_timer_t timer;
-static edhoc_data_even_t edhoc_state;
+static edhoc_data_event_t edhoc_state;
 static process_event_t edhoc_event;
 
 static rtimer_clock_t time;

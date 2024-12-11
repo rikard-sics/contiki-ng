@@ -100,10 +100,10 @@ typedef struct edhoc_client_ad_t {
 /**
  * \brief EDHOC data event struct
  */
-typedef struct edhoc_data_even_t {
+typedef struct edhoc_data_event_t {
   uint8_t val;
   edhoc_client_ad_t ad;
-}edhoc_data_even_t;
+} edhoc_data_event_t;
 
 /**
  * \brief Run the EDHOC Initiator role
