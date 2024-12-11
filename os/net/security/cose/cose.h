@@ -102,7 +102,7 @@ typedef struct cose_encrypt0 {
   uint8_t unprotected_header[COSE_MAX_BUFFER];
   uint8_t unprotected_header_sz;
   uint8_t plaintext[COSE_MAX_BUFFER];
-  uint8_t plaintext_sz;
+  uint16_t plaintext_sz;
   uint8_t ciphertext[MAX_CIPHER];
   uint8_t ciphertext_sz;
   uint8_t alg;

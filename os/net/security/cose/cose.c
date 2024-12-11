@@ -203,10 +203,10 @@ cose_sign1_set_header(cose_sign1 *sign1,
 
 static char enc_header[] = ENC0;
 
-static uint8_t
+static uint16_t
 encode_enc_structure(const cose_encrypt0 *enc, uint8_t *cbor)
 {
-  uint8_t size = 0;
+  uint16_t size = 0;
 
   size += cbor_put_array(&cbor, 3);
   size += cbor_put_text(&cbor, enc_header, strlen(enc_header));
@@ -236,7 +236,7 @@ uint8_t
 cose_decrypt(cose_encrypt0 *enc)
 {
   uint8_t enc_struct_bytes[COSE_MAX_BUFFER];
-  uint8_t str_sz = encode_enc_structure(enc, enc_struct_bytes);
+  uint16_t str_sz = encode_enc_structure(enc, enc_struct_bytes);
 
   LOG_DBG("CBOR-encoded AAD for COSE_Encrypt0 decryption (%d bytes): ", str_sz);
   cose_print_buff_8_dbg(enc_struct_bytes, str_sz);
@@ -269,7 +269,7 @@ uint8_t
 cose_encrypt(cose_encrypt0 *enc)
 {
   uint8_t enc_struct_bytes[COSE_MAX_BUFFER];
-  uint8_t str_sz = encode_enc_structure(enc, enc_struct_bytes);
+  uint16_t str_sz = encode_enc_structure(enc, enc_struct_bytes);
 
   LOG_DBG("CBOR-encoded AAD for COSE_Encrypt0 encryption (%d bytes): ", str_sz);
   cose_print_buff_8_dbg(enc_struct_bytes, str_sz);
