@@ -211,23 +211,19 @@ check_rx_suite_i(edhoc_context_t *ctx, const uint8_t *suite_rx, size_t suite_rx_
   uint8_t peer_selected_suite = suite_rx[suite_rx_sz - 1];
 
   /* Check if the selected suite is supported */
-  ctx->state.suite_selected = -1;
   for(uint8_t i = 0; i < ctx->config.suite_num; i++) {
     if(ctx->config.suite[i] == peer_selected_suite) {
       ctx->state.suite_selected = peer_selected_suite;
       LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
-      break;
-    }
-  }
 
-  /* Responder sets config to use based on selected suite */
-  if(ctx->state.suite_selected != -1) {
-    int8_t er = set_config_from_suite(ctx, ctx->state.suite_selected);
-    if(er != 1) {
-      LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
-      return ERR_NEW_SUITE_PROPOSE;
+      /* Responder sets config to use based on selected suite */
+      int8_t er = set_config_from_suite(ctx, ctx->state.suite_selected);
+      if(er != 1) {
+        LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
+        return ERR_NEW_SUITE_PROPOSE;
+      }
+      return 0;
     }
-    return 0;
   }
 
   LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
