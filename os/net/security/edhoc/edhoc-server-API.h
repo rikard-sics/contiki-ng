@@ -71,18 +71,18 @@ extern coap_resource_t res_edhoc;
 /**
  * \brief EDHOC Server Struct
  */
-typedef struct edhoc_server_t {
+typedef struct edhoc_server {
   uint16_t con_num;
   uint8_t state;
   bool rx_msg1;
   bool rx_msg3;
   uip_ipaddr_t con_ipaddr;
-}edhoc_server_t;
+} edhoc_server_t;
 
 /**
  * \brief EDHOC server Application data struct
  */
-typedef struct edhoc_server_ad_t {
+typedef struct edhoc_server_ad {
   char ad_1[MAX_AD_SZ];
   uint8_t ad_1_sz;
   char ad_2[MAX_AD_SZ];
@@ -94,18 +94,18 @@ typedef struct edhoc_server_ad_t {
 /**
  * \brief EDHOC server data event struct
  */
-typedef struct ecc_data_even_t {
+typedef struct ecc_data_even {
   uint8_t val;
   edhoc_server_ad_t ad;
 }ecc_data_even_t;
 
-typedef struct serv_data_t {
+typedef struct serv_data {
   coap_message_t *request;
   coap_message_t *response;
   edhoc_server_t *serv;
 } serv_data_t;
 
-extern struct serv_data_t *dat_ptr;
+extern serv_data_t *dat_ptr;
 
 /**
  * \brief Activate the EDHOC CoAP Resource

@@ -67,7 +67,7 @@ typedef struct  {
 
 PT_THREAD(generate_key_hw(key_gen_t * key));
 
-typedef struct ecc_curve_t {
+typedef struct ecc_curve {
   ecc_curve_info_t *curve;
 } ecc_curve_t;
 

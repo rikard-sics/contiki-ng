@@ -73,7 +73,7 @@
 /**
  * \brief EDHOC client struct
  */
-typedef struct edhoc_client_t {
+typedef struct edhoc_client {
   uint8_t state;
   coap_endpoint_t server_ep;
   coap_message_t request[1];
@@ -88,7 +88,7 @@ typedef struct edhoc_client_t {
 /**
  * \brief EDHOC client Application data struct
  */
-typedef struct edhoc_client_ad_t {
+typedef struct edhoc_client_ad {
   char ad_1[MAX_AD_SZ];
   uint16_t ad_1_sz;
   char ad_2[MAX_AD_SZ];
@@ -100,7 +100,7 @@ typedef struct edhoc_client_ad_t {
 /**
  * \brief EDHOC data event struct
  */
-typedef struct edhoc_data_event_t {
+typedef struct edhoc_data_event {
   uint8_t val;
   edhoc_client_ad_t ad;
 } edhoc_data_event_t;

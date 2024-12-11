@@ -57,7 +57,7 @@
 #define IDENTITY_MAX_LEN 32
 
 /* COSE KEY struct */
-typedef struct cose_key_t {
+typedef struct cose_key {
   struct  cose_key_t *next;
   uint8_t kid[4];
   uint8_t kid_sz;

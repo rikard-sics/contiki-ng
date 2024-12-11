@@ -66,7 +66,7 @@
 /**
  * \brief OSCORE context struct
  */
-typedef struct oscore_ctx_t {
+typedef struct oscore_ctx {
   uint8_t master_secret[OSCORE_KEY_SZ];
   uint8_t master_salt[OSCORE_SALT_SZ];
   int client_ID;   /* CoAP client is the Initiator */

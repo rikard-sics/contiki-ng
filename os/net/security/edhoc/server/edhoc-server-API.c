@@ -49,7 +49,7 @@
 #define EXP_READY 4
 #define RESTART 5
 
-struct serv_data_t *dat_ptr;
+serv_data_t *dat_ptr;
 
 static rtimer_clock_t time;
 static rtimer_clock_t time_total;
@@ -204,9 +204,9 @@ edhoc_server_process(coap_message_t *req, coap_message_t *res, edhoc_server_t *s
 }
 PROCESS_THREAD(edhoc_server, ev, data){
   PROCESS_BEGIN();
-  request = ((struct serv_data_t *)data)->request;
-  response = ((struct serv_data_t *)data)->response;
-  serv = ((struct serv_data_t *)data)->serv;
+  request = ((serv_data_t *)data)->request;
+  response = ((serv_data_t *)data)->response;
+  serv = ((serv_data_t *)data)->serv;
   if(serv->state == EXP_READY) {
     LOG_DBG("process exit\n");
   }

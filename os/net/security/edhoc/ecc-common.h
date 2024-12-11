@@ -46,7 +46,7 @@ typedef struct point_affine {
   uint8_t y[ECC_KEY_LEN];
 } ecc_point_a;
 
-typedef struct ecc_key_t {
+typedef struct ecc_key {
   uint8_t priv[ECC_KEY_LEN];
   ecc_point_a pub;
 } ecc_key_t;

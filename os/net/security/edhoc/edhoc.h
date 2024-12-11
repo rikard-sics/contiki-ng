@@ -78,7 +78,7 @@
 #define IV_4_LABEL           9
 #define PRK_EXPORTER_LABEL   10
 
-typedef struct edhoc_config_t {
+typedef struct edhoc_config {
   uint8_t role;
   uint8_t method;
   uint8_t suite[5];
@@ -89,7 +89,7 @@ typedef struct edhoc_config_t {
   uint8_t sign_alg;
 } edhoc_config_t;
 
-typedef struct edhoc_state_t {
+typedef struct edhoc_state {
   uint8_t suite_selected;
   uint8_t cid;
   uint8_t cid_rx;
@@ -101,7 +101,7 @@ typedef struct edhoc_state_t {
   uint8_t gy[ECC_KEY_LEN];
 } edhoc_state_t;
 
-typedef struct edhoc_buffers_t {
+typedef struct edhoc_buffers {
   uint8_t msg_rx[MAX_PAYLOAD_LEN];
   uint8_t msg_tx[MAX_PAYLOAD_LEN];
   uint16_t rx_sz;
@@ -114,12 +114,12 @@ typedef struct edhoc_buffers_t {
   size_t id_cred_x_sz;
 } edhoc_buffers_t;
 
-typedef struct edhoc_creds_t {
+typedef struct edhoc_creds {
   cose_key_t *authen_key; /* Points to key in cred storage */
   ecc_key_t ephemeral_key;
 } edhoc_creds_t;
 
-typedef struct edhoc_context_t {
+typedef struct edhoc_context {
   edhoc_config_t config;
   edhoc_state_t state;
   edhoc_creds_t creds;
