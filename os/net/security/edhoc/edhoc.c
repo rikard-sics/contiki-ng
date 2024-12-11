@@ -522,6 +522,7 @@ gen_mac(const edhoc_context_t *ctx, uint8_t mac_len, uint8_t *mac)
 
   return mac_len;
 }
+#if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
 static uint16_t
 check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac, uint16_t received_mac_sz)
 {
@@ -559,6 +560,7 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac, uint16_t rece
 
   return mac_sz;
 }
+#endif /* (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2 */
 static uint8_t
 gen_gxy(edhoc_context_t *ctx, uint8_t *ikm)
 {
@@ -604,6 +606,7 @@ gen_ks_2e(edhoc_context_t *ctx, uint16_t length, uint8_t *ks_2e)
   print_buff_8_dbg(ks_2e, length);
   return 1;
 }
+#if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
 static uint8_t
 gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
 {
@@ -639,6 +642,8 @@ gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
   print_buff_8_dbg(ctx->state.prk_3e2m, HASH_LEN);
   return 1;
 }
+#endif /* (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2 */
+#if (METHOD == METH2) || (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
 static uint8_t
 gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
 {
@@ -676,6 +681,7 @@ gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
   print_buff_8_dbg(ctx->state.prk_4e3m, HASH_LEN);
   return 1;
 }
+#endif /* (METHOD == METH2) || (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2 */
 static int16_t
 enc_dec_ciphertext_2(const edhoc_context_t *ctx, const uint8_t *ks_2e, uint8_t *plaintext, uint16_t plaintext_sz)
 {
