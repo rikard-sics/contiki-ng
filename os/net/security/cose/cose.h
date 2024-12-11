@@ -82,9 +82,9 @@
 /**
  * \brief Set the Maximum Buffer length
  */
-#ifdef COSE_CONF_MAX_BUFF
-#define COSE_MAX_BUFFER COSE_CONF_MAX_BUFF
-#define MAX_CIPHER COSE_CONF_MAX_BUFF
+#ifdef COSE_CONF_MAX_BUFFER
+#define COSE_MAX_BUFFER COSE_CONF_MAX_BUFFER
+#define MAX_CIPHER COSE_CONF_MAX_BUFFER
 #else
 #define COSE_MAX_BUFFER 256
 /**
