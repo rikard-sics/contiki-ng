@@ -114,7 +114,7 @@ typedef struct edhoc_data_event_t {
  *  - When the EDHOC protocol finishes successfully a CL_FINISHED event is triggered.
  *  - When the EDHOC protocol expires the EDHOC_CONF_ATTEMPTS attempts a CL_TRIES_EXPIRE event is triggered
  */
-void edhoc_client_run();
+void edhoc_client_run(void);
 
 /**
  * \brief Check if the EDHOC client have finished
@@ -135,7 +135,7 @@ int8_t edhoc_client_callback(process_event_t ev, void *data);
  * This function must be called after the Security Context is exported to free the
  * allocated memory.
  */
-void edhoc_client_close();
+void edhoc_client_close(void);
 
 /**
  * \brief Get the Application Data received in EDHOC message 2

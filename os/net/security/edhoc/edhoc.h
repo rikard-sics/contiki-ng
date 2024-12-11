@@ -146,7 +146,7 @@ void edhoc_storage_init(void);
  * Used by both Initiator and Responder EDHOC roles to create a new EDHOC context
  * and allocate at the memory reserved before with the edhoc_storage_init function
  */
-edhoc_context_t *edhoc_new();
+edhoc_context_t *edhoc_new(void);
 
 /**
  * \brief Initialize the EDHOC ctx with the define EDHOC parameters

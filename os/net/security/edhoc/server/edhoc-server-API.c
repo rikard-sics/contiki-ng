@@ -155,7 +155,7 @@ server_timeout_callback(coap_timer_t *timer)
   process_post(PROCESS_BROADCAST, new_ecc_event, &new_ecc);
 }
 uint8_t
-edhoc_server_restart()
+edhoc_server_restart(void)
 {
   serv->con_num = 0;
   serv->state = 0;
@@ -168,7 +168,7 @@ edhoc_server_restart()
   return edhoc_initialize_context(edhoc_ctx);
 }
 uint8_t
-edhoc_server_start()
+edhoc_server_start(void)
 {
   LOG_INFO("SERVER: EDHOC new\n");
   edhoc_ctx = edhoc_new();
@@ -178,14 +178,14 @@ edhoc_server_start()
   return edhoc_server_restart();
 }
 void
-edhoc_server_init()
+edhoc_server_init(void)
 {
   LOG_INFO("SERVER: CoAP active resource\n");
   coap_activate_resource(&res_edhoc, EDHOC_WELL_KNOWN);
   new_ecc_event = process_alloc_event();
 }
 void
-edhoc_server_close()
+edhoc_server_close(void)
 {
   edhoc_finalize(edhoc_ctx);
 }

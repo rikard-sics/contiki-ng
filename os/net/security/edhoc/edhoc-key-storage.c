@@ -47,7 +47,7 @@ LIST(key_list);
 MEMB(key_memb, cose_key_t, 2);
 
 void
-edhoc_create_key_list()
+edhoc_create_key_list(void)
 {
   list_init(key_list);
   memb_init(&key_memb);

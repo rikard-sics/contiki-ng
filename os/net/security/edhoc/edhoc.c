@@ -56,7 +56,7 @@ edhoc_context_t *edhoc_ctx;
 MEMB(edhoc_context_storage, edhoc_context_t, 1);
 
 static inline edhoc_context_t *
-context_new()
+context_new(void)
 {
   return (edhoc_context_t *)memb_alloc(&edhoc_context_storage);
 }
@@ -72,7 +72,7 @@ edhoc_storage_init(void)
   hmac_storage_init();
 }
 edhoc_context_t *
-edhoc_new()
+edhoc_new(void)
 {
   edhoc_context_t *ctx;
   ctx = context_new();

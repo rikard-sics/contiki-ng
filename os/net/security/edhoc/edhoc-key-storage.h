@@ -73,7 +73,7 @@ typedef struct cose_key_t {
  *
  * Create a repository of keys in the form of a list
  */
-void edhoc_create_key_list();
+void edhoc_create_key_list(void);
 
 /**
  * \brief Add a DH key to the repository

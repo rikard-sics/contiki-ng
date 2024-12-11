@@ -113,7 +113,7 @@ extern struct serv_data_t *dat_ptr;
  *  Activate the EDHOC well-known CoAP Resource at the Uri-Path defined
  *  in the WELL_KNOW macro.
  */
-void edhoc_server_init();
+void edhoc_server_init(void);
 
 /**
  * \brief Create a new EDHOC context for a new EDHOC protocol session
@@ -125,7 +125,7 @@ void edhoc_server_init();
  *  Create a new EDHOC context and generate the DH-ephemeral key for the specific session.
  *  A new EDHOC protocol session must be created for each new EDHOC client try
  */
-uint8_t edhoc_server_start();
+uint8_t edhoc_server_start(void);
 
 /**
  * \brief Reset the EDHOC context for a new EDHOC protocol session with a new client
@@ -135,7 +135,7 @@ uint8_t edhoc_server_start();
  * Rest the EDHOC context to initiate a new EDHOC protocol session with a new client
  * Before of using the export security context of the before EDHOC context must be keep it
  */
-uint8_t edhoc_server_restart();
+uint8_t edhoc_server_restart(void);
 
 /**
  * \brief Check if an EDHOC server session has finished
@@ -154,7 +154,7 @@ int8_t edhoc_server_callback(process_event_t ev, void *data);
  * This function must be called after the Security Context is exported to free the
  * allocated memory.
  */
-void edhoc_server_close();
+void edhoc_server_close(void);
 
 /**
  * \brief run the EDHOC Responder role process

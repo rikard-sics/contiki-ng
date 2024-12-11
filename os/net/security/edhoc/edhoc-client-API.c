@@ -103,7 +103,7 @@ edhoc_client_callback(process_event_t ev, void *data)
   return 0;
 }
 void
-edhoc_client_run()
+edhoc_client_run(void)
 {
   process_start(&edhoc_client, NULL);
 }
@@ -136,7 +136,7 @@ client_timeout_callback(coap_timer_t *timer)
 MEMB(edhoc_client_storage, edhoc_client_t, 1);
 
 static inline edhoc_client_t *
-client_context_new()
+client_context_new(void)
 {
   return (edhoc_client_t *)memb_alloc(&edhoc_client_storage);
 }
@@ -146,7 +146,7 @@ client_context_free(edhoc_client_t *ctx)
   memb_free(&edhoc_client_storage, ctx);
 }
 static edhoc_client_t *
-client_new()
+client_new(void)
 {
   edhoc_client_t *cli;
   cli = client_context_new();
@@ -250,7 +250,7 @@ client_chunk_handler(coap_callback_request_state_t *callback_state)
   pro = process_post(&edhoc_client, edhoc_event, &edhoc_state);
 }
 static void
-edhoc_client_post()
+edhoc_client_post(void)
 {
   coap_init_message(state.state.request, COAP_TYPE_CON, COAP_POST, 0);
   coap_set_header_uri_path(state.state.request, EDHOC_WELL_KNOWN);
@@ -260,7 +260,7 @@ edhoc_client_post()
   state.state.block_num = 0;
 }
 static int
-edhoc_client_post_blocks()
+edhoc_client_post_blocks(void)
 {
   if((edhoc_ctx->buffers.tx_sz - send_sz) > COAP_MAX_CHUNK_SIZE) {
     coap_set_payload(state.state.request, (uint8_t *)edhoc_ctx->buffers.msg_tx + send_sz, COAP_MAX_CHUNK_SIZE);
@@ -394,7 +394,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
 }
 
 static void
-edhoc_client_init()
+edhoc_client_init(void)
 {
   cli = client_new();
   edhoc_storage_init();
@@ -456,7 +456,7 @@ generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t
   print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.y, ECC_KEY_LEN);
 }
 void
-edhoc_client_close()
+edhoc_client_close(void)
 {
   coap_timer_stop(&timer);
   client_context_free(cli);
