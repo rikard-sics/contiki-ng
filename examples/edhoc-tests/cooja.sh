@@ -10,8 +10,11 @@ rm COOJA-m3.testlog
 rm -r edhoc-client/build
 rm -r edhoc-server/build
 
+echo "Testing EDHOC with Method 0"
+sleep 3
+
 # Run Cooja in no-GUI mode (using Method 0)
-cooja --args="--no-gui edhoc-tests-cooja.csc" && \
+java --enable-preview -jar ../../tools/cooja/build/libs/cooja.jar --no-gui edhoc-tests-cooja.csc && \
 # After Cooja finishes, process the log file COOJA.testlog
 cat COOJA.testlog | \
 # Use sed to apply different colors to the lines
@@ -43,10 +46,12 @@ if ! grep -q "TEST OK" "$file_to_check"; then
   exit 1
 fi
 
+echo "Testing EDHOC Method 3"
+sleep 3
 
 # Run Cooja in no-GUI mode (using Method 3)
-sed -i 's/#define METHOD METH0/#define METHOD METH3/g' /home/user/contiki-ng/os/net/security/edhoc/edhoc-config.h
-cooja --args="--no-gui edhoc-tests-cooja.csc" && \
+sed -i 's/#define METHOD METH0/#define METHOD METH3/g' ../../os/net/security/edhoc/edhoc-config.h
+java --enable-preview -jar ../../tools/cooja/build/libs/cooja.jar --no-gui edhoc-tests-cooja.csc && \
 # After Cooja finishes, process the log file COOJA.testlog
 cat COOJA.testlog | \
 # Use sed to apply different colors to the lines
@@ -54,7 +59,7 @@ sed -e 's/^1.*/\x1b[38;2;200;200;255m&\x1b[0m/' \
     -e 's/^2.*/\x1b[38;2;200;255;200m&\x1b[0m/' \
     -e 's/^I.*/\x1b[31m&\x1b[0m/' \
     -e 's/^C.*/\x1b[32m&\x1b[0m/'
-sed -i 's/#define METHOD METH3/#define METHOD METH0/g' /home/user/contiki-ng/os/net/security/edhoc/edhoc-config.h
+sed -i 's/#define METHOD METH3/#define METHOD METH0/g' ../../os/net/security/edhoc/edhoc-config.h
 mv COOJA.testlog COOJA-m3.testlog
 
 # Check if the log file exists
