@@ -91,7 +91,7 @@
       <skin>org.contikios.cooja.plugins.skins.UDGMVisualizerSkin</skin>
       <viewport>1.696847649207872 0.0 0.0 1.696847649207872 238.2029835403895 36.46408356383216</viewport>
     </plugin_config>
-    <bounds x="1" y="1" height="400" width="400" z="5" />
+    <bounds x="1" y="1" height="400" width="400" z="2" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.LogListener
@@ -100,44 +100,12 @@
       <formatted_time />
       <coloring />
     </plugin_config>
-    <bounds x="400" y="160" height="478" width="681" z="2" />
-  </plugin>
-  <plugin>
-    org.contikios.cooja.plugins.TimeLine
-    <plugin_config>
-      <mote>0</mote>
-      <mote>1</mote>
-      <showRadioRXTX />
-      <showRadioHW />
-      <showLEDs />
-      <zoomfactor>500.0</zoomfactor>
-    </plugin_config>
-    <bounds x="0" y="829" height="166" width="1081" z="4" />
-  </plugin>
-  <plugin>
-    org.contikios.cooja.plugins.Notes
-    <plugin_config>
-      <notes>Enter notes here</notes>
-      <decorations>true</decorations>
-    </plugin_config>
-    <bounds x="680" y="0" height="160" width="401" z="3" />
-  </plugin>
-  <plugin>
-    org.contikios.cooja.serialsocket.SerialSocketServer
-    <mote_arg>1</mote_arg>
-    <plugin_config>
-      <port>60002</port>
-      <bound>true</bound>
-      <commands>[CONFIG_DIR]/script-cooja.sh [CONTIKI_DIR] 45</commands>
-    </plugin_config>
-    <bounds x="28" y="423" height="116" width="362" />
+    <bounds x="403" y="0" height="478" width="681" z="1" />
   </plugin>
   <plugin>
     org.contikios.cooja.plugins.ScriptRunner
     <plugin_config>
-      <script>
-      
-TIMEOUT(800000000);
+      <script>TIMEOUT(800000000);
 sim.setSpeedLimit(100000.0);  // Simulation speed.
 
 var checkingEnabled = true;
@@ -254,11 +222,9 @@ while (true) {
     }
   }
   YIELD();
-}
-
-</script>
+}</script>
       <active>true</active>
     </plugin_config>
-    <bounds x="1037" y="40" height="700" width="600" z="1" />
+    <bounds x="1081" y="0" height="700" width="600" />
   </plugin>
 </simconf>
