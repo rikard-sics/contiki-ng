@@ -31,7 +31,7 @@
 
 /* Define the coap server to connect with */
 //#define EDHOC_CONF_SERVER_EP "coap://[fe80::212:4b00:615:9fec]"
-#define EDHOC_CONF_SERVER_EP "coap://[fd01::202:2:2:2]" /* Server IP for Cooja simulator */
+#define EDHOC_CONF_SERVER_EP "coap://[fd00::202:2:2:2]" /* Server IP for Cooja simulator */
 //#define EDHOC_CONF_SERVER_EP "coap://[fd00::1]" /* IP for using with socat to reach other servers */
 
 /* Define the party role on the EDHOC protocol as Initiator and the correlation method */
@@ -52,7 +52,7 @@
 #define EDHOC_CONF_ECC UECC_ECC
 
 /* To run EDHOC client as RPL node */
-//#define EDHOC_CONF_RPL_NODE 1
+#define EDHOC_CONF_RPL_NODE 1
 
 /* Set the supported cipher suites */
 #define EDHOC_CONF_SUPPORTED_SUITE_1 EDHOC_CIPHERSUITE_2

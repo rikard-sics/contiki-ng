@@ -47,7 +47,7 @@
 #define EDHOC_CONF_ECC UECC_ECC
 
 /* To run EDHOC server as RPL node */
-//#define EDHOC_CONF_RPL_NODE 1
+#define EDHOC_CONF_RPL_NODE 1
 
 /* Set the supported cipher suites */
 #define EDHOC_CONF_SUPPORTED_SUITE_1 EDHOC_CIPHERSUITE_2

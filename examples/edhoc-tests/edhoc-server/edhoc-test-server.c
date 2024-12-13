@@ -40,6 +40,7 @@
 #include <string.h>
 #include "contiki.h"
 #include "contiki-lib.h"
+#include "contiki-net.h"
 #include "edhoc-exporter.h"
 #include "edhoc-server-API.h"
 #include "sys/rtimer.h"
@@ -61,6 +62,10 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
   static struct etimer timer;
 #endif
   PROCESS_BEGIN();
+
+  /* Initialize DAG root */
+  NETSTACK_ROUTING.root_start();
+
 #if RPL_NODE == 1
   etimer_set(&timer, CLOCK_SECOND * 10);
   while(1) {
