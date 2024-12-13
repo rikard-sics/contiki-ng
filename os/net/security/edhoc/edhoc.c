@@ -58,7 +58,11 @@ MEMB(edhoc_context_storage, edhoc_context_t, 1);
 static inline edhoc_context_t *
 context_new(void)
 {
-  return (edhoc_context_t *)memb_alloc(&edhoc_context_storage);
+  edhoc_context_t *ptr = memb_alloc(&edhoc_context_storage);
+  if(ptr) {
+    memset(ptr, 0, sizeof(edhoc_context_t));
+  }
+  return ptr;
 }
 static inline void
 context_free(edhoc_context_t *ctx)
