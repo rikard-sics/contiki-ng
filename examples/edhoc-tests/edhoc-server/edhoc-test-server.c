@@ -241,7 +241,7 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 
   while(1) {
     PROCESS_WAIT_EVENT();
-    int8_t res = edhoc_server_callback(ev, &data);
+    int8_t res = edhoc_server_callback(ev, data);
     if(res == SERV_FINISHED) {
       LOG_DBG("New EDHOC server finished, export the security context here\n");
       rtimer_clock_t t = RTIMER_NOW();

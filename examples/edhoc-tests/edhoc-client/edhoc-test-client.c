@@ -292,7 +292,7 @@ PROCESS_THREAD(edhoc_example_client, ev, data)
 
   while(1) {
     PROCESS_WAIT_EVENT();
-    int8_t re = edhoc_client_callback(ev, &data);
+    int8_t re = edhoc_client_callback(ev, data);
     if(re > 0) {
       LOG_INFO("EDHOC protocol finished success, export your security context here\n");
       oscore_ctx_t osc;
