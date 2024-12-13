@@ -51,24 +51,8 @@
 
 edhoc_context_t *edhoc_ctx;
 
-/* static rtimer_clock_t time; */
-
 MEMB(edhoc_context_storage, edhoc_context_t, 1);
 
-static inline edhoc_context_t *
-context_new(void)
-{
-  edhoc_context_t *ptr = memb_alloc(&edhoc_context_storage);
-  if(ptr) {
-    memset(ptr, 0, sizeof(edhoc_context_t));
-  }
-  return ptr;
-}
-static inline void
-context_free(edhoc_context_t *ctx)
-{
-  memb_free(&edhoc_context_storage, ctx);
-}
 void
 edhoc_storage_init(void)
 {
@@ -78,14 +62,16 @@ edhoc_storage_init(void)
 edhoc_context_t *
 edhoc_new(void)
 {
-  edhoc_context_t *ctx;
-  ctx = context_new();
+  edhoc_context_t *ctx = memb_alloc(&edhoc_context_storage);
+  if(ctx) {
+    memset(ctx, 0, sizeof(edhoc_context_t));
+  }
   return ctx;
 }
 void
 edhoc_finalize(edhoc_context_t *ctx)
 {
-  context_free(ctx);
+  memb_free(&edhoc_context_storage, ctx);
 }
 void
 setup_suites(edhoc_context_t *ctx)
