@@ -55,7 +55,7 @@ PROCESS_THREAD(edhoc_example_client, ev, data)
 
   etimer_set(&timer, CLOCK_SECOND * 10);
   while(1) {
-    if(NETSTACK_ROUTING.is_reachable()) {
+    if(NETSTACK_ROUTING.node_is_reachable()) {
       LOG_INFO("Network reached!\n");
       break;
     }
