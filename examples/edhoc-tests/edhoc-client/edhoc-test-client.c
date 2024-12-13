@@ -43,35 +43,26 @@
 #include "contiki-net.h"
 #include "coap-engine.h"
 #include "edhoc-client-API.h"
-#include "rpl.h"
-#include "sys/rtimer.h"
 
-rtimer_clock_t time;
-oscore_ctx_t osc;
 PROCESS(edhoc_example_client, "EDHOC Example Client");
 AUTOSTART_PROCESSES(&edhoc_example_client);
 
 PROCESS_THREAD(edhoc_example_client, ev, data)
 {
-  /* static struct etimer wait_timer; */
-#if RPL_NODE == 1
   static struct etimer timer;
-#endif
+
   PROCESS_BEGIN();
-#if RPL_NODE == 1
+
   etimer_set(&timer, CLOCK_SECOND * 10);
   while(1) {
-    watchdog_periodic();
-    LOG_INFO("Waiting to reach the RPL\n");
-    if(rpl_is_reachable()) {
-      LOG_INFO("RPL reached\n");
-      watchdog_periodic();
+    if(NETSTACK_ROUTING.is_reachable()) {
+      LOG_INFO("Network reached!\n");
       break;
     }
+    LOG_INFO("Waiting for network...\n");
     PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
     etimer_reset(&timer);
   }
-#endif
 
   /* Set the client authentication credentials and add in the storage */
   edhoc_create_key_list();
@@ -300,12 +291,11 @@ PROCESS_THREAD(edhoc_example_client, ev, data)
   edhoc_client_run();
 
   while(1) {
-    watchdog_periodic();
     PROCESS_WAIT_EVENT();
-    watchdog_periodic();
     int8_t re = edhoc_client_callback(ev, &data);
     if(re > 0) {
       LOG_INFO("EDHOC protocol finished success, export your security context here\n");
+      oscore_ctx_t osc;
       if(edhoc_exporter_oscore(&osc, edhoc_ctx) < 0) {
         LOG_ERR("ERROR IN EXPORT CTX\n");
       } else {

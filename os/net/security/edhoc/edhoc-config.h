@@ -195,15 +195,6 @@
 #endif
 
 /**
- * \brief Set the EDHOC peer as RPL node. By default deselected
- */
-#ifdef EDHOC_CONF_RPL_NODE
-#define RPL_NODE EDHOC_CONF_RPL_NODE
-#else
-#define RPL_NODE 0
-#endif
-
-/**
  * \brief The number of attempts to try to connect with the EDHOC server successfully
  */
 #ifndef EDHOC_CONF_ATTEMPTS

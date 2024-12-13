@@ -44,46 +44,30 @@
 #include "edhoc-exporter.h"
 #include "edhoc-server-API.h"
 #include "sys/rtimer.h"
-#include "rpl.h"
-
-rtimer_clock_t t;
-
-oscore_ctx_t osc;
-
-ecc_curve_t test;
 
 PROCESS(edhoc_example_server, "EDHOC Example Server");
 AUTOSTART_PROCESSES(&edhoc_example_server);
 
 PROCESS_THREAD(edhoc_example_server, ev, data)
 {
-/* static struct etimer wait_timer; */
-#if RPL_NODE == 1
-  static struct etimer timer;
-#endif
   PROCESS_BEGIN();
 
-  /* Initialize DAG root */
-  NETSTACK_ROUTING.root_start();
-
-#if RPL_NODE == 1
-  etimer_set(&timer, CLOCK_SECOND * 10);
-  while(1) {
-    watchdog_periodic();
-    LOG_INFO("Waiting to reach the RPL\n");
-    if(rpl_is_reachable()) {
-      LOG_INFO("RPL reached\n");
-      watchdog_periodic();
-      break;
+  if(IS_NETWORK_ROUTING_ROOT) {
+    /* Initialize routing as root */
+    NETSTACK_ROUTING.root_start();
+  } else {
+    static struct etimer timer;
+    etimer_set(&timer, CLOCK_SECOND * 10);
+    while(1) {
+      if(NETSTACK_ROUTING.is_reachable()) {
+        LOG_INFO("Network reached!\n");
+        break;
+      }
+      LOG_INFO("Waiting for network...\n");
+      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
+      etimer_reset(&timer);
     }
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
-    etimer_reset(&timer);
   }
-#endif
-#if BORDER_ROUTER_CONF_WEBSERVER
-  PROCESS_NAME(webserver_nogui_process);
-  process_start(&webserver_nogui_process, NULL);
-#endif /* BORDER_ROUTER_CONF_WEBSERVER */
 
 #if DEFAULT_CREDS == 1
 
@@ -257,15 +241,18 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 
   while(1) {
     PROCESS_WAIT_EVENT();
-    uint8_t res = edhoc_server_callback(ev, &data);
+    int8_t res = edhoc_server_callback(ev, &data);
     if(res == SERV_FINISHED) {
       LOG_DBG("New EDHOC server finished, export the security context here\n");
-      t = RTIMER_NOW();
+      rtimer_clock_t t = RTIMER_NOW();
+      oscore_ctx_t osc;
       if(edhoc_exporter_oscore(&osc, edhoc_ctx) < 0) {
         LOG_ERR("ERROR IN EXPORT CTX\n");
       } else {
         t = RTIMER_NOW() - t;
-        LOG_INFO("Server time to generate OSCORE ctx: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
+        LOG_INFO("Server time to generate OSCORE ctx: %" PRIu32 " ms (%"
+                 PRIu32 " CPU cycles).\n",
+                 (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
 
         print_oscore_ctx(&osc);
       }

@@ -10,14 +10,14 @@ An EDHOC Client Example is provided at `examples/edhoc-tests/edhoc-test-client.c
 For the specific example the EDHOC Server IP must be selected on the project-conf file, its own Node Key Identity and, the EDHOC part as Initiator:
 
 ```c
-#define EDHOC_CONF_SERVER_EP "coap://[fd01::202:2:2:2]" /* Server IP for Cooja simulator */
+#define EDHOC_CONF_SERVER_EP "coap://[fd00::202:2:2:2]" /* Server IP for Cooja simulator */
 
 #define EDHOC_CONF_ROLE INITIATOR
 ```
 
-Additionally, the node runs with RPL by:
+Additionally, the node creates a network as root by configuring:
 ```c
-#define EDHOC_CONF_RPL_NODE 1
+#define IS_NETWORK_ROUTING_ROOT 1
 ```
 
 #EDHOC Server Example

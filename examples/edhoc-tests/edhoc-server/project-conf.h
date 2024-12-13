@@ -46,19 +46,13 @@
 //#define EDHOC_CONF_ECC CC2538_ECC
 #define EDHOC_CONF_ECC UECC_ECC
 
-/* To run EDHOC server as RPL node */
-#define EDHOC_CONF_RPL_NODE 1
+/* To tell EDHOC server example to start as network root */
+#ifndef IS_NETWORK_ROUTING_ROOT
+#define IS_NETWORK_ROUTING_ROOT 1
+#endif /* IS_NETWORK_ROUTING_ROOT */
 
 /* Set the supported cipher suites */
 #define EDHOC_CONF_SUPPORTED_SUITE_1 EDHOC_CIPHERSUITE_2
-
-/* Set up the node as Border Router (if enabled in Makefile) */
-#if BORDER_ROUTER_CONF_WEBSERVER
-  #ifndef WEBSERVER_CONF_CFS_CONNS
-  #define WEBSERVER_CONF_CFS_CONNS 2
-  #endif
-  #define UIP_CONF_TCP 1
-#endif
 
 /* May be necesary to define one of the following macros when the UECC_ECC library is
 used and the target is an embedded device */

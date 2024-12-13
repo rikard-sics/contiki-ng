@@ -110,7 +110,7 @@ For the specific example the EDHOC Server IP must be selected on the project-con
 
 - Define the Server IP address working as Responder
 ```c
-#define EDHOC_CONF_SERVER_EP "coap://[fd01::201:1:1:1]" /* Server IP for works in Cooja simulator */
+#define EDHOC_CONF_SERVER_EP "coap://[fd00::201:1:1:1]" /* Server IP for works in Cooja simulator */
 ```
 - Define the ROLEY as Initiator
 ```c
@@ -135,8 +135,7 @@ From every client that the EDHOC server side is successfully finished, the secur
 ### EDHOC Server Example
 
 An EDHOC Server Example is provided at `examples/edhoc-tests/edhoc-test-server.c ` together with the corresponding EDHOC plug test resource at
-`examples/edhoc-tests/res-edhoc.c`. The specific example runs the EDHOC Responder protocol role on the CoAP server. Can runs on
-constrained device or natively at a host together with the RPL border router role. Also can runs on constrained device as RPL node by defined the `EDHOC_RPL_NODE` macro to 1.
+`examples/edhoc-tests/res-edhoc.c`. The specific example runs the EDHOC Responder protocol role on the CoAP server.
 
 The Server Identity must be selected at:
 ```c
