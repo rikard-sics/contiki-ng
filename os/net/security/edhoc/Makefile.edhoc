@@ -4,9 +4,13 @@ MODULES += os/net/security/sha
 MODULES += os/net/app-layer/coap
 MODULEDIRS += $(CONTIKI)/os/net/security/micro-ecc
 MODULES_SOURCES += uECC.c
-ifneq ($(TARGET), zoul)
-CFLAGS += -DuECC=0
+
+ifneq ($(MAKE_EDHOC_METHOD),)
+  CFLAGS += -DEDHOC_METHOD=$(MAKE_EDHOC_METHOD)
 endif
+
 ifeq ($(TARGET), zoul)
-CFLAGS += -DuECC=1
+  CFLAGS += -DuECC=1
+else
+  CFLAGS += -DuECC=0
 endif
