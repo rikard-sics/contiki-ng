@@ -1,4 +1,3 @@
-
 MODULES += os/lib/cbor
 MODULES += os/net/security/cose
 MODULES += os/net/security/sha

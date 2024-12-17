@@ -44,7 +44,7 @@ If the parties have agreed on an identity beside the public key, the "subject na
 ```
 - Define the Connection Identifier(`CID`)
 ```c
-#define METHOD METH3
+#define EDHOC_METHOD EDHOC_METHOD3
 ```
 - Define the EDHOC method to use
 ```c

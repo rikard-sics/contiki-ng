@@ -81,24 +81,26 @@
 #endif
 
 /* EDHOC Authentication Method Types: Initiator (I) | Responder (R) */
-#define METH0 0                  /* Signature Key  | Signature Key  */
-#define METH1 1                  /* Signature Key  | Static DH Key  */
-#define METH2 2                  /* Static DH Key  | Signature Key  */
-#define METH3 3                  /* Static DH Key  | Static DH Key  */
+#define EDHOC_METHOD0 0                  /* Signature Key  | Signature Key  */
+#define EDHOC_METHOD1 1                  /* Signature Key  | Static DH Key  */
+#define EDHOC_METHOD2 2                  /* Static DH Key  | Signature Key  */
+#define EDHOC_METHOD3 3                  /* Static DH Key  | Static DH Key  */
 
 /**
  * \brief Set the Authentication method
  */
+#ifndef EDHOC_METHOD
 #ifdef EDHOC_CONF_METHOD
-#define METHOD EDHOC_CONF_METHOD
+#define EDHOC_METHOD EDHOC_CONF_METHOD
 #else
-#define METHOD METH0
+#define EDHOC_METHOD EDHOC_METHOD0
 #endif
+#endif /* EDHOC_METHOD */
 
 /**
  * \brief Buffer size for mac_or_sig
  */
-#if METHOD == METH3
+#if EDHOC_METHOD == EDHOC_METHOD3
 #define MAC_OR_SIG_BUF_LEN MAX_MAC_LEN
 #else
 #define MAC_OR_SIG_BUF_LEN P256_SIGNATURE_LEN
@@ -107,10 +109,10 @@
 /**
  * \brief Helper defines for method handling on msg. reception
  */
-#define INITIATOR_METH2 (METHOD == METH2 && ROLE == INITIATOR)
-#define RESPONDER_METH1 (METHOD == METH1 && ROLE == RESPONDER)
-#define INITIATOR_METH1 (METHOD == METH1 && ROLE == INITIATOR)
-#define RESPONDER_METH2 (METHOD == METH2 && ROLE == RESPONDER)
+#define INITIATOR_METHOD2 (EDHOC_METHOD == EDHOC_METHOD2 && ROLE == INITIATOR)
+#define RESPONDER_METHOD1 (EDHOC_METHOD == EDHOC_METHOD1 && ROLE == RESPONDER)
+#define INITIATOR_METHOD1 (EDHOC_METHOD == EDHOC_METHOD1 && ROLE == INITIATOR)
+#define RESPONDER_METHOD2 (EDHOC_METHOD == EDHOC_METHOD2 && ROLE == RESPONDER)
 
 /* Credential type/usage */
 #define CRED_KID 2

@@ -227,7 +227,7 @@ set_rx_gx(edhoc_context_t *ctx, const uint8_t *gx)
 static int8_t
 set_rx_method(edhoc_context_t *ctx, uint8_t method)
 {
-  if(method != METHOD) {
+  if(method != EDHOC_METHOD) {
     LOG_ERR("error code (%d)\n", ERR_REJECT_METHOD);
     return ERR_REJECT_METHOD;
   }
@@ -512,7 +512,7 @@ gen_mac(const edhoc_context_t *ctx, uint8_t mac_len, uint8_t *mac)
 
   return mac_len;
 }
-#if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
+#if (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2
 static uint16_t
 check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac, uint16_t received_mac_sz)
 {
@@ -550,7 +550,7 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac, uint16_t rece
 
   return mac_sz;
 }
-#endif /* (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2 */
+#endif /* (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2 */
 static uint8_t
 gen_gxy(edhoc_context_t *ctx, uint8_t *ikm)
 {
@@ -596,7 +596,7 @@ gen_ks_2e(edhoc_context_t *ctx, uint16_t length, uint8_t *ks_2e)
   print_buff_8_dbg(ks_2e, length);
   return 1;
 }
-#if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
+#if (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2
 static uint8_t
 gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
 {
@@ -632,8 +632,8 @@ gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
   print_buff_8_dbg(ctx->state.prk_3e2m, HASH_LEN);
   return 1;
 }
-#endif /* (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2 */
-#if (METHOD == METH2) || (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
+#endif /* (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2 */
+#if (EDHOC_METHOD == EDHOC_METHOD2) || (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2
 static uint8_t
 gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
 {
@@ -671,7 +671,7 @@ gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
   print_buff_8_dbg(ctx->state.prk_4e3m, HASH_LEN);
   return 1;
 }
-#endif /* (METHOD == METH2) || (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2 */
+#endif /* (EDHOC_METHOD == EDHOC_METHOD2) || (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2 */
 static int16_t
 enc_dec_ciphertext_2(const edhoc_context_t *ctx, const uint8_t *ks_2e, uint8_t *plaintext, uint16_t plaintext_sz)
 {
@@ -854,7 +854,7 @@ edhoc_initialize_context(edhoc_context_t *ctx)
 
   /* Set role and method */
   ctx->config.role = ROLE;
-  ctx->config.method = METHOD;
+  ctx->config.method = EDHOC_METHOD;
 
   /* Initiator sets config to use based on selected suite */
   int8_t er = set_config_from_suite(ctx, ctx->state.suite_selected);
@@ -954,7 +954,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   /* Generate MAC or Signature */
 
-#if ((METHOD == METH1) || (METHOD == METH3))
+#if ((EDHOC_METHOD == EDHOC_METHOD1) || (EDHOC_METHOD == EDHOC_METHOD3))
   /* generate prk_3e2m */
   gen_prk_3e2m(ctx, &ctx->creds.authen_key->ecc, 1);
 
@@ -966,7 +966,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   mac_or_signature_sz = edhoc_mac_len;
 #endif
 
-#if ((METHOD == METH0) || (METHOD == METH2))
+#if ((EDHOC_METHOD == EDHOC_METHOD0) || (EDHOC_METHOD == EDHOC_METHOD2))
 
   /* prk_3e2m is prk_2e */
   memcpy(ctx->state.prk_3e2m, ctx->state.prk_2e, HASH_LEN);
@@ -1067,7 +1067,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   uint8_t mac_or_signature_sz = -1;
 
-#if ((METHOD == METH2) || (METHOD == METH3))
+#if ((EDHOC_METHOD == EDHOC_METHOD2) || (EDHOC_METHOD == EDHOC_METHOD3))
   /* Generate prk_4e3m */
   gen_prk_4e3m(ctx, &ctx->creds.authen_key->ecc, 0);
 
@@ -1079,7 +1079,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   mac_or_signature_sz = edhoc_mac_len;
 #endif
 
-#if ((METHOD == METH0) || (METHOD == METH1))
+#if ((EDHOC_METHOD == EDHOC_METHOD0) || (EDHOC_METHOD == EDHOC_METHOD1))
 
   /* prk_4e3m is prk_3e2m */
   memcpy(ctx->state.prk_4e3m, ctx->state.prk_3e2m, HASH_LEN);
@@ -1436,7 +1436,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   LOG_DBG("ID_CRED_X auth (%zu): ", ctx->buffers.id_cred_x_sz);
   print_buff_8_dbg(ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
 
-#if (METHOD == METH3) || INITIATOR_METH1 || RESPONDER_METH2
+#if (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2
   /* Generate prk_3e2m or prk_4e3m */
   if(msg2 == true) {
     gen_prk_3e2m(ctx, &key->ecc, 0);
@@ -1450,7 +1450,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   }
 #endif
 
-#if (METHOD == METH0) || INITIATOR_METH2 || RESPONDER_METH1
+#if (EDHOC_METHOD == EDHOC_METHOD0) || INITIATOR_METHOD2 || RESPONDER_METHOD1
   if(msg2 == true) {
     /* prk_3e2m is prk_2e */
     memcpy(ctx->state.prk_3e2m, ctx->state.prk_2e, HASH_LEN);
