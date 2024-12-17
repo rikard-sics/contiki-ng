@@ -39,10 +39,10 @@
  *         Marco Tiloca
  */
 
+#include "contiki.h"
+#include "lib/sha-256.h"
 #include "edhoc.h"
-#include "contiki-lib.h"
 #include "edhoc-config.h"
-#include "sys/rtimer.h"
 #include "edhoc-msgs.h"
 #include <assert.h>
 
@@ -57,7 +57,6 @@ void
 edhoc_storage_init(void)
 {
   memb_init(&edhoc_context_storage);
-  hmac_storage_init();
 }
 edhoc_context_t *
 edhoc_new(void)
@@ -120,6 +119,12 @@ set_config_from_suite(edhoc_context_t *ctx, uint8_t suite)
   }
 
   return 1;
+}
+static inline void
+compute_th(const uint8_t *in, size_t in_sz,
+           uint8_t hash[SHA_256_DIGEST_LENGTH])
+{
+  sha_256_hash(in, in_sz, hash);
 }
 static size_t
 generate_cred_x(cose_key_t *cose, uint8_t *cred)
@@ -265,7 +270,7 @@ gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub, uint8_t *msg, uint16_t msg
   print_buff_8_dbg(msg, msg_sz);
 
   uint8_t msg_1_hash[HASH_LEN];
-  compute_th(msg + 1, msg_sz - 1, msg_1_hash, HASH_LEN); /*FIXME: Improve skipping of CBOR true for TH */
+  compute_th(msg + 1, msg_sz - 1, msg_1_hash); /*FIXME: Improve skipping of CBOR true for TH */
 
   cbor_put_bytes(&h_ptr, eph_pub, ECC_KEY_LEN);
   cbor_put_bytes(&h_ptr, msg_1_hash, HASH_LEN);
@@ -273,11 +278,7 @@ gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub, uint8_t *msg, uint16_t msg
   /* Compute TH */
   LOG_DBG("Input to TH_2 (%d): ", h_buf_sz);
   print_buff_8_dbg(h, h_buf_sz);
-  uint8_t er = compute_th(h, h_buf_sz, ctx->state.th, HASH_LEN);
-  if(er != 0) {
-    LOG_ERR("ERR COMPUTED H(G_Y, H(msg1))\n");
-    return ERR_CODE;
-  }
+  compute_th(h, h_buf_sz, ctx->state.th);
 
   LOG_DBG("TH_2 (%d bytes): ", (int)HASH_LEN);
   print_buff_8_dbg(ctx->state.th, HASH_LEN);
@@ -305,11 +306,7 @@ gen_th3(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz, const uint8
   print_buff_8_dbg(h, h_sz);
 
   /* Compute TH */
-  uint8_t er = compute_th(h, h_sz, ctx->state.th, HASH_LEN);
-  if(er != 0) {
-    LOG_ERR("ERR COMPUTED TH_3\n");
-    return ERR_CODE;
-  }
+  compute_th(h, h_sz, ctx->state.th);
   LOG_DBG("TH_3 (%d bytes): ", (int)HASH_LEN);
   print_buff_8_dbg(ctx->state.th, HASH_LEN);
   return 0;
@@ -336,11 +333,7 @@ gen_th4(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz, const uint8
   print_buff_8_dbg(h, h_sz);
 
   /* Compute TH */
-  uint8_t er = compute_th(h, h_sz, ctx->state.th, HASH_LEN);
-  if(er != 0) {
-    LOG_ERR("ERR COMPUTED TH_4\n");
-    return ERR_CODE;
-  }
+  compute_th(h, h_sz, ctx->state.th);
   LOG_DBG("TH_4 (%d bytes): ", (int)HASH_LEN);
   print_buff_8_dbg(ctx->state.th, HASH_LEN);
   return 0;
@@ -364,11 +357,7 @@ edhoc_expand(const uint8_t *prk, const uint8_t *info, uint16_t info_sz, uint16_t
 {
   LOG_DBG("INFO for HKDF_Expand (%d bytes): ", info_sz);
   print_buff_8_dbg(info, info_sz);
-  int16_t er = hkdf_expand(prk, ECC_KEY_LEN, info, info_sz, result, length);
-  if(er < 0) {
-    LOG_ERR("Error calculating when calling hkdf_expand (%d)\n", er);
-    return er;
-  }
+  sha_256_hkdf_expand(prk, ECC_KEY_LEN, info, info_sz, result, length);
   return length;
 }
 static uint8_t
@@ -575,11 +564,7 @@ gen_prk_2e(edhoc_context_t *ctx)
   if(er == 0) {
     return 0;
   }
-  er = hkdf_extract(ctx->state.th, HASH_LEN, ikm, ECC_KEY_LEN, ctx->state.prk_2e);
-  if(er < 1) {
-    LOG_ERR("Error in extract prk_2e\n");
-    return 0;
-  }
+  sha_256_hkdf_extract(ctx->state.th, HASH_LEN, ikm, ECC_KEY_LEN, ctx->state.prk_2e);
   LOG_DBG("PRK_2e (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(ctx->state.prk_2e, HASH_LEN);
   return 1;
@@ -623,11 +608,7 @@ gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
   LOG_DBG("SALT_3e2m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(salt, HASH_LEN);
 
-  er = hkdf_extract(salt, HASH_LEN, grx, ECC_KEY_LEN, ctx->state.prk_3e2m);
-  if(er < 1) {
-    LOG_ERR("error in extract for prk_3e2m\n");
-    return 0;
-  }
+  sha_256_hkdf_extract(salt, HASH_LEN, grx, ECC_KEY_LEN, ctx->state.prk_3e2m);
   LOG_DBG("PRK_3e2m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(ctx->state.prk_3e2m, HASH_LEN);
   return 1;
@@ -662,11 +643,7 @@ gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
   LOG_DBG("SALT_4e3m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(salt, HASH_LEN);
 
-  er = hkdf_extract(salt, HASH_LEN, giy, ECC_KEY_LEN, ctx->state.prk_4e3m);
-  if(er < 1) {
-    LOG_ERR("error in extract for prk_4e3m\n");
-    return 0;
-  }
+  sha_256_hkdf_extract(salt, HASH_LEN, giy, ECC_KEY_LEN, ctx->state.prk_4e3m);
   LOG_DBG("PRK_4e3m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(ctx->state.prk_4e3m, HASH_LEN);
   return 1;
@@ -1124,8 +1101,6 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   mac_or_signature_sz = MAC_OR_SIG_BUF_LEN;
   memcpy(mac_or_sig, cose_sign1->signature, cose_sign1->signature_sz);
 #endif
-
-  /* time = RTIMER_NOW(); */
 
   /* Gen ciphertext_3 */
   uint16_t ciphertext_sz = gen_ciphertext_3(ctx, ad, ad_sz, mac_or_sig, mac_or_signature_sz, (ctx->buffers.msg_tx) + 1);

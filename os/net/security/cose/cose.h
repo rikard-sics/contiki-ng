@@ -49,8 +49,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "edhoc-config.h"
 #include "cbor.h"
-#include "hmac-sha.h"
 #include "uECC.h"
 
 /* COSE Algorithm parameters AES-CCM-16-64-128 */

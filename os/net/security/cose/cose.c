@@ -36,9 +36,11 @@
  *         Lidia Pocero <pocero@isi.gr>, Peter A Jonsson, Rikard Höglund, Marco Tiloca
  */
 
+#include "contiki.h"
+#include "lib/memb.h"
+#include "lib/ccm-star.h"
+#include "lib/sha-256.h"
 #include "cose.h"
-#include "contiki-lib.h"
-#include <os/lib/ccm-star.h>
 #include <string.h>
 #include "cose-log.h"
 
@@ -308,7 +310,7 @@ cose_sign(cose_sign1 *sign1)
   cose_print_buff_8_dbg(sign1->key, ECC_KEY_LEN);
 
   uint8_t hash[HASH_LEN];
-  sha256(sig_struct_bytes, sig_str_sz, hash);
+  sha_256_hash(sig_struct_bytes, sig_str_sz, hash);
 
   if(uECC_sign(sign1->key, hash, sizeof(hash), sign1->signature,
                uECC_secp256r1())) {
@@ -340,7 +342,7 @@ cose_verify(cose_sign1 *sign1)
   cose_print_buff_8_dbg(sig_struct_bytes, sig_str_sz);
 
   uint8_t hash[HASH_LEN];
-  sha256(sig_struct_bytes, sig_str_sz, hash);
+  sha_256_hash(sig_struct_bytes, sig_str_sz, hash);
 
   /* Verify the signature using the peer's public key */
   int verify = uECC_verify(public_key, hash, sizeof(hash), sign1->signature,

@@ -40,21 +40,13 @@
 #define _ECDH_H_
 
 #include <stdint.h>
-#include "lib/random.h"
 #include <string.h>
-#include <stdio.h>
 #include "cose.h"
 #include "edhoc-key-storage.h"
-#include "hmac-sha.h"
 
 /* Choose the ECC library to use */
 #define CC2238_ECC 1
 #define UECC_ECC 2
-
-#define ERR_INFO_SIZE -1
-#define ERR_OKM_SIZE -2
-#define ERR_HASH_SIZE -3
-#define ERR_HMAC_CREATE -3
 
 #ifdef EDHOC_CONF_ECC
 #define ECC EDHOC_CONF_ECC
@@ -71,9 +63,6 @@
 #endif
 
 uint8_t generate_IKM(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm);
-uint8_t compute_th(uint8_t *in, uint8_t in_sz, uint8_t *hash, uint8_t hash_sz);
-int8_t hkdf_extract(const uint8_t *salt, uint8_t salt_sz, const uint8_t *ikm, uint8_t ikm_sz, uint8_t *hmac);
-int8_t hkdf_expand(const uint8_t *prk, uint16_t prk_sz, const uint8_t *info, uint16_t info_sz, uint8_t *okm, uint16_t okm_sz);
 int get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve);
 
 #endif /* _ECDH_H_ */
