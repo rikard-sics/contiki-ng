@@ -85,21 +85,21 @@ setup_suites(edhoc_context_t *ctx)
 {
   /* Reverse order for the suite values */
   ctx->config.suite_num = 0;
-  if(SUPPORTED_SUITE_4 > -1) {
-    ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_4;
+  if(EDHOC_SUPPORTED_SUITE_4 > -1) {
+    ctx->config.suite[ctx->config.suite_num] = EDHOC_SUPPORTED_SUITE_4;
     ctx->config.suite_num++;
   }
-  if(SUPPORTED_SUITE_3 > -1) {
-    ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_3;
+  if(EDHOC_SUPPORTED_SUITE_3 > -1) {
+    ctx->config.suite[ctx->config.suite_num] = EDHOC_SUPPORTED_SUITE_3;
     ctx->config.suite_num++;
   }
-  if(SUPPORTED_SUITE_2 > -1) {
-    ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_2;
+  if(EDHOC_SUPPORTED_SUITE_2 > -1) {
+    ctx->config.suite[ctx->config.suite_num] = EDHOC_SUPPORTED_SUITE_2;
     ctx->config.suite_num++;
   }
-  if(SUPPORTED_SUITE_1 > -1) {
-    ctx->config.suite[ctx->config.suite_num] = SUPPORTED_SUITE_1;
-    ctx->state.suite_selected = SUPPORTED_SUITE_1;
+  if(EDHOC_SUPPORTED_SUITE_1 > -1) {
+    ctx->config.suite[ctx->config.suite_num] = EDHOC_SUPPORTED_SUITE_1;
+    ctx->state.suite_selected = EDHOC_SUPPORTED_SUITE_1;
     ctx->config.suite_num++;
   }
 
