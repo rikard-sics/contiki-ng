@@ -404,7 +404,7 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num,
     uint8_t *context_2_ptr = context_2;
 
     /* Add C_R */
-    if(ROLE == INITIATOR) {
+    if(EDHOC_ROLE == EDHOC_INITIATOR) {
       context_2_ptr[0] = (uint8_t)ctx->state.cid_rx;
     } else {
       context_2_ptr[0] = (uint8_t)ctx->state.cid;
@@ -539,9 +539,9 @@ static uint8_t
 gen_mac(const edhoc_context_t *ctx, uint8_t mac_len, uint8_t *mac)
 {
   uint8_t mac_num;
-  if(ROLE == INITIATOR) {
+  if(EDHOC_ROLE == EDHOC_INITIATOR) {
     mac_num = MAC_3;
-  } else if(ROLE == RESPONDER) {
+  } else if(EDHOC_ROLE == EDHOC_RESPONDER) {
     mac_num = MAC_2;
   }
 
@@ -559,9 +559,9 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac,
           uint16_t received_mac_sz)
 {
   uint8_t mac_num;
-  if(ROLE == INITIATOR) {
+  if(EDHOC_ROLE == EDHOC_INITIATOR) {
     mac_num = MAC_2;
-  } else if(ROLE == RESPONDER) {
+  } else if(EDHOC_ROLE == EDHOC_RESPONDER) {
     mac_num = MAC_3;
   }
 
@@ -927,7 +927,7 @@ edhoc_initialize_context(edhoc_context_t *ctx)
   ctx->state.cid = EDHOC_CID;
 
   /* Set role and method */
-  ctx->config.role = ROLE;
+  ctx->config.role = EDHOC_ROLE;
   ctx->config.method = EDHOC_METHOD;
 
   /* Initiator sets config to use based on selected suite */

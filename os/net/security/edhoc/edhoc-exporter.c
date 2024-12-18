@@ -91,11 +91,11 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   print_buff_8_dbg(prk_exporter, prk_exporter_sz);
 
   /* The OSCORE client is the initiator */
-  if(ROLE == INITIATOR) {
+  if(EDHOC_ROLE == EDHOC_INITIATOR) {
     osc->client_ID = ctx->state.cid;
     osc->server_ID = ctx->state.cid_rx;
   }
-  if(ROLE == RESPONDER) {
+  if(EDHOC_ROLE == EDHOC_RESPONDER) {
     osc->client_ID = ctx->state.cid_rx;
     osc->server_ID = ctx->state.cid;
   }

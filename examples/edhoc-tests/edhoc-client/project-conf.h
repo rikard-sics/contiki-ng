@@ -35,7 +35,7 @@
 //#define EDHOC_CONF_SERVER_EP "coap://[fd00::1]" /* IP for using with socat to reach other servers */
 
 /* Define the party role on the EDHOC protocol as Initiator and the correlation method */
-#define EDHOC_CONF_ROLE INITIATOR
+#define EDHOC_CONF_ROLE EDHOC_INITIATOR
 
 /* To run with the test vector DH ephemeral keys used on the EDHOC interoperability session */
 #define EDHOC_CONF_TEST TEST_VECTOR_TRACE_DH

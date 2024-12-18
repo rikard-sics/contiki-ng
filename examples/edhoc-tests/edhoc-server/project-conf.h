@@ -30,7 +30,7 @@
 #endif
 
 /* Define the party role on the EDHOC protocol as responder and the correlation method */
-#define EDHOC_CONF_ROLE RESPONDER /* Server */
+#define EDHOC_CONF_ROLE EDHOC_RESPONDER /* Server */
 
 /* To run with the test vector DH ephemeral keys used on the interoperability session */
 #define EDHOC_CONF_TEST TEST_VECTOR_TRACE_DH

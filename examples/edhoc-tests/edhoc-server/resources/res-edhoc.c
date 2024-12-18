@@ -14,7 +14,7 @@
 /******************************************************************************/
 edhoc_server_t servidor;
 
-static uint8_t msg_rx[MAX_PAYLOAD_LEN];
+static uint8_t msg_rx[EDHOC_MAX_PAYLOAD_LEN];
 static size_t msg_rx_len;
 
 static void res_edhoc_post_handler(coap_message_t *request,
@@ -40,7 +40,7 @@ res_edhoc_post_handler(coap_message_t *request,
 
   if(*offset == 0) {
     if(coap_block1_handler(request, response, msg_rx, &msg_rx_len,
-                           MAX_PAYLOAD_LEN)) {
+                           EDHOC_MAX_PAYLOAD_LEN)) {
       LOG_DBG("handler (%d)\n", (int)msg_rx_len);
       print_buff_8_dbg(msg_rx, msg_rx_len);
       return;

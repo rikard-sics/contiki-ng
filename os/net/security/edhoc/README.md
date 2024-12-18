@@ -38,9 +38,9 @@ If the parties have agreed on an identity beside the public key, the "subject na
 ```c
 #define AUTH_SUBJECT_NAME "Node_Key_Identity"
 ```
-- Define the role taking on the EDHOC protocol. `INITIATOR` for the Initiator and `RESPONDER` for the Responder.
+- Define the role taking on the EDHOC protocol. `EDHOC_INITIATOR` for the Initiator and `EDHOC_RESPONDER` for the Responder.
 ```c
-#define EDHOC_CONF_ROLE INITIATOR
+#define EDHOC_CONF_ROLE EDHOC_INITIATOR
 ```
 - Define the Connection Identifier(`CID`)
 ```c
@@ -105,7 +105,7 @@ For the specific example the EDHOC Server IP must be selected on the project-con
 ```
 - Define the ROLEY as Initiator
 ```c
-#define EDHOC_CONF_ROLE INITIATOR
+#define EDHOC_CONF_ROLE EDHOC_INITIATOR
 ```
 
 ## EDHOC Server API

@@ -55,16 +55,16 @@
 #define EDHOC_CID_LEN 1
 
 /* EDHOC Role definitions */
-#define RESPONDER 0   /* The Responder of the EDHOC protocol */
-#define INITIATOR 1   /* The Initiator of the EDHOC protocol */
+#define EDHOC_RESPONDER 0   /* The Responder of the EDHOC protocol */
+#define EDHOC_INITIATOR 1   /* The Initiator of the EDHOC protocol */
 
 /**
  * \brief Set the EDHOC Protocol role
  */
 #ifdef EDHOC_CONF_ROLE
-#define ROLE EDHOC_CONF_ROLE
+#define EDHOC_ROLE EDHOC_CONF_ROLE
 #else
-#define ROLE INITIATOR
+#define EDHOC_ROLE EDHOC_INITIATOR
 #endif
 
 /* EDHOC Authentication Method Types: Initiator (I) | Responder (R) */
@@ -96,10 +96,14 @@
 /**
  * \brief Helper defines for method handling on msg. reception
  */
-#define INITIATOR_METHOD2 (EDHOC_METHOD == EDHOC_METHOD2 && ROLE == INITIATOR)
-#define RESPONDER_METHOD1 (EDHOC_METHOD == EDHOC_METHOD1 && ROLE == RESPONDER)
-#define INITIATOR_METHOD1 (EDHOC_METHOD == EDHOC_METHOD1 && ROLE == INITIATOR)
-#define RESPONDER_METHOD2 (EDHOC_METHOD == EDHOC_METHOD2 && ROLE == RESPONDER)
+#define INITIATOR_METHOD2 \
+  (EDHOC_METHOD == EDHOC_METHOD2 && EDHOC_ROLE == EDHOC_INITIATOR)
+#define RESPONDER_METHOD1 \
+  (EDHOC_METHOD == EDHOC_METHOD1 && EDHOC_ROLE == EDHOC_RESPONDER)
+#define INITIATOR_METHOD1 \
+  (EDHOC_METHOD == EDHOC_METHOD1 && EDHOC_ROLE == EDHOC_INITIATOR)
+#define RESPONDER_METHOD2 \
+  (EDHOC_METHOD == EDHOC_METHOD2 && EDHOC_ROLE == EDHOC_RESPONDER)
 
 /* Credential type/usage */
 #define CRED_KID 2
