@@ -188,14 +188,14 @@
 #endif
 
 /* Handle settings for test vectors */
-#define NO_TEST 0
-#define TEST_VECTOR_TRACE_DH 1
-#define TEST_VECTOR_TRACE_SIG 2
+#define EDHOC_NO_TEST 0
+#define EDHOC_TEST_VECTOR_TRACE_DH 1
+#define EDHOC_TEST_VECTOR_TRACE_SIG 2
 
 #ifdef EDHOC_CONF_TEST
-#define TEST EDHOC_CONF_TEST
+#define EDHOC_TEST EDHOC_CONF_TEST
 #else
-#define TEST NO_TEST
+#define EDHOC_TEST EDHOC_NO_TEST
 #endif
 
 /**

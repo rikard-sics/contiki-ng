@@ -66,7 +66,7 @@ static int er = 0;
 static edhoc_msg_3 msg3;
 PROCESS(edhoc_server, "EDHOC Server");
 
-#if TEST == TEST_VECTOR_TRACE_DH
+#if EDHOC_TEST == EDHOC_TEST_VECTOR_TRACE_DH
 uint8_t eph_pub_x_r[ECC_KEY_LEN] = { 0x41, 0x97, 0x01, 0xd7, 0xf0, 0x0a, 0x26, 0xc2, 0xdc, 0x58, 0x7a, 0x36, 0xdd, 0x75, 0x25, 0x49, 0xf3, 0x37, 0x63, 0xc8, 0x93, 0x42, 0x2c,
                                      0x8e, 0xa0, 0xf9, 0x55, 0xa1, 0x3a, 0x4f, 0xf5, 0xd5 };
 
@@ -100,7 +100,7 @@ generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t
   memcpy(priv, key.private, ECC_KEY_LEN);
 #endif
 
-#if TEST == TEST_VECTOR_TRACE_DH
+#if EDHOC_TEST == EDHOC_TEST_VECTOR_TRACE_DH
   memcpy(edhoc_ctx->creds.ephemeral_key.pub.x, eph_pub_x_r, ECC_KEY_LEN);
   memcpy(edhoc_ctx->creds.ephemeral_key.pub.y, eph_pub_y_r, ECC_KEY_LEN);
   memcpy(edhoc_ctx->creds.ephemeral_key.priv, eph_private_r, ECC_KEY_LEN);

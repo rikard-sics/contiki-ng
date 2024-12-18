@@ -33,7 +33,7 @@
 #define EDHOC_CONF_ROLE EDHOC_RESPONDER /* Server */
 
 /* To run with the test vector DH ephemeral keys used on the interoperability session */
-#define EDHOC_CONF_TEST TEST_VECTOR_TRACE_DH
+#define EDHOC_CONF_TEST EDHOC_TEST_VECTOR_TRACE_DH
 
 /* Define the authentication */
 #define EDHOC_CONF_AUTHENT_TYPE EDHOC_CRED_KID
