@@ -545,34 +545,33 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac, uint16_t rece
   return mac_sz;
 }
 #endif /* (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2 */
-static uint8_t
+static bool
 gen_gxy(edhoc_context_t *ctx, uint8_t *ikm)
 {
-  uint8_t er = generate_IKM(ctx->config.ecdh_curve, ctx->state.gx, ctx->state.gy, ctx->creds.ephemeral_key.priv, ikm);
-  if(er == 0) {
+  bool success = ecdh_generate_ikm(ctx->config.ecdh_curve, ctx->state.gx, ctx->state.gy, ctx->creds.ephemeral_key.priv, ikm);
+  if(!success) {
     LOG_ERR("error in generate shared secret\n");
-    return 0;
+    return false;
   }
   LOG_DBG("GXY (%d bytes): ", ECC_KEY_LEN);
   print_buff_8_dbg(ikm, ECC_KEY_LEN);
-  return 1;
+  return true;
 }
-static uint8_t
+static bool
 gen_prk_2e(edhoc_context_t *ctx)
 {
   uint8_t ikm[ECC_KEY_LEN];
-  uint8_t er = 0;
 
   watchdog_periodic();
-  er = gen_gxy(ctx, ikm);
+  bool success = gen_gxy(ctx, ikm);
   watchdog_periodic();
-  if(er == 0) {
-    return 0;
+  if(!success) {
+    return false;
   }
   sha_256_hkdf_extract(ctx->state.th, HASH_LEN, ikm, ECC_KEY_LEN, ctx->state.prk_2e);
   LOG_DBG("PRK_2e (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(ctx->state.prk_2e, HASH_LEN);
-  return 1;
+  return true;
 }
 /* Derive KEYSTREAM_2 */
 static int16_t
@@ -587,28 +586,28 @@ gen_ks_2e(edhoc_context_t *ctx, uint16_t length, uint8_t *ks_2e)
   return 1;
 }
 #if (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2
-static uint8_t
+static bool
 gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
 {
   uint8_t grx[ECC_KEY_LEN];
-  int8_t er = 0;
+  bool success;
 
   if(gen) {
-    er = generate_IKM(ctx->config.ecdh_curve, ctx->state.gx, ctx->state.gy, auth_key->priv, grx);
+    success = ecdh_generate_ikm(ctx->config.ecdh_curve, ctx->state.gx, ctx->state.gy, auth_key->priv, grx);
   } else {
-    er = generate_IKM(ctx->config.ecdh_curve, auth_key->pub.x, auth_key->pub.y, ctx->creds.ephemeral_key.priv, grx);
+    success = ecdh_generate_ikm(ctx->config.ecdh_curve, auth_key->pub.x, auth_key->pub.y, ctx->creds.ephemeral_key.priv, grx);
   }
-  if(er == 0) {
+  if(!success) {
     LOG_ERR("error in generate shared secret for prk_3e2m\n");
-    return 0;
+    return false;
   }
 
   /* Use edhoc_kdf to generate SALT_3e2m */
   uint8_t salt[HASH_LEN];
-  er = edhoc_kdf(ctx->state.prk_2e, SALT_3E2M_LABEL, ctx->state.th, HASH_LEN, HASH_LEN, salt);
+  int16_t er = edhoc_kdf(ctx->state.prk_2e, SALT_3E2M_LABEL, ctx->state.th, HASH_LEN, HASH_LEN, salt);
   if(er < 1) {
     LOG_ERR("Error calculating SALT_3e2m (%d)\n", er);
-    return 0;
+    return false;
   }
   LOG_DBG("SALT_3e2m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(salt, HASH_LEN);
@@ -616,34 +615,34 @@ gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
   sha_256_hkdf_extract(salt, HASH_LEN, grx, ECC_KEY_LEN, ctx->state.prk_3e2m);
   LOG_DBG("PRK_3e2m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(ctx->state.prk_3e2m, HASH_LEN);
-  return 1;
+  return true;
 }
 #endif /* (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2 */
 #if (EDHOC_METHOD == EDHOC_METHOD2) || (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2
-static uint8_t
+static bool
 gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
 {
   uint8_t giy[ECC_KEY_LEN];
-  int8_t er = 0;
+  bool success;
 
   if(gen) {
-    er = generate_IKM(ctx->config.ecdh_curve, auth_key->pub.x, auth_key->pub.y, ctx->creds.ephemeral_key.priv, giy);
+    success = ecdh_generate_ikm(ctx->config.ecdh_curve, auth_key->pub.x, auth_key->pub.y, ctx->creds.ephemeral_key.priv, giy);
   } else {
-    er = generate_IKM(ctx->config.ecdh_curve, ctx->state.gx, ctx->state.gy, auth_key->priv, giy);
+    success = ecdh_generate_ikm(ctx->config.ecdh_curve, ctx->state.gx, ctx->state.gy, auth_key->priv, giy);
+  }
+  if(!success) {
+    LOG_ERR("error in generate shared secret for prk_4e3m\n");
+    return false;
   }
   LOG_DBG("G_IY (ECDH shared secret) (%d bytes): ", ECC_KEY_LEN);
   print_buff_8_dbg(giy, ECC_KEY_LEN);
-  if(er == 0) {
-    LOG_ERR("error in generate shared secret for prk_4e3m\n");
-    return 0;
-  }
 
   /* Use edhoc_kdf to generate SALT_4e3m */
   uint8_t salt[HASH_LEN];
-  er = edhoc_kdf(ctx->state.prk_3e2m, SALT_4E3M_LABEL, ctx->state.th, HASH_LEN, HASH_LEN, salt);
+  int16_t er = edhoc_kdf(ctx->state.prk_3e2m, SALT_4E3M_LABEL, ctx->state.th, HASH_LEN, HASH_LEN, salt);
   if(er < 1) {
     LOG_ERR("Error calculating SALT_4e3m (%d)\n", er);
-    return 0;
+    return false;
   }
   LOG_DBG("SALT_4e3m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(salt, HASH_LEN);
@@ -651,7 +650,7 @@ gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
   sha_256_hkdf_extract(salt, HASH_LEN, giy, ECC_KEY_LEN, ctx->state.prk_4e3m);
   LOG_DBG("PRK_4e3m (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(ctx->state.prk_4e3m, HASH_LEN);
-  return 1;
+  return true;
 }
 #endif /* (EDHOC_METHOD == EDHOC_METHOD2) || (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2 */
 static int16_t
@@ -690,7 +689,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ciphertext, uint16_t c
   /* generate K_3 */
   cose->alg = ctx->config.aead_alg;
   cose->key_sz = get_cose_key_len(cose->alg);
-  int8_t er = edhoc_kdf(ctx->state.prk_3e2m, K_3_LABEL, ctx->state.th, HASH_LEN, cose->key_sz, cose->key);
+  int16_t er = edhoc_kdf(ctx->state.prk_3e2m, K_3_LABEL, ctx->state.th, HASH_LEN, cose->key_sz, cose->key);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;
@@ -765,7 +764,6 @@ gen_plaintext(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz, bool msg2, 
 static uint16_t
 gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz, const uint8_t *mac_or_sig, uint16_t mac_sz, uint8_t *ciphertext)
 {
-  int8_t er = 0;
   cose_encrypt0 *cose = cose_encrypt0_new();
 
   /* set external AAD in cose */
@@ -784,7 +782,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz, const 
   /* generate K_3 */
   cose->alg = ctx->config.aead_alg;
   cose->key_sz = get_cose_key_len(cose->alg);
-  er = edhoc_kdf(ctx->state.prk_3e2m, K_3_LABEL, ctx->state.th, HASH_LEN, cose->key_sz, cose->key);
+  int16_t er = edhoc_kdf(ctx->state.prk_3e2m, K_3_LABEL, ctx->state.th, HASH_LEN, cose->key_sz, cose->key);
   if(er < 1) {
     LOG_ERR("error in expand for decrypt ciphertext 3\n");
     return 0;

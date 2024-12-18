@@ -42,47 +42,50 @@
 
 #include "contiki.h"
 #include "ecdh.h"
-
-uint8_t
-generate_IKM(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm)
+/*---------------------------------------------------------------------------*/
+bool
+ecdh_generate_ikm(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy,
+                  const uint8_t *private_key, uint8_t *ikm)
 {
   ecc_curve_t curve;
-  int er = get_ecc_curve(curve_id, &curve);
-  if(er != 1) {
+  bool er = ecdh_get_ecc_curve(curve_id, &curve);
+  if(!er) {
     return er;
   }
 
 #if EDHOC_ECC == EDHOC_ECC_UECC
-  return uecc_generate_IKM(gx, gy, private_key, ikm, curve);
+  return uecc_generate_ikm(gx, gy, private_key, ikm, curve);
 #elif EDHOC_ECC == EDHOC_ECC_CC2538
-  return cc2538_generate_IKM(gx, gy, private_key, ikm, curve);
+  return cc2538_generate_ikm(gx, gy, private_key, ikm, curve);
 #else
-  return 0;
+  return false;
 #endif
 }
-int
-get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve)
+/*---------------------------------------------------------------------------*/
+bool
+ecdh_get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve)
 {
 #if EDHOC_ECC == EDHOC_ECC_UECC
   switch(curve_id) {
   case P256:
     curve->curve = uECC_secp256r1();
-    return 1;
+    return true;
   default:
     LOG_ERR("Invalid curve when trying to derive IKM with uECC\n");
-    return 0;
+    return false;
   }
 #elif EDHOC_ECC == EDHOC_ECC_CC2538
   switch(curve_id) {
   case P256:
     curve->curve = &nist_p_256;
-    return 1;
+    return true;
   default:
     LOG_ERR("Invalid curve when trying to derive IKM with CC2538 ECC\n");
-    return 0
+    return false;
   }
 #else
   LOG_ERR("No ECC implementation defined\n");
-  return 0;
+  return false;
 #endif
 }
+/*---------------------------------------------------------------------------*/

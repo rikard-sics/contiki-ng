@@ -85,7 +85,7 @@ generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t
   rtimer_clock_t drv_time = RTIMER_NOW();
 
   ecc_curve_t curve;
-  get_ecc_curve(curve_id, &curve);
+  ecdh_get_ecc_curve(curve_id, &curve);
 
 #if EDHOC_ECC == EDHOC_ECC_UECC
   LOG_DBG("Generate key with uEcc\n");

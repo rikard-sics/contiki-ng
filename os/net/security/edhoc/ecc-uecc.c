@@ -71,10 +71,9 @@ uecc_generate_key(ecc_key_t *key, ecc_curve_t curve)
   return er;
 }
 /*TODO: Check further */
-uint8_t
-uecc_generate_IKM(const uint8_t *gx_in, const uint8_t *gy_in, const uint8_t *private_key, uint8_t *ikm, ecc_curve_t crv)
+bool
+uecc_generate_ikm(const uint8_t *gx_in, const uint8_t *gy_in, const uint8_t *private_key, uint8_t *ikm, ecc_curve_t crv)
 {
-  int er = 0;
   uint8_t compressed[ECC_KEY_LEN + 1];
   static uint8_t pub[2 * ECC_KEY_LEN];
   uint8_t *gy;
@@ -93,7 +92,7 @@ uecc_generate_IKM(const uint8_t *gx_in, const uint8_t *gy_in, const uint8_t *pri
   memcpy(public + ECC_KEY_LEN, gy, ECC_KEY_LEN);
 
   watchdog_periodic();
-  er = uECC_shared_secret(public, private_key, ikm, crv.curve);
+  bool er = uECC_shared_secret(public, private_key, ikm, crv.curve) != 0;
   watchdog_periodic();
 
   return er;

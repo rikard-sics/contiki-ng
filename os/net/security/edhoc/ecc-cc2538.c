@@ -113,10 +113,9 @@ PT_THREAD(generate_key_hw(key_gen_t * key)) {
   pka_disable();
   PT_END(&key->pt);
 }
-uint8_t
-cc2538_generate_IKM(const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve)
+bool
+cc2538_generate_ikm(const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve)
 {
-  int er = 0;
   static ecc_multiply_state_t shared;
   shared.curve_info = curve.curve;
   uint8_t gy_local[ECC_KEY_LEN]; /* Create a local copy of gy */
@@ -148,8 +147,7 @@ cc2538_generate_IKM(const uint8_t *gx, const uint8_t *gy, const uint8_t *private
   eccNative_to_bytes(ikm, ECC_KEY_LEN, shared.point_out.x);
 
   pka_disable();
-  er = 1;
 
-  return er;
+  return true;
 }
 #endif /* CC2538_DEF_H_ */

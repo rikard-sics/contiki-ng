@@ -40,6 +40,7 @@
 #define _ECDH_H_
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "edhoc-key-storage.h"
 
 /* Choose the ECC library to use */
@@ -60,7 +61,8 @@
 #error Please specify EDHOC_ECC
 #endif
 
-uint8_t generate_IKM(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm);
-int get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve);
+bool ecdh_generate_ikm(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm);
+
+bool ecdh_get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve);
 
 #endif /* _ECDH_H_ */
