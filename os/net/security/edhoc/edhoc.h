@@ -102,8 +102,8 @@ typedef struct edhoc_state {
 } edhoc_state_t;
 
 typedef struct edhoc_buffers {
-  uint8_t msg_rx[MAX_PAYLOAD_LEN];
-  uint8_t msg_tx[MAX_PAYLOAD_LEN];
+  uint8_t msg_rx[EDHOC_MAX_PAYLOAD_LEN];
+  uint8_t msg_tx[EDHOC_MAX_PAYLOAD_LEN];
   uint16_t rx_sz;
   uint16_t tx_sz;
   uint8_t plaintext[MAX_BUFFER];

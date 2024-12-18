@@ -194,9 +194,9 @@
  * \brief The max length of the EDHOC message
  */
 #ifdef EDHOC_CONF_MAX_PAYLOAD_LEN
-#define MAX_PAYLOAD_LEN EDHOC_CONF_MAX_PAYLOAD_LEN
+#define EDHOC_MAX_PAYLOAD_LEN EDHOC_CONF_MAX_PAYLOAD_LEN
 #else
-#define MAX_PAYLOAD_LEN 256
+#define EDHOC_MAX_PAYLOAD_LEN 256
 #endif
 
 /**
