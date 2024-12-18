@@ -511,7 +511,7 @@ get_edhoc_curve(uint8_t ciphersuite_id)
   case EDHOC_CIPHERSUITE_2:
   case EDHOC_CIPHERSUITE_3:
   case EDHOC_CIPHERSUITE_5:
-    return P256;
+    return EDHOC_CURVE_P256;
   default:
     LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC curve (%d)\n", ERR_SUITE_NON_SUPPORT);
     return 0;

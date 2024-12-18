@@ -67,7 +67,7 @@ ecdh_get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve)
 {
 #if EDHOC_ECC == EDHOC_ECC_UECC
   switch(curve_id) {
-  case P256:
+  case EDHOC_CURVE_P256:
     curve->curve = uECC_secp256r1();
     return true;
   default:
@@ -76,7 +76,7 @@ ecdh_get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve)
   }
 #elif EDHOC_ECC == EDHOC_ECC_CC2538
   switch(curve_id) {
-  case P256:
+  case EDHOC_CURVE_P256:
     curve->curve = &nist_p_256;
     return true;
   default:

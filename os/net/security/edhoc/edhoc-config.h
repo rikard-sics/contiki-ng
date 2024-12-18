@@ -146,7 +146,7 @@
 #define EDHOC_MAX_MAC_LEN 16
 
 /* Curves for EDHOC key exchange algorithm (ECDH curve) */
-#define P256 1
+#define EDHOC_CURVE_P256 1
 
 /* Common settings for supported cipher suites */
 #define ECC_KEY_LEN 32
