@@ -83,11 +83,11 @@ typedef struct edhoc_server {
  * \brief EDHOC server Application data struct
  */
 typedef struct edhoc_server_ad {
-  char ad_1[MAX_AD_SZ];
+  char ad_1[EDHOC_MAX_AD_SZ];
   uint8_t ad_1_sz;
-  char ad_2[MAX_AD_SZ];
+  char ad_2[EDHOC_MAX_AD_SZ];
   uint8_t ad_2_sz;
-  char ad_3[MAX_AD_SZ];
+  char ad_3[EDHOC_MAX_AD_SZ];
   uint8_t ad_3_sz;
 } edhoc_server_ad_t;
 

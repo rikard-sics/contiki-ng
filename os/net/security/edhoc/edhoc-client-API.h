@@ -89,11 +89,11 @@ typedef struct edhoc_client {
  * \brief EDHOC client Application data struct
  */
 typedef struct edhoc_client_ad {
-  char ad_1[MAX_AD_SZ];
+  char ad_1[EDHOC_MAX_AD_SZ];
   uint16_t ad_1_sz;
-  char ad_2[MAX_AD_SZ];
+  char ad_2[EDHOC_MAX_AD_SZ];
   uint16_t ad_2_sz;
-  char ad_3[MAX_AD_SZ];
+  char ad_3[EDHOC_MAX_AD_SZ];
   uint16_t ad_3_sz;
 } edhoc_client_ad_t;
 

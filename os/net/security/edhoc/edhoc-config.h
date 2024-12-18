@@ -218,9 +218,9 @@
  * \brief The max length of the Application Data
  */
 #ifdef EDHOC_CONF_MAX_AD_SZ
-#define MAX_AD_SZ EDHOC_CONF_MAX_AD_SZ
+#define EDHOC_MAX_AD_SZ EDHOC_CONF_MAX_AD_SZ
 #else
-#define MAX_AD_SZ 8
+#define EDHOC_MAX_AD_SZ 8
 #endif
 
 /**
