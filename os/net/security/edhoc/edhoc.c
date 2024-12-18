@@ -474,10 +474,10 @@ get_edhoc_mac_len(uint8_t ciphersuite_id)
   case EDHOC_CIPHERSUITE_6:
   case EDHOC_CIPHERSUITE_24:
   case EDHOC_CIPHERSUITE_25:
-    return MAC_LEN_16;
+    return EDHOC_MAC_LEN_16;
   case EDHOC_CIPHERSUITE_0:
   case EDHOC_CIPHERSUITE_2:
-    return MAC_LEN_8;
+    return EDHOC_MAC_LEN_8;
   default:
     LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC MAC length (%d)\n",
             ERR_SUITE_NON_SUPPORT);

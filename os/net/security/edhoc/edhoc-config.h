@@ -99,7 +99,7 @@
  * \brief Buffer size for mac_or_sig
  */
 #if EDHOC_METHOD == EDHOC_METHOD3
-#define MAC_OR_SIG_BUF_LEN MAX_MAC_LEN
+#define MAC_OR_SIG_BUF_LEN EDHOC_MAX_MAC_LEN
 #else
 #define MAC_OR_SIG_BUF_LEN P256_SIGNATURE_LEN
 #endif
@@ -141,9 +141,9 @@
 #define EDHOC_CIPHERSUITE_25 25 /* ChaCha20/Poly1305,  (HMAC 256/256) SHAKE256, MAC LEN 16, X448,   EdDSA, Ed448,   ChaCha20/Poly1305, SHAKE256 */
 
 /* EDHOC MAC lengths */
-#define MAC_LEN_16  16
-#define MAC_LEN_8   8
-#define MAX_MAC_LEN 16
+#define EDHOC_MAC_LEN_16  16
+#define EDHOC_MAC_LEN_8   8
+#define EDHOC_MAX_MAC_LEN 16
 
 /* Curves for EDHOC key exchange algorithm (ECDH curve) */
 #define P256 1
