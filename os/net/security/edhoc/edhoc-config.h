@@ -48,19 +48,6 @@
  */
 #define MAX_BUFFER 256
 
-/* SHA256 types*/
-#define DECC_SH2 0       /* Macro to declare the use of SH2 Software library from Oriol Pinol */
-#define DCC2538_SH2 1    /* Macro to declare the use of SH2 Hardware of the CC2538 module */
-
-/**
- * \brief Set the SH2 library
- */
-#ifdef EDHOC_CONF_SH256
-#define SH256 EDHOC_CONF_SH256
-#else
-#define SH256 DECC_SH2
-#endif
-
 /**
  * \brief The length of connection identifiers
  * TODO: Support other than 1 byte CIDs

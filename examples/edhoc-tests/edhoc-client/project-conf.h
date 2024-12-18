@@ -43,10 +43,6 @@
 /* Define the authentication */
 #define EDHOC_CONF_AUTHENT_TYPE CRED_KID
 
-/* Define the library for SHA operations */
-// #define EDHOC_CONF_SH256 DECC_SH2
-// #define EDHOC_CONF_SH256 CC2538_SH2
-
 /* Define the library for ECDH operations */
 //#define EDHOC_CONF_ECC CC2538_ECC
 #define EDHOC_CONF_ECC UECC_ECC

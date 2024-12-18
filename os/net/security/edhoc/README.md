@@ -54,10 +54,6 @@ If the parties have agreed on an identity beside the public key, the "subject na
 ```c
 #define EDHOC_CONF_ECC CC2538_ECC
 ```
-- Define which library to use for SHA operations. The SW library of Pinol with the macro `DECC_SH2` or the HW driver accelerator for cc2538 modules with the macro ` CC2538_SH2 `.
-```c
-#define EDHOC_CONF_SH256 CC2538_SH2
-```
 Additionally other paramets can be defined, every definde parameter with their default values are settingon the `edhoc-config.h` files. For example the number of attempts and the timeout can be set by:
 ```c
 #define EDHOC_CONF_ATTEMPTS 3
@@ -77,11 +73,6 @@ The specific external repository is added as a submodule in `os/net/security/uec
 ### cc2538-ecc-algo cc2538 ECC
 Algorithms(CC2538)
 This is a implementation of ECDH, ECDSA sign and ECDSA verify. It uses `ecc-driver`, the river for the cc2538 ECC mode of the PKC engine, to communicate with the PKA. It uses continuations to free the main CPU/thread while the PKA is calculating. It address the hardware acceleration of the ECDH cryptography operations.
-
-### SH2(Secure Hash Algorithm)
-The EDHOC module use SHA-256 (Secure Hash Algorithm) in HMAC-SHA256 (Hash-based message authentication) for key derivation functionalities in order to compute the transcript-hash(TH). The `EDHOC_CONF_SHA` macro can be defined at the config file to choose between the following SH256 libraries:
-- SHA HW for CC2538 SH2 modules: Contiki-NG driver for the cc2538 SHA-256 mode of the security core.
-- SHA SW library from Oriol Pinol [sha] (https://github.com/oriolpinol/contiki/tree/master/apps/ecc): The SHA-256 is included under `os/net/security/sha` folder. 
 
 ### CBOR(Concise Binary Object Representation)
 The EDHOC module uses CBOR to encode the EDHOC exchanging messages. The `cbor` Contiki-NG implementation has been added from `group-oscore` in `lib/cbor` folder.
