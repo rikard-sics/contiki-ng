@@ -6,9 +6,3 @@ MODULES += os/net/security/micro-ecc
 ifneq ($(MAKE_EDHOC_METHOD),)
   CFLAGS += -DEDHOC_METHOD=$(MAKE_EDHOC_METHOD)
 endif
-
-ifeq ($(TARGET), zoul)
-  CFLAGS += -DuECC=1
-else
-  CFLAGS += -DuECC=0
-endif

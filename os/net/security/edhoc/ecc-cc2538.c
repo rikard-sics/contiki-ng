@@ -38,14 +38,13 @@
  *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
  */
 
-#include "ecc-cc2538.h"
-#if uECC
-#include "contiki-lib.h"
-#include <dev/watchdog.h>
-#include "sys/rtimer.h"
-#include "sys/process.h"
+#include "contiki.h"
 
+#ifdef CC2538_DEF_H_
 #include "dev/pka.h"
+#include "dev/watchdog.h"
+#include "lib/random.h"
+#include "ecc-cc2538.h"
 
 uint32_t expn[8];
 
@@ -153,4 +152,4 @@ cc2538_generate_IKM(const uint8_t *gx, const uint8_t *gy, const uint8_t *private
 
   return er;
 }
-#endif
+#endif /* CC2538_DEF_H_ */

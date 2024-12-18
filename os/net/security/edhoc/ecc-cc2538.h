@@ -36,20 +36,17 @@
  * \author
  *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
  */
-#ifndef _ECC_CC2538_H_
-#define _ECC_CC2538_H_
-#if uECC
+#ifndef ECC_CC2538_H_
+#define ECC_CC2538_H_
+
+#ifdef CC2538_DEF_H_
 #include <stdint.h>
-#include "lib/random.h"
 #include <string.h>
-#include <stdio.h>
 #include "edhoc-config.h"
 #include "edhoc-log.h"
 
 #include "dev/ecc-algorithm.h"
 #include "dev/ecc-curve.h"
-#include "lib/random.h"
-#include "sys/rtimer.h"
 #include "sys/pt.h"
 #include "ecc-common.h"
 
@@ -88,7 +85,6 @@ uint8_t cc2538_generate_IKM(const uint8_t *gx, const uint8_t *gy, const uint8_t 
 
 void eccBytes_to_native(uint32_t *native, const uint8_t *bytes, int num_bytes);
 void eccNative_to_bytes(uint8_t *bytes, int num_bytes, const uint32_t *native);
-/* static void ecc_set_random_key(uint32_t *secret); */
 
-#endif
-#endif /* _ECDH_H_ */
+#endif /* CC2538_DEF_H */
+#endif /* ECC_CC2538_H_ */
