@@ -176,14 +176,14 @@ generate_id_cred_x(cose_key_t *cose, uint8_t *cred)
   print_buff_8_dbg(cose->kid, cose->kid_sz);
 
   /* Include KID */
-  if(AUTHENT_TYPE == CRED_KID) {
+  if(EDHOC_AUTHENT_TYPE == EDHOC_CRED_KID) {
     size += cbor_put_map(&cred, 1);
     size += cbor_put_unsigned(&cred, 4);
     size += cbor_put_bytes(&cred, cose->kid, cose->kid_sz);
   }
 
   /* Include directly the credential used for authentication ID_CRED_X = CRED_X */
-  if(AUTHENT_TYPE == CRED_INCLUDE) {
+  if(EDHOC_AUTHENT_TYPE == EDHOC_CRED_INCLUDE) {
     size = generate_cred_x(cose, cred);
   }
   return size;

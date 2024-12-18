@@ -106,16 +106,16 @@
   (EDHOC_METHOD == EDHOC_METHOD2 && EDHOC_ROLE == EDHOC_RESPONDER)
 
 /* Credential type/usage */
-#define CRED_KID 2
-#define CRED_INCLUDE 3
+#define EDHOC_CRED_KID 2
+#define EDHOC_CRED_INCLUDE 3
 
 /**
  * \brief Set the authentication credential type/usage
  */
 #ifdef EDHOC_CONF_AUTHENT_TYPE
-#define AUTHENT_TYPE EDHOC_CONF_AUTHENT_TYPE
+#define EDHOC_AUTHENT_TYPE EDHOC_CONF_AUTHENT_TYPE
 #else
-#define AUTHENT_TYPE CRED_KID
+#define EDHOC_AUTHENT_TYPE EDHOC_CRED_KID
 #endif
 
 /* cipher suites */

@@ -36,7 +36,7 @@
 #define EDHOC_CONF_TEST TEST_VECTOR_TRACE_DH
 
 /* Define the authentication */
-#define EDHOC_CONF_AUTHENT_TYPE CRED_KID
+#define EDHOC_CONF_AUTHENT_TYPE EDHOC_CRED_KID
 
 /* Define the library for ECDH operations */
 //#define EDHOC_CONF_ECC EDHOC_ECC_CC2538
