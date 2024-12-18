@@ -49,6 +49,17 @@
 #define EDHOC_MAX_BUFFER 256
 
 /**
+ * \brief Set EDHOC connection identifier
+ */
+#ifndef EDHOC_CID
+#ifdef EDHOC_CONF_CID
+#define EDHOC_CID EDHOC_CONF_CID
+#else
+#define EDHOC_CID 0x1
+#endif
+#endif /* EDHOC_CID */
+
+/**
  * \brief The length of connection identifiers
  * TODO: Support other than 1 byte CIDs
  */

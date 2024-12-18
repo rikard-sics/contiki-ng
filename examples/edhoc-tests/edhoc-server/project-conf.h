@@ -11,9 +11,9 @@
 //#define AUTH_KID 0x32
 
 /* Define a value for the Connection Identifier */
-// #define EDHOC_CID 0x20
-// #define EDHOC_CID -8
-#define EDHOC_CID 0x27
+// #define EDHOC_CONF_CID 0x20
+// #define EDHOC_CONF_CID -8
+#define EDHOC_CONF_CID 0x27
 
 // Large size to avoid usage of block-wise
 #define COAP_MAX_CHUNK_SIZE 300

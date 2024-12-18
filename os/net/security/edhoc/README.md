@@ -44,11 +44,11 @@ If the parties have agreed on an identity beside the public key, the "subject na
 ```
 - Define the Connection Identifier(`CID`)
 ```c
-#define EDHOC_CONF_METHOD EDHOC_METHOD3
+#define EDHOC_CONF_CID 0x20
 ```
 - Define the EDHOC method to use
 ```c
-#define EDHOC_CID 0x20
+#define EDHOC_CONF_METHOD EDHOC_METHOD3
 ```
 - Define which library to use for ECDH operations. The SW library of `micro-ECC` with the macro `EDHOC_UECC_ECC` or the HW driver accelerator for cc2538 modules with the macro `EDHOC_CC2538_ECC .
 ```c

@@ -55,15 +55,9 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include "edhoc-config.h"
 #include "ecdh.h"
 #include "edhoc-msgs.h"
-
-/**
- * \brief Set EDHOC connection identifier
- */
-#ifndef EDHOC_CID
-#define EDHOC_CID 0x1
-#endif
 
 /* EDHOC_KDF label values */
 #define KEYSTREAM_2_LABEL    0
