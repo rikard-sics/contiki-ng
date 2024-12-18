@@ -102,29 +102,34 @@ edhoc_client_callback(process_event_t ev, void *data)
   }
   return 0;
 }
+
 void
 edhoc_client_run(void)
 {
   process_start(&edhoc_client, NULL);
 }
+
 void
 edhoc_server_set_ad_1(const void *buff, uint8_t buff_sz)
 {
   memcpy(edhoc_state.ad.ad_1, (void *)buff, buff_sz);
   edhoc_state.ad.ad_1_sz = buff_sz;
 }
+
 void
 edhoc_server_set_ad_3(const void *buff, uint8_t buff_sz)
 {
   memcpy(edhoc_state.ad.ad_3, (void *)buff, buff_sz);
   edhoc_state.ad.ad_3_sz = buff_sz;
 }
+
 uint8_t
 edhoc_server_get_ad_2(char *buff)
 {
   memcpy(buff, (void *)edhoc_state.ad.ad_2, edhoc_state.ad.ad_2_sz);
   return edhoc_state.ad.ad_2_sz;
 }
+
 static void
 client_timeout_callback(coap_timer_t *timer)
 {
@@ -133,6 +138,7 @@ client_timeout_callback(coap_timer_t *timer)
   edhoc_state.val = CL_TIMEOUT;
   pro = process_post(&edhoc_client, edhoc_event, &edhoc_state);
 }
+
 MEMB(edhoc_client_storage, edhoc_client_t, 1);
 
 static inline edhoc_client_t *
@@ -140,11 +146,13 @@ client_context_new(void)
 {
   return (edhoc_client_t *)memb_alloc(&edhoc_client_storage);
 }
+
 static inline void
 client_context_free(edhoc_client_t *ctx)
 {
   memb_free(&edhoc_client_storage, ctx);
 }
+
 static edhoc_client_t *
 client_new(void)
 {
@@ -152,6 +160,7 @@ client_new(void)
   cli = client_context_new();
   return cli;
 }
+
 static int
 client_block2_handler(coap_message_t *response, uint8_t *target, size_t *len, size_t max_len)
 {
@@ -174,6 +183,7 @@ client_block2_handler(coap_message_t *response, uint8_t *target, size_t *len, si
   }
   return 0;
 }
+
 static void
 client_response_handler(coap_callback_request_state_t *callback_state)
 {
@@ -224,6 +234,7 @@ client_response_handler(coap_callback_request_state_t *callback_state)
     pro = process_post(PROCESS_BROADCAST, edhoc_event, &edhoc_state);
   }
 }
+
 static void
 client_chunk_handler(coap_callback_request_state_t *callback_state)
 {
@@ -249,6 +260,7 @@ client_chunk_handler(coap_callback_request_state_t *callback_state)
   edhoc_state.val = CL_BLOCK1;
   pro = process_post(&edhoc_client, edhoc_event, &edhoc_state);
 }
+
 static void
 edhoc_client_post(void)
 {
@@ -259,6 +271,7 @@ edhoc_client_post(void)
   msg_num = 0;
   state.state.block_num = 0;
 }
+
 static int
 edhoc_client_post_blocks(void)
 {
@@ -286,6 +299,7 @@ edhoc_client_post_blocks(void)
     return 1;
   }
 }
+
 static int
 edhoc_send_msg1(uint8_t *ad, uint8_t ad_sz, bool suite_array)
 {
@@ -293,15 +307,18 @@ edhoc_send_msg1(uint8_t *ad, uint8_t ad_sz, bool suite_array)
   time = RTIMER_NOW();
   edhoc_gen_msg_1(edhoc_ctx, ad, ad_sz, suite_array);
   time = RTIMER_NOW() - time;
-  LOG_INFO("Client time to gen MSG1: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
+  LOG_INFO("Client time to gen MSG1: %" PRIu32 " ms (%" PRIu32 " ticks).\n",
+	   (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
   time = RTIMER_NOW();
   edhoc_client_post();
   cli->state = RX_MSG2;
   return edhoc_client_post_blocks();
 }
+
 PROCESS_THREAD(edhoc_client_protocol, ev, data)
 {
   PROCESS_BEGIN();
+
   switch(cli->state) {
   case RX_MSG2:
     LOG_DBG("--------------Handler message_2------------------\n");
@@ -309,28 +326,34 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
     print_buff_8_dbg(edhoc_ctx->buffers.msg_rx, edhoc_ctx->buffers.rx_sz);
 
     time = RTIMER_NOW();
-    er = edhoc_handler_msg_2(&msg2, edhoc_ctx, edhoc_ctx->buffers.msg_rx, edhoc_ctx->buffers.rx_sz);
+    er = edhoc_handler_msg_2(&msg2, edhoc_ctx, edhoc_ctx->buffers.msg_rx,
+			     edhoc_ctx->buffers.rx_sz);
     time = RTIMER_NOW() - time;
-    LOG_INFO("Client time to handler MSG2: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
+    LOG_INFO("Client time to handler MSG2: %" PRIu32 " ms (%" PRIu32 " ticks).\n",
+	     (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
     time = RTIMER_NOW();
     if(er == ERR_RESEND_MSG_1) {
-      edhoc_send_msg1((uint8_t *)edhoc_state.ad.ad_1, edhoc_state.ad.ad_1_sz, true);
+      edhoc_send_msg1((uint8_t *)edhoc_state.ad.ad_1, edhoc_state.ad.ad_1_sz,
+		      true);
       break;
     }
 
     if(er > 0) {
       assert(msg2.gy_ciphertext_2_sz >= ECC_KEY_LEN);
       assert(msg2.gy_ciphertext_2_sz - ECC_KEY_LEN <= MAX_BUFFER);
-      er = edhoc_authenticate_msg(edhoc_ctx, (uint8_t *)edhoc_state.ad.ad_2, true);
+      er = edhoc_authenticate_msg(edhoc_ctx, (uint8_t *)edhoc_state.ad.ad_2,
+				  true);
     }
     time = RTIMER_NOW() - time;
-    LOG_DBG("Client time to authenticate MSG2: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
+    LOG_DBG("Client time to authenticate MSG2: %" PRIu32 " ms (%" PRIu32 " ticks).\n",
+	    (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
 
     if(er == RX_ERR_MSG) {
       LOG_ERR("error code (%d)\n", er);
     } else if(er < RX_ERR_MSG) {
       LOG_ERR("Client: Send MSG error with code (%d)\n", er);
-      edhoc_ctx->buffers.tx_sz = edhoc_gen_msg_error(edhoc_ctx->buffers.msg_tx, edhoc_ctx, er);
+      edhoc_ctx->buffers.tx_sz = edhoc_gen_msg_error(edhoc_ctx->buffers.msg_tx,
+						     edhoc_ctx, er);
       cli->state = NON_MSG;
       edhoc_client_post();
       edhoc_client_post_blocks();
@@ -341,12 +364,16 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
         LOG_DBG("AD_2 (%d bytes): ", edhoc_state.ad.ad_2_sz);
         print_char_8_dbg((char *)edhoc_state.ad.ad_2, edhoc_state.ad.ad_2_sz);
       }
+
       LOG_DBG("--------------Generate message_3------------------\n");
       /* Generate MSG3 */
       time = RTIMER_NOW();
-      edhoc_gen_msg_3(edhoc_ctx, (uint8_t *)edhoc_state.ad.ad_3, edhoc_state.ad.ad_3_sz);
+      edhoc_gen_msg_3(edhoc_ctx, (uint8_t *)edhoc_state.ad.ad_3,
+		      edhoc_state.ad.ad_3_sz);
       time = RTIMER_NOW() - time;
-      LOG_INFO("Client time to gen MSG3: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
+      LOG_INFO("Client time to gen MSG3: %" PRIu32 " ms (%" PRIu32 " ticks).\n",
+	       (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND),
+	       (uint32_t)time);
       LOG_DBG("message_3 (%d bytes): ", edhoc_ctx->buffers.tx_sz);
       print_buff_8_dbg(edhoc_ctx->buffers.msg_tx, edhoc_ctx->buffers.tx_sz);
       cli->rx_msg2 = true;
@@ -371,6 +398,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
         break;
       }
     }
+
     /* Check every protocol step successfully */
     cli->state = EXP_READY;
     if(cli->tx_msg1 && cli->rx_msg2) {
@@ -407,6 +435,7 @@ edhoc_client_init(void)
   state.state.response = cli->response;
   state.state.remote_endpoint = &cli->server_ep;
 }
+
 static int
 edhoc_client_start(uint8_t *ad, uint8_t ad_sz)
 {
@@ -419,8 +448,10 @@ edhoc_client_start(uint8_t *ad, uint8_t ad_sz)
 
   return edhoc_send_msg1(ad, ad_sz, false);
 }
+
 static void
-generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv)
+generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x,
+		       uint8_t *pub_y, uint8_t *priv)
 {
   rtimer_clock_t drv_time = RTIMER_NOW();
 
@@ -450,7 +481,9 @@ generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t
 #endif
 
   drv_time = RTIMER_NOW() - drv_time;
-  LOG_INFO("Client time to gen eph key: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)drv_time * 1000 / RTIMER_SECOND), (uint32_t)drv_time);
+  LOG_INFO("Client time to gen eph key: %" PRIu32 " ms (%" PRIu32 " ticks).\n",
+	   (uint32_t)((uint64_t)drv_time * 1000 / RTIMER_SECOND),
+	   (uint32_t)drv_time);
   LOG_DBG("X (%d bytes): ", ECC_KEY_LEN);
   print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
   LOG_DBG("G_X x (%d bytes): ", ECC_KEY_LEN);
@@ -458,6 +491,7 @@ generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t
   LOG_DBG("y: ");
   print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.y, ECC_KEY_LEN);
 }
+
 void
 edhoc_client_close(void)
 {
@@ -465,9 +499,11 @@ edhoc_client_close(void)
   client_context_free(cli);
   edhoc_finalize(edhoc_ctx);
 }
+
 PROCESS_THREAD(edhoc_client, ev, data)
 {
   PROCESS_BEGIN();
+
   static struct etimer wait_timer;
   edhoc_client_init();
 
@@ -476,14 +512,17 @@ PROCESS_THREAD(edhoc_client, ev, data)
   }
 
   /* Generate ephemeral key */
-  generate_ephemeral_key(edhoc_ctx->config.ecdh_curve, edhoc_ctx->creds.ephemeral_key.pub.x, edhoc_ctx->creds.ephemeral_key.pub.y, edhoc_ctx->creds.ephemeral_key.priv);
+  generate_ephemeral_key(edhoc_ctx->config.ecdh_curve,
+			 edhoc_ctx->creds.ephemeral_key.pub.x,
+			 edhoc_ctx->creds.ephemeral_key.pub.y,
+			 edhoc_ctx->creds.ephemeral_key.priv);
 
   time_total = RTIMER_NOW();
   edhoc_client_start((uint8_t *)edhoc_state.ad.ad_1, edhoc_state.ad.ad_1_sz);
 
   while(1) {
     PROCESS_WAIT_EVENT();
-    if((ev == edhoc_event) && (data == &edhoc_state)) {
+    if(ev == edhoc_event && data == &edhoc_state) {
       if(edhoc_state.val == CL_RESTART) {
         LOG_ERR("Error\n");
         /* When timeout will restart */
@@ -493,7 +532,8 @@ PROCESS_THREAD(edhoc_client, ev, data)
           PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&wait_timer));
           etimer_stop(&wait_timer);
           time = RTIMER_NOW();
-          edhoc_client_start((uint8_t *)edhoc_state.ad.ad_1, edhoc_state.ad.ad_1_sz);
+          edhoc_client_start((uint8_t *)edhoc_state.ad.ad_1,
+			     edhoc_state.ad.ad_1_sz);
           attempt++;
         } else {
           LOG_ERR("Expire EDHOC client attempts\n");
@@ -505,7 +545,9 @@ PROCESS_THREAD(edhoc_client, ev, data)
       if(edhoc_state.val == CL_FINISHED) {
         LOG_INFO("Compile time: %s %s\n", __DATE__, __TIME__);
         time_total = RTIMER_NOW() - time_total;
-        LOG_INFO("Client time to finish: %" PRIu32 " ms (%" PRIu32 " CPU cycles).\n", (uint32_t)((uint64_t)time_total * 1000 / RTIMER_SECOND), (uint32_t)time_total);
+        LOG_INFO("Client time to finish: %" PRIu32 " ms (%" PRIu32 " ticks).\n",
+		 (uint32_t)((uint64_t)time_total * 1000 / RTIMER_SECOND),
+		 (uint32_t)time_total);
         break;
       }
       if(edhoc_state.val == CL_TIMEOUT) {
@@ -515,7 +557,8 @@ PROCESS_THREAD(edhoc_client, ev, data)
           etimer_set(&wait_timer, CLOCK_SECOND * (CL_TIMEOUT_VAL / 1000));
           PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&wait_timer));
           etimer_stop(&wait_timer);
-          edhoc_client_start((uint8_t *)edhoc_state.ad.ad_1, edhoc_state.ad.ad_1_sz);
+          edhoc_client_start((uint8_t *)edhoc_state.ad.ad_1,
+			     edhoc_state.ad.ad_1_sz);
           attempt++;
         } else {
           LOG_ERR("Expire EDHOC client attempts\n");
@@ -524,17 +567,22 @@ PROCESS_THREAD(edhoc_client, ev, data)
           break;
         }
       }
+
       if(edhoc_state.val == CL_BLOCK1) {
         edhoc_client_post_blocks();
       }
+
       if(edhoc_state.val == CL_POST) {
         edhoc_client_post();
         edhoc_client_post_blocks();
       }
+
       if(edhoc_state.val == CL_BLOCKING) {
         process_start(&edhoc_client_protocol, NULL);
         time = RTIMER_NOW() - time;
-        LOG_INFO("Client time to rx MSG: %" PRIu32 " ms (%" PRIu32 " CPU cycles ).\n", (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND), (uint32_t)time);
+        LOG_INFO("Client time to rx MSG: %" PRIu32 " ms (%" PRIu32 " ticks).\n",
+		 (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND),
+		 (uint32_t)time);
         time = RTIMER_NOW();
         while(process_is_running(&edhoc_client_protocol)) {
           process_run();
