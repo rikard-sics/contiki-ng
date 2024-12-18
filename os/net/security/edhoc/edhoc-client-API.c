@@ -68,7 +68,7 @@ static int pro;
 static edhoc_client_t *cli;
 static coap_timer_t timer;
 static edhoc_data_event_t edhoc_state;
-static process_event_t edhoc_event;
+static process_event_t edhoc_event = PROCESS_EVENT_NONE;
 
 static rtimer_clock_t time;
 static rtimer_clock_t time_total;
@@ -396,6 +396,9 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
 static void
 edhoc_client_init(void)
 {
+  if(edhoc_event == PROCESS_EVENT_NONE) {
+    edhoc_event = process_alloc_event();
+  }
   cli = client_new();
   edhoc_storage_init();
   edhoc_ctx = edhoc_new();
