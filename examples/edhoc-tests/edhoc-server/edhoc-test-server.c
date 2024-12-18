@@ -45,9 +45,10 @@
 #include "edhoc-server-API.h"
 #include "sys/rtimer.h"
 
+/******************************************************************************/
 PROCESS(edhoc_example_server, "EDHOC Example Server");
 AUTOSTART_PROCESSES(&edhoc_example_server);
-
+/******************************************************************************/
 PROCESS_THREAD(edhoc_example_server, ev, data)
 {
   PROCESS_BEGIN();
@@ -251,7 +252,7 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
       } else {
         t = RTIMER_NOW() - t;
         LOG_INFO("Server time to generate OSCORE ctx: %" PRIu32 " ms (%"
-                 PRIu32 " CPU cycles).\n",
+                 PRIu32 " ticks).\n",
                  (uint32_t)((uint64_t)t * 1000 / RTIMER_SECOND), (uint32_t)t);
 
         print_oscore_ctx(&osc);
@@ -266,3 +267,4 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
   }
   PROCESS_END();
 }
+/******************************************************************************/

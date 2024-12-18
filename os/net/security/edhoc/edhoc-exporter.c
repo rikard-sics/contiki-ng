@@ -42,6 +42,7 @@
 #include "edhoc-exporter.h"
 #include "contiki-lib.h"
 
+/******************************************************************************/
 void
 print_oscore_ctx(oscore_ctx_t *osc)
 {
@@ -52,20 +53,26 @@ print_oscore_ctx(oscore_ctx_t *osc)
   LOG_PRINT("OSCORE Master Salt (%d bytes): ", OSCORE_SALT_SZ);
   print_buff_8_print(osc->master_salt, OSCORE_SALT_SZ);
 }
+/******************************************************************************/
 int8_t
-edhoc_exporter(const uint8_t *in_key, uint8_t exporter_label, const uint8_t *context, uint8_t context_sz, uint16_t length, uint8_t *result)
+edhoc_exporter(const uint8_t *in_key, uint8_t exporter_label,
+               const uint8_t *context, uint8_t context_sz,
+               uint16_t length, uint8_t *result)
 {
-  int8_t er = edhoc_kdf(in_key, exporter_label, context, context_sz, length, result);
-  return er;
+  return edhoc_kdf(in_key, exporter_label, context, context_sz,
+                        length, result);
 }
-/* TODO: May be better to actually store PRK_out & PRK_exporter and then use them in edhoc_exporter above */
+/******************************************************************************/
+/* TODO: May be better to actually store PRK_out & PRK_exporter and
+   then use them in edhoc_exporter above */
 int8_t
 edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
 {
   /* Derive prk_out */
   int prk_out_sz = HASH_LEN;
   uint8_t prk_out[prk_out_sz];
-  int8_t er = edhoc_kdf(ctx->state.prk_4e3m, PRK_OUT_LABEL, ctx->state.th, HASH_LEN, prk_out_sz, prk_out);
+  int8_t er = edhoc_kdf(ctx->state.prk_4e3m, PRK_OUT_LABEL, ctx->state.th,
+                        HASH_LEN, prk_out_sz, prk_out);
   if(er < 0) {
     return er;
   }
@@ -75,7 +82,8 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   /* Derive prk_exporter */
   int prk_exporter_sz = HASH_LEN;
   uint8_t prk_exporter[prk_exporter_sz];
-  er = edhoc_kdf(prk_out, PRK_EXPORTER_LABEL, NULL, 0, prk_exporter_sz, prk_exporter);
+  er = edhoc_kdf(prk_out, PRK_EXPORTER_LABEL, NULL, 0,
+                 prk_exporter_sz, prk_exporter);
   if(er < 0) {
     return er;
   }
@@ -93,11 +101,14 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
   }
 
   /* Derive OSCORE Master Secret */
-  er = edhoc_exporter(prk_exporter, OSCORE_MASTER_SECRET_LABEL, NULL, 0, OSCORE_KEY_SZ, osc->master_secret);
+  er = edhoc_exporter(prk_exporter, OSCORE_MASTER_SECRET_LABEL, NULL,
+                      0, OSCORE_KEY_SZ, osc->master_secret);
   if(er < 0) {
     return er;
   }
 
-  er = edhoc_exporter(prk_exporter, OSCORE_MASTER_SALT_LABEL, NULL, 0, OSCORE_SALT_SZ, osc->master_salt);
+  er = edhoc_exporter(prk_exporter, OSCORE_MASTER_SALT_LABEL, NULL,
+                      0, OSCORE_SALT_SZ, osc->master_salt);
   return er;
 }
+/******************************************************************************/

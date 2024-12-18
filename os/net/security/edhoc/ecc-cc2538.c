@@ -47,7 +47,7 @@
 #include "ecc-cc2538.h"
 
 uint32_t expn[8];
-
+/******************************************************************************/
 void
 eccNative_to_bytes(uint8_t *bytes, int num_bytes, const uint32_t *native)
 {
@@ -57,6 +57,7 @@ eccNative_to_bytes(uint8_t *bytes, int num_bytes, const uint32_t *native)
     bytes[i] = native[b / 4] >> (8 * (b % 4));
   }
 }
+/******************************************************************************/
 void
 eccBytes_to_native(uint32_t *native, const uint8_t *bytes, int num_bytes)
 {
@@ -68,6 +69,7 @@ eccBytes_to_native(uint32_t *native, const uint8_t *bytes, int num_bytes)
       (uint32_t)bytes[i] << (8 * (b % 4));
   }
 }
+/******************************************************************************/
 static void
 ecc_set_random_key(uint32_t *secret)
 {
@@ -76,6 +78,7 @@ ecc_set_random_key(uint32_t *secret)
     secret[i] = (uint32_t)random_rand() | (uint32_t)random_rand() << 16;
   }
 }
+/******************************************************************************/
 PT_THREAD(generate_key_hw(key_gen_t * key)) {
   static ecc_compare_state_t state = {
     .size = 8,
@@ -113,8 +116,10 @@ PT_THREAD(generate_key_hw(key_gen_t * key)) {
   pka_disable();
   PT_END(&key->pt);
 }
+/******************************************************************************/
 bool
-cc2538_generate_ikm(const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve)
+cc2538_generate_ikm(const uint8_t *gx, const uint8_t *gy,
+                    const uint8_t *private_key, uint8_t *ikm, ecc_curve_t curve)
 {
   static ecc_multiply_state_t shared;
   shared.curve_info = curve.curve;
@@ -151,3 +156,4 @@ cc2538_generate_ikm(const uint8_t *gx, const uint8_t *gy, const uint8_t *private
   return true;
 }
 #endif /* CC2538_DEF_H_ */
+/******************************************************************************/
