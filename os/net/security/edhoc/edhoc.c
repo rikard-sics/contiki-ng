@@ -47,6 +47,10 @@
 #include "cose.h"
 #include <assert.h>
 
+#if HASH_LEN != SHA_256_DIGEST_LENGTH
+#error Only SHA256 supported. Please update HASH_LEN.
+#endif /* HASH_LEN != SHA_256_DIGEST_LENGTH */
+
 #define MAC_2 2
 #define MAC_3 3
 
