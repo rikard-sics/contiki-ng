@@ -49,7 +49,6 @@
 #include <string.h>
 #include <stdio.h>
 #include "ecc-common.h"
-#define uECC_PLATFORM uECC_arm
 
 typedef struct ecc_curve {
   uECC_Curve curve;
