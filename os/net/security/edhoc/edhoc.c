@@ -769,7 +769,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ciphertext,
 
   /* generate K_3 */
   cose->alg = ctx->config.aead_alg;
-  cose->key_sz = get_cose_key_len(cose->alg);
+  cose->key_sz = cose_get_key_len(cose->alg);
   int16_t er = edhoc_kdf(ctx->state.prk_3e2m, K_3_LABEL, ctx->state.th,
                          HASH_LEN, cose->key_sz, cose->key);
   if(er < 1) {
@@ -780,7 +780,7 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ciphertext,
   print_buff_8_dbg(cose->key, cose->key_sz);
 
   /* generate IV_3 */
-  cose->nonce_sz = get_cose_iv_len(cose->alg);
+  cose->nonce_sz = cose_get_iv_len(cose->alg);
   er = edhoc_kdf(ctx->state.prk_3e2m, IV_3_LABEL, ctx->state.th, HASH_LEN,
                  cose->nonce_sz, cose->nonce);
   if(er < 1) {
@@ -872,7 +872,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz,
 
   /* generate K_3 */
   cose->alg = ctx->config.aead_alg;
-  cose->key_sz = get_cose_key_len(cose->alg);
+  cose->key_sz = cose_get_key_len(cose->alg);
   int16_t er = edhoc_kdf(ctx->state.prk_3e2m, K_3_LABEL, ctx->state.th,
                          HASH_LEN, cose->key_sz, cose->key);
   if(er < 1) {
@@ -883,7 +883,7 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz,
   print_buff_8_dbg(cose->key, cose->key_sz);
 
   /* generate IV_3 */
-  uint8_t iv_len = get_cose_iv_len(cose->alg);
+  uint8_t iv_len = cose_get_iv_len(cose->alg);
   er = edhoc_kdf(ctx->state.prk_3e2m, IV_3_LABEL, ctx->state.th, HASH_LEN,
                  iv_len, cose->nonce);
   if(er < 1) {

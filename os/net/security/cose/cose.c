@@ -47,51 +47,52 @@
 MEMB(encrypt0_storage, cose_encrypt0, 1);
 MEMB(sign1_storage, cose_sign1, 1);
 
+/******************************************************************************/
 void
 encrypt0_storage_init(void)
 {
   memb_init(&encrypt0_storage);
 }
-
+/******************************************************************************/
 cose_encrypt0 *
 cose_encrypt0_new(void)
 {
   return (cose_encrypt0 *)memb_alloc(&encrypt0_storage);
 }
-
+/******************************************************************************/
 void
 cose_encrypt0_finalize(cose_encrypt0 *enc)
 {
   memb_free(&encrypt0_storage, enc);
 }
-
+/******************************************************************************/
 void
 sign1_storage_init(void)
 {
   memb_init(&sign1_storage);
 }
-
+/******************************************************************************/
 cose_sign1 *
 cose_sign1_new(void)
 {
   return (cose_sign1 *)memb_alloc(&sign1_storage);
 }
-
+/******************************************************************************/
 void
 cose_sign1_finalize(cose_sign1 *sign)
 {
   memb_free(&sign1_storage, sign);
 }
-
+/******************************************************************************/
 uint8_t
 cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg,
                       const uint8_t *key, uint8_t key_sz,
                       const uint8_t *nonce, uint16_t nonce_sz)
 {
-  if(key_sz != get_cose_key_len(enc->alg)) {
+  if(key_sz != cose_get_key_len(enc->alg)) {
     return 0;
   }
-  if(nonce_sz != get_cose_iv_len(enc->alg)) {
+  if(nonce_sz != cose_get_iv_len(enc->alg)) {
     return 0;
   }
   enc->key_sz = key_sz;
@@ -100,7 +101,7 @@ cose_encrypt0_set_key(cose_encrypt0 *enc, uint8_t alg,
   memcpy(enc->nonce, nonce, nonce_sz);
   return 1;
 }
-
+/******************************************************************************/
 uint8_t
 cose_sign1_set_key(cose_sign1 *sign1, int8_t alg,
                    const uint8_t *key, uint8_t key_sz)
@@ -117,7 +118,7 @@ cose_sign1_set_key(cose_sign1 *sign1, int8_t alg,
   memcpy(sign1->key, key, key_sz);
   return 1;
 }
-
+/******************************************************************************/
 uint8_t
 cose_encrypt0_set_content(cose_encrypt0 *enc,
                           const uint8_t *plain, uint16_t plain_sz,
@@ -132,7 +133,7 @@ cose_encrypt0_set_content(cose_encrypt0 *enc,
   enc->external_aad_sz = aad_sz;
   return 1;
 }
-
+/******************************************************************************/
 uint8_t
 cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, const uint8_t *ciphertext,
                              uint16_t ciphertext_sz)
@@ -144,7 +145,7 @@ cose_encrypt0_set_ciphertext(cose_encrypt0 *enc, const uint8_t *ciphertext,
   enc->ciphertext_sz = ciphertext_sz;
   return 1;
 }
-
+/******************************************************************************/
 uint8_t
 cose_sign1_set_payload(cose_sign1 *sign1, const uint8_t *payload,
                        uint16_t payload_sz)
@@ -156,7 +157,7 @@ cose_sign1_set_payload(cose_sign1 *sign1, const uint8_t *payload,
   sign1->payload_sz = payload_sz;
   return 1;
 }
-
+/******************************************************************************/
 uint8_t
 cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature,
                          uint16_t signature_sz)
@@ -168,7 +169,7 @@ cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature,
   sign1->signature_sz = signature_sz;
   return 1;
 }
-
+/******************************************************************************/
 uint8_t
 cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_aad,
                             uint16_t external_aad_sz)
@@ -180,7 +181,7 @@ cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_aad,
   sign1->external_aad_sz = external_aad_sz;
   return 1;
 }
-
+/******************************************************************************/
 void
 cose_encrypt0_set_header(cose_encrypt0 *enc,
                          const uint8_t *prot, uint16_t prot_sz,
@@ -191,7 +192,7 @@ cose_encrypt0_set_header(cose_encrypt0 *enc,
   enc->protected_header_sz = prot_sz;
   enc->unprotected_header_sz = unp_sz;
 }
-
+/******************************************************************************/
 void
 cose_sign1_set_header(cose_sign1 *sign1,
                       const uint8_t *prot, uint16_t prot_sz,
@@ -202,7 +203,7 @@ cose_sign1_set_header(cose_sign1 *sign1,
   sign1->protected_header_sz = prot_sz;
   /*sign1->unprotected_header_sz = unp_sz; */
 }
-
+/******************************************************************************/
 static char enc_header[] = ENC0;
 
 static uint16_t
@@ -217,7 +218,7 @@ encode_enc_structure(const cose_encrypt0 *enc, uint8_t *cbor)
 
   return size;
 }
-
+/******************************************************************************/
 static char sig_header[] = SIGN1;
 
 static uint8_t
@@ -233,7 +234,7 @@ encode_sig_structure(const cose_sign1 *sign1, uint8_t *cbor)
 
   return size;
 }
-
+/******************************************************************************/
 uint8_t
 cose_decrypt(cose_encrypt0 *enc)
 {
@@ -243,9 +244,9 @@ cose_decrypt(cose_encrypt0 *enc)
   LOG_DBG("CBOR-encoded AAD for COSE_Encrypt0 decryption (%d bytes): ", str_sz);
   cose_print_buff_8_dbg(enc_struct_bytes, str_sz);
 
-  uint8_t key_len = get_cose_key_len(enc->alg);
-  uint8_t iv_len = get_cose_iv_len(enc->alg);
-  uint8_t tag_len = get_cose_tag_len(enc->alg);
+  uint8_t key_len = cose_get_key_len(enc->alg);
+  uint8_t iv_len = cose_get_iv_len(enc->alg);
+  uint8_t tag_len = cose_get_tag_len(enc->alg);
   if(enc->key_sz != key_len || enc->nonce_sz != iv_len || enc->plaintext_sz > COSE_MAX_BUFFER || str_sz > (2 * COSE_MAX_BUFFER)) {
     LOG_ERR("The COSE parameters are not corresponding with the selected algorithm or buffer sizes\n");
     return 0;
@@ -266,7 +267,7 @@ cose_decrypt(cose_encrypt0 *enc)
 
   return 1;
 }
-
+/******************************************************************************/
 uint8_t
 cose_encrypt(cose_encrypt0 *enc)
 {
@@ -276,11 +277,12 @@ cose_encrypt(cose_encrypt0 *enc)
   LOG_DBG("CBOR-encoded AAD for COSE_Encrypt0 encryption (%d bytes): ", str_sz);
   cose_print_buff_8_dbg(enc_struct_bytes, str_sz);
 
-  uint8_t key_len = get_cose_key_len(enc->alg);
-  uint8_t iv_len = get_cose_iv_len(enc->alg);
-  uint8_t tag_len = get_cose_tag_len(enc->alg);
+  uint8_t key_len = cose_get_key_len(enc->alg);
+  uint8_t iv_len = cose_get_iv_len(enc->alg);
+  uint8_t tag_len = cose_get_tag_len(enc->alg);
 
-  if(enc->key_sz != key_len || enc->nonce_sz != iv_len || enc->plaintext_sz > COSE_MAX_BUFFER || str_sz > (2 * COSE_MAX_BUFFER)) {
+  if(enc->key_sz != key_len || enc->nonce_sz != iv_len ||
+     enc->plaintext_sz > COSE_MAX_BUFFER || str_sz > (2 * COSE_MAX_BUFFER)) {
     LOG_ERR("The COSE parameters are not corresponding with the selected algorithm or buffer sizes\n");
     return 0;
   }
@@ -295,7 +297,7 @@ cose_encrypt(cose_encrypt0 *enc)
 
   return enc->ciphertext_sz;
 }
-
+/******************************************************************************/
 uint8_t
 cose_sign(cose_sign1 *sign1)
 {
@@ -323,7 +325,7 @@ cose_sign(cose_sign1 *sign1)
   }
   return sign1->signature_sz;
 }
-
+/******************************************************************************/
 uint8_t
 cose_verify(cose_sign1 *sign1)
 {
@@ -356,9 +358,9 @@ cose_verify(cose_sign1 *sign1)
   LOG_ERR("Signature verification failed for COSE_Sign1\n");
   return 0;
 }
-
+/******************************************************************************/
 uint8_t
-get_cose_key_len(uint8_t alg_id)
+cose_get_key_len(uint8_t alg_id)
 {
   switch(alg_id) {
   case COSE_ALG_AES_CCM_16_64_128:
@@ -370,9 +372,9 @@ get_cose_key_len(uint8_t alg_id)
     return 0;
   }
 }
-
+/******************************************************************************/
 uint8_t
-get_cose_iv_len(uint8_t alg_id)
+cose_get_iv_len(uint8_t alg_id)
 {
   switch(alg_id) {
   case COSE_ALG_AES_CCM_16_64_128:
@@ -384,9 +386,9 @@ get_cose_iv_len(uint8_t alg_id)
     return 0;
   }
 }
-
+/******************************************************************************/
 uint8_t
-get_cose_tag_len(uint8_t alg_id)
+cose_get_tag_len(uint8_t alg_id)
 {
   switch(alg_id) {
   case COSE_ALG_AES_CCM_16_64_128:
@@ -398,3 +400,4 @@ get_cose_tag_len(uint8_t alg_id)
     return 0;
   }
 }
+/******************************************************************************/

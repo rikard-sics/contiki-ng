@@ -141,9 +141,9 @@ uint8_t cose_sign(cose_sign1 *sign1);
 uint8_t cose_sign1_set_key(cose_sign1 *sign1, int8_t alg, const uint8_t *key, uint8_t key_sz);
 uint8_t cose_sign1_set_signature(cose_sign1 *sign1, const uint8_t *signature, uint16_t signature_sz);
 uint8_t cose_verify(cose_sign1 *sign1);
-uint8_t get_cose_key_len(uint8_t alg_id);
-uint8_t get_cose_iv_len(uint8_t alg_id);
-uint8_t get_cose_tag_len(uint8_t alg_id);
+uint8_t cose_get_key_len(uint8_t alg_id);
+uint8_t cose_get_iv_len(uint8_t alg_id);
+uint8_t cose_get_tag_len(uint8_t alg_id);
 uint8_t cose_sign1_set_external_aad(cose_sign1 *sign1, const uint8_t *external_aad, uint16_t external_aad_sz);
 
 /**
