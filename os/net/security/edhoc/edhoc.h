@@ -106,11 +106,11 @@ typedef struct edhoc_buffers {
   uint8_t msg_tx[EDHOC_MAX_PAYLOAD_LEN];
   uint16_t rx_sz;
   uint16_t tx_sz;
-  uint8_t plaintext[MAX_BUFFER];
+  uint8_t plaintext[EDHOC_MAX_BUFFER];
   size_t plaintext_sz;
-  uint8_t cred_x[MAX_BUFFER];
+  uint8_t cred_x[EDHOC_MAX_BUFFER];
   size_t cred_x_sz;
-  uint8_t id_cred_x[MAX_BUFFER];
+  uint8_t id_cred_x[EDHOC_MAX_BUFFER];
   size_t id_cred_x_sz;
 } edhoc_buffers_t;
 

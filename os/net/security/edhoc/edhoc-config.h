@@ -46,7 +46,7 @@
 /**
  * \brief The max size of the buffers
  */
-#define MAX_BUFFER 256
+#define EDHOC_MAX_BUFFER 256
 
 /**
  * \brief The length of connection identifiers

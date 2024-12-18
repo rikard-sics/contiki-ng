@@ -459,7 +459,7 @@ edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
   uint16_t id_cred_x_sz = *p - start;
   if(out_id_cred_x != NULL) {
     assert(*p - start >= 0);
-    assert(id_cred_x_sz <= MAX_BUFFER);
+    assert(id_cred_x_sz <= EDHOC_MAX_BUFFER);
     memcpy(out_id_cred_x, start, id_cred_x_sz);
   }
 

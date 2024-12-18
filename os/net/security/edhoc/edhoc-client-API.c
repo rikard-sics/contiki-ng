@@ -171,7 +171,7 @@ client_block2_handler(coap_message_t *response, uint8_t *target,
   if(target && len) {
     memcpy(target + response->block2_offset, payload, pay_len);
     *len = response->block2_offset + pay_len;
-    assert(*len <= MAX_BUFFER);
+    assert(*len <= EDHOC_MAX_BUFFER);
     print_buff_8_dbg((uint8_t *)payload, (unsigned long)pay_len);
     target = target + pay_len; /* FIXME: Pointless assignment. Are things wrong here? */
   }
@@ -354,7 +354,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
 
     if(er > 0) {
       assert(msg2.gy_ciphertext_2_sz >= ECC_KEY_LEN);
-      assert(msg2.gy_ciphertext_2_sz - ECC_KEY_LEN <= MAX_BUFFER);
+      assert(msg2.gy_ciphertext_2_sz - ECC_KEY_LEN <= EDHOC_MAX_BUFFER);
       er = edhoc_authenticate_msg(edhoc_ctx, (uint8_t *)edhoc_state.ad.ad_2,
                                   true);
     }
