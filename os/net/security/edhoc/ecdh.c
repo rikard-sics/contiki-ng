@@ -52,18 +52,18 @@ generate_IKM(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy, const uint8
     return er;
   }
 
-#if ECC == UECC_ECC
-  er = uecc_generate_IKM(gx, gy, private_key, ikm, curve);
+#if EDHOC_ECC == EDHOC_ECC_UECC
+  return uecc_generate_IKM(gx, gy, private_key, ikm, curve);
+#elif EDHOC_ECC == EDHOC_ECC_CC2538
+  return cc2538_generate_IKM(gx, gy, private_key, ikm, curve);
+#else
+  return 0;
 #endif
-#if ECC == CC2538_ECC
-  er = cc2538_generate_IKM(gx, gy, private_key, ikm, curve);
-#endif
-  return er;
 }
 int
 get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve)
 {
-#if ECC == UECC_ECC
+#if EDHOC_ECC == EDHOC_ECC_UECC
   switch(curve_id) {
   case P256:
     curve->curve = uECC_secp256r1();
@@ -72,9 +72,7 @@ get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve)
     LOG_ERR("Invalid curve when trying to derive IKM with uECC\n");
     return 0;
   }
-#endif
-
-#if ECC == CC2538_ECC
+#elif EDHOC_ECC == EDHOC_ECC_CC2538
   switch(curve_id) {
   case P256:
     curve->curve = &nist_p_256;
@@ -83,8 +81,8 @@ get_ecc_curve(uint8_t curve_id, ecc_curve_t *curve)
     LOG_ERR("Invalid curve when trying to derive IKM with CC2538 ECC\n");
     return 0
   }
-#endif
-
+#else
   LOG_ERR("No ECC implementation defined\n");
   return 0;
+#endif
 }

@@ -36,13 +36,11 @@
  *         Lidia Pocero <pocero@isi.gr>, Rikard Höglund, Marco Tiloca
  */
 
+#include "contiki.h"
+#include "dev/watchdog.h"
 #include "ecc-uecc.h"
-#include "contiki-lib.h"
-#include <dev/watchdog.h>
-#include "sys/rtimer.h"
-#include "sys/process.h"
 
-#if ECC == UECC_ECC
+#if EDHOC_ECC == EDHOC_ECC_UECC
 static int
 RNG(uint8_t *dest, unsigned size)
 {
@@ -55,7 +53,7 @@ RNG(uint8_t *dest, unsigned size)
   /* TODO: it would be a good idea to hash the resulting random data using SHA-256 or similar. */
   return 1;
 }
-#endif
+#endif /* EDHOC_ECC == EDHOC_ECC_UECC */
 
 uint8_t
 uecc_generate_key(ecc_key_t *key, ecc_curve_t curve)

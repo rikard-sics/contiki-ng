@@ -44,8 +44,8 @@
 #define EDHOC_CONF_AUTHENT_TYPE CRED_KID
 
 /* Define the library for ECDH operations */
-//#define EDHOC_CONF_ECC CC2538_ECC
-#define EDHOC_CONF_ECC UECC_ECC
+//#define EDHOC_CONF_ECC EDHOC_ECC_CC2538
+#define EDHOC_CONF_ECC EDHOC_ECC_UECC
 
 /* Set the supported cipher suites */
 #define EDHOC_CONF_SUPPORTED_SUITE_1 EDHOC_CIPHERSUITE_2

@@ -40,26 +40,24 @@
 #define _ECDH_H_
 
 #include <stdint.h>
-#include <string.h>
-#include "cose.h"
 #include "edhoc-key-storage.h"
 
 /* Choose the ECC library to use */
-#define CC2238_ECC 1
-#define UECC_ECC 2
+#define EDHOC_ECC_CC2538 1
+#define EDHOC_ECC_UECC 2
 
 #ifdef EDHOC_CONF_ECC
-#define ECC EDHOC_CONF_ECC
+#define EDHOC_ECC EDHOC_CONF_ECC
 #else
-#define ECC UECC_ECC
+#define EDHOC_ECC EDHOC_ECC_UECC
 #endif
 
-#if ECC == UECC_ECC
+#if EDHOC_ECC == EDHOC_ECC_UECC
 #include "ecc-uecc.h"
-#endif
-
-#if ECC == CC2538_ECC
+#elif EDHOC_ECC == EDHOC_ECC_CC2538
 #include "ecc-cc2538.h"
+#else
+#error Please specify EDHOC_ECC
 #endif
 
 uint8_t generate_IKM(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy, const uint8_t *private_key, uint8_t *ikm);

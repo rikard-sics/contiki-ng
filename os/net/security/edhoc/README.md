@@ -50,9 +50,9 @@ If the parties have agreed on an identity beside the public key, the "subject na
 ```c
 #define EDHOC_CID 0x20
 ```
-- Define which library to use for ECDH operations. The SW library of `micro-ECC` with the macro `UECC_ECC` or the HW driver accelerator for cc2538 modules with the macro `CC2538_ECC .
+- Define which library to use for ECDH operations. The SW library of `micro-ECC` with the macro `EDHOC_UECC_ECC` or the HW driver accelerator for cc2538 modules with the macro `EDHOC_CC2538_ECC .
 ```c
-#define EDHOC_CONF_ECC CC2538_ECC
+#define EDHOC_CONF_ECC EDHOC_CC2538_ECC
 ```
 Additionally other paramets can be defined, every definde parameter with their default values are settingon the `edhoc-config.h` files. For example the number of attempts and the timeout can be set by:
 ```c

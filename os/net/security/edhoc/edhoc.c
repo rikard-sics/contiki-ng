@@ -44,6 +44,7 @@
 #include "edhoc.h"
 #include "edhoc-config.h"
 #include "edhoc-msgs.h"
+#include "cose.h"
 #include <assert.h>
 
 #define MAC_2 2

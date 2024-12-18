@@ -427,10 +427,10 @@ generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t
   ecc_curve_t curve;
   get_ecc_curve(curve_id, &curve);
 
-#if ECC == UECC_ECC
+#if EDHOC_ECC == EDHOC_ECC_UECC
   LOG_DBG("generate key with uEcc\n");
   uECC_make_key(pub_x, priv, curve.curve);
-#elif ECC == CC2538_ECC
+#elif EDHOC_ECC == EDHOC_ECC_CC2538
   LOG_DBG("generate key with CC2538\n");
   static key_gen_t key = {
     .process = &edhoc_client,
