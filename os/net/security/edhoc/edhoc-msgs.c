@@ -50,7 +50,7 @@ print_msg_1(edhoc_msg_1 *msg)
   LOG_DBG("Gx: ");
   print_buff_8_dbg(msg->g_x, ECC_KEY_LEN);
   LOG_DBG("Ci: ");
-  print_buff_8_dbg(msg->c_i, CID_LEN);
+  print_buff_8_dbg(msg->c_i, EDHOC_CID_LEN);
   LOG_DBG("EAD (label: %d): ", msg->uad.ead_label);
   print_buff_8_dbg(msg->uad.ead_value, msg->uad.ead_value_sz);
 }
@@ -233,7 +233,7 @@ edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array)
   size_t size = cbor_put_unsigned(&buffer, msg->method);
   size += edhoc_serialize_suites(&buffer, msg->suites_i, msg->suites_i_sz);
   size += cbor_put_bytes(&buffer, msg->g_x, ECC_KEY_LEN);
-  size += edhoc_put_byte_identifier(&buffer, msg->c_i, CID_LEN);
+  size += edhoc_put_byte_identifier(&buffer, msg->c_i, EDHOC_CID_LEN);
   if(msg->uad.ead_value_sz > 0) {
     size += cbor_put_bytes(&buffer, msg->uad.ead_value, msg->uad.ead_value_sz);
   }

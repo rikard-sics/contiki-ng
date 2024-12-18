@@ -52,7 +52,7 @@
  * \brief The length of connection identifiers
  * TODO: Support other than 1 byte CIDs
  */
-#define CID_LEN 1
+#define EDHOC_CID_LEN 1
 
 /* EDHOC Role definitions */
 #define RESPONDER 0   /* The Responder of the EDHOC protocol */

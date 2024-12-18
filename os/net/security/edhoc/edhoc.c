@@ -398,7 +398,7 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num,
 {
   if(mac_num == MAC_2) {
     /* Build context_2 */
-    size_t context_2_buf_sz = CID_LEN + ctx->buffers.id_cred_x_sz +
+    size_t context_2_buf_sz = EDHOC_CID_LEN + ctx->buffers.id_cred_x_sz +
       cbor_bytestr_size(HASH_LEN) + ctx->buffers.cred_x_sz;
     uint8_t context_2[context_2_buf_sz];
     uint8_t *context_2_ptr = context_2;
@@ -409,7 +409,7 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num,
     } else {
       context_2_ptr[0] = (uint8_t)ctx->state.cid;
     }
-    context_2_ptr += CID_LEN;
+    context_2_ptr += EDHOC_CID_LEN;
 
     memcpy(context_2_ptr, ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
     context_2_ptr += ctx->buffers.id_cred_x_sz;
@@ -728,7 +728,7 @@ gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
   print_buff_8_dbg(ctx->state.prk_4e3m, HASH_LEN);
   return true;
 }
-#endif /* (EDHOC_METHOD == EDHOC_METHOD2) || (EDHOC_METHOD == EDHOC_METHOD3) || 
+#endif /* (EDHOC_METHOD == EDHOC_METHOD2) || (EDHOC_METHOD == EDHOC_METHOD3) ||
 INITIATOR_METHOD1 || RESPONDER_METHOD2 */
 /******************************************************************************/
 static int16_t
@@ -818,7 +818,7 @@ gen_plaintext(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz,
   size_t size;
   if(msg2) {
     size = edhoc_put_byte_identifier(&buf_ptr, (uint8_t *)&ctx->state.cid,
-                                     CID_LEN);
+                                     EDHOC_CID_LEN);
   } else {
     size = 0;
   }
@@ -994,8 +994,8 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
   ctx->buffers.tx_sz = size + 1;
   (ctx->buffers.msg_tx)[0] = 0xF5; /*FIXME: Improve pre-pending of CBOR true (do in client/server?) */
 
-  LOG_DBG("C_I chosen by Initiator (%d bytes): 0x", CID_LEN);
-  print_buff_8_dbg(msg1.c_i, CID_LEN);
+  LOG_DBG("C_I chosen by Initiator (%d bytes): 0x", EDHOC_CID_LEN);
+  print_buff_8_dbg(msg1.c_i, EDHOC_CID_LEN);
   LOG_DBG("AD_1 (%d bytes): ", (int)ad_sz);
   print_char_8_dbg((char *)ad, ad_sz);
   for(int i = 0; i < msg1.suites_i_sz; ++i) {
@@ -1390,7 +1390,7 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload,
   }
 
   /* Check to not have the same cid */
-  er = set_rx_cid(ctx, msg1.c_i, CID_LEN);
+  er = set_rx_cid(ctx, msg1.c_i, EDHOC_CID_LEN);
   if(er < 0) {
     LOG_ERR("Not support cid rx\n");
     return er;
@@ -1458,7 +1458,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx,
   LOG_DBG("PLAINTEXT_2 (%zu bytes): ", plaint_sz);
   print_buff_8_dbg(ctx->buffers.plaintext, plaint_sz);
 
-  int cr_sz = CID_LEN;
+  int cr_sz = EDHOC_CID_LEN;
   er = set_rx_cid(ctx, ctx->buffers.plaintext, cr_sz);
   if(er < 0) {
     return er;
@@ -1517,7 +1517,7 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   /* Point to decrypted plaintext for key retrieval */
   uint8_t *plaintext_ptr = NULL;
   if(msg2) {
-    plaintext_ptr = ctx->buffers.plaintext + CID_LEN;
+    plaintext_ptr = ctx->buffers.plaintext + EDHOC_CID_LEN;
   } else {
     plaintext_ptr = ctx->buffers.plaintext;
   }
