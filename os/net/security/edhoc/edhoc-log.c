@@ -40,7 +40,7 @@
 
 /*----------------------------------------------------------------------------*/
 void
-print_buff(const uint8_t *buff, size_t len)
+edhoc_print_buff(const uint8_t *buff, size_t len)
 {
 
   for(int i = 0; i < len; i++) {
@@ -50,7 +50,7 @@ print_buff(const uint8_t *buff, size_t len)
 }
 /*----------------------------------------------------------------------------*/
 void
-print_char(const char *buff, size_t len)
+edhoc_print_char(const char *buff, size_t len)
 {
 
   for(int i = 0; i < len; i++) {

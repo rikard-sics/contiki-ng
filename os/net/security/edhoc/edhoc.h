@@ -362,13 +362,23 @@ int8_t get_edhoc_curve(uint8_t ciphersuite_id);
 int8_t get_edhoc_mac_len(uint8_t ciphersuite_id);
 int8_t get_edhoc_aead_enc_alg(uint8_t ciphersuite_id);
 int8_t get_edhoc_sign_alg(uint8_t ciphersuite_id);
+void edhoc_print_session_info(const edhoc_context_t *ctx);
+int8_t edhoc_gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub,
+                     uint8_t *msg, uint16_t msg_sz);
+uint8_t edhoc_gen_th3(edhoc_context_t *ctx,
+                      const uint8_t *cred, uint16_t cred_sz,
+                      const uint8_t *plaintext, uint16_t plaintext_sz);
+bool edhoc_gen_prk_2e(edhoc_context_t *ctx);
+int16_t edhoc_gen_ks_2e(edhoc_context_t *ctx, uint16_t length, uint8_t *ks_2e);
+int16_t edhoc_enc_dec_ciphertext_2(const edhoc_context_t *ctx,
+                                   const uint8_t *ks_2e,
+                                   uint8_t *plaintext, uint16_t plaintext_sz);
 
-/* static int16_t gen_ks_2e(edhoc_context_t *ctx, uint16_t length); */
+/*----------------------------------------------------------------------------*/
+
+
 /* static int16_t get_rx_suite_I(const edhoc_context_t *ctx, uint8_t *suite_rx); */
 /* static int8_t check_rx_suite_I(edhoc_context_t *ctx, uint8_t *suiterx); */
-/* static int8_t gen_th2(edhoc_context_t *ctx, uint8_t *data, uint8_t *msg, uint16_t msg_sz); */
-/* static int8_t set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz); */
-/* static int8_t set_rx_method(edhoc_context_t *ctx, uint8_t method); */
 /* static size_t generate_cred_x(cose_key_t *cose, uint8_t *cred); */
 /* static size_t generate_id_cred_x(cose_key_t *cose, uint8_t *cred); */
 /* static size_t generate_info(uint8_t *info, uint8_t *th, uint8_t th_sz, uint8_t length, uint8_t value); */
@@ -378,19 +388,13 @@ int8_t get_edhoc_sign_alg(uint8_t ciphersuite_id);
 /* static uint16_t gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac, uint16_t mac_sz, uint8_t *ciphertext); */
 /* static uint16_t gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool msg2); */
 /* static uint8_t gen_gxy(edhoc_context_t *ctx); */
-/* static uint8_t gen_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac); */
-/* static uint8_t gen_prk_2e(edhoc_context_t *ctx); */
 /* static uint8_t gen_prk_3e2m(edhoc_context_t *ctx, ecc_key_t *key_authenticate, uint8_t gen); */
 /* static uint8_t gen_prk_4e3m(edhoc_context_t *ctx, ecc_key_t *key_authenticate, uint8_t gen); */
-/* static uint8_t gen_th3(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz); */
 /* static uint8_t gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz); */
-/* static uint8_t int_sz(int num); */
-/* static void context_free(edhoc_context_t *ctx); */
 /* static void gen_ciphertext_2(edhoc_context_t *ctx, uint8_t *plaintext, uint16_t plaintext_sz); */
 /* static void print_connection(edhoc_session *con); */
 /* static void set_rx_msg(edhoc_context_t *ctx, uint8_t *msg, uint8_t msg_sz); */
 /* static retrieve_cred_i(edhoc_context_t *ctx, uint8_t *inf, uint8_t *cred_i); */
-/* static uint8_t set_mac(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t mac_num, uint8_t *mac); */
 
 #endif /* _EDHOC_H_ */
 /** @} */
