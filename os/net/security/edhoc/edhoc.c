@@ -198,89 +198,8 @@ generate_info(uint8_t info_label, const uint8_t *context, uint8_t context_sz, ui
   return size;
 }
 /*----------------------------------------------------------------------------*/
-static int8_t
-set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz)
-{
-  /* set connection id from rx */
-  if(cidrx_sz == 1) {
-    ctx->state.cid_rx = (uint8_t)edhoc_get_byte_identifier(&cidrx);
-  }
-
-  if(ctx->state.cid_rx == ctx->state.cid) {
-    LOG_ERR("error code2 (%d)\n", ERR_CID_NOT_VALID);
-    return ERR_CID_NOT_VALID;
-  }
-  return 0;
-}
-/*----------------------------------------------------------------------------*/
-static int8_t
-check_rx_suite_i(edhoc_context_t *ctx, const uint8_t *suite_rx,
-                 size_t suite_rx_sz)
-{
-  /* Get the selected cipher suite (last element) */
-  uint8_t peer_selected_suite = suite_rx[suite_rx_sz - 1];
-
-  /* Check if the selected suite is supported */
-  for(uint8_t i = 0; i < ctx->config.suite_num; i++) {
-    if(ctx->config.suite[i] == peer_selected_suite) {
-      ctx->state.suite_selected = peer_selected_suite;
-      LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
-
-      /* Responder sets config to use based on selected suite */
-      int8_t er = set_config_from_suite(ctx, ctx->state.suite_selected);
-      if(er != 1) {
-        LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
-        return ERR_NEW_SUITE_PROPOSE;
-      }
-      return 0;
-    }
-  }
-
-  LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
-  return ERR_NEW_SUITE_PROPOSE;
-}
-/*----------------------------------------------------------------------------*/
-void
-set_rx_gx(edhoc_context_t *ctx, const uint8_t *gx)
-{
-  memcpy(ctx->state.gx, gx, ECC_KEY_LEN);
-}
-/*----------------------------------------------------------------------------*/
-static int8_t
-set_rx_method(edhoc_context_t *ctx, uint8_t method)
-{
-  if(method != EDHOC_METHOD) {
-    LOG_ERR("error code (%d)\n", ERR_REJECT_METHOD);
-    return ERR_REJECT_METHOD;
-  }
-  ctx->config.method = method;
-  return 0;
-}
-/*----------------------------------------------------------------------------*/
-static void
-set_rx_msg(edhoc_context_t *ctx, const uint8_t *msg, uint8_t msg_sz)
-{
-  memcpy(ctx->buffers.msg_rx, msg, msg_sz);
-  ctx->buffers.rx_sz = msg_sz;
-}
-/*----------------------------------------------------------------------------*/
-static void
-print_session_info(const edhoc_context_t *ctx)
-{
-  LOG_DBG("Session info print:\n");
-  LOG_DBG("Using test vector: %s\n",
-          EDHOC_TEST == EDHOC_TEST_VECTOR_TRACE_DH ? "true (DH)" : "false");
-  LOG_DBG("Connection role: %d\n", (int)ctx->config.role);
-  LOG_DBG("Connection method: %d\n", (int)ctx->config.method);
-  LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
-  LOG_DBG("My cID: %x\n", (uint8_t)ctx->state.cid);
-  LOG_DBG("Other peer cID: %x\n", (uint8_t)ctx->state.cid_rx);
-  LOG_DBG("Gx: ");
-  print_buff_8_dbg(ctx->state.gx, ECC_KEY_LEN);
-}
-/*----------------------------------------------------------------------------*/
-static int8_t
-gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub,
+int8_t
+edhoc_gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub,
         uint8_t *msg, uint16_t msg_sz)
 {
   /* Create the input for TH_2 = H(G_Y, H(msg)), msg1 is in msg_rx */
@@ -307,9 +226,9 @@ gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub,
   return 0;
 }
 /*----------------------------------------------------------------------------*/
-static uint8_t
-gen_th3(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz,
-        const uint8_t *plaintext, uint16_t plaintext_sz)
+uint8_t
+edhoc_gen_th3(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz,
+              const uint8_t *plaintext, uint16_t plaintext_sz)
 {
   /* TH_3 = H(TH_2, PLAINTEXT_2, CRED_R) */
   int h_buf_sz = cbor_bytestr_size(HASH_LEN) + plaintext_sz + cred_sz;
@@ -365,6 +284,21 @@ gen_th4(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz,
   LOG_DBG("TH_4 (%d bytes): ", (int)HASH_LEN);
   print_buff_8_dbg(ctx->state.th, HASH_LEN);
   return 0;
+}
+/*----------------------------------------------------------------------------*/
+void
+edhoc_print_session_info(const edhoc_context_t *ctx)
+{
+  LOG_DBG("Session info print:\n");
+  LOG_DBG("Using test vector: %s\n",
+          EDHOC_TEST == EDHOC_TEST_VECTOR_TRACE_DH ? "true (DH)" : "false");
+  LOG_DBG("Connection role: %d\n", (int)ctx->config.role);
+  LOG_DBG("Connection method: %d\n", (int)ctx->config.method);
+  LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
+  LOG_DBG("My cID: %x\n", (uint8_t)ctx->state.cid);
+  LOG_DBG("Other peer cID: %x\n", (uint8_t)ctx->state.cid_rx);
+  LOG_DBG("Gx: ");
+  print_buff_8_dbg(ctx->state.gx, ECC_KEY_LEN);
 }
 /*----------------------------------------------------------------------------*/
 int16_t
@@ -465,7 +399,6 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num,
 }
 /*----------------------------------------------------------------------------*/
 int8_t
-/* Added */
 get_edhoc_mac_len(uint8_t ciphersuite_id)
 {
   switch(ciphersuite_id) {
@@ -488,7 +421,6 @@ get_edhoc_mac_len(uint8_t ciphersuite_id)
 }
 /*----------------------------------------------------------------------------*/
 int8_t
-/* Added */
 get_edhoc_aead_enc_alg(uint8_t ciphersuite_id)
 {
   switch(ciphersuite_id) {
@@ -506,7 +438,6 @@ get_edhoc_aead_enc_alg(uint8_t ciphersuite_id)
 }
 /*----------------------------------------------------------------------------*/
 int8_t
-/* Added */
 get_edhoc_curve(uint8_t ciphersuite_id)
 {
   switch(ciphersuite_id) {
@@ -521,7 +452,6 @@ get_edhoc_curve(uint8_t ciphersuite_id)
 }
 /*----------------------------------------------------------------------------*/
 int8_t
-/* Added */
 get_edhoc_sign_alg(uint8_t ciphersuite_id)
 {
   switch(ciphersuite_id) {
@@ -613,8 +543,8 @@ gen_gxy(edhoc_context_t *ctx, uint8_t *ikm)
   return true;
 }
 /*----------------------------------------------------------------------------*/
-static bool
-gen_prk_2e(edhoc_context_t *ctx)
+bool
+edhoc_gen_prk_2e(edhoc_context_t *ctx)
 {
   uint8_t ikm[ECC_KEY_LEN];
 
@@ -632,8 +562,8 @@ gen_prk_2e(edhoc_context_t *ctx)
 }
 /*----------------------------------------------------------------------------*/
 /* Derive KEYSTREAM_2 */
-static int16_t
-gen_ks_2e(edhoc_context_t *ctx, uint16_t length, uint8_t *ks_2e)
+int16_t
+edhoc_gen_ks_2e(edhoc_context_t *ctx, uint16_t length, uint8_t *ks_2e)
 {
   int er = edhoc_kdf(ctx->state.prk_2e, KEYSTREAM_2_LABEL,
                      ctx->state.th, HASH_LEN, length, ks_2e);
@@ -734,9 +664,9 @@ gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
 #endif /* (EDHOC_METHOD == EDHOC_METHOD2) || (EDHOC_METHOD == EDHOC_METHOD3) ||
 INITIATOR_METHOD1 || RESPONDER_METHOD2 */
 /*----------------------------------------------------------------------------*/
-static int16_t
-enc_dec_ciphertext_2(const edhoc_context_t *ctx, const uint8_t *ks_2e,
-                     uint8_t *plaintext, uint16_t plaintext_sz)
+int16_t
+edhoc_enc_dec_ciphertext_2(const edhoc_context_t *ctx, const uint8_t *ks_2e,
+                           uint8_t *plaintext, uint16_t plaintext_sz)
 {
   LOG_DBG("**** Cipher/Plaintext in enc func (%d bytes): ", plaintext_sz);
   print_buff_8_dbg(plaintext, plaintext_sz);
@@ -752,60 +682,6 @@ enc_dec_ciphertext_2(const edhoc_context_t *ctx, const uint8_t *ks_2e,
   print_buff_8_dbg(plaintext, plaintext_sz);
 
   return plaintext_sz;
-}
-/*----------------------------------------------------------------------------*/
-static uint16_t
-decrypt_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ciphertext,
-                     uint16_t ciphertext_sz, uint8_t *plaintext)
-{
-  cose_encrypt0 *cose = cose_encrypt0_new();
-
-  /* set external AAD in cose */
-  cose_encrypt0_set_content(cose, NULL, 0, NULL, 0);
-  uint8_t *th3_ptr = cose->external_aad;
-  memcpy(th3_ptr, ctx->state.th, HASH_LEN);
-  cose->external_aad_sz = HASH_LEN;
-
-  cose_encrypt0_set_ciphertext(cose, ciphertext, ciphertext_sz);
-  /* COSE encrypt0 set header */
-  cose_encrypt0_set_header(cose, NULL, 0, NULL, 0);
-
-  /* generate K_3 */
-  cose->alg = ctx->config.aead_alg;
-  cose->key_sz = cose_get_key_len(cose->alg);
-  int16_t er = edhoc_kdf(ctx->state.prk_3e2m, K_3_LABEL, ctx->state.th,
-                         HASH_LEN, cose->key_sz, cose->key);
-  if(er < 1) {
-    LOG_ERR("error in expand for decrypt ciphertext 3\n");
-    return 0;
-  }
-  LOG_DBG("K_3 (%d bytes): ", cose->key_sz);
-  print_buff_8_dbg(cose->key, cose->key_sz);
-
-  /* generate IV_3 */
-  cose->nonce_sz = cose_get_iv_len(cose->alg);
-  er = edhoc_kdf(ctx->state.prk_3e2m, IV_3_LABEL, ctx->state.th, HASH_LEN,
-                 cose->nonce_sz, cose->nonce);
-  if(er < 1) {
-    LOG_ERR("error in expand for decrypt ciphertext 3\n");
-    return 0;
-  }
-  LOG_DBG("IV_3 (%d bytes): ", cose->nonce_sz);
-  print_buff_8_dbg(cose->nonce, cose->nonce_sz);
-
-  /* Decrypt COSE */
-  if(!cose_decrypt(cose)) {
-    LOG_ERR("ciphertext 3 decrypt error\n");
-    return 0;
-  }
-
-  for(int i = 0; i < cose->plaintext_sz; i++) {
-    plaintext[i] = cose->plaintext[i];
-  }
-
-  /* Free memory */
-  cose_encrypt0_finalize(cose);
-  return cose->plaintext_sz;
 }
 /*----------------------------------------------------------------------------*/
 static uint16_t
@@ -1013,8 +889,8 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
 uint8_t
 edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 {
-  int8_t rv = gen_th2(ctx, ctx->creds.ephemeral_key.pub.x,
-                      ctx->buffers.msg_rx, ctx->buffers.rx_sz);
+  int8_t rv = edhoc_gen_th2(ctx, ctx->creds.ephemeral_key.pub.x,
+                            ctx->buffers.msg_rx, ctx->buffers.rx_sz);
   if(rv < 0) {
     LOG_ERR("Failed to generate TH_2 (%d)\n", rv);
     return -1;
@@ -1031,7 +907,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   LOG_DBG("ID_CRED_R (%d bytes): ", (int)ctx->buffers.id_cred_x_sz);
   print_buff_8_dbg(ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
 
-  gen_prk_2e(ctx);
+  edhoc_gen_prk_2e(ctx);
 
   uint8_t mac_or_signature_sz = -1;
 
@@ -1107,12 +983,12 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   /* Derive KEYSTREAM_2 */
   uint8_t ks_2e[plaint_sz];
-  gen_ks_2e(ctx, plaint_sz, ks_2e);
+  edhoc_gen_ks_2e(ctx, plaint_sz, ks_2e);
 
   /* Encrypt the plaintext */
   uint8_t ciphertext[plaint_sz];
   memcpy(ciphertext, ctx->buffers.plaintext, plaint_sz);
-  enc_dec_ciphertext_2(ctx, ks_2e, ciphertext, plaint_sz);
+  edhoc_enc_dec_ciphertext_2(ctx, ks_2e, ciphertext, plaint_sz);
   LOG_DBG("CIPHERTEXT_2 (%d bytes): ", (int)plaint_sz);
   print_buff_8_dbg(ciphertext, plaint_sz);
 
@@ -1131,8 +1007,8 @@ void
 edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 {
   /* gen TH_3 */
-  gen_th3(ctx, ctx->buffers.cred_x, ctx->buffers.cred_x_sz,
-          ctx->buffers.plaintext, ctx->buffers.plaintext_sz);
+  edhoc_gen_th3(ctx, ctx->buffers.cred_x, ctx->buffers.cred_x_sz,
+                ctx->buffers.plaintext, ctx->buffers.plaintext_sz);
 
   cose_print_key(ctx->creds.authen_key);
   LOG_DBG("SK_I (Initiator's private authentication key) (%d bytes): ",
@@ -1318,200 +1194,6 @@ edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t err)
   LOG_DBG("ERR MSG CBOR: ");
   print_buff_8_dbg((uint8_t *)msg_er, err_sz);
   return err_sz;
-}
-/*----------------------------------------------------------------------------*/
-static int8_t
-edhoc_check_err_rx_msg(uint8_t *payload, uint8_t payload_sz)
-{
-  /* Check if the rx msg is an msg_err */
-  uint8_t *msg_err = payload;
-  edhoc_msg_error err;
-  int8_t msg_err_sz = 0;
-  msg_err_sz = edhoc_deserialize_err(&err, msg_err, payload_sz);
-  if(msg_err_sz > 0) {
-    LOG_ERR("RX MSG_ERR: ");
-    print_char_8_err(err.err_info, err.err_info_sz);
-    return RX_ERR_MSG;
-  }
-  if(msg_err_sz == -1) {
-    LOG_ERR("RX MSG_ERROR WITH SUITE PROPOSE: ");
-    print_char_8_err(err.err_info, err.err_info_sz);
-    return RX_ERR_MSG;
-  }
-  return 0;
-}
-/*----------------------------------------------------------------------------*/
-static int8_t
-edhoc_check_err_rx_msg_2(uint8_t *payload, uint8_t payload_sz,
-                         const edhoc_context_t *ctx)
-{
-  /* Check if the rx msg is an msg_err */
-  uint8_t *msg_err = payload;
-  edhoc_msg_error err = { 0 };
-
-  int8_t msg_err_sz = edhoc_deserialize_err(&err, msg_err, payload_sz);
-  if(msg_err_sz < 0) {
-    LOG_ERR("RX MSG_ERR: ");
-    print_char_8_err(err.err_info, err.err_info_sz);
-    return RX_ERR_MSG;
-  }
-  return 0;
-}
-/*----------------------------------------------------------------------------*/
-int
-edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload,
-                    size_t payload_sz, uint8_t *ad)
-{
-  edhoc_msg_1 msg1 = { 0 };
-  int er = 0;
-  /* Decode MSG1 */
-  set_rx_msg(ctx, payload, payload_sz);
-
-  /* Check if the rx msg is an msg_err */
-  er = edhoc_check_err_rx_msg(payload, payload_sz);
-  if(er < 0) {
-    return RX_ERR_MSG;
-  } else if(er == 2) {
-    return ERR_NEW_SUITE_PROPOSE;
-  }
-
-  LOG_DBG("MSG1 (%d bytes): ", (int)ctx->buffers.rx_sz - 1);
-  print_buff_8_dbg((ctx->buffers.msg_rx) + 1, ctx->buffers.rx_sz - 1);
-  er = edhoc_deserialize_msg_1(&msg1, (ctx->buffers.msg_rx) + 1,
-                               ctx->buffers.rx_sz - 1);
-  if(er < 0) {
-    LOG_ERR("MSG1 malformed\n");
-    return er;
-  }
-  print_msg_1(&msg1);
-
-  /* check rx suite and set connection identifier of the other peer */
-  er = check_rx_suite_i(ctx, msg1.suites_i, msg1.suites_i_sz);
-  if(er < 0) {
-    LOG_ERR("Rx Suite not supported\n");
-    return er;
-  }
-
-  /* Check to not have the same cid */
-  er = set_rx_cid(ctx, msg1.c_i, EDHOC_CID_LEN);
-  if(er < 0) {
-    LOG_ERR("Not support cid rx\n");
-    return er;
-  }
-
-  /* Set EDHOC method */
-  er = set_rx_method(ctx, msg1.method);
-  if(er < 0) {
-    LOG_ERR("Rx Method not supported\n");
-    return er;
-  }
-
-  /* Set GX */
-  set_rx_gx(ctx, msg1.g_x);
-  print_session_info(ctx);
-
-  LOG_DBG("MSG EAD (%d)", (int)msg1.uad.ead_value_sz);
-  print_char_8_dbg((char *)msg1.uad.ead_value, msg1.uad.ead_value_sz);
-
-  if(msg1.uad.ead_value_sz != 0) {
-    memcpy(ad, msg1.uad.ead_value, msg1.uad.ead_value_sz);
-  }
-
-  return msg1.uad.ead_value_sz;
-}
-/*----------------------------------------------------------------------------*/
-int
-edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx,
-                    uint8_t *payload, size_t payload_sz)
-{
-  int er = 0;
-  set_rx_msg(ctx, payload, payload_sz);
-  er = edhoc_check_err_rx_msg_2(payload, payload_sz, ctx);
-  if(er < 0) {
-    LOG_DBG("MSG2 err: %d\n", er);
-    return er;
-  }
-  er = edhoc_deserialize_msg_2(msg2, ctx->buffers.msg_rx, ctx->buffers.rx_sz);
-  if(er < 0) {
-    LOG_ERR("MSG2 malformed\n");
-    return er;
-  }
-  print_msg_2(msg2);
-
-  set_rx_gx(ctx, msg2->gy_ciphertext_2);
-  gen_th2(ctx, msg2->gy_ciphertext_2, ctx->buffers.msg_tx, ctx->buffers.tx_sz);
-  gen_prk_2e(ctx);
-
-  /* Gen KS_2e */
-  assert(msg2->gy_ciphertext_2_sz > ECC_KEY_LEN);
-  int ciphertext2_sz = msg2->gy_ciphertext_2_sz - ECC_KEY_LEN;
-  uint8_t ks_2e[ciphertext2_sz];
-  gen_ks_2e(ctx, ciphertext2_sz, ks_2e);
-
-  /* Prepare ciphertext for decryption */
-  memcpy(ctx->buffers.plaintext, msg2->gy_ciphertext_2 + ECC_KEY_LEN,
-         ciphertext2_sz);
-  LOG_DBG("CIPHERTEXT_2 (%d bytes): ", ciphertext2_sz);
-  print_buff_8_dbg(ctx->buffers.plaintext, ciphertext2_sz);
-
-  /* Actually decrypt the ciphertext */
-  size_t plaint_sz = enc_dec_ciphertext_2(ctx, ks_2e, ctx->buffers.plaintext,
-                                          ciphertext2_sz);
-  ctx->buffers.plaintext_sz = plaint_sz;
-  LOG_DBG("PLAINTEXT_2 (%zu bytes): ", plaint_sz);
-  print_buff_8_dbg(ctx->buffers.plaintext, plaint_sz);
-
-  int cr_sz = EDHOC_CID_LEN;
-  er = set_rx_cid(ctx, ctx->buffers.plaintext, cr_sz);
-  if(er < 0) {
-    return er;
-  }
-  LOG_DBG("cid (%d)\n", (uint8_t)ctx->state.cid_rx);
-
-  return 1;
-}
-/*----------------------------------------------------------------------------*/
-int
-edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx,
-                    uint8_t *payload, size_t payload_sz)
-{
-  /* Decode MSG3 */
-  set_rx_msg(ctx, payload, payload_sz);
-
-  /* Check if the rx msg is an msg_err */
-  if(edhoc_check_err_rx_msg(payload, payload_sz) < 0) {
-    return RX_ERR_MSG;
-  }
-
-  /* FIXME: Improve skipping of C_R */
-  int8_t er = edhoc_deserialize_msg_3(msg3, (ctx->buffers.msg_rx) + 1,
-                                      ctx->buffers.rx_sz - 1);
-  if(er < 0) {
-    LOG_ERR("MSG3 malformed\n");
-    return er;
-  }
-  print_msg_3(msg3);
-
-  LOG_DBG("CIPHERTEXT_3 (%d bytes): ", (int)msg3->ciphertext_3_sz);
-  print_buff_8_dbg(msg3->ciphertext_3, msg3->ciphertext_3_sz);
-
-  /* generate TH_3 */
-  gen_th3(ctx, ctx->buffers.cred_x, ctx->buffers.cred_x_sz,
-          ctx->buffers.plaintext, ctx->buffers.plaintext_sz);
-
-  /* decrypt msg3 and check the TAG for verify the outer */
-  uint16_t plaintext_sz = decrypt_ciphertext_3(ctx, msg3->ciphertext_3,
-                                               msg3->ciphertext_3_sz,
-                                               ctx->buffers.plaintext);
-  ctx->buffers.plaintext_sz = plaintext_sz;
-  if(plaintext_sz == 0) {
-    LOG_ERR("Error in decrypt ciphertext 3\n");
-    return ERR_DECRYPT;
-  }
-  LOG_DBG("PLAINTEXT_3 (%d): ", (int)plaintext_sz);
-  print_buff_8_dbg(ctx->buffers.plaintext, plaintext_sz);
-
-  return 1;
 }
 /*----------------------------------------------------------------------------*/
 int
