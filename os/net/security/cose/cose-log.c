@@ -38,6 +38,7 @@
 
 #include "cose-log.h"
 
+/*----------------------------------------------------------------------------*/
 void
 cose_print_buff(const uint8_t *buff, size_t len)
 {
@@ -47,7 +48,7 @@ cose_print_buff(const uint8_t *buff, size_t len)
   }
   LOG_OUTPUT("\n");
 }
-
+/*----------------------------------------------------------------------------*/
 void
 cose_print_char(const uint8_t *buff, size_t len)
 {
@@ -57,3 +58,4 @@ cose_print_char(const uint8_t *buff, size_t len)
   }
   LOG_OUTPUT("\n");
 }
+/*----------------------------------------------------------------------------*/

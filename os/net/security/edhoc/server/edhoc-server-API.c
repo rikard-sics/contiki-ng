@@ -76,7 +76,7 @@ uint8_t eph_pub_y_r[ECC_KEY_LEN] = { 0x5e, 0x4f, 0x0d, 0xd8, 0xa3, 0xda, 0x0b, 0
 uint8_t eph_private_r[ECC_KEY_LEN] = { 0xe2, 0xf4, 0x12, 0x67, 0x77, 0x20, 0x5e, 0x85, 0x3b, 0x43, 0x7d, 0x6e, 0xac, 0xa1, 0xe1, 0xf7, 0x53, 0xcd, 0xcc, 0x3e, 0x2c, 0x69, 0xfa,
                                        0x88, 0x4b, 0x0a, 0x1a, 0x64, 0x09, 0x77, 0xe4, 0x18 };
 #endif
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 static void
 generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t *priv)
 {
@@ -115,7 +115,7 @@ generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t
   LOG_DBG("Y (%d bytes): ", ECC_KEY_LEN);
   print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 int8_t
 edhoc_server_callback(process_event_t ev, void *data)
 {
@@ -129,28 +129,28 @@ edhoc_server_callback(process_event_t ev, void *data)
   }
   return 0;
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 void
 edhoc_server_set_ad_2(const void *buff, uint8_t buff_sz)
 {
   memcpy(new_ecc.ad.ad_2, (void *)buff, buff_sz);
   new_ecc.ad.ad_2_sz = buff_sz;
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 uint8_t
 edhoc_server_get_ad_1(char *buff)
 {
   memcpy(buff, (void *)new_ecc.ad.ad_1, new_ecc.ad.ad_1_sz);
   return new_ecc.ad.ad_1_sz;
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 uint8_t
 edhoc_server_get_ad_3(char *buff)
 {
   memcpy(buff, (void *)new_ecc.ad.ad_3, new_ecc.ad.ad_3_sz);
   return new_ecc.ad.ad_3_sz;
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 static void
 server_timeout_callback(coap_timer_t *timer)
 {
@@ -160,7 +160,7 @@ server_timeout_callback(coap_timer_t *timer)
   new_ecc.val = SERV_RESTART;
   process_post(PROCESS_BROADCAST, new_ecc_event, &new_ecc);
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 uint8_t
 edhoc_server_restart(void)
 {
@@ -174,7 +174,7 @@ edhoc_server_restart(void)
   setup_suites(edhoc_ctx);
   return edhoc_initialize_context(edhoc_ctx);
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 uint8_t
 edhoc_server_start(void)
 {
@@ -185,7 +185,7 @@ edhoc_server_start(void)
   serv = &server;
   return edhoc_server_restart();
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 void
 edhoc_server_init(void)
 {
@@ -193,13 +193,13 @@ edhoc_server_init(void)
   coap_activate_resource(&res_edhoc, EDHOC_WELL_KNOWN);
   new_ecc_event = process_alloc_event();
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 void
 edhoc_server_close(void)
 {
   edhoc_finalize(edhoc_ctx);
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 void
 edhoc_server_process(coap_message_t *req, coap_message_t *res,
 		     edhoc_server_t *ser, uint8_t *msg, uint8_t len)
@@ -212,7 +212,7 @@ edhoc_server_process(coap_message_t *req, coap_message_t *res,
     process_run();
   }
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 PROCESS_THREAD(edhoc_server, ev, data)
 {
   PROCESS_BEGIN();

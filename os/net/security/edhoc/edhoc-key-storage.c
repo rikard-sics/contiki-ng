@@ -43,17 +43,20 @@
 #include <string.h>
 #include "edhoc-log.h"
 
+/*----------------------------------------------------------------------------*/
 LIST(key_list);
 MEMB(key_memb, cose_key_t, 2);
-
+/*----------------------------------------------------------------------------*/
 void
 edhoc_create_key_list(void)
 {
   list_init(key_list);
   memb_init(&key_memb);
 }
+/*----------------------------------------------------------------------------*/
 uint8_t
-edhoc_check_key_list_identity(char *identity, uint8_t identity_sz, cose_key_t **auth_key)
+edhoc_check_key_list_identity(char *identity, uint8_t identity_sz,
+                              cose_key_t **auth_key)
 {
   int n = list_length(key_list);
   cose_key_t *key = list_head(key_list);
@@ -69,6 +72,7 @@ edhoc_check_key_list_identity(char *identity, uint8_t identity_sz, cose_key_t **
   }
   return 0;
 }
+/*----------------------------------------------------------------------------*/
 uint8_t
 edhoc_check_key_list_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **auth_key)
 {
@@ -86,6 +90,7 @@ edhoc_check_key_list_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **auth_key)
   }
   return 0;
 }
+/*----------------------------------------------------------------------------*/
 void
 edhoc_add_key(cose_key_t *key)
 {
@@ -93,11 +98,13 @@ edhoc_add_key(cose_key_t *key)
   list_add(key_list, k);
   memcpy(k, key, sizeof(cose_key_t));
 }
+/*----------------------------------------------------------------------------*/
 void
 edhoc_copy_key(cose_key_t *k, cose_key_t *key)
 {
   memcpy(k, key, sizeof(cose_key_t));
 }
+/*----------------------------------------------------------------------------*/
 uint8_t
 edhoc_remove_key_kid(uint8_t *kid, uint8_t kid_sz)
 {
@@ -108,6 +115,7 @@ edhoc_remove_key_kid(uint8_t *kid, uint8_t kid_sz)
   }
   return 0;
 }
+/*----------------------------------------------------------------------------*/
 uint8_t
 edhoc_remove_key_identity(char *identity, uint8_t identity_sz)
 {
@@ -118,11 +126,13 @@ edhoc_remove_key_identity(char *identity, uint8_t identity_sz)
   }
   return 0;
 }
+/*----------------------------------------------------------------------------*/
 void
 edhoc_remove_key(cose_key_t *auth_key)
 {
   list_remove(key_list, auth_key);
 }
+/*----------------------------------------------------------------------------*/
 void
 cose_print_key(cose_key_t *cose)
 {
@@ -137,3 +147,4 @@ cose_print_key(cose_key_t *cose)
   LOG_DBG("y: ");
   LOG_PRINT_EDHOC_BUFF(cose->ecc.pub.y, ECC_KEY_LEN);
 }
+/*----------------------------------------------------------------------------*/

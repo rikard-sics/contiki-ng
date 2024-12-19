@@ -42,7 +42,7 @@
 #include "edhoc-exporter.h"
 #include "contiki-lib.h"
 
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 void
 print_oscore_ctx(oscore_ctx_t *osc)
 {
@@ -53,7 +53,7 @@ print_oscore_ctx(oscore_ctx_t *osc)
   LOG_PRINT("OSCORE Master Salt (%d bytes): ", OSCORE_SALT_SZ);
   print_buff_8_print(osc->master_salt, OSCORE_SALT_SZ);
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 int8_t
 edhoc_exporter(const uint8_t *in_key, uint8_t exporter_label,
                const uint8_t *context, uint8_t context_sz,
@@ -62,7 +62,7 @@ edhoc_exporter(const uint8_t *in_key, uint8_t exporter_label,
   return edhoc_kdf(in_key, exporter_label, context, context_sz,
                         length, result);
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 /* TODO: May be better to actually store PRK_out & PRK_exporter and
    then use them in edhoc_exporter above */
 int8_t
@@ -111,4 +111,4 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
                       0, OSCORE_SALT_SZ, osc->master_salt);
   return er;
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/

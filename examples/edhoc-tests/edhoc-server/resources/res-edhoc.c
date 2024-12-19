@@ -11,7 +11,7 @@
 #include "coap.h"
 #include "edhoc-server-API.h"
 
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 edhoc_server_t servidor;
 
 static uint8_t msg_rx[EDHOC_MAX_PAYLOAD_LEN];
@@ -27,7 +27,7 @@ RESOURCE(res_edhoc, "title=\"EDHOC resource\"", NULL,
          res_edhoc_post_handler, NULL, NULL);
 static size_t big_msg_len = 0;
 
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 /* Example allows only one request on time. There are no checks for multiple access !!! */
 static void
 res_edhoc_post_handler(coap_message_t *request,
@@ -71,4 +71,4 @@ res_edhoc_post_handler(coap_message_t *request,
     coap_set_payload(response, buffer, preferred_size);
   }
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/

@@ -177,7 +177,7 @@ client_block2_handler(coap_message_t *response, uint8_t *target,
   }
   return 0;
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 static void
 client_response_handler(coap_callback_request_state_t *callback_state)
 {
@@ -237,7 +237,7 @@ client_response_handler(coap_callback_request_state_t *callback_state)
     pro = process_post(PROCESS_BROADCAST, edhoc_event, &edhoc_state);
   }
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 static void
 client_chunk_handler(coap_callback_request_state_t *callback_state)
 {
@@ -263,7 +263,7 @@ client_chunk_handler(coap_callback_request_state_t *callback_state)
   edhoc_state.val = CL_BLOCK1;
   pro = process_post(&edhoc_client, edhoc_event, &edhoc_state);
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 static void
 edhoc_client_post(void)
 {
@@ -274,7 +274,7 @@ edhoc_client_post(void)
   msg_num = 0;
   state.state.block_num = 0;
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 static int
 edhoc_client_post_blocks(void)
 {
@@ -313,7 +313,7 @@ edhoc_client_post_blocks(void)
     return 1;
   }
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 static int
 edhoc_send_msg1(uint8_t *ad, uint8_t ad_sz, bool suite_array)
 {
@@ -328,7 +328,7 @@ edhoc_send_msg1(uint8_t *ad, uint8_t ad_sz, bool suite_array)
   cli->state = RX_MSG2;
   return edhoc_client_post_blocks();
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 PROCESS_THREAD(edhoc_client_protocol, ev, data)
 {
   PROCESS_BEGIN();
@@ -434,7 +434,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
   }
   PROCESS_END();
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 static void
 edhoc_client_init(void)
 {
@@ -449,7 +449,7 @@ edhoc_client_init(void)
   state.state.response = cli->response;
   state.state.remote_endpoint = &cli->server_ep;
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 static int
 edhoc_client_start(uint8_t *ad, uint8_t ad_sz)
 {
@@ -462,7 +462,7 @@ edhoc_client_start(uint8_t *ad, uint8_t ad_sz)
 
   return edhoc_send_msg1(ad, ad_sz, false);
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 static void
 generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x,
                        uint8_t *pub_y, uint8_t *priv)
@@ -505,7 +505,7 @@ generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x,
   LOG_DBG("y: ");
   print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.y, ECC_KEY_LEN);
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 void
 edhoc_client_close(void)
 {
@@ -513,7 +513,7 @@ edhoc_client_close(void)
   client_context_free(cli);
   edhoc_finalize(edhoc_ctx);
 }
-/******************************************************************************/
+/*----------------------------------------------------------------------------*/
 PROCESS_THREAD(edhoc_client, ev, data)
 {
   PROCESS_BEGIN();
