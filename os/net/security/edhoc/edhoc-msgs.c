@@ -42,7 +42,7 @@
 #include <assert.h>
 
 void
-print_msg_1(edhoc_msg_1 *msg)
+print_msg_1(edhoc_msg_1_t *msg)
 {
   LOG_DBG("Type: %d\n", msg->method);
   LOG_DBG("Suite I: ");
@@ -55,13 +55,13 @@ print_msg_1(edhoc_msg_1 *msg)
   print_buff_8_dbg(msg->uad.ead_value, msg->uad.ead_value_sz);
 }
 void
-print_msg_2(edhoc_msg_2 *msg)
+print_msg_2(edhoc_msg_2_t *msg)
 {
   LOG_DBG("gy_ciphertext_2: ");
   print_buff_8_dbg(msg->gy_ciphertext_2, msg->gy_ciphertext_2_sz);
 }
 void
-print_msg_3(edhoc_msg_3 *msg)
+print_msg_3(edhoc_msg_3_t *msg)
 {
   LOG_DBG("CIPHERTEXT_3: ");
   print_buff_8_dbg(msg->ciphertext_3, msg->ciphertext_3_sz);
@@ -228,7 +228,7 @@ edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *s
   }
 }
 size_t
-edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array)
+edhoc_serialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, bool suite_array)
 {
   size_t size = cbor_put_unsigned(&buffer, msg->method);
   size += edhoc_serialize_suites(&buffer, msg->suites_i, msg->suites_i_sz);
@@ -240,7 +240,7 @@ edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array)
   return size;
 }
 size_t
-edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer)
+edhoc_serialize_err(edhoc_msg_error_t *msg, unsigned char *buffer)
 {
   int size = cbor_put_unsigned(&buffer, msg->err_code);
   switch(msg->err_code) {
@@ -261,7 +261,7 @@ edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer)
   return size;
 }
 int8_t
-edhoc_deserialize_err(edhoc_msg_error *msg, unsigned char *buffer, uint8_t buff_sz)
+edhoc_deserialize_err(edhoc_msg_error_t *msg, unsigned char *buffer, uint8_t buff_sz)
 {
   uint8_t *buff_end = buffer + buff_sz;
   if(buffer < buff_end) {
@@ -292,7 +292,7 @@ edhoc_deserialize_err(edhoc_msg_error *msg, unsigned char *buffer, uint8_t buff_
   return 0;
 }
 int8_t
-edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
+edhoc_deserialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, size_t buff_sz)
 {
   /* Get the METHOD */
   uint8_t *p_out = NULL;
@@ -335,7 +335,7 @@ edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz)
   return 1;
 }
 int8_t
-edhoc_deserialize_msg_2(edhoc_msg_2 *msg, unsigned char *buffer, size_t buff_sz)
+edhoc_deserialize_msg_2(edhoc_msg_2_t *msg, unsigned char *buffer, size_t buff_sz)
 {
   msg->gy_ciphertext_2_sz = edhoc_get_bytes(&buffer, &msg->gy_ciphertext_2);
   if(msg->gy_ciphertext_2_sz == 0) {
@@ -345,7 +345,7 @@ edhoc_deserialize_msg_2(edhoc_msg_2 *msg, unsigned char *buffer, size_t buff_sz)
   return 1;
 }
 int8_t
-edhoc_deserialize_msg_3(edhoc_msg_3 *msg, unsigned char *buffer, size_t buff_sz)
+edhoc_deserialize_msg_3(edhoc_msg_3_t *msg, unsigned char *buffer, size_t buff_sz)
 {
   msg->ciphertext_3_sz = edhoc_get_bytes(&buffer, &msg->ciphertext_3);
   if(msg->ciphertext_3_sz == 0) {

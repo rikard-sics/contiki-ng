@@ -859,13 +859,13 @@ void
 edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_array)
 {
   /* Generate message 1 */
-  edhoc_msg_1 msg1 = {
+  edhoc_msg_1_t msg1 = {
     .method = ctx->config.method,
     .suites_i = ctx->config.suite,
     .suites_i_sz = ctx->config.suite_num,
     .g_x = (uint8_t *)&ctx->creds.ephemeral_key.pub.x,
     .c_i = (uint8_t *)&ctx->state.cid,
-    .uad = (ead_data){ .ead_label = 0, .ead_value = ad, .ead_value_sz = ad_sz },
+    .uad = { .ead_label = 0, .ead_value = ad, .ead_value_sz = ad_sz },
   };
 
   /* CBOR encode message in the buffer */
@@ -1113,7 +1113,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 uint8_t
 edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t err)
 {
-  edhoc_msg_error msg;
+  edhoc_msg_error_t msg;
   msg.err_code = 1;
   switch(err * (-1)) {
   default:

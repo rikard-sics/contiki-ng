@@ -74,7 +74,7 @@ static rtimer_clock_t time;
 static rtimer_clock_t time_total;
 static uint8_t attempt = 0;
 static int er = 0;
-static edhoc_msg_2 msg2;
+static edhoc_msg_2_t msg2;
 
 PROCESS(edhoc_client, "EDHOC Client");
 PROCESS(edhoc_client_protocol, "EDHOC Client Protocol");
@@ -400,7 +400,7 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
   case RX_RESPONSE_MSG3:
     if(edhoc_ctx->buffers.rx_sz > 0) {
       uint8_t *msg_err = edhoc_ctx->buffers.msg_rx;
-      edhoc_msg_error err;
+      edhoc_msg_error_t err;
       er = edhoc_deserialize_err(&err, msg_err, edhoc_ctx->buffers.rx_sz);
       if(er > 0) {
         LOG_ERR("RX error code %d, MSG_ERR", err.err_code);

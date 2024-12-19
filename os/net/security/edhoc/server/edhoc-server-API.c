@@ -63,7 +63,7 @@ static ecc_data_event_t new_ecc;
 static coap_message_t *request;
 static coap_message_t *response;
 static int er = 0;
-static edhoc_msg_3 msg3;
+static edhoc_msg_3_t msg3;
 PROCESS(edhoc_server, "EDHOC Server");
 
 #if EDHOC_TEST == EDHOC_TEST_VECTOR_TRACE_DH

@@ -171,7 +171,7 @@ edhoc_check_err_rx_msg(uint8_t *payload, uint8_t payload_sz)
 {
   /* Check if the rx msg is an msg_err */
   uint8_t *msg_err = payload;
-  edhoc_msg_error err;
+  edhoc_msg_error_t err;
   int8_t msg_err_sz = 0;
 
   msg_err_sz = edhoc_deserialize_err(&err, msg_err, payload_sz);
@@ -194,7 +194,7 @@ edhoc_check_err_rx_msg_2(uint8_t *payload, uint8_t payload_sz,
 {
   /* Check if the rx msg is an msg_err */
   uint8_t *msg_err = payload;
-  edhoc_msg_error err = { 0 };
+  edhoc_msg_error_t err = { 0 };
 
   int8_t msg_err_sz = edhoc_deserialize_err(&err, msg_err, payload_sz);
   if(msg_err_sz < 0) {
@@ -209,7 +209,7 @@ int
 edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload,
                     size_t payload_sz, uint8_t *ad)
 {
-  edhoc_msg_1 msg1 = { 0 };
+  edhoc_msg_1_t msg1 = { 0 };
   int er = 0;
 
   /* Decode MSG1 */
@@ -269,7 +269,7 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload,
 }
 /*----------------------------------------------------------------------------*/
 int
-edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx,
+edhoc_handler_msg_2(edhoc_msg_2_t *msg2, edhoc_context_t *ctx,
                     uint8_t *payload, size_t payload_sz)
 {
   int er = 0;
@@ -322,7 +322,7 @@ edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx,
 }
 /*----------------------------------------------------------------------------*/
 int
-edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx,
+edhoc_handler_msg_3(edhoc_msg_3_t *msg3, edhoc_context_t *ctx,
                     uint8_t *payload, size_t payload_sz)
 {
   /* Decode MSG3 */

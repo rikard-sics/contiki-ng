@@ -288,7 +288,7 @@ int edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload, size_t payload_s
  *
  * If any verification step fails to return an EDHOC ERROR code and, if all the steps success return 1.
  */
-int edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz);
+int edhoc_handler_msg_2(edhoc_msg_2_t *msg2, edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz);
 
 /**
  * \brief Handle the EDHOC Message 3 received
@@ -305,7 +305,7 @@ int edhoc_handler_msg_2(edhoc_msg_2 *msg2, edhoc_context_t *ctx, uint8_t *buffer
  *
  * If any verification step fails to return an EDHOC ERROR code and,if all the steps success return 1.
  */
-int edhoc_handler_msg_3(edhoc_msg_3 *msg3, edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz);
+int edhoc_handler_msg_3(edhoc_msg_3_t *msg3, edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz);
 
 /**
  * \brief EDHOC Key Derivation Function (KDF) based on HMAC-based Expand (RFC 5869)

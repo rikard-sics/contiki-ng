@@ -63,11 +63,11 @@
 #define ERR_NEW_SUITE_PROPOSE -14
 #define ERR_RESEND_MSG_1 -15
 
-typedef struct ead_data {
+typedef struct edhoc_ead_data {
   uint8_t ead_label;
   uint8_t *ead_value;
   size_t ead_value_sz;
-} ead_data;
+} edhoc_ead_data_t;
 
 typedef struct edhoc_msg_1 {
   uint8_t method;
@@ -75,38 +75,38 @@ typedef struct edhoc_msg_1 {
   size_t suites_i_sz;
   uint8_t *g_x;
   uint8_t *c_i;
-  ead_data uad;
-} edhoc_msg_1;
+  edhoc_ead_data_t uad;
+} edhoc_msg_1_t;
 
 typedef struct edhoc_msg_2 {
   uint8_t *gy_ciphertext_2;
   size_t gy_ciphertext_2_sz;
-} edhoc_msg_2;
+} edhoc_msg_2_t;
 
 typedef struct edhoc_msg_3 {
   uint8_t *ciphertext_3;
   size_t ciphertext_3_sz;
-} edhoc_msg_3;
+} edhoc_msg_3_t;
 
 typedef struct edhoc_msg_error {
   uint8_t err_code;
   char *err_info;
   size_t err_info_sz;
-} edhoc_msg_error;
+} edhoc_msg_error_t;
 
-void print_msg_1(edhoc_msg_1 *msg);
-void print_msg_2(edhoc_msg_2 *msg);
-void print_msg_3(edhoc_msg_3 *msg);
+void print_msg_1(edhoc_msg_1_t *msg);
+void print_msg_2(edhoc_msg_2_t *msg);
+void print_msg_3(edhoc_msg_3_t *msg);
 
 size_t edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t suites_sz);
 
-size_t edhoc_serialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, bool suite_array);
-size_t edhoc_serialize_err(edhoc_msg_error *msg, unsigned char *buffer);
+size_t edhoc_serialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, bool suite_array);
+size_t edhoc_serialize_err(edhoc_msg_error_t *msg, unsigned char *buffer);
 
-int8_t edhoc_deserialize_msg_1(edhoc_msg_1 *msg, unsigned char *buffer, size_t buff_sz);
-int8_t edhoc_deserialize_msg_2(edhoc_msg_2 *msg, unsigned char *buffer, size_t buff_sz);
-int8_t edhoc_deserialize_msg_3(edhoc_msg_3 *msg, unsigned char *buffer, size_t buff_sz);
-int8_t edhoc_deserialize_err(edhoc_msg_error *msg, unsigned char *buffer, uint8_t buff_sz);
+int8_t edhoc_deserialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, size_t buff_sz);
+int8_t edhoc_deserialize_msg_2(edhoc_msg_2_t *msg, unsigned char *buffer, size_t buff_sz);
+int8_t edhoc_deserialize_msg_3(edhoc_msg_3_t *msg, unsigned char *buffer, size_t buff_sz);
+int8_t edhoc_deserialize_err(edhoc_msg_error_t *msg, unsigned char *buffer, uint8_t buff_sz);
 int8_t edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *id_cred_x, cose_key_t *key);
 uint8_t edhoc_get_auth_key_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key);
 uint8_t edhoc_get_sign(uint8_t **p, uint8_t **sign);
