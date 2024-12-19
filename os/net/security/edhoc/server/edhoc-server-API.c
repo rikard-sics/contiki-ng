@@ -169,9 +169,7 @@ edhoc_server_restart(void)
   serv->rx_msg1 = false;
   serv->rx_msg3 = false;
   serv->state = NON_MSG;
-  assert(&server != NULL);
-  /*memset(&server, 0, sizeof(edhoc_server_t)); */
-  setup_suites(edhoc_ctx);
+  edhoc_setup_suites(edhoc_ctx);
   return edhoc_initialize_context(edhoc_ctx);
 }
 /*----------------------------------------------------------------------------*/
@@ -180,8 +178,6 @@ edhoc_server_start(void)
 {
   LOG_INFO("SERVER: EDHOC new\n");
   edhoc_ctx = edhoc_new();
-  assert(&server != NULL);
-  /*memset(&server, 0, sizeof(edhoc_server_t)); */
   serv = &server;
   return edhoc_server_restart();
 }

@@ -81,7 +81,7 @@ edhoc_finalize(edhoc_context_t *ctx)
 }
 /*----------------------------------------------------------------------------*/
 void
-setup_suites(edhoc_context_t *ctx)
+edhoc_setup_suites(edhoc_context_t *ctx)
 {
   /* Reverse order for the suite values */
   ctx->config.suite_num = 0;
@@ -800,7 +800,7 @@ edhoc_initialize_context(edhoc_context_t *ctx)
   ctx->creds.authen_key = key;
 
   /* Set up the cipher suites selection logic */
-  setup_suites(ctx);
+  edhoc_setup_suites(ctx);
 
   /* Set CID */
   ctx->state.cid = EDHOC_CID;
@@ -1315,4 +1315,3 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   return ad_sz;
 }
 /*----------------------------------------------------------------------------*/
-
