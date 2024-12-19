@@ -49,15 +49,14 @@
  *
  **/
 
-#ifndef _EDHOC_H_
-#define _EDHOC_H_
+#ifndef EDHOC_H_
+#define EDHOC_H_
 
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
 #include "edhoc-config.h"
 #include "ecdh.h"
 #include "edhoc-msgs.h"
+#include <stdint.h>
+#include <string.h>
 
 /* EDHOC_KDF label values */
 #define KEYSTREAM_2_LABEL    0
@@ -373,27 +372,5 @@ int16_t edhoc_enc_dec_ciphertext_2(const edhoc_context_t *ctx,
                                    const uint8_t *ks_2e,
                                    uint8_t *plaintext, uint16_t plaintext_sz);
 
-/*----------------------------------------------------------------------------*/
-
-
-/* static int16_t get_rx_suite_I(const edhoc_context_t *ctx, uint8_t *suite_rx); */
-/* static int8_t check_rx_suite_I(edhoc_context_t *ctx, uint8_t *suiterx); */
-/* static size_t generate_cred_x(cose_key_t *cose, uint8_t *cred); */
-/* static size_t generate_id_cred_x(cose_key_t *cose, uint8_t *cred); */
-/* static size_t generate_info(uint8_t *info, uint8_t *th, uint8_t th_sz, uint8_t length, uint8_t value); */
-/* static size_t reconstruct_id_cred_x(uint8_t *cred_in, size_t cred_in_sz); */
-/* static uint16_t check_mac_dh(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *cipher, uint16_t cipher_sz, uint8_t *mac); */
-/* static uint16_t decrypt_ciphertext_3(edhoc_context_t *ctx, uint8_t *ciphertext, uint16_t ciphertext_sz, uint8_t *plaintext); */
-/* static uint16_t gen_ciphertext_3(edhoc_context_t *ctx, uint8_t *ad, uint16_t ad_sz, uint8_t *mac, uint16_t mac_sz, uint8_t *ciphertext); */
-/* static uint16_t gen_plaintext(uint8_t *buffer, edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool msg2); */
-/* static uint8_t gen_gxy(edhoc_context_t *ctx); */
-/* static uint8_t gen_prk_3e2m(edhoc_context_t *ctx, ecc_key_t *key_authenticate, uint8_t gen); */
-/* static uint8_t gen_prk_4e3m(edhoc_context_t *ctx, ecc_key_t *key_authenticate, uint8_t gen); */
-/* static uint8_t gen_th4(edhoc_context_t *ctx, uint8_t *data, uint16_t data_sz, uint8_t *ciphertext, uint16_t ciphertext_sz); */
-/* static void gen_ciphertext_2(edhoc_context_t *ctx, uint8_t *plaintext, uint16_t plaintext_sz); */
-/* static void print_connection(edhoc_session *con); */
-/* static void set_rx_msg(edhoc_context_t *ctx, uint8_t *msg, uint8_t msg_sz); */
-/* static retrieve_cred_i(edhoc_context_t *ctx, uint8_t *inf, uint8_t *cred_i); */
-
-#endif /* _EDHOC_H_ */
+#endif /* EDHOC_H_ */
 /** @} */
