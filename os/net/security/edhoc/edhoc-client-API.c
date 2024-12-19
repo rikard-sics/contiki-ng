@@ -156,7 +156,7 @@ client_context_free(edhoc_client_t *ctx)
 
 static int
 client_block2_handler(coap_message_t *response, uint8_t *target,
-		      size_t *len, size_t max_len)
+                      size_t *len, size_t max_len)
 {
   const uint8_t *payload = 0;
   int pay_len = coap_get_payload(response, &payload);
