@@ -37,6 +37,7 @@
  */
 
 #include "edhoc-server-API.h"
+#include "edhoc-msg-generators.h"
 #include "edhoc-msg-handlers.h"
 #include "sys/pt.h"
 #include "sys/rtimer.h"

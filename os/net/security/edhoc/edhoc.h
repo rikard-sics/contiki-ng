@@ -313,11 +313,22 @@ int8_t edhoc_gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub,
 uint8_t edhoc_gen_th3(edhoc_context_t *ctx,
                       const uint8_t *cred, uint16_t cred_sz,
                       const uint8_t *plaintext, uint16_t plaintext_sz);
+uint8_t edhoc_gen_th4(edhoc_context_t *ctx,
+		      const uint8_t *cred, uint16_t cred_sz,
+		      const uint8_t *plaintext, uint16_t plaintext_sz);
 bool edhoc_gen_prk_2e(edhoc_context_t *ctx);
+bool edhoc_gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key_t *auth_key,
+			uint8_t gen);
+bool edhoc_gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key,
+			uint8_t gen);
 int16_t edhoc_gen_ks_2e(edhoc_context_t *ctx, uint16_t length, uint8_t *ks_2e);
 int16_t edhoc_enc_dec_ciphertext_2(const edhoc_context_t *ctx,
                                    const uint8_t *ks_2e,
                                    uint8_t *plaintext, uint16_t plaintext_sz);
+size_t edhoc_generate_cred_x(cose_key_t *cose, uint8_t *cred);
+size_t edhoc_generate_id_cred_x(cose_key_t *cose, uint8_t *cred);
+uint8_t edhoc_calc_mac(const edhoc_context_t *ctx, uint8_t mac_num,
+		       uint8_t mac_len, uint8_t *mac);
 
 #endif /* EDHOC_H_ */
 /** @} */

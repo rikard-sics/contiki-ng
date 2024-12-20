@@ -37,6 +37,7 @@
  */
 
 #include "edhoc-client-API.h"
+#include "edhoc-msg-generators.h"
 #include "edhoc-msg-handlers.h"
 #include "lib/memb.h"
 #include "contiki-lib.h"
