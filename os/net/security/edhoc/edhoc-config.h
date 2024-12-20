@@ -99,9 +99,9 @@
  * \brief Buffer size for mac_or_sig
  */
 #if EDHOC_METHOD == EDHOC_METHOD3
-#define MAC_OR_SIG_BUF_LEN EDHOC_MAX_MAC_LEN
+#define EDHOC_MAC_OR_SIG_BUF_LEN EDHOC_MAX_MAC_LEN
 #else
-#define MAC_OR_SIG_BUF_LEN P256_SIGNATURE_LEN
+#define EDHOC_MAC_OR_SIG_BUF_LEN P256_SIGNATURE_LEN
 #endif
 
 /**

@@ -932,7 +932,7 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   memcpy(ctx->state.prk_3e2m, ctx->state.prk_2e, HASH_LEN);
 
   /* Derive MAC with HASH_LEN size (buf fits later signature) */
-  uint8_t mac_or_sig[MAC_OR_SIG_BUF_LEN];
+  uint8_t mac_or_sig[EDHOC_MAC_OR_SIG_BUF_LEN];
   gen_mac(ctx, HASH_LEN, mac_or_sig);
   LOG_DBG("MAC_2 (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(mac_or_sig, HASH_LEN);
@@ -967,10 +967,11 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   cose_sign1_finalize(cose_sign1);
 
-  LOG_DBG("Signature from COSE_Sign1 (%d bytes): ", MAC_OR_SIG_BUF_LEN);
-  print_buff_8_dbg(cose_sign1->signature, MAC_OR_SIG_BUF_LEN);
+  LOG_DBG("Signature from COSE_Sign1 (%d bytes): ",
+          EDHOC_MAC_OR_SIG_BUF_LEN);
+  print_buff_8_dbg(cose_sign1->signature, EDHOC_MAC_OR_SIG_BUF_LEN);
 
-  mac_or_signature_sz = MAC_OR_SIG_BUF_LEN;
+  mac_or_signature_sz = EDHOC_MAC_OR_SIG_BUF_LEN;
   memcpy(mac_or_sig, cose_sign1->signature, cose_sign1->signature_sz);
 #endif
 
@@ -1056,7 +1057,7 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   memcpy(ctx->state.prk_4e3m, ctx->state.prk_3e2m, HASH_LEN);
 
   /* Derive MAC with HASH_LEN size (buf fits later signature) */
-  uint8_t mac_or_sig[MAC_OR_SIG_BUF_LEN];
+  uint8_t mac_or_sig[EDHOC_MAC_OR_SIG_BUF_LEN];
   gen_mac(ctx, HASH_LEN, mac_or_sig);
   LOG_DBG("MAC_3 (%d bytes): ", HASH_LEN);
   print_buff_8_dbg(mac_or_sig, HASH_LEN);
@@ -1091,10 +1092,11 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   cose_sign1_finalize(cose_sign1);
 
-  LOG_DBG("Signature from COSE_Sign1 (%d bytes): ", MAC_OR_SIG_BUF_LEN);
-  print_buff_8_dbg(cose_sign1->signature, MAC_OR_SIG_BUF_LEN);
+  LOG_DBG("Signature from COSE_Sign1 (%d bytes): ",
+          EDHOC_MAC_OR_SIG_BUF_LEN);
+  print_buff_8_dbg(cose_sign1->signature, EDHOC_MAC_OR_SIG_BUF_LEN);
 
-  mac_or_signature_sz = MAC_OR_SIG_BUF_LEN;
+  mac_or_signature_sz = EDHOC_MAC_OR_SIG_BUF_LEN;
   memcpy(mac_or_sig, cose_sign1->signature, cose_sign1->signature_sz);
 #endif
 
