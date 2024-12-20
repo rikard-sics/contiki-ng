@@ -128,7 +128,7 @@ check_rx_suite_i(edhoc_context_t *ctx,
       LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
 
       /* Responder sets config to use based on selected suite */
-      int8_t er = set_config_from_suite(ctx, ctx->state.suite_selected);
+      int8_t er = edhoc_set_config_from_suite(ctx, ctx->state.suite_selected);
       if(er != 1) {
         LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
         return ERR_NEW_SUITE_PROPOSE;

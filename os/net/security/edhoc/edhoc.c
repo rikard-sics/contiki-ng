@@ -179,7 +179,7 @@ get_edhoc_sign_alg(uint8_t ciphersuite_id)
 }
 /*----------------------------------------------------------------------------*/
 int8_t
-set_config_from_suite(edhoc_context_t *ctx, uint8_t suite)
+edhoc_set_config_from_suite(edhoc_context_t *ctx, uint8_t suite)
 {
   if((ctx->config.ecdh_curve = get_edhoc_curve(suite)) == 0) {
     return 0;
@@ -811,7 +811,7 @@ edhoc_initialize_context(edhoc_context_t *ctx)
   ctx->config.method = EDHOC_METHOD;
 
   /* Initiator sets config to use based on selected suite */
-  int8_t er = set_config_from_suite(ctx, ctx->state.suite_selected);
+  int8_t er = edhoc_set_config_from_suite(ctx, ctx->state.suite_selected);
   if(er != 1) {
     return 0;
   }
