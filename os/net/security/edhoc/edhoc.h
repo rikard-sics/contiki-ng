@@ -304,6 +304,9 @@ int16_t edhoc_kdf(const uint8_t *prk, uint8_t info_label, const uint8_t *context
  */
 int16_t edhoc_expand(const uint8_t *prk, const uint8_t *info, uint16_t info_sz, uint16_t length, uint8_t *result);
 
+/**
+ * Internal API functions.
+ */
 uint8_t edhoc_initialize_context(edhoc_context_t *ctx);
 uint8_t edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key);
 int8_t edhoc_set_config_from_suite(edhoc_context_t *ctx, uint8_t suite);
