@@ -1,4 +1,4 @@
-CONTIKI_PROJECT = edhoc-tests-cooja.csc
+CONTIKI_PROJECT = edhoc-demo.csc
 all: $(CONTIKI_PROJECT)
 
 EDHOC_TARGETS := edhoc-client edhoc-server
