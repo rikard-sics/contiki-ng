@@ -175,6 +175,19 @@ log_bytes(const void *data, size_t length)
 }
 /*---------------------------------------------------------------------------*/
 void
+log_string(const char *text, size_t len)
+{
+  if(text == NULL) {
+    LOG_OUTPUT("(NULL STR)");
+    return;
+  }
+
+  for(int i = 0; i < len && *text != '\0'; i++, text++) {
+    LOG_OUTPUT("%c", *text);
+  }
+}
+/*---------------------------------------------------------------------------*/
+void
 log_set_level(const char *module, int level)
 {
   if(level >= LOG_LEVEL_NONE && level <= LOG_LEVEL_DBG) {
