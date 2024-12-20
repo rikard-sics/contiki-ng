@@ -256,58 +256,6 @@ uint8_t edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t 
 int edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2);
 
 /**
- * \brief Handle the EDHOC Message 1 received
- * \param ctx EDHOC Context struct
- * \param buffer A pointer to the buffer containing the EDHOC message received
- * \param buff_sz Size of the EDHOC message received
- * \param ad A pointer to a buffer to copy the Application Data received in Message 1
- * \retval negative number (EDHOC ERROR CODES) when an EDHOC ERROR is detected
- * \retval ad_sz The length of the Application Data received in Message 1, when EDHOC success
- *
- * Used by Responder EDHOC role to process the Message 1 received
- * - Decode the message 1
- * - Verify that cipher suite
- * - Pass Application data AD_1
- * - If any verification step fails to return an EDHOC ERROR code and, if all the steps success
- * - the length of the Application Data receive on the Message 1 is returned.
- */
-int edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload, size_t payload_sz, uint8_t *ad);
-
-/**
- * \brief Handle the EDHOC Message 2 received
- * \param msg2 A pointer to the buffer containing the received EDHOC message 2
- * \param ctx EDHOC Context struct
- * \param buffer A pointer to the buffer containing the EDHOC message received
- * \param buff_sz Size of the EDHOC message received
- * \retval ERR_CODE when an EDHOC ERROR is detected return a negative number corresponding to the specific error code
- * \retval 1 when EDHOC decode and verify success
- *
- * Used by Initiator EDHOC role to process the Message 2 received
- * - Decode the message 2
- * - Verify the other peer through 5-tuple and/or connection identifier C_I
- *
- * If any verification step fails to return an EDHOC ERROR code and, if all the steps success return 1.
- */
-int edhoc_handler_msg_2(edhoc_msg_2_t *msg2, edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz);
-
-/**
- * \brief Handle the EDHOC Message 3 received
- * \param msg3 A pointer to the buffer containing the received EDHOC message 3
- * \param ctx EDHOC Context struct
- * \param buffer A pointer to the buffer containing the EDHOC message received
- * \param buff_sz Size of the EDHOC message received
- * \retval negative number (EDHOC ERROR CODE) when an EDHOC ERROR is detected
- * \retval 1 when EDHOC decode and verify success
- *
- * Used by Responder EDHOC role to process the Message 3 receive
- * - Decode the message 3
- * - Verify the other peer through 5-tuple and/or connection identifier C_R
- *
- * If any verification step fails to return an EDHOC ERROR code and,if all the steps success return 1.
- */
-int edhoc_handler_msg_3(edhoc_msg_3_t *msg3, edhoc_context_t *ctx, uint8_t *buffer, size_t buff_sz);
-
-/**
  * \brief EDHOC Key Derivation Function (KDF) based on HMAC-based Expand (RFC 5869)
  * \param result OKM (Output Keying Material) - the buffer where the derived key will be stored.
  * \param key PRK (Pseudorandom Key) - a pseudorandom key used as input to the key derivation, should be at least `HASH_LEN` bits.

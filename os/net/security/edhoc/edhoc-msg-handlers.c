@@ -41,8 +41,7 @@
 
 #include <assert.h>
 
-#include "edhoc.h"
-#include "edhoc-msgs.h"
+#include "edhoc-msg-handlers.h"
 #include "cose.h"
 
 /*----------------------------------------------------------------------------*/
