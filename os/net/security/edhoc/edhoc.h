@@ -304,10 +304,6 @@ int16_t edhoc_expand(const uint8_t *prk, const uint8_t *info, uint16_t info_sz, 
 uint8_t edhoc_initialize_context(edhoc_context_t *ctx);
 uint8_t edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key);
 int8_t set_config_from_suite(edhoc_context_t *ctx, uint8_t suite);
-int8_t get_edhoc_curve(uint8_t ciphersuite_id);
-int8_t get_edhoc_mac_len(uint8_t ciphersuite_id);
-int8_t get_edhoc_aead_enc_alg(uint8_t ciphersuite_id);
-int8_t get_edhoc_sign_alg(uint8_t ciphersuite_id);
 void edhoc_print_session_info(const edhoc_context_t *ctx);
 int8_t edhoc_gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub,
                      uint8_t *msg, uint16_t msg_sz);

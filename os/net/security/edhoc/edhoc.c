@@ -109,6 +109,75 @@ edhoc_setup_suites(edhoc_context_t *ctx)
   }
 }
 /*----------------------------------------------------------------------------*/
+static int8_t
+get_edhoc_mac_len(uint8_t ciphersuite_id)
+{
+  switch(ciphersuite_id) {
+  case EDHOC_CIPHERSUITE_1:
+  case EDHOC_CIPHERSUITE_3:
+  case EDHOC_CIPHERSUITE_4:
+  case EDHOC_CIPHERSUITE_5:
+  case EDHOC_CIPHERSUITE_6:
+  case EDHOC_CIPHERSUITE_24:
+  case EDHOC_CIPHERSUITE_25:
+    return EDHOC_MAC_LEN_16;
+  case EDHOC_CIPHERSUITE_0:
+  case EDHOC_CIPHERSUITE_2:
+    return EDHOC_MAC_LEN_8;
+  default:
+    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC MAC length (%d)\n",
+            ERR_SUITE_NON_SUPPORT);
+    return 0;
+  }
+}
+/*----------------------------------------------------------------------------*/
+static int8_t
+get_edhoc_aead_enc_alg(uint8_t ciphersuite_id)
+{
+  switch(ciphersuite_id) {
+  case EDHOC_CIPHERSUITE_1:
+  case EDHOC_CIPHERSUITE_3:
+    return COSE_ALG_AES_CCM_16_128_128;
+  case EDHOC_CIPHERSUITE_0:
+  case EDHOC_CIPHERSUITE_2:
+    return COSE_ALG_AES_CCM_16_64_128;
+  default:
+    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving COSE encryption algorithm (%d)\n",
+            ERR_SUITE_NON_SUPPORT);
+    return 0;
+  }
+}
+/*----------------------------------------------------------------------------*/
+static int8_t
+get_edhoc_curve(uint8_t ciphersuite_id)
+{
+  switch(ciphersuite_id) {
+  case EDHOC_CIPHERSUITE_2:
+  case EDHOC_CIPHERSUITE_3:
+  case EDHOC_CIPHERSUITE_5:
+    return EDHOC_CURVE_P256;
+  default:
+    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC curve (%d)\n", ERR_SUITE_NON_SUPPORT);
+    return 0;
+  }
+}
+/*----------------------------------------------------------------------------*/
+static int8_t
+get_edhoc_sign_alg(uint8_t ciphersuite_id)
+{
+  switch(ciphersuite_id) {
+  case EDHOC_CIPHERSUITE_2:
+  case EDHOC_CIPHERSUITE_3:
+  case EDHOC_CIPHERSUITE_5:
+  case EDHOC_CIPHERSUITE_6:
+    return ES256;
+  default:
+    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC curve (%d)\n",
+            ERR_SUITE_NON_SUPPORT);
+    return 0;
+  }
+}
+/*----------------------------------------------------------------------------*/
 int8_t
 set_config_from_suite(edhoc_context_t *ctx, uint8_t suite)
 {
@@ -397,75 +466,6 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num,
   }
 
   return 1;
-}
-/*----------------------------------------------------------------------------*/
-int8_t
-get_edhoc_mac_len(uint8_t ciphersuite_id)
-{
-  switch(ciphersuite_id) {
-  case EDHOC_CIPHERSUITE_1:
-  case EDHOC_CIPHERSUITE_3:
-  case EDHOC_CIPHERSUITE_4:
-  case EDHOC_CIPHERSUITE_5:
-  case EDHOC_CIPHERSUITE_6:
-  case EDHOC_CIPHERSUITE_24:
-  case EDHOC_CIPHERSUITE_25:
-    return EDHOC_MAC_LEN_16;
-  case EDHOC_CIPHERSUITE_0:
-  case EDHOC_CIPHERSUITE_2:
-    return EDHOC_MAC_LEN_8;
-  default:
-    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC MAC length (%d)\n",
-            ERR_SUITE_NON_SUPPORT);
-    return 0;
-  }
-}
-/*----------------------------------------------------------------------------*/
-int8_t
-get_edhoc_aead_enc_alg(uint8_t ciphersuite_id)
-{
-  switch(ciphersuite_id) {
-  case EDHOC_CIPHERSUITE_1:
-  case EDHOC_CIPHERSUITE_3:
-    return COSE_ALG_AES_CCM_16_128_128;
-  case EDHOC_CIPHERSUITE_0:
-  case EDHOC_CIPHERSUITE_2:
-    return COSE_ALG_AES_CCM_16_64_128;
-  default:
-    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving COSE encryption algorithm (%d)\n",
-            ERR_SUITE_NON_SUPPORT);
-    return 0;
-  }
-}
-/*----------------------------------------------------------------------------*/
-int8_t
-get_edhoc_curve(uint8_t ciphersuite_id)
-{
-  switch(ciphersuite_id) {
-  case EDHOC_CIPHERSUITE_2:
-  case EDHOC_CIPHERSUITE_3:
-  case EDHOC_CIPHERSUITE_5:
-    return EDHOC_CURVE_P256;
-  default:
-    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC curve (%d)\n", ERR_SUITE_NON_SUPPORT);
-    return 0;
-  }
-}
-/*----------------------------------------------------------------------------*/
-int8_t
-get_edhoc_sign_alg(uint8_t ciphersuite_id)
-{
-  switch(ciphersuite_id) {
-  case EDHOC_CIPHERSUITE_2:
-  case EDHOC_CIPHERSUITE_3:
-  case EDHOC_CIPHERSUITE_5:
-  case EDHOC_CIPHERSUITE_6:
-    return ES256;
-  default:
-    LOG_ERR("Invalid EDHOC cipher suite specified when retrieving EDHOC curve (%d)\n",
-            ERR_SUITE_NON_SUPPORT);
-    return 0;
-  }
 }
 /*----------------------------------------------------------------------------*/
 static uint8_t
