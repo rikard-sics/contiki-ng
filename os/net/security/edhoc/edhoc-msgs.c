@@ -38,7 +38,7 @@
  */
 #include "contiki-lib.h"
 #include "edhoc-msgs.h"
-#include "lib/random.h"
+#include "cbor.h"
 #include <assert.h>
 
 void
@@ -196,7 +196,7 @@ edhoc_get_byte_identifier(uint8_t **in)
   /* int out_sz = cbor_get_bytes(in, out); */
   return 0;
 }
-size_t
+static size_t
 edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t suites_sz)
 {
   if(suites_sz == 1) {
@@ -208,7 +208,7 @@ edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t sui
   }
   return size;
 }
-void
+static void
 edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *suites_sz)
 {
   *suites_buf = (uint8_t *)*buffer;

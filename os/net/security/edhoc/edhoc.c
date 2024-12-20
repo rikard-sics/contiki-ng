@@ -45,6 +45,7 @@
 #include "edhoc-config.h"
 #include "edhoc-msgs.h"
 #include "cose.h"
+#include "cbor.h"
 #include <assert.h>
 
 #if HASH_LEN != SHA_256_DIGEST_LENGTH

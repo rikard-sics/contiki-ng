@@ -50,8 +50,6 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "edhoc-config.h"
-#include "cbor.h"
-#include "uECC.h"
 
 /* COSE Algorithm parameters AES-CCM-16-64-128 */
 #define COSE_ALG_AES_CCM_16_64_128 10

@@ -41,8 +41,10 @@
 #include "lib/ccm-star.h"
 #include "lib/sha-256.h"
 #include "cose.h"
-#include <string.h>
+#include "cbor.h"
+#include "uECC.h"
 #include "cose-log.h"
+#include <string.h>
 
 MEMB(encrypt0_storage, cose_encrypt0, 1);
 MEMB(sign1_storage, cose_sign1, 1);

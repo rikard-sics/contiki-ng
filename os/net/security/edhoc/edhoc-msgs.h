@@ -41,7 +41,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "cbor.h"
 #include "edhoc-log.h"
 #include "edhoc-key-storage.h"
 #include "edhoc-config.h"
@@ -98,8 +97,6 @@ void print_msg_1(edhoc_msg_1_t *msg);
 void print_msg_2(edhoc_msg_2_t *msg);
 void print_msg_3(edhoc_msg_3_t *msg);
 
-size_t edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t suites_sz);
-
 size_t edhoc_serialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, bool suite_array);
 size_t edhoc_serialize_err(edhoc_msg_error_t *msg, unsigned char *buffer);
 
@@ -118,12 +115,6 @@ size_t edhoc_get_bytes(uint8_t **in, uint8_t **out);
 int16_t edhoc_get_unsigned(uint8_t **in);
 uint8_t edhoc_get_array_num(uint8_t **in);
 
-void edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *suites_sz);
-
 int edhoc_put_byte_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len);
-
-/* static int16_t get_text(uint8_t **in, char **out); */
-/* static int64_t get_negative(uint8_t **in); */
-/* static uint8_t get_byte(uint8_t **in); */
 
 #endif
