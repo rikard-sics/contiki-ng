@@ -71,6 +71,9 @@
 #define IV_4_LABEL           9
 #define PRK_EXPORTER_LABEL   10
 
+#define EDHOC_MAC_2 2
+#define EDHOC_MAC_3 3
+
 typedef struct edhoc_config {
   uint8_t role;
   uint8_t method;

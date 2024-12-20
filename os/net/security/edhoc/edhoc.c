@@ -52,9 +52,6 @@
 #error Only SHA256 supported. Please update HASH_LEN.
 #endif /* HASH_LEN != SHA_256_DIGEST_LENGTH */
 
-#define MAC_2 2
-#define MAC_3 3
-
 edhoc_context_t *edhoc_ctx;
 
 MEMB(edhoc_context_storage, edhoc_context_t, 1);
@@ -402,7 +399,7 @@ static uint8_t
 calc_mac(const edhoc_context_t *ctx, uint8_t mac_num,
          uint8_t mac_len, uint8_t *mac)
 {
-  if(mac_num == MAC_2) {
+  if(mac_num == EDHOC_MAC_2) {
     /* Build context_2 */
     size_t context_2_buf_sz = EDHOC_CID_LEN + ctx->buffers.id_cred_x_sz +
       cbor_bytestr_size(HASH_LEN) + ctx->buffers.cred_x_sz;
@@ -435,7 +432,7 @@ calc_mac(const edhoc_context_t *ctx, uint8_t mac_num,
       LOG_ERR("Failed to expand MAC_2\n");
       return 0;
     }
-  } else if(mac_num == MAC_3) {
+  } else if(mac_num == EDHOC_MAC_3) {
     /* Build context_3 */
     size_t context_3_buf_sz = ctx->buffers.id_cred_x_sz +
       cbor_bytestr_size(HASH_LEN) + ctx->buffers.cred_x_sz;
@@ -473,9 +470,9 @@ gen_mac(const edhoc_context_t *ctx, uint8_t mac_len, uint8_t *mac)
 {
   uint8_t mac_num;
   if(EDHOC_ROLE == EDHOC_INITIATOR) {
-    mac_num = MAC_3;
+    mac_num = EDHOC_MAC_3;
   } else if(EDHOC_ROLE == EDHOC_RESPONDER) {
-    mac_num = MAC_2;
+    mac_num = EDHOC_MAC_2;
   }
 
   if(!calc_mac(ctx, mac_num, mac_len, mac)) {
@@ -493,9 +490,9 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac,
 {
   uint8_t mac_num;
   if(EDHOC_ROLE == EDHOC_INITIATOR) {
-    mac_num = MAC_2;
+    mac_num = EDHOC_MAC_2;
   } else if(EDHOC_ROLE == EDHOC_RESPONDER) {
-    mac_num = MAC_3;
+    mac_num = EDHOC_MAC_3;
   }
 
   uint8_t edhoc_mac_len = ctx->config.mac_len;
@@ -1278,9 +1275,9 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   /* Payload (MAC) */
   uint8_t mac_num = -1;
   if(msg2 == true) {
-    mac_num = MAC_2;
+    mac_num = EDHOC_MAC_2;
   } else { /* msg3 */
-    mac_num = MAC_3;
+    mac_num = EDHOC_MAC_3;
   }
 
   uint8_t mac[HASH_LEN];
