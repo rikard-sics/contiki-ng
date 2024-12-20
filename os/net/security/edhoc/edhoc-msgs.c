@@ -41,6 +41,7 @@
 #include "cbor.h"
 #include <assert.h>
 
+/*---------------------------------------------------------------------------*/
 void
 print_msg_1(edhoc_msg_1_t *msg)
 {
@@ -54,18 +55,21 @@ print_msg_1(edhoc_msg_1_t *msg)
   LOG_DBG("EAD (label: %d): ", msg->uad.ead_label);
   print_buff_8_dbg(msg->uad.ead_value, msg->uad.ead_value_sz);
 }
+/*---------------------------------------------------------------------------*/
 void
 print_msg_2(edhoc_msg_2_t *msg)
 {
   LOG_DBG("gy_ciphertext_2: ");
   print_buff_8_dbg(msg->gy_ciphertext_2, msg->gy_ciphertext_2_sz);
 }
+/*---------------------------------------------------------------------------*/
 void
 print_msg_3(edhoc_msg_3_t *msg)
 {
   LOG_DBG("CIPHERTEXT_3: ");
   print_buff_8_dbg(msg->ciphertext_3, msg->ciphertext_3_sz);
 }
+/*---------------------------------------------------------------------------*/
 static uint8_t
 get_byte(uint8_t **in)
 {
@@ -73,6 +77,7 @@ get_byte(uint8_t **in)
   (*in)++;
   return out;
 }
+/*---------------------------------------------------------------------------*/
 int16_t
 edhoc_get_unsigned(uint8_t **in)
 {
@@ -88,6 +93,7 @@ edhoc_get_unsigned(uint8_t **in)
     return -1;
   }
 }
+/*---------------------------------------------------------------------------*/
 static int64_t
 get_negative(uint8_t **in)
 {
@@ -107,6 +113,7 @@ get_negative(uint8_t **in)
   num++;
   return num;
 }
+/*---------------------------------------------------------------------------*/
 static uint8_t *
 point_byte(uint8_t **in)
 {
@@ -114,6 +121,7 @@ point_byte(uint8_t **in)
   (*in)++;
   return out;
 }
+/*---------------------------------------------------------------------------*/
 size_t
 edhoc_get_bytes(uint8_t **in, uint8_t **out)
 {
@@ -134,6 +142,7 @@ edhoc_get_bytes(uint8_t **in, uint8_t **out)
     return 0;
   }
 }
+/*---------------------------------------------------------------------------*/
 uint8_t
 edhoc_get_maps_num(uint8_t **in)
 {
@@ -146,6 +155,7 @@ edhoc_get_maps_num(uint8_t **in)
     return 0;
   }
 }
+/*---------------------------------------------------------------------------*/
 uint8_t
 edhoc_get_array_num(uint8_t **in)
 {
@@ -158,6 +168,7 @@ edhoc_get_array_num(uint8_t **in)
     return 0;
   }
 }
+/*---------------------------------------------------------------------------*/
 static int16_t
 get_text(uint8_t **in, char **out)
 {
@@ -178,6 +189,7 @@ get_text(uint8_t **in, char **out)
     return -1;
   }
 }
+/*---------------------------------------------------------------------------*/
 uint8_t
 edhoc_get_byte_identifier(uint8_t **in)
 {
@@ -196,6 +208,7 @@ edhoc_get_byte_identifier(uint8_t **in)
   /* int out_sz = cbor_get_bytes(in, out); */
   return 0;
 }
+/*---------------------------------------------------------------------------*/
 static size_t
 edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t suites_sz)
 {
@@ -208,6 +221,7 @@ edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t sui
   }
   return size;
 }
+/*---------------------------------------------------------------------------*/
 static void
 edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *suites_sz)
 {
@@ -227,6 +241,7 @@ edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *s
     *suites_sz = 1;
   }
 }
+/*---------------------------------------------------------------------------*/
 size_t
 edhoc_serialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, bool suite_array)
 {
@@ -239,6 +254,7 @@ edhoc_serialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, bool suite_arra
   }
   return size;
 }
+/*---------------------------------------------------------------------------*/
 size_t
 edhoc_serialize_err(edhoc_msg_error_t *msg, unsigned char *buffer)
 {
@@ -260,6 +276,7 @@ edhoc_serialize_err(edhoc_msg_error_t *msg, unsigned char *buffer)
   }
   return size;
 }
+/*---------------------------------------------------------------------------*/
 int8_t
 edhoc_deserialize_err(edhoc_msg_error_t *msg, unsigned char *buffer, uint8_t buff_sz)
 {
@@ -291,6 +308,7 @@ edhoc_deserialize_err(edhoc_msg_error_t *msg, unsigned char *buffer, uint8_t buf
   }
   return 0;
 }
+/*---------------------------------------------------------------------------*/
 int8_t
 edhoc_deserialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, size_t buff_sz)
 {
@@ -334,6 +352,7 @@ edhoc_deserialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, size_t buff_s
   }
   return 1;
 }
+/*---------------------------------------------------------------------------*/
 int8_t
 edhoc_deserialize_msg_2(edhoc_msg_2_t *msg, unsigned char *buffer, size_t buff_sz)
 {
@@ -344,6 +363,7 @@ edhoc_deserialize_msg_2(edhoc_msg_2_t *msg, unsigned char *buffer, size_t buff_s
   }
   return 1;
 }
+/*---------------------------------------------------------------------------*/
 int8_t
 edhoc_deserialize_msg_3(edhoc_msg_3_t *msg, unsigned char *buffer, size_t buff_sz)
 {
@@ -354,6 +374,7 @@ edhoc_deserialize_msg_3(edhoc_msg_3_t *msg, unsigned char *buffer, size_t buff_s
   }
   return 1;
 }
+/*---------------------------------------------------------------------------*/
 uint8_t
 edhoc_get_auth_key_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
 {
@@ -365,6 +386,7 @@ edhoc_get_auth_key_from_kid(uint8_t *kid, uint8_t kid_sz, cose_key_t **key)
   *key = auth_key;
   return ECC_KEY_LEN;
 }
+/*---------------------------------------------------------------------------*/
 int8_t
 edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
 {
@@ -473,12 +495,14 @@ edhoc_get_key_id_cred_x(uint8_t **p, uint8_t *out_id_cred_x, cose_key_t *key)
 
   return id_cred_x_sz;
 }
+/*---------------------------------------------------------------------------*/
 uint8_t
 edhoc_get_sign(uint8_t **p, uint8_t **sign)
 {
   uint8_t sign_sz = edhoc_get_bytes(p, sign);
   return sign_sz;
 }
+/*---------------------------------------------------------------------------*/
 uint8_t
 edhoc_get_ad(uint8_t **p, uint8_t *ad)
 {
@@ -487,6 +511,7 @@ edhoc_get_ad(uint8_t **p, uint8_t *ad)
   memcpy(ad, ptr, ad_sz);
   return ad_sz;
 }
+/*---------------------------------------------------------------------------*/
 int
 edhoc_put_byte_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len)
 {
@@ -506,3 +531,4 @@ edhoc_put_byte_identifier(uint8_t **buffer, uint8_t *bytes, uint8_t len)
   /* Else encode as a CBOR byte string */
   return cbor_put_bytes(buffer, bytes, len);
 }
+/*---------------------------------------------------------------------------*/

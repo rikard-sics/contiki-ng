@@ -170,7 +170,7 @@ log_bytes(const void *data, size_t length)
   const uint8_t *u8data = (const uint8_t *)data;
   size_t i;
   for(i = 0; i != length; ++i) {
-    LOG_OUTPUT("%02x", u8data[i]);
+    LOG_OUTPUT(" %02x", u8data[i]);
   }
 }
 /*---------------------------------------------------------------------------*/
