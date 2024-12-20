@@ -7,8 +7,8 @@
 
 /* Mandatory EDHOC definitions on Server */
 /* Define one kind of the following kind of identification for the authentication key */
-//#define AUTH_SUBJECT_NAME "Serv_A"
-//#define AUTH_KID 0x32
+//#define EDHOC_AUTH_SUBJECT_NAME "Serv_A"
+//#define EDHOC_AUTH_KID 0x32
 
 /* Define a value for the Connection Identifier */
 // #define EDHOC_CONF_CID 0x20
@@ -22,11 +22,11 @@
 #define DEFAULT_CREDS 1
 
 #if DEFAULT_CREDS == 1
-#define AUTH_KID 0x32
+#define EDHOC_AUTH_KID 0x32
 #elif INTEROP_CREDS_SIGN == 1
-#define AUTH_KID 0x09
+#define EDHOC_AUTH_KID 0x09
 #elif INTEROP_CREDS_DH == 1
-#define AUTH_KID 0x0a
+#define EDHOC_AUTH_KID 0x0a
 #endif
 
 /* Define the party role on the EDHOC protocol as responder and the correlation method */

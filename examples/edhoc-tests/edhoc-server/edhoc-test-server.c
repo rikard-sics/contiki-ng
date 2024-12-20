@@ -72,7 +72,7 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 
 #if DEFAULT_CREDS == 1
 
-#define AUTH_KID 0x32
+#define EDHOC_AUTH_KID 0x32
 
   /* Set the client authentication credentials and add in the storage */
   cose_key_t auth_client = {
@@ -138,7 +138,7 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 
 #if INTEROP_CREDS_SIGN == 1
 
-#define AUTH_KID 0x09
+#define EDHOC_AUTH_KID 0x09
 
   /* Set the client authentication credentials and add in the storage */
   cose_key_t auth_client = {
@@ -185,7 +185,7 @@ PROCESS_THREAD(edhoc_example_server, ev, data)
 
 #if INTEROP_CREDS_DH == 1
 
-#define AUTH_KID 0x0a
+#define EDHOC_AUTH_KID 0x0a
 
   /* Set the client authentication credentials and add in the storage */
   cose_key_t auth_client = {

@@ -7,8 +7,8 @@
 
 /* Mandatory EDHOC definitions on Client */
 /* Define one kind of the following kind of identification for the authentication key */
-//#define AUTH_SUBJECT_NAME "Node_101"
-//#define AUTH_KID 0x2b
+//#define EDHOC_AUTH_SUBJECT_NAME "Node_101"
+//#define EDHOC_AUTH_KID 0x2b
 
 /* Define a value for the Connection Identifier */
 // #define EDHOC_CONF_CID -24
@@ -20,13 +20,13 @@
 
 // Use default creds (not interoping)
 #if DEFAULT_CREDS == 1
-#define AUTH_KID 0x2b
+#define EDHOC_AUTH_KID 0x2b
 #elif INTEROP_CREDS_SIGN == 1
-#define AUTH_KID 0x02
+#define EDHOC_AUTH_KID 0x02
 #elif INTEROP_CREDS_DH == 1
-#define AUTH_KID 0x03
+#define EDHOC_AUTH_KID 0x03
 #elif INTEROP_CREDS_CA == 1
-#define AUTH_KID 0x2b
+#define EDHOC_AUTH_KID 0x2b
 #endif
 
 /* Define the coap server to connect with */

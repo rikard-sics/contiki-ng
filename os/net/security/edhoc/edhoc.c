@@ -819,8 +819,9 @@ edhoc_initialize_context(edhoc_context_t *ctx)
 uint8_t
 edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key)
 {
-#ifdef AUTH_SUBJECT_NAME
-  if(edhoc_check_key_list_identity(AUTH_SUBJECT_NAME, strlen(AUTH_SUBJECT_NAME), key)) {
+#ifdef EDHOC_AUTH_SUBJECT_NAME
+  if(edhoc_check_key_list_identity(EDHOC_AUTH_SUBJECT_NAME,
+                                   strlen(EDHOC_AUTH_SUBJECT_NAME), key)) {
     /* Key found using identity */
     return 1;
   } else {
@@ -828,11 +829,11 @@ edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key)
   }
 #endif
 
-#ifdef AUTH_KID
+#ifdef EDHOC_AUTH_KID
   if(*key == NULL) {
     uint8_t key_id[sizeof(int)];
-    int kid = AUTH_KID;
-    int quotient = (AUTH_KID / 256);
+    int kid = EDHOC_AUTH_KID;
+    int quotient = (EDHOC_AUTH_KID) / 256;
     uint8_t key_id_sz = 1;
     while(quotient != 0) {
       key_id_sz++;

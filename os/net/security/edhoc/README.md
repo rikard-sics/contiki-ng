@@ -18,25 +18,25 @@ At the configuration file, the credential type used for authentication must be s
 
 The implementation supports the following features of EDHOC:
 - Cipher Suites: 2, 3
-- Methods: 0, 1, 2, 3 
+- Methods: 0, 1, 2, 3
 - Credential Details:
-   - Identifier: KID (single byte) 
-   - Inclusion: By reference 
-   - Type: CCS 
-- Message_4: No 
-- EAD Items: None 
-- Message flows: Only forward message flow 
+   - Identifier: KID (single byte)
+   - Inclusion: By reference
+   - Type: CCS
+- Message_4: No
+- EAD Items: None
+- Message flows: Only forward message flow
 - Connection Identifiers: Only single bytes (excluding empty CBOR byte string)
 
 ### EDHOC configuration
 The following macro must be defined on the configuration file:
 - Define the KID of the authentication key used on this node.
 ```c
-#define AUTH_KID KID
+#define EDHOC_AUTH_KID KID
 ```
 If the parties have agreed on an identity beside the public key, the "subject name" can be defined instead.
 ```c
-#define AUTH_SUBJECT_NAME "Node_Key_Identity"
+#define EDHOC_AUTH_SUBJECT_NAME "Node_Key_Identity"
 ```
 - Define the role taking on the EDHOC protocol. `EDHOC_INITIATOR` for the Initiator and `EDHOC_RESPONDER` for the Responder.
 ```c
@@ -130,7 +130,7 @@ An EDHOC Server Example is provided at `examples/edhoc-tests/edhoc-test-server.c
 
 The Server Identity must be selected at:
 ```c
-#define AUTH_SUBJECT_NAME "Server_key_identity"
+#define EDHOC_AUTH_SUBJECT_NAME "Server_key_identity"
 ```
 
 ## EDHOC Tests
