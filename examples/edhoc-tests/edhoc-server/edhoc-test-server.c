@@ -45,6 +45,10 @@
 #include "edhoc-server-API.h"
 #include "sys/rtimer.h"
 
+#include "sys/log.h"
+#define LOG_MODULE "edhoc-server"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
+
 /******************************************************************************/
 PROCESS(edhoc_example_server, "EDHOC Example Server");
 AUTOSTART_PROCESSES(&edhoc_example_server);

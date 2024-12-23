@@ -43,6 +43,10 @@
 #include "sys/rtimer.h"
 #include <assert.h>
 
+#include "sys/log.h"
+#define LOG_MODULE "edhoc-server-api"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
+
 /* EDHOC Client protocol states */
 #define NON_MSG 0
 #define RX_MSG1 1
@@ -113,9 +117,11 @@ generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x, uint8_t *pub_y, uint8_t
 	   (uint32_t)((uint64_t)drv_time * 1000 / RTIMER_SECOND),
 	   (uint32_t)drv_time);
   LOG_DBG("Gy (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.x, ECC_KEY_LEN);
+  LOG_DBG_BYTES(edhoc_ctx->creds.ephemeral_key.pub.x, ECC_KEY_LEN);
+  LOG_DBG_("\n");
   LOG_DBG("Y (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
+  LOG_DBG_BYTES(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
+  LOG_DBG_("\n");
 }
 /*----------------------------------------------------------------------------*/
 int8_t
@@ -237,7 +243,8 @@ PROCESS_THREAD(edhoc_server, ev, data)
     case RX_MSG1:
       LOG_DBG("----------------------------------Handler message_1-----------------------------\n");
       LOG_DBG("RX message_1 (CBOR Sequence) (%d bytes):\n", (int)msg_rx_len);
-      print_buff_8_dbg(msg_rx, msg_rx_len);
+      LOG_DBG_BYTES(msg_rx, msg_rx_len);
+      LOG_DBG_("\n");
 
       time_total = RTIMER_NOW();
       time = RTIMER_NOW();
@@ -273,7 +280,8 @@ PROCESS_THREAD(edhoc_server, ev, data)
         new_ecc.ad.ad_1_sz = er;
         if(new_ecc.ad.ad_1_sz > 0) {
           LOG_DBG("AD_1 (%d bytes): ", new_ecc.ad.ad_1_sz);
-          print_char_8_dbg((char *)new_ecc.ad.ad_1, new_ecc.ad.ad_1_sz);
+          LOG_DBG_STRING((char *)new_ecc.ad.ad_1, new_ecc.ad.ad_1_sz);
+          LOG_DBG_("\n");
         }
         serv->rx_msg1 = true;
 
@@ -292,14 +300,16 @@ PROCESS_THREAD(edhoc_server, ev, data)
                  (uint32_t)time);
         LOG_DBG("message_2 (CBOR Sequence) (%d bytes): ",
                 edhoc_ctx->buffers.tx_sz);
-        print_buff_8_dbg(edhoc_ctx->buffers.msg_tx, edhoc_ctx->buffers.tx_sz);
+        LOG_DBG_BYTES(edhoc_ctx->buffers.msg_tx, edhoc_ctx->buffers.tx_sz);
+        LOG_DBG_("\n");
         serv->state = RX_MSG3;
       }
       break;
     case RX_MSG3:
       LOG_DBG("---------------------Handler message_3---------------------\n");
       LOG_DBG("RX message_3 (%d bytes): ", (int)msg_rx_len);
-      print_buff_8_dbg(msg_rx, msg_rx_len);
+      LOG_DBG_BYTES(msg_rx, msg_rx_len);
+      LOG_DBG_("\n");
       time = RTIMER_NOW();
       er = edhoc_handler_msg_3(&msg3, edhoc_ctx, msg_rx, msg_rx_len);
       time = RTIMER_NOW() - time;
@@ -337,7 +347,8 @@ PROCESS_THREAD(edhoc_server, ev, data)
         new_ecc.ad.ad_3_sz = er;
         if(new_ecc.ad.ad_3_sz > 0) {
           LOG_DBG("AD_3 (%d bytes): ", new_ecc.ad.ad_3_sz);
-          print_char_8_dbg((char *)new_ecc.ad.ad_3, new_ecc.ad.ad_3_sz);
+          LOG_DBG_STRING((char *)new_ecc.ad.ad_3, new_ecc.ad.ad_3_sz);
+          LOG_DBG_("\n");
         }
 
         serv->state = EXP_READY;

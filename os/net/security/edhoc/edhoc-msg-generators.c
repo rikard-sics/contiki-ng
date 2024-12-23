@@ -49,6 +49,9 @@
 #include "cbor.h"
 #include <assert.h>
 
+#include "sys/log.h"
+#define LOG_MODULE "edhoc-msg-g"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
 /*----------------------------------------------------------------------------*/
 static uint8_t
 gen_mac(const edhoc_context_t *ctx, uint8_t mac_len, uint8_t *mac)
@@ -126,7 +129,8 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz,
   cose->plaintext_sz = gen_plaintext(ctx, ad, ad_sz, false, mac_or_sig,
                                      mac_sz, cose->plaintext);
   LOG_DBG("PLAINTEXT_3 (%d bytes): ", (int)cose->plaintext_sz);
-  print_buff_8_dbg(cose->plaintext, cose->plaintext_sz);
+  LOG_DBG_BYTES(cose->plaintext, cose->plaintext_sz);
+  LOG_DBG_("\n");
 
   /* Save plaintext_3 for TH_3 */
   memcpy(ctx->buffers.plaintext, cose->plaintext, cose->plaintext_sz);
@@ -142,7 +146,8 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz,
     return 0;
   }
   LOG_DBG("K_3 (%d bytes): ", (int)cose->key_sz);
-  print_buff_8_dbg(cose->key, cose->key_sz);
+  LOG_DBG_BYTES(cose->key, cose->key_sz);
+  LOG_DBG_("\n");
 
   /* generate IV_3 */
   uint8_t iv_len = cose_get_iv_len(cose->alg);
@@ -154,7 +159,8 @@ gen_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ad, uint16_t ad_sz,
   }
   cose->nonce_sz = iv_len;
   LOG_DBG("IV_3 (%d bytes): ", (int)cose->nonce_sz);
-  print_buff_8_dbg(cose->nonce, cose->nonce_sz);
+  LOG_DBG_BYTES(cose->nonce, cose->nonce_sz);
+  LOG_DBG_("\n");
 
   /* COSE encrypt0 set header */
   cose_encrypt0_set_header(cose, NULL, 0, NULL, 0);
@@ -189,15 +195,19 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
   (ctx->buffers.msg_tx)[0] = 0xF5; /*FIXME: Improve pre-pending of CBOR true (do in client/server?) */
 
   LOG_DBG("C_I chosen by Initiator (%d bytes): 0x", EDHOC_CID_LEN);
-  print_buff_8_dbg(msg1.c_i, EDHOC_CID_LEN);
+  LOG_DBG_BYTES(msg1.c_i, EDHOC_CID_LEN);
+  LOG_DBG_("\n");
   LOG_DBG("AD_1 (%d bytes): ", (int)ad_sz);
-  print_char_8_dbg((char *)ad, ad_sz);
+  LOG_DBG_STRING((char *)ad, ad_sz);
+  LOG_DBG_("\n");
   for(int i = 0; i < msg1.suites_i_sz; ++i) {
     LOG_DBG("SUITES_I[%d]: %d\n", i, (int)msg1.suites_i[i]);
   }
 
   LOG_DBG("message_1 (CBOR Sequence) (%d bytes): ", (int)ctx->buffers.tx_sz);
-  print_buff_8_dbg(ctx->buffers.msg_tx, ctx->buffers.tx_sz);
+  LOG_DBG_BYTES(ctx->buffers.msg_tx, ctx->buffers.tx_sz);
+  LOG_DBG_("\n");
+
   LOG_INFO("MSG1 sz: %d\n", (int)ctx->buffers.tx_sz);
 }
 /*----------------------------------------------------------------------------*/
@@ -215,12 +225,14 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   ctx->buffers.cred_x_sz = edhoc_generate_cred_x(ctx->creds.authen_key,
 						 ctx->buffers.cred_x);
   LOG_DBG("CRED_R (%d bytes): ", (int)ctx->buffers.cred_x_sz);
-  print_buff_8_dbg(ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
+  LOG_DBG_BYTES(ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
+  LOG_DBG_("\n");
 
   ctx->buffers.id_cred_x_sz = edhoc_generate_id_cred_x(ctx->creds.authen_key,
 						       ctx->buffers.id_cred_x);
   LOG_DBG("ID_CRED_R (%d bytes): ", (int)ctx->buffers.id_cred_x_sz);
-  print_buff_8_dbg(ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
+  LOG_DBG_BYTES(ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
+  LOG_DBG_("\n");
 
   edhoc_gen_prk_2e(ctx);
 
@@ -236,7 +248,8 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   uint8_t mac_or_sig[edhoc_mac_len];
   gen_mac(ctx, edhoc_mac_len, mac_or_sig);
   LOG_DBG("MAC_2 (%d bytes): ", edhoc_mac_len);
-  print_buff_8_dbg(mac_or_sig, edhoc_mac_len);
+  LOG_DBG_BYTES(mac_or_sig, edhoc_mac_len);
+  LOG_DBG_("\n");
   mac_or_signature_sz = edhoc_mac_len;
 #endif
 
@@ -249,7 +262,8 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   uint8_t mac_or_sig[EDHOC_MAC_OR_SIG_BUF_LEN];
   gen_mac(ctx, HASH_LEN, mac_or_sig);
   LOG_DBG("MAC_2 (%d bytes): ", HASH_LEN);
-  print_buff_8_dbg(mac_or_sig, HASH_LEN);
+  LOG_DBG_BYTES(mac_or_sig, HASH_LEN);
+  LOG_DBG_("\n");
 
   /* Create signature from MAC and other data using COSE_Sign1 */
 
@@ -283,7 +297,8 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   LOG_DBG("Signature from COSE_Sign1 (%d bytes): ",
           EDHOC_MAC_OR_SIG_BUF_LEN);
-  print_buff_8_dbg(cose_sign1->signature, EDHOC_MAC_OR_SIG_BUF_LEN);
+  LOG_DBG_BYTES(cose_sign1->signature, EDHOC_MAC_OR_SIG_BUF_LEN);
+  LOG_DBG_("\n");
 
   mac_or_signature_sz = EDHOC_MAC_OR_SIG_BUF_LEN;
   memcpy(mac_or_sig, cose_sign1->signature, cose_sign1->signature_sz);
@@ -294,7 +309,8 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
                                      mac_or_signature_sz,
                                      ctx->buffers.plaintext);
   LOG_DBG("PLAINTEXT_2 (%d bytes): ", (int)plaint_sz);
-  print_buff_8_dbg(ctx->buffers.plaintext, plaint_sz);
+  LOG_DBG_BYTES(ctx->buffers.plaintext, plaint_sz);
+  LOG_DBG_("\n");
   ctx->buffers.plaintext_sz = plaint_sz;
 
   /* Derive KEYSTREAM_2 */
@@ -306,7 +322,8 @@ edhoc_gen_msg_2(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   memcpy(ciphertext, ctx->buffers.plaintext, plaint_sz);
   edhoc_enc_dec_ciphertext_2(ctx, ks_2e, ciphertext, plaint_sz);
   LOG_DBG("CIPHERTEXT_2 (%d bytes): ", (int)plaint_sz);
-  print_buff_8_dbg(ciphertext, plaint_sz);
+  LOG_DBG_BYTES(ciphertext, plaint_sz);
+  LOG_DBG_("\n");
 
   /* Set x and ciphertext in msg_tx */
   uint8_t *ptr = &(ctx->buffers.msg_tx[0]);
@@ -329,27 +346,32 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   cose_print_key(ctx->creds.authen_key);
   LOG_DBG("SK_I (Initiator's private authentication key) (%d bytes): ",
           ECC_KEY_LEN);
-  print_buff_8_dbg(ctx->creds.authen_key->ecc.priv, ECC_KEY_LEN);
+  LOG_DBG_BYTES(ctx->creds.authen_key->ecc.priv, ECC_KEY_LEN);
+  LOG_DBG_("\n");
 
   LOG_DBG("G_I (x)(Initiator's public authentication key) (%d bytes): ",
           ECC_KEY_LEN);
-  print_buff_8_dbg(ctx->creds.authen_key->ecc.pub.x, ECC_KEY_LEN);
+  LOG_DBG_BYTES(ctx->creds.authen_key->ecc.pub.x, ECC_KEY_LEN);
+  LOG_DBG_("\n");
 
   LOG_DBG("(y) (Initiator's public authentication key) (%d bytes): ",
           ECC_KEY_LEN);
-  print_buff_8_dbg(ctx->creds.authen_key->ecc.pub.y, ECC_KEY_LEN);
+  LOG_DBG_BYTES(ctx->creds.authen_key->ecc.pub.y, ECC_KEY_LEN);
+  LOG_DBG_("\n");
 
   /* generate cred_x */
   ctx->buffers.cred_x_sz = edhoc_generate_cred_x(ctx->creds.authen_key,
 						 ctx->buffers.cred_x);
   LOG_DBG("CRED_I (%d bytes): ", (int)ctx->buffers.cred_x_sz);
-  print_buff_8_dbg(ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
+  LOG_DBG_BYTES(ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
+  LOG_DBG_("\n");
 
   /* generate id_cred_x */
   ctx->buffers.id_cred_x_sz = edhoc_generate_id_cred_x(ctx->creds.authen_key,
 						       ctx->buffers.id_cred_x);
   LOG_DBG("ID_CRED_I (%d bytes): ", (int)ctx->buffers.id_cred_x_sz);
-  print_buff_8_dbg(ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
+  LOG_DBG_BYTES(ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
+  LOG_DBG_("\n");
 
   uint8_t mac_or_signature_sz = -1;
 
@@ -361,7 +383,8 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   uint8_t mac_or_sig[edhoc_mac_len];
   gen_mac(ctx, edhoc_mac_len, mac_or_sig);
   LOG_DBG("MAC 3 (%d bytes): ", edhoc_mac_len);
-  print_buff_8_dbg(mac_or_sig, edhoc_mac_len);
+  LOG_DBG_BYTES(mac_or_sig, edhoc_mac_len);
+  LOG_DBG_("\n");
   mac_or_signature_sz = edhoc_mac_len;
 #endif
 
@@ -374,7 +397,8 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
   uint8_t mac_or_sig[EDHOC_MAC_OR_SIG_BUF_LEN];
   gen_mac(ctx, HASH_LEN, mac_or_sig);
   LOG_DBG("MAC_3 (%d bytes): ", HASH_LEN);
-  print_buff_8_dbg(mac_or_sig, HASH_LEN);
+  LOG_DBG_BYTES(mac_or_sig, HASH_LEN);
+  LOG_DBG_("\n");
 
   /* Create signature from MAC and other data using COSE_Sign1 */
 
@@ -408,7 +432,8 @@ edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz)
 
   LOG_DBG("Signature from COSE_Sign1 (%d bytes): ",
           EDHOC_MAC_OR_SIG_BUF_LEN);
-  print_buff_8_dbg(cose_sign1->signature, EDHOC_MAC_OR_SIG_BUF_LEN);
+  LOG_DBG_BYTES(cose_sign1->signature, EDHOC_MAC_OR_SIG_BUF_LEN);
+  LOG_DBG_("\n");
 
   mac_or_signature_sz = EDHOC_MAC_OR_SIG_BUF_LEN;
   memcpy(mac_or_sig, cose_sign1->signature, cose_sign1->signature_sz);

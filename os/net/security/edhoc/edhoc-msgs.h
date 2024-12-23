@@ -41,7 +41,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "edhoc-log.h"
 #include "edhoc-key-storage.h"
 #include "edhoc-config.h"
 

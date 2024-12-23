@@ -41,33 +41,42 @@
 #include "cbor.h"
 #include <assert.h>
 
+#include "sys/log.h"
+#define LOG_MODULE "edhoc-msgs"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
 /*---------------------------------------------------------------------------*/
 void
 print_msg_1(edhoc_msg_1_t *msg)
 {
   LOG_DBG("Type: %d\n", msg->method);
   LOG_DBG("Suite I: ");
-  print_buff_8_dbg(msg->suites_i, msg->suites_i_sz);
+  LOG_DBG_BYTES(msg->suites_i, msg->suites_i_sz);
+  LOG_DBG_("\n");
   LOG_DBG("Gx: ");
-  print_buff_8_dbg(msg->g_x, ECC_KEY_LEN);
+  LOG_DBG_BYTES(msg->g_x, ECC_KEY_LEN);
+  LOG_DBG_("\n");
   LOG_DBG("Ci: ");
-  print_buff_8_dbg(msg->c_i, EDHOC_CID_LEN);
+  LOG_DBG_BYTES(msg->c_i, EDHOC_CID_LEN);
+  LOG_DBG_("\n");
   LOG_DBG("EAD (label: %d): ", msg->uad.ead_label);
-  print_buff_8_dbg(msg->uad.ead_value, msg->uad.ead_value_sz);
+  LOG_DBG_BYTES(msg->uad.ead_value, msg->uad.ead_value_sz);
+  LOG_DBG_("\n");
 }
 /*---------------------------------------------------------------------------*/
 void
 print_msg_2(edhoc_msg_2_t *msg)
 {
   LOG_DBG("gy_ciphertext_2: ");
-  print_buff_8_dbg(msg->gy_ciphertext_2, msg->gy_ciphertext_2_sz);
+  LOG_DBG_BYTES(msg->gy_ciphertext_2, msg->gy_ciphertext_2_sz);
+  LOG_DBG_("\n");
 }
 /*---------------------------------------------------------------------------*/
 void
 print_msg_3(edhoc_msg_3_t *msg)
 {
   LOG_DBG("CIPHERTEXT_3: ");
-  print_buff_8_dbg(msg->ciphertext_3, msg->ciphertext_3_sz);
+  LOG_DBG_BYTES(msg->ciphertext_3, msg->ciphertext_3_sz);
+  LOG_DBG_("\n");
 }
 /*---------------------------------------------------------------------------*/
 static uint8_t

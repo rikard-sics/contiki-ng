@@ -48,6 +48,10 @@
 #include "cbor.h"
 #include <assert.h>
 
+#include "sys/log.h"
+#define LOG_MODULE "edhoc"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
+
 #if HASH_LEN != SHA_256_DIGEST_LENGTH
 #error Only SHA256 supported. Please update HASH_LEN.
 #endif /* HASH_LEN != SHA_256_DIGEST_LENGTH */
@@ -240,7 +244,8 @@ edhoc_generate_id_cred_x(cose_key_t *cose, uint8_t *cred)
 {
   size_t size = 0;
   LOG_DBG("kid (%i bytes): ", cose->kid_sz);
-  print_buff_8_dbg(cose->kid, cose->kid_sz);
+  LOG_DBG_BYTES(cose->kid, cose->kid_sz);
+  LOG_DBG_("\n");
 
   /* Include KID */
   if(EDHOC_AUTHENT_TYPE == EDHOC_CRED_KID) {
@@ -275,7 +280,8 @@ edhoc_gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub,
   uint8_t *h_ptr = h;
 
   LOG_DBG("Input to calculate H(msg1) (%d bytes): ", (int)msg_sz);
-  print_buff_8_dbg(msg, msg_sz);
+  LOG_DBG_BYTES(msg, msg_sz);
+  LOG_DBG_("\n");
 
   uint8_t msg_1_hash[HASH_LEN];
   compute_th(msg + 1, msg_sz - 1, msg_1_hash); /*FIXME: Improve skipping of CBOR true for TH */
@@ -285,11 +291,13 @@ edhoc_gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub,
 
   /* Compute TH */
   LOG_DBG("Input to TH_2 (%d): ", h_buf_sz);
-  print_buff_8_dbg(h, h_buf_sz);
+  LOG_DBG_BYTES(h, h_buf_sz);
+  LOG_DBG_("\n");
   compute_th(h, h_buf_sz, ctx->state.th);
 
   LOG_DBG("TH_2 (%d bytes): ", (int)HASH_LEN);
-  print_buff_8_dbg(ctx->state.th, HASH_LEN);
+  LOG_DBG_BYTES(ctx->state.th, HASH_LEN);
+  LOG_DBG_("\n");
   return 0;
 }
 /*----------------------------------------------------------------------------*/
@@ -303,22 +311,27 @@ edhoc_gen_th3(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz,
   uint8_t *ptr = h;
   uint16_t h_sz = cbor_put_bytes(&ptr, ctx->state.th, HASH_LEN);
   LOG_DBG("TH_2 (%d): ", HASH_LEN);
-  print_buff_8_dbg(ctx->state.th, HASH_LEN);
+  LOG_DBG_BYTES(ctx->state.th, HASH_LEN);
+  LOG_DBG_("\n");
   memcpy(h + h_sz, plaintext, plaintext_sz);
   h_sz += plaintext_sz;
   LOG_DBG("PLAINTEXT_2 (%d): ", plaintext_sz);
-  print_buff_8_dbg(plaintext, plaintext_sz);
+  LOG_DBG_BYTES(plaintext, plaintext_sz);
+  LOG_DBG_("\n");
   memcpy(h + h_sz, cred, cred_sz);
   h_sz += cred_sz;
   LOG_DBG("CRED_R (%d): ", cred_sz);
-  print_buff_8_dbg(cred, cred_sz);
+  LOG_DBG_BYTES(cred, cred_sz);
+  LOG_DBG_("\n");
   LOG_DBG("input to calculate TH_3 (CBOR Sequence) (%d bytes): ", (int)h_sz);
-  print_buff_8_dbg(h, h_sz);
+  LOG_DBG_BYTES(h, h_sz);
+  LOG_DBG_("\n");
 
   /* Compute TH */
   compute_th(h, h_sz, ctx->state.th);
   LOG_DBG("TH_3 (%d bytes): ", (int)HASH_LEN);
-  print_buff_8_dbg(ctx->state.th, HASH_LEN);
+  LOG_DBG_BYTES(ctx->state.th, HASH_LEN);
+  LOG_DBG_("\n");
   return 0;
 }
 /*----------------------------------------------------------------------------*/uint8_t
@@ -332,24 +345,29 @@ edhoc_gen_th4(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz,
   uint16_t h_sz = cbor_put_bytes(&ptr, ctx->state.th, HASH_LEN);
 
   LOG_DBG("TH_3 (%d): ", HASH_LEN);
-  print_buff_8_dbg(ctx->state.th, HASH_LEN);
+  LOG_DBG_BYTES(ctx->state.th, HASH_LEN);
+  LOG_DBG_("\n");
 
   memcpy(h + h_sz, plaintext, plaintext_sz);
   h_sz += plaintext_sz;
   LOG_DBG("PLAINTEXT_3 (%d): ", plaintext_sz);
-  print_buff_8_dbg(plaintext, plaintext_sz);
+  LOG_DBG_BYTES(plaintext, plaintext_sz);
+  LOG_DBG_("\n");
 
   memcpy(h + h_sz, cred, cred_sz);
   h_sz += cred_sz;
   LOG_DBG("CRED_I (%d): ", cred_sz);
-  print_buff_8_dbg(cred, cred_sz);
+  LOG_DBG_BYTES(cred, cred_sz);
+  LOG_DBG_("\n");
   LOG_DBG("input to calculate TH_4 (CBOR Sequence) (%d bytes): ", (int)h_sz);
-  print_buff_8_dbg(h, h_sz);
+  LOG_DBG_BYTES(h, h_sz);
+  LOG_DBG_("\n");
 
   /* Compute TH */
   compute_th(h, h_sz, ctx->state.th);
   LOG_DBG("TH_4 (%d bytes): ", (int)HASH_LEN);
-  print_buff_8_dbg(ctx->state.th, HASH_LEN);
+  LOG_DBG_BYTES(ctx->state.th, HASH_LEN);
+  LOG_DBG_("\n");
   return 0;
 }
 /*----------------------------------------------------------------------------*/
@@ -365,7 +383,8 @@ edhoc_print_session_info(const edhoc_context_t *ctx)
   LOG_DBG("My cID: %x\n", (uint8_t)ctx->state.cid);
   LOG_DBG("Other peer cID: %x\n", (uint8_t)ctx->state.cid_rx);
   LOG_DBG("Gx: ");
-  print_buff_8_dbg(ctx->state.gx, ECC_KEY_LEN);
+  LOG_DBG_BYTES(ctx->state.gx, ECC_KEY_LEN);
+  LOG_DBG_("\n");
 }
 /*----------------------------------------------------------------------------*/
 int16_t
@@ -390,7 +409,8 @@ edhoc_expand(const uint8_t *prk, const uint8_t *info, uint16_t info_sz,
              uint16_t length, uint8_t *result)
 {
   LOG_DBG("INFO for HKDF_Expand (%d bytes): ", info_sz);
-  print_buff_8_dbg(info, info_sz);
+  LOG_DBG_BYTES(info, info_sz);
+  LOG_DBG_("\n");
   sha_256_hkdf_expand(prk, ECC_KEY_LEN, info, info_sz, result, length);
   return length;
 }
@@ -423,7 +443,8 @@ edhoc_calc_mac(const edhoc_context_t *ctx, uint8_t mac_num,
     context_2_ptr += ctx->buffers.cred_x_sz;
 
     LOG_DBG("CONTEXT_2 (%zu bytes): ", context_2_buf_sz);
-    print_buff_8_dbg(context_2, context_2_buf_sz);
+    LOG_DBG_BYTES(context_2, context_2_buf_sz);
+    LOG_DBG_("\n");
 
     /* Use edhoc_kdf to generate MAC_2 */
     int16_t er = edhoc_kdf(ctx->state.prk_3e2m, MAC_2_LABEL,
@@ -448,7 +469,8 @@ edhoc_calc_mac(const edhoc_context_t *ctx, uint8_t mac_num,
     context_3_ptr += ctx->buffers.cred_x_sz;
 
     LOG_DBG("CONTEXT_3 (%zu bytes): ", context_3_buf_sz);
-    print_buff_8_dbg(context_3, context_3_buf_sz);
+    LOG_DBG_BYTES(context_3, context_3_buf_sz);
+    LOG_DBG_("\n");
 
     /* Use edhoc_kdf to generate MAC_3 */
     int16_t er = edhoc_kdf(ctx->state.prk_4e3m, MAC_3_LABEL,
@@ -485,10 +507,12 @@ check_mac(const edhoc_context_t *ctx, const uint8_t *received_mac,
   }
 
   LOG_DBG("Received MAC (%d): ", (int)received_mac_sz);
-  print_buff_8_dbg(received_mac, received_mac_sz);
+  LOG_DBG_BYTES(received_mac, received_mac_sz);
+  LOG_DBG_("\n");
 
   LOG_DBG("Recalculated MAC (%d): ", (int)edhoc_mac_len);
-  print_buff_8_dbg(mac, edhoc_mac_len);
+  LOG_DBG_BYTES(mac, edhoc_mac_len);
+  LOG_DBG_("\n");
 
   /* Verify the MAC value */
   uint16_t mac_sz = edhoc_mac_len;
@@ -519,7 +543,8 @@ gen_gxy(edhoc_context_t *ctx, uint8_t *ikm)
     return false;
   }
   LOG_DBG("GXY (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(ikm, ECC_KEY_LEN);
+  LOG_DBG_BYTES(ikm, ECC_KEY_LEN);
+  LOG_DBG_("\n");
   return true;
 }
 /*----------------------------------------------------------------------------*/
@@ -537,7 +562,8 @@ edhoc_gen_prk_2e(edhoc_context_t *ctx)
   sha_256_hkdf_extract(ctx->state.th, HASH_LEN, ikm, ECC_KEY_LEN,
                        ctx->state.prk_2e);
   LOG_DBG("PRK_2e (%d bytes): ", HASH_LEN);
-  print_buff_8_dbg(ctx->state.prk_2e, HASH_LEN);
+  LOG_DBG_BYTES(ctx->state.prk_2e, HASH_LEN);
+  LOG_DBG_("\n");
   return true;
 }
 /*----------------------------------------------------------------------------*/
@@ -551,7 +577,8 @@ edhoc_gen_ks_2e(edhoc_context_t *ctx, uint16_t length, uint8_t *ks_2e)
     return er;
   }
   LOG_DBG("KEYSTREAM_2 (%d bytes): ", length);
-  print_buff_8_dbg(ks_2e, length);
+  LOG_DBG_BYTES(ks_2e, length);
+  LOG_DBG_("\n");
   return 1;
 }
 /*----------------------------------------------------------------------------*/
@@ -589,11 +616,13 @@ edhoc_gen_prk_3e2m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
     return false;
   }
   LOG_DBG("SALT_3e2m (%d bytes): ", HASH_LEN);
-  print_buff_8_dbg(salt, HASH_LEN);
+  LOG_DBG_BYTES(salt, HASH_LEN);
+  LOG_DBG_("\n");
 
   sha_256_hkdf_extract(salt, HASH_LEN, grx, ECC_KEY_LEN, ctx->state.prk_3e2m);
   LOG_DBG("PRK_3e2m (%d bytes): ", HASH_LEN);
-  print_buff_8_dbg(ctx->state.prk_3e2m, HASH_LEN);
+  LOG_DBG_BYTES(ctx->state.prk_3e2m, HASH_LEN);
+  LOG_DBG_("\n");
   return true;
 }
 #endif /* (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2 */
@@ -623,7 +652,8 @@ edhoc_gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
     return false;
   }
   LOG_DBG("G_IY (ECDH shared secret) (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(giy, ECC_KEY_LEN);
+  LOG_DBG_BYTES(giy, ECC_KEY_LEN);
+  LOG_DBG_("\n");
 
   /* Use edhoc_kdf to generate SALT_4e3m */
   uint8_t salt[HASH_LEN];
@@ -634,11 +664,13 @@ edhoc_gen_prk_4e3m(edhoc_context_t *ctx, const ecc_key_t *auth_key, uint8_t gen)
     return false;
   }
   LOG_DBG("SALT_4e3m (%d bytes): ", HASH_LEN);
-  print_buff_8_dbg(salt, HASH_LEN);
+  LOG_DBG_BYTES(salt, HASH_LEN);
+  LOG_DBG_("\n");
 
   sha_256_hkdf_extract(salt, HASH_LEN, giy, ECC_KEY_LEN, ctx->state.prk_4e3m);
   LOG_DBG("PRK_4e3m (%d bytes): ", HASH_LEN);
-  print_buff_8_dbg(ctx->state.prk_4e3m, HASH_LEN);
+  LOG_DBG_BYTES(ctx->state.prk_4e3m, HASH_LEN);
+  LOG_DBG_("\n");
   return true;
 }
 #endif /* (EDHOC_METHOD == EDHOC_METHOD2) || (EDHOC_METHOD == EDHOC_METHOD3) ||
@@ -649,17 +681,20 @@ edhoc_enc_dec_ciphertext_2(const edhoc_context_t *ctx, const uint8_t *ks_2e,
                            uint8_t *plaintext, uint16_t plaintext_sz)
 {
   LOG_DBG("**** Cipher/Plaintext in enc func (%d bytes): ", plaintext_sz);
-  print_buff_8_dbg(plaintext, plaintext_sz);
+  LOG_DBG_BYTES(plaintext, plaintext_sz);
+  LOG_DBG_("\n");
 
   LOG_DBG("**** ks_2e in enc func (%d bytes): ", plaintext_sz);
-  print_buff_8_dbg(ks_2e, plaintext_sz);
+  LOG_DBG_BYTES(ks_2e, plaintext_sz);
+  LOG_DBG_("\n");
 
   for(int i = 0; i < plaintext_sz; i++) {
     plaintext[i] = plaintext[i] ^ ks_2e[i];
   }
 
   LOG_DBG("**** Plain/Ciphertext in enc func (%d bytes): ", plaintext_sz);
-  print_buff_8_dbg(plaintext, plaintext_sz);
+  LOG_DBG_BYTES(plaintext, plaintext_sz);
+  LOG_DBG_("\n");
 
   return plaintext_sz;
 }
@@ -808,14 +843,14 @@ edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t err)
 
   LOG_ERR("ERR MSG (%d): ", msg.err_code);
   if(msg.err_code == 1) {
-    print_char_8_err(msg.err_info, msg.err_info_sz);
-  } else {
-    printf("\n");
+    LOG_ERR_STRING(msg.err_info, msg.err_info_sz);
   }
+  LOG_ERR_("\n");
 
   size_t err_sz = edhoc_serialize_err(&msg, msg_er);
   LOG_DBG("ERR MSG CBOR: ");
-  print_buff_8_dbg((uint8_t *)msg_er, err_sz);
+  LOG_DBG_BYTES(msg_er, err_sz);
+  LOG_DBG_("\n");
   return err_sz;
 }
 /*----------------------------------------------------------------------------*/
@@ -850,12 +885,14 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   /* generate cred_x and id_cred_x */
   ctx->buffers.cred_x_sz = edhoc_generate_cred_x(key, ctx->buffers.cred_x);
   LOG_DBG("CRED_X auth (%zu): ", ctx->buffers.cred_x_sz);
-  print_buff_8_dbg(ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
+  LOG_DBG_BYTES(ctx->buffers.cred_x, ctx->buffers.cred_x_sz);
+  LOG_DBG_("\n");
 
   ctx->buffers.id_cred_x_sz = edhoc_generate_id_cred_x(key,
 						       ctx->buffers.id_cred_x);
   LOG_DBG("ID_CRED_X auth (%zu): ", ctx->buffers.id_cred_x_sz);
-  print_buff_8_dbg(ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
+  LOG_DBG_BYTES(ctx->buffers.id_cred_x, ctx->buffers.id_cred_x_sz);
+  LOG_DBG_("\n");
 
 #if (EDHOC_METHOD == EDHOC_METHOD3) || INITIATOR_METHOD1 || RESPONDER_METHOD2
   /* Generate prk_3e2m or prk_4e3m */
@@ -907,7 +944,8 @@ edhoc_authenticate_msg(edhoc_context_t *ctx, uint8_t *ad, bool msg2)
   uint8_t mac[HASH_LEN];
   edhoc_calc_mac(ctx, mac_num, HASH_LEN, mac);
   LOG_DBG("MAC_%d (%d bytes): ", mac_num == 2 ? 2 : 3, HASH_LEN);
-  print_buff_8_dbg(mac, HASH_LEN);
+  LOG_DBG_BYTES(mac, HASH_LEN);
+  LOG_DBG_("\n");
 
   int8_t er2 = cose_sign1_set_payload(cose_sign1, mac, HASH_LEN);
   if(er2 < 0) {

@@ -42,6 +42,10 @@
 
 #include "contiki.h"
 #include "ecdh.h"
+
+#include "sys/log.h"
+#define LOG_MODULE "ecdh"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
 /*---------------------------------------------------------------------------*/
 bool
 ecdh_generate_ikm(uint8_t curve_id, const uint8_t *gx, const uint8_t *gy,

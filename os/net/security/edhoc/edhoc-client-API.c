@@ -45,6 +45,10 @@
 #include "sys/rtimer.h"
 #include <assert.h>
 
+#include "sys/log.h"
+#define LOG_MODULE "edhoc-client-api"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
+
 /* EDHOC Client protocol states */
 #define NON_MSG 0
 #define RX_MSG2 4
@@ -174,7 +178,8 @@ client_block2_handler(coap_message_t *response, uint8_t *target,
     memcpy(target + response->block2_offset, payload, pay_len);
     *len = response->block2_offset + pay_len;
     assert(*len <= EDHOC_MAX_BUFFER);
-    print_buff_8_dbg((uint8_t *)payload, (unsigned long)pay_len);
+    LOG_DBG_BYTES(payload, (size_t)pay_len);
+    LOG_DBG_("\n");
     target = target + pay_len; /* FIXME: Pointless assignment. Are things wrong here? */
   }
   return 0;
@@ -339,7 +344,8 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
   case RX_MSG2:
     LOG_DBG("--------------Handler message_2------------------\n");
     LOG_DBG("RX message_2 (%d bytes): ", edhoc_ctx->buffers.rx_sz);
-    print_buff_8_dbg(edhoc_ctx->buffers.msg_rx, edhoc_ctx->buffers.rx_sz);
+    LOG_DBG_BYTES(edhoc_ctx->buffers.msg_rx, edhoc_ctx->buffers.rx_sz);
+    LOG_DBG_("\n");
 
     time = RTIMER_NOW();
     er = edhoc_handler_msg_2(&msg2, edhoc_ctx, edhoc_ctx->buffers.msg_rx,
@@ -378,7 +384,8 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
       edhoc_state.ad.ad_2_sz = er;
       if(edhoc_state.ad.ad_2_sz > 0) {
         LOG_DBG("AD_2 (%d bytes): ", edhoc_state.ad.ad_2_sz);
-        print_char_8_dbg((char *)edhoc_state.ad.ad_2, edhoc_state.ad.ad_2_sz);
+        LOG_DBG_STRING((char *)edhoc_state.ad.ad_2, edhoc_state.ad.ad_2_sz);
+        LOG_DBG_("\n");
       }
 
       LOG_DBG("--------------Generate message_3------------------\n");
@@ -391,7 +398,8 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
                (uint32_t)((uint64_t)time * 1000 / RTIMER_SECOND),
                (uint32_t)time);
       LOG_DBG("message_3 (%d bytes): ", edhoc_ctx->buffers.tx_sz);
-      print_buff_8_dbg(edhoc_ctx->buffers.msg_tx, edhoc_ctx->buffers.tx_sz);
+      LOG_DBG_BYTES(edhoc_ctx->buffers.msg_tx, edhoc_ctx->buffers.tx_sz);
+      LOG_DBG("\n");
       cli->rx_msg2 = true;
       cli->state = RX_RESPONSE_MSG3;
       cli->tx_msg3 = true;
@@ -406,7 +414,8 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
       er = edhoc_deserialize_err(&err, msg_err, edhoc_ctx->buffers.rx_sz);
       if(er > 0) {
         LOG_ERR("RX error code %d, MSG_ERR", err.err_code);
-        print_char_8_err(err.err_info, err.err_info_sz);
+        LOG_ERR_STRING(err.err_info, err.err_info_sz);
+        LOG_ERR_("\n");
         edhoc_state.val = CL_RESTART;
         cli->state = NON_MSG;
         coap_timer_stop(&timer);
@@ -501,11 +510,14 @@ generate_ephemeral_key(uint8_t curve_id, uint8_t *pub_x,
            (uint32_t)((uint64_t)drv_time * 1000 / RTIMER_SECOND),
            (uint32_t)drv_time);
   LOG_DBG("X (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
+  LOG_DBG_BYTES(edhoc_ctx->creds.ephemeral_key.priv, ECC_KEY_LEN);
+  LOG_DBG_("\n");
   LOG_DBG("G_X x (%d bytes): ", ECC_KEY_LEN);
-  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.x, ECC_KEY_LEN);
+  LOG_DBG_BYTES(edhoc_ctx->creds.ephemeral_key.pub.x, ECC_KEY_LEN);
+  LOG_DBG_("\n");
   LOG_DBG("y: ");
-  print_buff_8_dbg(edhoc_ctx->creds.ephemeral_key.pub.y, ECC_KEY_LEN);
+  LOG_DBG_BYTES(edhoc_ctx->creds.ephemeral_key.pub.y, ECC_KEY_LEN);
+  LOG_DBG_("\n");
 }
 /*----------------------------------------------------------------------------*/
 void

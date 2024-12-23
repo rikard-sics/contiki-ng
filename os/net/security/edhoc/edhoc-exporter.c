@@ -42,6 +42,9 @@
 #include "edhoc-exporter.h"
 #include "contiki-lib.h"
 
+#include "sys/log.h"
+#define LOG_MODULE "edhoc-exp"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
 /*----------------------------------------------------------------------------*/
 void
 print_oscore_ctx(oscore_ctx_t *osc)
@@ -49,9 +52,11 @@ print_oscore_ctx(oscore_ctx_t *osc)
   LOG_PRINT("Initiator client CID: 0x%02x\n", osc->client_ID);
   LOG_PRINT("Responder server CID: 0x%02x\n", osc->server_ID);
   LOG_PRINT("OSCORE Master Secret (%d bytes): ", OSCORE_KEY_SZ);
-  print_buff_8_print(osc->master_secret, OSCORE_KEY_SZ);
+  LOG_PRINT_BYTES(osc->master_secret, OSCORE_KEY_SZ);
+  LOG_PRINT_("\n");
   LOG_PRINT("OSCORE Master Salt (%d bytes): ", OSCORE_SALT_SZ);
-  print_buff_8_print(osc->master_salt, OSCORE_SALT_SZ);
+  LOG_PRINT_BYTES(osc->master_salt, OSCORE_SALT_SZ);
+  LOG_PRINT_("\n");
 }
 /*----------------------------------------------------------------------------*/
 int8_t
@@ -77,7 +82,8 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
     return er;
   }
   LOG_DBG("PRK_out (%d bytes): ", prk_out_sz);
-  print_buff_8_dbg(prk_out, prk_out_sz);
+  LOG_DBG_BYTES(prk_out, prk_out_sz);
+  LOG_DBG_("\n");
 
   /* Derive prk_exporter */
   int prk_exporter_sz = HASH_LEN;
@@ -88,7 +94,8 @@ edhoc_exporter_oscore(oscore_ctx_t *osc, edhoc_context_t *ctx)
     return er;
   }
   LOG_DBG("PRK_exporter (%d bytes): ", prk_exporter_sz);
-  print_buff_8_dbg(prk_exporter, prk_exporter_sz);
+  LOG_DBG_BYTES(prk_exporter, prk_exporter_sz);
+  LOG_DBG_("\n");
 
   /* The OSCORE client is the initiator */
   if(EDHOC_ROLE == EDHOC_INITIATOR) {

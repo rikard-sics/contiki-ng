@@ -40,7 +40,6 @@
 
 #include <stdint.h>
 #include "edhoc-config.h"
-#include "edhoc-log.h"
 
 #include "lib/random.h"
 #include "sys/rtimer.h"

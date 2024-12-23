@@ -44,6 +44,10 @@
 #include "edhoc-msg-handlers.h"
 #include "cose.h"
 
+#include "sys/log.h"
+#define LOG_MODULE "edhoc-msg-h"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
+
 /*----------------------------------------------------------------------------*/
 static uint16_t
 decrypt_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ciphertext,
@@ -71,7 +75,8 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ciphertext,
     return 0;
   }
   LOG_DBG("K_3 (%d bytes): ", cose->key_sz);
-  print_buff_8_dbg(cose->key, cose->key_sz);
+  LOG_DBG_BYTES(cose->key, cose->key_sz);
+  LOG_DBG_("\n");
 
   /* generate IV_3 */
   cose->nonce_sz = cose_get_iv_len(cose->alg);
@@ -82,7 +87,8 @@ decrypt_ciphertext_3(edhoc_context_t *ctx, const uint8_t *ciphertext,
     return 0;
   }
   LOG_DBG("IV_3 (%d bytes): ", cose->nonce_sz);
-  print_buff_8_dbg(cose->nonce, cose->nonce_sz);
+  LOG_DBG_BYTES(cose->nonce, cose->nonce_sz);
+  LOG_DBG_("\n");
 
   /* Decrypt COSE */
   if(!cose_decrypt(cose)) {
@@ -176,12 +182,14 @@ edhoc_check_err_rx_msg(uint8_t *payload, uint8_t payload_sz)
   msg_err_sz = edhoc_deserialize_err(&err, msg_err, payload_sz);
   if(msg_err_sz > 0) {
     LOG_ERR("RX MSG_ERR: ");
-    print_char_8_err(err.err_info, err.err_info_sz);
+    LOG_ERR_STRING(err.err_info, err.err_info_sz);
+    LOG_ERR_("\n");
     return RX_ERR_MSG;
   }
   if(msg_err_sz == -1) {
     LOG_ERR("RX MSG_ERROR WITH SUITE PROPOSE: ");
-    print_char_8_err(err.err_info, err.err_info_sz);
+    LOG_ERR_STRING(err.err_info, err.err_info_sz);
+    LOG_ERR_("\n");
     return RX_ERR_MSG;
   }
   return 0;
@@ -198,7 +206,8 @@ edhoc_check_err_rx_msg_2(uint8_t *payload, uint8_t payload_sz,
   int8_t msg_err_sz = edhoc_deserialize_err(&err, msg_err, payload_sz);
   if(msg_err_sz < 0) {
     LOG_ERR("RX MSG_ERR: ");
-    print_char_8_err(err.err_info, err.err_info_sz);
+    LOG_ERR_STRING(err.err_info, err.err_info_sz);
+    LOG_ERR_("\n");
     return RX_ERR_MSG;
   }
   return 0;
@@ -223,7 +232,8 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload,
   }
 
   LOG_DBG("MSG1 (%d bytes): ", (int)ctx->buffers.rx_sz - 1);
-  print_buff_8_dbg((ctx->buffers.msg_rx) + 1, ctx->buffers.rx_sz - 1);
+  LOG_DBG_BYTES((ctx->buffers.msg_rx) + 1, ctx->buffers.rx_sz - 1);
+  LOG_DBG_("\n");
   er = edhoc_deserialize_msg_1(&msg1, (ctx->buffers.msg_rx) + 1,
                                ctx->buffers.rx_sz - 1);
   if(er < 0) {
@@ -258,7 +268,8 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload,
   edhoc_print_session_info(ctx);
 
   LOG_DBG("MSG EAD (%d)", (int)msg1.uad.ead_value_sz);
-  print_char_8_dbg((char *)msg1.uad.ead_value, msg1.uad.ead_value_sz);
+  LOG_DBG_STRING((char *)msg1.uad.ead_value, msg1.uad.ead_value_sz);
+  LOG_DBG_("\n");
 
   if(msg1.uad.ead_value_sz != 0) {
     memcpy(ad, msg1.uad.ead_value, msg1.uad.ead_value_sz);
@@ -300,7 +311,8 @@ edhoc_handler_msg_2(edhoc_msg_2_t *msg2, edhoc_context_t *ctx,
   memcpy(ctx->buffers.plaintext, msg2->gy_ciphertext_2 + ECC_KEY_LEN,
          ciphertext2_sz);
   LOG_DBG("CIPHERTEXT_2 (%d bytes): ", ciphertext2_sz);
-  print_buff_8_dbg(ctx->buffers.plaintext, ciphertext2_sz);
+  LOG_DBG_BYTES(ctx->buffers.plaintext, ciphertext2_sz);
+  LOG_DBG_("\n");
 
   /* Actually decrypt the ciphertext */
   size_t plaint_sz = edhoc_enc_dec_ciphertext_2(ctx, ks_2e,
@@ -308,7 +320,8 @@ edhoc_handler_msg_2(edhoc_msg_2_t *msg2, edhoc_context_t *ctx,
                                                 ciphertext2_sz);
   ctx->buffers.plaintext_sz = plaint_sz;
   LOG_DBG("PLAINTEXT_2 (%zu bytes): ", plaint_sz);
-  print_buff_8_dbg(ctx->buffers.plaintext, plaint_sz);
+  LOG_DBG_BYTES(ctx->buffers.plaintext, plaint_sz);
+  LOG_DBG_("\n");
 
   int cr_sz = EDHOC_CID_LEN;
   er = set_rx_cid(ctx, ctx->buffers.plaintext, cr_sz);
@@ -342,7 +355,8 @@ edhoc_handler_msg_3(edhoc_msg_3_t *msg3, edhoc_context_t *ctx,
   print_msg_3(msg3);
 
   LOG_DBG("CIPHERTEXT_3 (%d bytes): ", (int)msg3->ciphertext_3_sz);
-  print_buff_8_dbg(msg3->ciphertext_3, msg3->ciphertext_3_sz);
+  LOG_DBG_BYTES(msg3->ciphertext_3, msg3->ciphertext_3_sz);
+  LOG_DBG_("\n");
 
   /* generate TH_3 */
   edhoc_gen_th3(ctx, ctx->buffers.cred_x, ctx->buffers.cred_x_sz,
@@ -358,7 +372,8 @@ edhoc_handler_msg_3(edhoc_msg_3_t *msg3, edhoc_context_t *ctx,
     return ERR_DECRYPT;
   }
   LOG_DBG("PLAINTEXT_3 (%d): ", (int)plaintext_sz);
-  print_buff_8_dbg(ctx->buffers.plaintext, plaintext_sz);
+  LOG_DBG_BYTES(ctx->buffers.plaintext, plaintext_sz);
+  LOG_DBG_("\n");
 
   return 1;
 }

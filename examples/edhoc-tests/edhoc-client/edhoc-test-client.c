@@ -44,6 +44,10 @@
 #include "coap-engine.h"
 #include "edhoc-client-API.h"
 
+#include "sys/log.h"
+#define LOG_MODULE "edhoc-client"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
+
 /******************************************************************************/
 PROCESS(edhoc_example_client, "EDHOC Example Client");
 AUTOSTART_PROCESSES(&edhoc_example_client);

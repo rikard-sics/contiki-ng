@@ -41,7 +41,10 @@
 #include "contiki.h"
 #include "contiki-lib.h"
 #include <string.h>
-#include "edhoc-log.h"
+
+#include "sys/log.h"
+#define LOG_MODULE "edhoc-key-s"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
 
 /*----------------------------------------------------------------------------*/
 LIST(key_list);
@@ -137,14 +140,18 @@ void
 cose_print_key(cose_key_t *cose)
 {
   LOG_DBG("kid: ");
-  LOG_PRINT_EDHOC_BUFF(cose->kid, cose->kid_sz);
+  LOG_DBG_BYTES(cose->kid, cose->kid_sz);
+  LOG_DBG_("\n");
   LOG_DBG("identity: ");
-  LOG_PRINT_EDHOC_BUFF((uint8_t *)cose->identity, cose->identity_sz);
+  LOG_DBG_BYTES((uint8_t *)cose->identity, cose->identity_sz);
+  LOG_DBG_("\n");
   LOG_DBG("kty: %d\n", cose->kty);
   LOG_DBG("crv: %d\n", cose->crv);
   LOG_DBG("x: ");
-  LOG_PRINT_EDHOC_BUFF(cose->ecc.pub.x, ECC_KEY_LEN);
+  LOG_DBG_BYTES(cose->ecc.pub.x, ECC_KEY_LEN);
+  LOG_DBG_("\n");
   LOG_DBG("y: ");
-  LOG_PRINT_EDHOC_BUFF(cose->ecc.pub.y, ECC_KEY_LEN);
+  LOG_DBG_BYTES(cose->ecc.pub.y, ECC_KEY_LEN);
+  LOG_DBG_("\n");
 }
 /*----------------------------------------------------------------------------*/

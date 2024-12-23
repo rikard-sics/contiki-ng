@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <string.h>
 #include "edhoc-config.h"
-#include "edhoc-log.h"
 
 #include "dev/ecc-algorithm.h"
 #include "dev/ecc-curve.h"

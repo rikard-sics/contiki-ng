@@ -11,6 +11,11 @@
 #include "coap.h"
 #include "edhoc-server-API.h"
 
+/* Log configuration */
+#include "sys/log.h"
+#define LOG_MODULE "res-edhoc"
+#define LOG_LEVEL  LOG_LEVEL_EDHOC
+
 /*----------------------------------------------------------------------------*/
 edhoc_server_t servidor;
 
@@ -42,11 +47,13 @@ res_edhoc_post_handler(coap_message_t *request,
     if(coap_block1_handler(request, response, msg_rx, &msg_rx_len,
                            EDHOC_MAX_PAYLOAD_LEN)) {
       LOG_DBG("handler (%d)\n", (int)msg_rx_len);
-      print_buff_8_dbg(msg_rx, msg_rx_len);
+      LOG_DBG_BYTES(msg_rx, msg_rx_len);
+      LOG_DBG_("\n");
       return;
     } else {
       LOG_DBG("RX msg (%d)\n", (int)msg_rx_len);
-      print_buff_8_dbg(msg_rx, msg_rx_len);
+      LOG_DBG_BYTES(msg_rx, msg_rx_len);
+      LOG_DBG_("\n");
       edhoc_server_process(request, response, &servidor, msg_rx, msg_rx_len);
     }
     response->payload = (uint8_t *)edhoc_ctx->buffers.msg_tx;
