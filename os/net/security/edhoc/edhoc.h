@@ -308,7 +308,7 @@ int16_t edhoc_expand(const uint8_t *prk, const uint8_t *info, uint16_t info_sz, 
  * Internal API functions.
  */
 bool edhoc_initialize_context(edhoc_context_t *ctx);
-uint8_t edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key);
+bool edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key);
 bool edhoc_set_config_from_suite(edhoc_context_t *ctx, uint8_t suite);
 void edhoc_print_session_info(const edhoc_context_t *ctx);
 int8_t edhoc_gen_th2(edhoc_context_t *ctx, const uint8_t *eph_pub,

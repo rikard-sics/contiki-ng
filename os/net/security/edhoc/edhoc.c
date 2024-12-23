@@ -725,14 +725,14 @@ edhoc_initialize_context(edhoc_context_t *ctx)
   return edhoc_set_config_from_suite(ctx, ctx->state.suite_selected);
 }
 /*----------------------------------------------------------------------------*/
-uint8_t
+bool
 edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key)
 {
 #ifdef EDHOC_AUTH_SUBJECT_NAME
   if(edhoc_check_key_list_identity(EDHOC_AUTH_SUBJECT_NAME,
                                    strlen(EDHOC_AUTH_SUBJECT_NAME), key)) {
     /* Key found using identity */
-    return 1;
+    return true;
   } else {
     LOG_ERR("Does not contain a key for the authentication key identity\n");
   }
@@ -752,7 +752,7 @@ edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key)
 
     if(edhoc_check_key_list_kid(key_id, key_id_sz, key)) {
       /* Key found using KID */
-      return 1;
+      return true;
     } else {
       LOG_ERR("Does not contain a key for the key ID\n");
     }
@@ -760,7 +760,7 @@ edhoc_get_own_auth_key(edhoc_context_t *ctx, cose_key_t **key)
 #endif
 
   LOG_ERR("No matching key found in the storage\n");
-  return 0;
+  return false;
 }
 /*----------------------------------------------------------------------------*/
 uint8_t
