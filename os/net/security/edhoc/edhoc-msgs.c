@@ -50,7 +50,7 @@ edhoc_msgs_log_msg_1(const edhoc_msg_1_t *msg)
 {
   LOG_OUTPUT("Type: %d\n", msg->method);
   LOG_OUTPUT("Suite I: ");
-  log_bytes(msg->suites_i, msg->suites_i_sz);
+  log_bytes(msg->suites_i, msg->suites_i_num * sizeof(msg->suites_i[0]));
   LOG_OUTPUT("\n");
   LOG_OUTPUT("Gx: ");
   log_bytes(msg->g_x, ECC_KEY_LEN);
@@ -219,20 +219,20 @@ edhoc_get_byte_identifier(uint8_t **in)
 }
 /*---------------------------------------------------------------------------*/
 static size_t
-edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, size_t suites_sz)
+edhoc_serialize_suites(unsigned char **buffer, const uint8_t *suites, uint8_t suites_num)
 {
-  if(suites_sz == 1) {
+  if(suites_num == 1) {
     return cbor_put_unsigned(buffer, suites[0]);
   }
-  size_t size = cbor_put_array(buffer, suites_sz);
-  for(uint8_t i = 0; i < suites_sz; ++i) {
+  size_t size = cbor_put_array(buffer, suites_num);
+  for(uint8_t i = 0; i < suites_num; ++i) {
     size += cbor_put_unsigned(buffer, suites[i]);
   }
   return size;
 }
 /*---------------------------------------------------------------------------*/
 static void
-edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *suites_sz)
+edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, uint8_t *suites_num)
 {
   *suites_buf = (uint8_t *)*buffer;
   int8_t unint = (int8_t)edhoc_get_unsigned(buffer);
@@ -240,14 +240,14 @@ edhoc_deserialize_suites(unsigned char **buffer, uint8_t **suites_buf, size_t *s
   if(unint < 0) {
     unint = edhoc_get_array_num(buffer);
     *suites_buf = (uint8_t *)*buffer;
-    *suites_sz = 0;
+    *suites_num = 0;
 
-    while(*suites_sz < unint) {
+    while(*suites_num < unint) {
       edhoc_get_unsigned(buffer);
-      (*suites_sz)++;
+      (*suites_num)++;
     }
   } else {
-    *suites_sz = 1;
+    *suites_num = 1;
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -255,7 +255,7 @@ size_t
 edhoc_serialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, bool suite_array)
 {
   size_t size = cbor_put_unsigned(&buffer, msg->method);
-  size += edhoc_serialize_suites(&buffer, msg->suites_i, msg->suites_i_sz);
+  size += edhoc_serialize_suites(&buffer, msg->suites_i, msg->suites_i_num);
   size += cbor_put_bytes(&buffer, msg->g_x, ECC_KEY_LEN);
   size += edhoc_put_byte_identifier(&buffer, msg->c_i, EDHOC_CID_LEN);
   if(msg->uad.ead_value_sz > 0) {
@@ -301,7 +301,9 @@ edhoc_deserialize_err(edhoc_msg_error_t *msg, unsigned char *buffer, uint8_t buf
   if(buffer < buff_end) {
     if(msg->err_code == 2) {
       /* FIXME: strict aliasing violation */
-      edhoc_deserialize_suites(&buffer, (uint8_t **)&msg->err_info, &msg->err_info_sz);
+      uint8_t suites_num;
+      edhoc_deserialize_suites(&buffer, (uint8_t **)&msg->err_info, &suites_num);
+      msg->err_info_sz = suites_num;
       return ERR_NEW_SUITE_PROPOSE;
     }
     int16_t len = get_text(&buffer, &msg->err_info);
@@ -332,7 +334,7 @@ edhoc_deserialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, size_t buff_s
   }
   /* Get the suite */
   if(buffer < buff_end) {
-    edhoc_deserialize_suites(&buffer, &msg->suites_i, &msg->suites_i_sz);
+    edhoc_deserialize_suites(&buffer, &msg->suites_i, &msg->suites_i_num);
   }
   /* Get Gx */
   if(buffer < buff_end) {

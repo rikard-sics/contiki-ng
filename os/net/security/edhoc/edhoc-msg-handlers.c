@@ -123,24 +123,24 @@ set_rx_cid(edhoc_context_t *ctx, uint8_t *cidrx, uint8_t cidrx_sz)
 /*----------------------------------------------------------------------------*/
 static int8_t
 check_rx_suite_i(edhoc_context_t *ctx,
-                 const uint8_t *suite_rx, size_t suite_rx_sz)
+                 const uint8_t *suite_rx, uint8_t suite_rx_num)
 {
-  /* Get the selected cipher suite (last element) */
-  uint8_t peer_selected_suite = suite_rx[suite_rx_sz - 1];
+  if(suite_rx_num > 0) {
+    /* Get the selected cipher suite (last element) */
+    uint8_t peer_selected_suite = suite_rx[suite_rx_num - 1];
 
-  /* Check if the selected suite is supported */
-  for(uint8_t i = 0; i < ctx->config.suite_num; i++) {
-    if(ctx->config.suite[i] == peer_selected_suite) {
-      ctx->state.suite_selected = peer_selected_suite;
-      LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
+    /* Check if the selected suite is supported */
+    for(uint8_t i = 0; i < ctx->config.suite_num; i++) {
+      if(ctx->config.suite[i] == peer_selected_suite) {
+        ctx->state.suite_selected = peer_selected_suite;
+        LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
 
-      /* Responder sets config to use based on selected suite */
-      int8_t er = edhoc_set_config_from_suite(ctx, ctx->state.suite_selected);
-      if(er != 1) {
-        LOG_WARN("ERR_NEW_SUITE_PROPOSE\n");
-        return ERR_NEW_SUITE_PROPOSE;
+        /* Responder sets config to use based on selected suite */
+        if(edhoc_set_config_from_suite(ctx, ctx->state.suite_selected) == 1) {
+          return 0;
+        }
+        break;
       }
-      return 0;
     }
   }
 
@@ -244,7 +244,7 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload,
   LOG_DBG_EDHOC_MSG_1(&msg1);
 
   /* check rx suite and set connection identifier of the other peer */
-  er = check_rx_suite_i(ctx, msg1.suites_i, msg1.suites_i_sz);
+  er = check_rx_suite_i(ctx, msg1.suites_i, msg1.suites_i_num);
   if(er < 0) {
     LOG_ERR("Rx Suite not supported\n");
     return er;

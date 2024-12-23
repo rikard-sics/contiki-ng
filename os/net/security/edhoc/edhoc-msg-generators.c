@@ -183,7 +183,7 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
   edhoc_msg_1_t msg1 = {
     .method = ctx->config.method,
     .suites_i = ctx->config.suite,
-    .suites_i_sz = ctx->config.suite_num,
+    .suites_i_num = ctx->config.suite_num,
     .g_x = (uint8_t *)&ctx->creds.ephemeral_key.pub.x,
     .c_i = (uint8_t *)&ctx->state.cid,
     .uad = { .ead_label = 0, .ead_value = ad, .ead_value_sz = ad_sz },
@@ -200,7 +200,7 @@ edhoc_gen_msg_1(edhoc_context_t *ctx, uint8_t *ad, size_t ad_sz, bool suite_arra
   LOG_DBG("AD_1 (%d bytes): ", (int)ad_sz);
   LOG_DBG_STRING((char *)ad, ad_sz);
   LOG_DBG_("\n");
-  for(int i = 0; i < msg1.suites_i_sz; ++i) {
+  for(int i = 0; i < msg1.suites_i_num; ++i) {
     LOG_DBG("SUITES_I[%d]: %d\n", i, (int)msg1.suites_i[i]);
   }
 

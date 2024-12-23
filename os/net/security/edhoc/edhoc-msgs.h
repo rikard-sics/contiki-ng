@@ -70,7 +70,7 @@ typedef struct edhoc_ead_data {
 typedef struct edhoc_msg_1 {
   uint8_t method;
   uint8_t *suites_i;
-  size_t suites_i_sz;
+  uint8_t suites_i_num;
   uint8_t *g_x;
   uint8_t *c_i;
   edhoc_ead_data_t uad;
