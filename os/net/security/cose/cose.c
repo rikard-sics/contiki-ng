@@ -43,8 +43,11 @@
 #include "cose.h"
 #include "cbor.h"
 #include "uECC.h"
-#include "cose-log.h"
 #include <string.h>
+
+#include "sys/log.h"
+#define LOG_MODULE "cose"
+#define LOG_LEVEL LOG_LEVEL_EDHOC
 
 MEMB(encrypt0_storage, cose_encrypt0, 1);
 MEMB(sign1_storage, cose_sign1, 1);
@@ -244,7 +247,8 @@ cose_decrypt(cose_encrypt0 *enc)
   uint16_t str_sz = encode_enc_structure(enc, enc_struct_bytes);
 
   LOG_DBG("CBOR-encoded AAD for COSE_Encrypt0 decryption (%d bytes): ", str_sz);
-  cose_print_buff_8_dbg(enc_struct_bytes, str_sz);
+  LOG_DBG_BYTES(enc_struct_bytes, str_sz);
+  LOG_DBG_("\n");
 
   uint8_t key_len = cose_get_key_len(enc->alg);
   uint8_t iv_len = cose_get_iv_len(enc->alg);
@@ -277,7 +281,8 @@ cose_encrypt(cose_encrypt0 *enc)
   uint16_t str_sz = encode_enc_structure(enc, enc_struct_bytes);
 
   LOG_DBG("CBOR-encoded AAD for COSE_Encrypt0 encryption (%d bytes): ", str_sz);
-  cose_print_buff_8_dbg(enc_struct_bytes, str_sz);
+  LOG_DBG_BYTES(enc_struct_bytes, str_sz);
+  LOG_DBG_("\n");
 
   uint8_t key_len = cose_get_key_len(enc->alg);
   uint8_t iv_len = cose_get_iv_len(enc->alg);
@@ -308,10 +313,12 @@ cose_sign(cose_sign1 *sign1)
 
   LOG_DBG("CBOR-encoded sig_structure for COSE_Sign1 signing (%d bytes): ",
           sig_str_sz);
-  cose_print_buff_8_dbg(sig_struct_bytes, sig_str_sz);
+  LOG_DBG_BYTES(sig_struct_bytes, sig_str_sz);
+  LOG_DBG_("\n");
 
   LOG_DBG("Using own private key for COSE_Sign1 signing: ");
-  cose_print_buff_8_dbg(sign1->key, ECC_KEY_LEN);
+  LOG_DBG_BYTES(sign1->key, ECC_KEY_LEN);
+  LOG_DBG_("\n");
 
   uint8_t hash[HASH_LEN];
   sha_256_hash(sig_struct_bytes, sig_str_sz, hash);
@@ -320,7 +327,8 @@ cose_sign(cose_sign1 *sign1)
                uECC_secp256r1())) {
     sign1->signature_sz = P256_SIGNATURE_LEN;
     /* LOG_DBG("Signature for COSE_Sign1 (%d bytes): ", sign1->signature_sz); */
-    /* cose_print_buff_8_dbg(sign1->signature, sign1->signature_sz); */
+    /* LOG_DBG_BYTES(sign1->signature, sign1->signature_sz); */
+    /* LOG_DBG_("\n"); */
   } else {
     LOG_ERR("Error signing for COSE_Sign1\n");
     return 0;
@@ -335,7 +343,8 @@ cose_verify(cose_sign1 *sign1)
   uint8_t *public_key = sign1->key;
 
   LOG_DBG("Using peer's public key for COSE_Sign1 signature verification: ");
-  cose_print_buff_8_dbg(public_key, ECC_KEY_LEN * 2);
+  LOG_DBG_BYTES(public_key, ECC_KEY_LEN * 2);
+  LOG_DBG_("\n");
 
   /* Recreate the sig_structure */
   uint8_t sig_struct_bytes[2 * COSE_MAX_BUFFER];
@@ -343,7 +352,8 @@ cose_verify(cose_sign1 *sign1)
 
   LOG_DBG("CBOR-encoded sig_structure for COSE_Sign1 verification (%d bytes): ",
           sig_str_sz);
-  cose_print_buff_8_dbg(sig_struct_bytes, sig_str_sz);
+  LOG_DBG_BYTES(sig_struct_bytes, sig_str_sz);
+  LOG_DBG_("\n");
 
   uint8_t hash[HASH_LEN];
   sha_256_hash(sig_struct_bytes, sig_str_sz, hash);
