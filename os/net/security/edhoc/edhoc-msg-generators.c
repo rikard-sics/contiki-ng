@@ -50,7 +50,7 @@
 #include <assert.h>
 
 #include "sys/log.h"
-#define LOG_MODULE "edhoc-msg-g"
+#define LOG_MODULE "edhoc-mgen"
 #define LOG_LEVEL LOG_LEVEL_EDHOC
 /*----------------------------------------------------------------------------*/
 static uint8_t

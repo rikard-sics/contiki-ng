@@ -45,7 +45,7 @@
 #include <assert.h>
 
 #include "sys/log.h"
-#define LOG_MODULE "edhoc-client-api"
+#define LOG_MODULE "edhoc-capi"
 #define LOG_LEVEL LOG_LEVEL_EDHOC
 
 /* EDHOC Client protocol states */

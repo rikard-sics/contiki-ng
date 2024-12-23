@@ -43,7 +43,7 @@
 #include <string.h>
 
 #include "sys/log.h"
-#define LOG_MODULE "edhoc-key-s"
+#define LOG_MODULE "edhoc-keys"
 #define LOG_LEVEL LOG_LEVEL_EDHOC
 
 /*----------------------------------------------------------------------------*/

@@ -46,7 +46,7 @@
 #include "cose.h"
 
 #include "sys/log.h"
-#define LOG_MODULE "edhoc-msg-h"
+#define LOG_MODULE "edhoc-mhan"
 #define LOG_LEVEL LOG_LEVEL_EDHOC
 
 /*----------------------------------------------------------------------------*/
