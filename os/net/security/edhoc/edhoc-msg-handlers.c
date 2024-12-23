@@ -268,7 +268,7 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload,
   set_rx_gx(ctx, msg1.g_x);
   edhoc_print_session_info(ctx);
 
-  LOG_DBG("MSG EAD (%d)", (int)msg1.uad.ead_value_sz);
+  LOG_DBG("MSG EAD (%d bytes): ", (int)msg1.uad.ead_value_sz);
   LOG_DBG_STRING((char *)msg1.uad.ead_value, msg1.uad.ead_value_sz);
   LOG_DBG_("\n");
 

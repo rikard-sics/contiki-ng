@@ -46,17 +46,17 @@ res_edhoc_post_handler(coap_message_t *request,
   if(*offset == 0) {
     if(coap_block1_handler(request, response, msg_rx, &msg_rx_len,
                            EDHOC_MAX_PAYLOAD_LEN)) {
-      LOG_DBG("handler (%d)\n", (int)msg_rx_len);
+      LOG_DBG("handler (%d): ", (int)msg_rx_len);
       LOG_DBG_BYTES(msg_rx, msg_rx_len);
       LOG_DBG_("\n");
       return;
     } else {
-      LOG_DBG("RX msg (%d)\n", (int)msg_rx_len);
+      LOG_DBG("RX msg (%d): ", (int)msg_rx_len);
       LOG_DBG_BYTES(msg_rx, msg_rx_len);
       LOG_DBG_("\n");
       edhoc_server_process(request, response, &servidor, msg_rx, msg_rx_len);
     }
-    response->payload = (uint8_t *)edhoc_ctx->buffers.msg_tx;
+    response->payload = edhoc_ctx->buffers.msg_tx;
     response->payload_len = edhoc_ctx->buffers.tx_sz;
     big_msg_len = edhoc_ctx->buffers.tx_sz;
     coap_set_header_block1(response, request->block1_num, 0,
