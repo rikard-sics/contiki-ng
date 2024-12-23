@@ -46,37 +46,37 @@
 #define LOG_LEVEL LOG_LEVEL_EDHOC
 /*---------------------------------------------------------------------------*/
 void
-print_msg_1(edhoc_msg_1_t *msg)
+edhoc_msgs_log_msg_1(const edhoc_msg_1_t *msg)
 {
-  LOG_DBG("Type: %d\n", msg->method);
-  LOG_DBG("Suite I: ");
-  LOG_DBG_BYTES(msg->suites_i, msg->suites_i_sz);
-  LOG_DBG_("\n");
-  LOG_DBG("Gx: ");
-  LOG_DBG_BYTES(msg->g_x, ECC_KEY_LEN);
-  LOG_DBG_("\n");
-  LOG_DBG("Ci: ");
-  LOG_DBG_BYTES(msg->c_i, EDHOC_CID_LEN);
-  LOG_DBG_("\n");
-  LOG_DBG("EAD (label: %d): ", msg->uad.ead_label);
-  LOG_DBG_BYTES(msg->uad.ead_value, msg->uad.ead_value_sz);
-  LOG_DBG_("\n");
+  LOG_OUTPUT("Type: %d\n", msg->method);
+  LOG_OUTPUT("Suite I: ");
+  log_bytes(msg->suites_i, msg->suites_i_sz);
+  LOG_OUTPUT("\n");
+  LOG_OUTPUT("Gx: ");
+  log_bytes(msg->g_x, ECC_KEY_LEN);
+  LOG_OUTPUT("\n");
+  LOG_OUTPUT("Ci: ");
+  log_bytes(msg->c_i, EDHOC_CID_LEN);
+  LOG_OUTPUT("\n");
+  LOG_OUTPUT("EAD (label: %d): ", msg->uad.ead_label);
+  log_bytes(msg->uad.ead_value, msg->uad.ead_value_sz);
+  LOG_OUTPUT("\n");
 }
 /*---------------------------------------------------------------------------*/
 void
-print_msg_2(edhoc_msg_2_t *msg)
+edhoc_msgs_log_msg_2(const edhoc_msg_2_t *msg)
 {
-  LOG_DBG("gy_ciphertext_2: ");
-  LOG_DBG_BYTES(msg->gy_ciphertext_2, msg->gy_ciphertext_2_sz);
-  LOG_DBG_("\n");
+  LOG_OUTPUT("gy_ciphertext_2: ");
+  log_bytes(msg->gy_ciphertext_2, msg->gy_ciphertext_2_sz);
+  LOG_OUTPUT("\n");
 }
 /*---------------------------------------------------------------------------*/
 void
-print_msg_3(edhoc_msg_3_t *msg)
+edhoc_msgs_log_msg_3(const edhoc_msg_3_t *msg)
 {
-  LOG_DBG("CIPHERTEXT_3: ");
-  LOG_DBG_BYTES(msg->ciphertext_3, msg->ciphertext_3_sz);
-  LOG_DBG_("\n");
+  LOG_OUTPUT("CIPHERTEXT_3: ");
+  log_bytes(msg->ciphertext_3, msg->ciphertext_3_sz);
+  LOG_OUTPUT("\n");
 }
 /*---------------------------------------------------------------------------*/
 static uint8_t

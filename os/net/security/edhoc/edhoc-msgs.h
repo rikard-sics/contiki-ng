@@ -92,9 +92,9 @@ typedef struct edhoc_msg_error {
   size_t err_info_sz;
 } edhoc_msg_error_t;
 
-void print_msg_1(edhoc_msg_1_t *msg);
-void print_msg_2(edhoc_msg_2_t *msg);
-void print_msg_3(edhoc_msg_3_t *msg);
+void edhoc_msgs_log_msg_1(const edhoc_msg_1_t *msg);
+void edhoc_msgs_log_msg_2(const edhoc_msg_2_t *msg);
+void edhoc_msgs_log_msg_3(const edhoc_msg_3_t *msg);
 
 size_t edhoc_serialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, bool suite_array);
 size_t edhoc_serialize_err(edhoc_msg_error_t *msg, unsigned char *buffer);

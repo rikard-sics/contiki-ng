@@ -42,6 +42,7 @@
 #include <assert.h>
 
 #include "edhoc-msg-handlers.h"
+#include "edhoc-log.h"
 #include "cose.h"
 
 #include "sys/log.h"
@@ -240,7 +241,7 @@ edhoc_handler_msg_1(edhoc_context_t *ctx, uint8_t *payload,
     LOG_ERR("MSG1 malformed\n");
     return er;
   }
-  print_msg_1(&msg1);
+  LOG_DBG_EDHOC_MSG_1(&msg1);
 
   /* check rx suite and set connection identifier of the other peer */
   er = check_rx_suite_i(ctx, msg1.suites_i, msg1.suites_i_sz);
@@ -294,7 +295,7 @@ edhoc_handler_msg_2(edhoc_msg_2_t *msg2, edhoc_context_t *ctx,
     LOG_ERR("MSG2 malformed\n");
     return er;
   }
-  print_msg_2(msg2);
+  LOG_DBG_EDHOC_MSG_2(msg2);
 
   set_rx_gx(ctx, msg2->gy_ciphertext_2);
   edhoc_gen_th2(ctx, msg2->gy_ciphertext_2, ctx->buffers.msg_tx,
@@ -352,7 +353,7 @@ edhoc_handler_msg_3(edhoc_msg_3_t *msg3, edhoc_context_t *ctx,
     LOG_ERR("MSG3 malformed\n");
     return er;
   }
-  print_msg_3(msg3);
+  LOG_DBG_EDHOC_MSG_3(msg3);
 
   LOG_DBG("CIPHERTEXT_3 (%d bytes): ", (int)msg3->ciphertext_3_sz);
   LOG_DBG_BYTES(msg3->ciphertext_3, msg3->ciphertext_3_sz);
