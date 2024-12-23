@@ -129,13 +129,13 @@ uint8_t edhoc_server_start(void);
 
 /**
  * \brief Reset the EDHOC context for a new EDHOC protocol session with a new client
- * \retval non-zero if the authentication credentials for the EDHOC server exist on the key-storage
+ * \retval true if the authentication credentials for the EDHOC server exist on the key-storage
  *  and the EDHOC server start correctly.
  *
  * Rest the EDHOC context to initiate a new EDHOC protocol session with a new client
  * Before of using the export security context of the before EDHOC context must be keep it
  */
-uint8_t edhoc_server_restart(void);
+bool edhoc_server_restart(void);
 
 /**
  * \brief Check if an EDHOC server session has finished

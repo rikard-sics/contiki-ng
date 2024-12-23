@@ -136,7 +136,7 @@ check_rx_suite_i(edhoc_context_t *ctx,
         LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
 
         /* Responder sets config to use based on selected suite */
-        if(edhoc_set_config_from_suite(ctx, ctx->state.suite_selected) == 1) {
+        if(edhoc_set_config_from_suite(ctx, ctx->state.suite_selected)) {
           return 0;
         }
         break;

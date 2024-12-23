@@ -179,26 +179,26 @@ get_edhoc_sign_alg(uint8_t ciphersuite_id)
   }
 }
 /*----------------------------------------------------------------------------*/
-int8_t
+bool
 edhoc_set_config_from_suite(edhoc_context_t *ctx, uint8_t suite)
 {
   if((ctx->config.ecdh_curve = get_edhoc_curve(suite)) == 0) {
-    return 0;
+    return false;
   }
 
   if((ctx->config.mac_len = get_edhoc_mac_len(ctx->state.suite_selected)) == 0) {
-    return 0;
+    return false;
   }
 
   if((ctx->config.aead_alg = get_edhoc_aead_enc_alg(ctx->state.suite_selected)) == 0) {
-    return 0;
+    return false;
   }
 
   if((ctx->config.sign_alg = get_edhoc_sign_alg(ctx->state.suite_selected)) == 0) {
-    return 0;
+    return false;
   }
 
-  return 1;
+  return true;
 }
 /*----------------------------------------------------------------------------*/
 static inline void
@@ -699,13 +699,13 @@ edhoc_enc_dec_ciphertext_2(const edhoc_context_t *ctx, const uint8_t *ks_2e,
   return plaintext_sz;
 }
 /*----------------------------------------------------------------------------*/
-uint8_t
+bool
 edhoc_initialize_context(edhoc_context_t *ctx)
 {
   /* Retrieve a pointer to own auth key */
   cose_key_t *key = NULL;
   if(!edhoc_get_own_auth_key(ctx, &key)) {
-    return 0;
+    return false;
   }
 
   /* Set pointer to found key */
@@ -722,12 +722,7 @@ edhoc_initialize_context(edhoc_context_t *ctx)
   ctx->config.method = EDHOC_METHOD;
 
   /* Initiator sets config to use based on selected suite */
-  int8_t er = edhoc_set_config_from_suite(ctx, ctx->state.suite_selected);
-  if(er != 1) {
-    return 0;
-  }
-
-  return 1;
+  return edhoc_set_config_from_suite(ctx, ctx->state.suite_selected);
 }
 /*----------------------------------------------------------------------------*/
 uint8_t

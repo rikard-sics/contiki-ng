@@ -169,7 +169,7 @@ server_timeout_callback(coap_timer_t *timer)
   process_post(PROCESS_BROADCAST, new_ecc_event, &new_ecc);
 }
 /*----------------------------------------------------------------------------*/
-uint8_t
+bool
 edhoc_server_restart(void)
 {
   serv->con_num = 0;
