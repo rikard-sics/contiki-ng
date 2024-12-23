@@ -139,19 +139,19 @@ edhoc_remove_key(cose_key_t *auth_key)
 void
 cose_print_key(cose_key_t *cose)
 {
-  LOG_DBG("kid: ");
-  LOG_DBG_BYTES(cose->kid, cose->kid_sz);
-  LOG_DBG_("\n");
-  LOG_DBG("identity: ");
-  LOG_DBG_BYTES((uint8_t *)cose->identity, cose->identity_sz);
-  LOG_DBG_("\n");
-  LOG_DBG("kty: %d\n", cose->kty);
-  LOG_DBG("crv: %d\n", cose->crv);
-  LOG_DBG("x: ");
-  LOG_DBG_BYTES(cose->ecc.pub.x, ECC_KEY_LEN);
-  LOG_DBG_("\n");
-  LOG_DBG("y: ");
-  LOG_DBG_BYTES(cose->ecc.pub.y, ECC_KEY_LEN);
-  LOG_DBG_("\n");
+  LOG_INFO("kid: ");
+  LOG_INFO_BYTES(cose->kid, cose->kid_sz);
+  LOG_INFO_("\n");
+  LOG_INFO("identity: ");
+  LOG_INFO_BYTES((uint8_t *)cose->identity, cose->identity_sz);
+  LOG_INFO_("\n");
+  LOG_INFO("kty: %d\n", cose->kty);
+  LOG_INFO("crv: %d\n", cose->crv);
+  LOG_INFO("x: ");
+  LOG_INFO_BYTES(cose->ecc.pub.x, ECC_KEY_LEN);
+  LOG_INFO_("\n");
+  LOG_INFO("y: ");
+  LOG_INFO_BYTES(cose->ecc.pub.y, ECC_KEY_LEN);
+  LOG_INFO_("\n");
 }
 /*----------------------------------------------------------------------------*/

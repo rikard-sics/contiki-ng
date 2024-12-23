@@ -374,17 +374,17 @@ edhoc_gen_th4(edhoc_context_t *ctx, const uint8_t *cred, uint16_t cred_sz,
 void
 edhoc_print_session_info(const edhoc_context_t *ctx)
 {
-  LOG_DBG("Session info print:\n");
-  LOG_DBG("Using test vector: %s\n",
-          EDHOC_TEST == EDHOC_TEST_VECTOR_TRACE_DH ? "true (DH)" : "false");
-  LOG_DBG("Connection role: %d\n", (int)ctx->config.role);
-  LOG_DBG("Connection method: %d\n", (int)ctx->config.method);
-  LOG_DBG("Selected cipher suite: %d\n", ctx->state.suite_selected);
-  LOG_DBG("My cID: %x\n", (uint8_t)ctx->state.cid);
-  LOG_DBG("Other peer cID: %x\n", (uint8_t)ctx->state.cid_rx);
-  LOG_DBG("Gx: ");
-  LOG_DBG_BYTES(ctx->state.gx, ECC_KEY_LEN);
-  LOG_DBG_("\n");
+  LOG_INFO("Session info print:\n");
+  LOG_INFO("Using test vector: %s\n",
+           EDHOC_TEST == EDHOC_TEST_VECTOR_TRACE_DH ? "true (DH)" : "false");
+  LOG_INFO("Connection role: %d\n", (int)ctx->config.role);
+  LOG_INFO("Connection method: %d\n", (int)ctx->config.method);
+  LOG_INFO("Selected cipher suite: %d\n", ctx->state.suite_selected);
+  LOG_INFO("My cID: %x\n", (uint8_t)ctx->state.cid);
+  LOG_INFO("Other peer cID: %x\n", (uint8_t)ctx->state.cid_rx);
+  LOG_INFO("Gx: ");
+  LOG_INFO_BYTES(ctx->state.gx, ECC_KEY_LEN);
+  LOG_INFO_("\n");
 }
 /*----------------------------------------------------------------------------*/
 int16_t
