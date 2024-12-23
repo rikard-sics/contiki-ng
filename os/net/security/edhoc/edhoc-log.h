@@ -41,21 +41,27 @@
 
 #include "edhoc-msgs.h"
 
-#define LOG_EDHOC_MSG_1(level, msg1) do {         \
+#define LOG_EDHOC_MSG_1(level, msg1) do {        \
     if(level <= (LOG_LEVEL)) {                   \
       edhoc_msgs_log_msg_1(msg1);                \
     }                                            \
   } while(0)
 
-#define LOG_EDHOC_MSG_2(level, msg2) do {         \
+#define LOG_EDHOC_MSG_2(level, msg2) do {        \
     if(level <= (LOG_LEVEL)) {                   \
       edhoc_msgs_log_msg_2(msg2);                \
     }                                            \
   } while(0)
 
-#define LOG_EDHOC_MSG_3(level, msg3) do {         \
+#define LOG_EDHOC_MSG_3(level, msg3) do {        \
     if(level <= (LOG_LEVEL)) {                   \
       edhoc_msgs_log_msg_3(msg3);                \
+    }                                            \
+  } while(0)
+
+#define LOG_EDHOC_MSG_ERR(level, msg) do {       \
+    if(level <= (LOG_LEVEL)) {                   \
+      edhoc_msgs_log_msg_err(msg);               \
     }                                            \
   } while(0)
 
@@ -76,5 +82,11 @@
 #define LOG_INFO_EDHOC_MSG_3(msg3) LOG_EDHOC_MSG_3(LOG_LEVEL_INFO, msg3)
 #define LOG_DBG_EDHOC_MSG_3(msg3) LOG_EDHOC_MSG_3(LOG_LEVEL_DBG, msg3)
 #define LOG_PRINT_EDHOC_MSG_3(msg3) LOG_EDHOC_MSG_3(LOG_LEVEL_PRINT, msg3)
+
+#define LOG_ERR_EDHOC_MSG_ERR(msg) LOG_EDHOC_MSG_ERR(LOG_LEVEL_ERR, msg)
+#define LOG_WARN_EDHOC_MSG_ERR(msg) LOG_EDHOC_MSG_ERR(LOG_LEVEL_WARN, msg)
+#define LOG_INFO_EDHOC_MSG_ERR(msg) LOG_EDHOC_MSG_ERR(LOG_LEVEL_INFO, msg)
+#define LOG_DBG_EDHOC_MSG_ERR(msg) LOG_EDHOC_MSG_ERR(LOG_LEVEL_DBG, msg)
+#define LOG_PRINT_EDHOC_MSG_ERR(msg) LOG_EDHOC_MSG_ERR(LOG_LEVEL_PRINT, msg)
 
 #endif /* EDHOC_LOG_H_ */

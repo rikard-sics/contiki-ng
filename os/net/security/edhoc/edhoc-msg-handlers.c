@@ -183,13 +183,13 @@ edhoc_check_err_rx_msg(uint8_t *payload, uint8_t payload_sz)
   msg_err_sz = edhoc_deserialize_err(&err, msg_err, payload_sz);
   if(msg_err_sz > 0) {
     LOG_ERR("RX MSG_ERR: ");
-    LOG_ERR_STRING(err.err_info, err.err_info_sz);
+    LOG_ERR_EDHOC_MSG_ERR(&err);
     LOG_ERR_("\n");
     return RX_ERR_MSG;
   }
   if(msg_err_sz == -1) {
     LOG_ERR("RX MSG_ERROR WITH SUITE PROPOSE: ");
-    LOG_ERR_STRING(err.err_info, err.err_info_sz);
+    LOG_ERR_EDHOC_MSG_ERR(&err);
     LOG_ERR_("\n");
     return RX_ERR_MSG;
   }
@@ -207,7 +207,7 @@ edhoc_check_err_rx_msg_2(uint8_t *payload, uint8_t payload_sz,
   int8_t msg_err_sz = edhoc_deserialize_err(&err, msg_err, payload_sz);
   if(msg_err_sz < 0) {
     LOG_ERR("RX MSG_ERR: ");
-    LOG_ERR_STRING(err.err_info, err.err_info_sz);
+    LOG_ERR_EDHOC_MSG_ERR(&err);
     LOG_ERR_("\n");
     return RX_ERR_MSG;
   }

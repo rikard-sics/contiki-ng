@@ -39,9 +39,8 @@
 #include "edhoc-client-API.h"
 #include "edhoc-msg-generators.h"
 #include "edhoc-msg-handlers.h"
+#include "edhoc-log.h"
 #include "lib/memb.h"
-#include "contiki-lib.h"
-#include "sys/timer.h"
 #include "sys/rtimer.h"
 #include <assert.h>
 
@@ -413,8 +412,8 @@ PROCESS_THREAD(edhoc_client_protocol, ev, data)
       edhoc_msg_error_t err;
       er = edhoc_deserialize_err(&err, msg_err, edhoc_ctx->buffers.rx_sz);
       if(er > 0) {
-        LOG_ERR("RX error code %d, MSG_ERR", err.err_code);
-        LOG_ERR_STRING(err.err_info, err.err_info_sz);
+        LOG_ERR("RX MSG_ERR: ");
+        LOG_ERR_EDHOC_MSG_ERR(&err);
         LOG_ERR_("\n");
         edhoc_state.val = CL_RESTART;
         cli->state = NON_MSG;

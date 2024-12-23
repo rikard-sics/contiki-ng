@@ -87,14 +87,23 @@ typedef struct edhoc_msg_3 {
 } edhoc_msg_3_t;
 
 typedef struct edhoc_msg_error {
+  union {
+    struct {
+      char *err_info;
+      uint8_t err_info_len;
+    } info;
+    struct {
+      uint8_t *suites;
+      uint8_t suites_num;
+    } suites;
+  };
   uint8_t err_code;
-  char *err_info;
-  size_t err_info_sz;
 } edhoc_msg_error_t;
 
 void edhoc_msgs_log_msg_1(const edhoc_msg_1_t *msg);
 void edhoc_msgs_log_msg_2(const edhoc_msg_2_t *msg);
 void edhoc_msgs_log_msg_3(const edhoc_msg_3_t *msg);
+void edhoc_msgs_log_msg_err(const edhoc_msg_error_t *msg);
 
 size_t edhoc_serialize_msg_1(edhoc_msg_1_t *msg, unsigned char *buffer, bool suite_array);
 size_t edhoc_serialize_err(edhoc_msg_error_t *msg, unsigned char *buffer);

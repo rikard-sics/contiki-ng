@@ -236,7 +236,7 @@ void edhoc_gen_msg_3(edhoc_context_t *ctx, const uint8_t *ad, size_t ad_sz);
  * diagnostic message.
  * - msg_er = (?C_x_identifier, ERR_MSG:tstr)
  */
-uint8_t edhoc_gen_msg_error(uint8_t *msg_er, const edhoc_context_t *ctx, int8_t err);
+uint8_t edhoc_gen_msg_error(uint8_t *msg_er, edhoc_context_t *ctx, int8_t err);
 
 /**
  * \brief Authenticate the rx message

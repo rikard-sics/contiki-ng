@@ -79,6 +79,22 @@ edhoc_msgs_log_msg_3(const edhoc_msg_3_t *msg)
   LOG_OUTPUT("\n");
 }
 /*---------------------------------------------------------------------------*/
+void
+edhoc_msgs_log_msg_err(const edhoc_msg_error_t *msg)
+{
+  LOG_OUTPUT("CODE: %u", msg->err_code);
+  if(msg->err_code == 1) {
+    LOG_OUTPUT(" ");
+    log_string(msg->info.err_info, msg->info.err_info_len);
+  } else if(msg->err_code == 2) {
+    LOG_OUTPUT(" suites:");
+    for(uint8_t i = 0; i < msg->suites.suites_num; i++) {
+      LOG_OUTPUT(" %u", msg->suites.suites[i]);
+    }
+  }
+  LOG_OUTPUT("\n");
+}
+/*---------------------------------------------------------------------------*/
 static uint8_t
 get_byte(uint8_t **in)
 {
@@ -273,11 +289,10 @@ edhoc_serialize_err(edhoc_msg_error_t *msg, unsigned char *buffer)
     LOG_ERR("edhoc_serialize_err: unknown error code: %d\n", msg->err_code);
     break;
   case 1:
-    size += cbor_put_text(&buffer, msg->err_info, msg->err_info_sz);
+    size += cbor_put_text(&buffer, msg->info.err_info, msg->info.err_info_len);
     break;
   case 2:
-    /* FIXME: strict aliasing violation */
-    size += edhoc_serialize_suites(&buffer, (uint8_t *)msg->err_info, msg->err_info_sz);
+    size += edhoc_serialize_suites(&buffer, msg->suites.suites, msg->suites.suites_num);
     break;
   case 3:
     size += cbor_put_num(&buffer, 0xf5);
@@ -300,22 +315,20 @@ edhoc_deserialize_err(edhoc_msg_error_t *msg, unsigned char *buffer, uint8_t buf
   }
   if(buffer < buff_end) {
     if(msg->err_code == 2) {
-      /* FIXME: strict aliasing violation */
-      uint8_t suites_num;
-      edhoc_deserialize_suites(&buffer, (uint8_t **)&msg->err_info, &suites_num);
-      msg->err_info_sz = suites_num;
+      edhoc_deserialize_suites(&buffer,
+                               &msg->suites.suites, &msg->suites.suites_num);
       return ERR_NEW_SUITE_PROPOSE;
     }
-    int16_t len = get_text(&buffer, &msg->err_info);
+    int16_t len = get_text(&buffer, &msg->info.err_info);
     if(len > 0) {
-      msg->err_info_sz = len;
+      msg->info.err_info_len = len;
       LOG_ERR("Is an error msgs\n");
       return RX_ERR_MSG;
     }
     if(len == -1) {
       return 0;
     }
-    msg->err_info_sz = (size_t)len;
+    msg->info.err_info_len = len;
   }
   return 0;
 }
