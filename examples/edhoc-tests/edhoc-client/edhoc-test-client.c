@@ -48,10 +48,10 @@
 #define LOG_MODULE "edhoc-client"
 #define LOG_LEVEL LOG_LEVEL_EDHOC
 
-/******************************************************************************/
+/*---------------------------------------------------------------------------*/
 PROCESS(edhoc_example_client, "EDHOC Example Client");
 AUTOSTART_PROCESSES(&edhoc_example_client);
-/******************************************************************************/
+/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(edhoc_example_client, ev, data)
 {
   static struct etimer timer;
@@ -318,4 +318,4 @@ PROCESS_THREAD(edhoc_example_client, ev, data)
   LOG_INFO("Client finished\n");
   PROCESS_END();
 }
-/******************************************************************************/
+/*---------------------------------------------------------------------------*/
