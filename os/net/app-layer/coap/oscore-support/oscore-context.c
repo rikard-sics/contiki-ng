@@ -73,14 +73,12 @@ LIST(exchange_list);
   1 /* int, output length */ \
 )
 
-void
-oscore_ctx_store_init(void)
+void oscore_ctx_store_init(void)
 {
   list_init(common_context_list);
 }
 
-static uint8_t
-compose_info(
+static uint8_t compose_info(
   uint8_t *buffer, uint8_t buffer_len,
   uint8_t alg,
   const uint8_t *id, uint8_t id_len,
@@ -107,8 +105,7 @@ compose_info(
   return nanocbor_encoded_len(&enc);
 }
 
-static bool
-bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b_len)
+static bool bytes_equal(const uint8_t *a_ptr, uint8_t a_len, const uint8_t *b_ptr, uint8_t b_len)
 {
   return a_len == b_len && memcmp(a_ptr, b_ptr, a_len) == 0;
 }
@@ -124,8 +121,7 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *id_context, uint8_t id_context_len,
   const uint8_t *gid)
 #else
-void
-oscore_derive_ctx(oscore_ctx_t *common_ctx,
+void oscore_derive_ctx(oscore_ctx_t *common_ctx,
   const uint8_t *master_secret, uint8_t master_secret_len,
   const uint8_t *master_salt, uint8_t master_salt_len,
   uint8_t alg,
@@ -186,15 +182,13 @@ oscore_derive_ctx(oscore_ctx_t *common_ctx,
   list_add(common_context_list, common_ctx);
 }
 
-void
-oscore_free_ctx(oscore_ctx_t *ctx)
+void oscore_free_ctx(oscore_ctx_t *ctx)
 {
   list_remove(common_context_list, ctx); 
   memset(ctx, 0, sizeof(*ctx));
 }
 
-oscore_ctx_t *
-oscore_find_ctx_by_rid(const uint8_t *rid, uint8_t rid_len)
+oscore_ctx_t * oscore_find_ctx_by_rid(const uint8_t *rid, uint8_t rid_len)
 {
   oscore_ctx_t *ptr = NULL;
   for(ptr = list_head(common_context_list); ptr != NULL; ptr = list_item_next(ptr)){

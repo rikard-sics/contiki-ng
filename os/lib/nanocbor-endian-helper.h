@@ -2,7 +2,7 @@
 
 #include "uipopt.h"
 
-#include "machine/endian.h"
+// #include "machine/endian.h"
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 

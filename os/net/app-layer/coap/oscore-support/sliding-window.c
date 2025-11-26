@@ -1,3 +1,6 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat"
+
 #include "sliding-window.h"
 #include <inttypes.h>
 #include "assert.h"
@@ -146,3 +149,5 @@ bool oscore_sliding_window_validate(oscore_sliding_window_t* w, uint64_t incomin
 
     return true;
 }
+
+#pragma GCC diagnostic pop
