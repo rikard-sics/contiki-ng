@@ -91,4 +91,12 @@ bool oscore_is_request_protected(const coap_message_t *request);
 /* Initialize the context storage, the token - seq association storrage and the URI - context association storage. */
 void oscore_init(void);
 
+/* Prepares a new nested OSCORE message, returns the size of the message. */
+size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
+                                    oscore_ctx_t *contexts[],
+                                    int num_layers,
+                                    uint8_t *buf_a,
+                                    uint8_t *buf_b);
+
+size_t oscore_encrypt_twice(coap_message_t *coap_pkt, uint8_t *buffer);
 #endif /* _OSCORE_H */

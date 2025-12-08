@@ -930,41 +930,84 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
 
 #endif /*WITH_GROUPCOM*/
 
-void oscore_prepare_nested_message(coap_message_t *coap_pkt, 
-                                    uint8_t *buffer1, 
-                                    uint8_t *buffer2) {
+size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
+                                    oscore_ctx_t *contexts[],
+                                    int num_layers,
+                                    uint8_t *buf_a,
+                                    uint8_t *buf_b) {
+    if (coap_pkt == NULL || contexts == NULL || num_layers <= 0 || buf_a == NULL || buf_b == NULL) {
+        return 0;
+    }
+
+    // buffers to keep track of what to encrypt
+    size_t len = 0;
+    uint8_t *current_buf = buf_a;
+    uint8_t *next_buf = buf_b;
+
+    // copy coap_pkt into current_msg (traversing purposes)
+    coap_message_t current_msg;
+    memcpy(&current_msg, coap_pkt, sizeof(coap_message_t));
+
+    // start from server(last layer) and work outward
+    for (int i = num_layers-1; i >= 0; i--) {
+      current_msg.security_context = contexts[i];
+
+      // current_buf stores oscore'd current_msg, which is a coap msg
+      len = oscore_prepare_message(&current_msg, current_buf);
+
+      if (i > 0) {
+        // parse oscore'd msg and turn it into coap packet
+        coap_message_t temp_packet;
+        coap_parse_message(&temp_packet, current_buf, len);
+
+        memcpy(&current_msg,&temp_packet,sizeof(coap_message_t));
+
+        // swap inner and outer buffers
+         uint8_t *tmp = current_buf;
+         current_buf = next_buf;
+         next_buf = tmp;
+      }
+    }
+
+    return len;
+}
+
+size_t oscore_encrypt_twice(coap_message_t *coap_pkt, uint8_t *buffer) {
   
   // 1. buffer1 contains encrypted coap packet. inner oscore
-  size_t inner_len = oscore_prepare_message(coap_pkt, buffer1); 
+  size_t inner_len = oscore_prepare_message(coap_pkt, buffer); 
   if (inner_len == 0) {
     coap_error_message = "Error: Couldn't prepare inner layer";
     return BAD_REQUEST_4_00;
   }
 
-  LOG_DBG("Wrapping inner OSCORE layer, len %zu, full [", inner_len);
-  LOG_DBG_COAP_BYTES(buffer1, inner_len);
+  LOG_DBG("Wrapped inner OSCORE layer, len %zu, full [", inner_len);
+  //LOG_DBG_COAP_BYTES(buffer, inner_len);
   LOG_DBG_("]\n");
 
   // 2. parse oscore message into a coap structure
   coap_message_t inner_msg;
   memset(&inner_msg, 0 ,sizeof(coap_message_t));
   
-  // convert buffer type thing into coap_message thing
-  coap_parse_message(&inner_msg, &buffer2, inner_len);
+  // convert buffer type thing into coap_message thing. wrong?
+  coap_parse_message(&inner_msg, buffer, inner_len);
 
 
   // 3. wrap inner oscore into outer oscore layer
-  size_t outer_len = oscore_prepare_message(&inner_msg, buffer2);
+  uint8_t buffer1[COAP_MAX_PACKET_SIZE];
+  size_t outer_len = oscore_prepare_message(&inner_msg, buffer1);
   if (outer_len == 0) {
     coap_error_message = "Error: Couldn't prepare outer layer";
     return BAD_REQUEST_4_00;
   }
 
-  LOG_DBG("Wrapping inner OSCORE layer, len %zu, full [", inner_len);
-  LOG_DBG_COAP_BYTES(buffer1, inner_len);
+  LOG_DBG("Wrapped outer OSCORE layer, len %zu, full [", outer_len);
+  //LOG_DBG_COAP_BYTES(buffer1, inner_len);
   LOG_DBG_("]\n");
+
+  return outer_len;
 }
 
-void oscore_decode_nested_message() {
-
+void oscore_decode_nested_message(coap_message_t *coap_pkt) {
+  
 }
