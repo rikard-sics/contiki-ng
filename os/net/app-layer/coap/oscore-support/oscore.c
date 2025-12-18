@@ -283,8 +283,7 @@ coap_status_t oscore_decode_option_value(uint8_t *option_value, int option_len, 
 }
 
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
-coap_status_t oscore_decode_message(coap_message_t *coap_pkt)
-{
+coap_status_t oscore_decode_message(coap_message_t *coap_pkt) {
   cose_encrypt0_t cose[1];
   oscore_ctx_t *ctx = NULL;
   uint8_t aad_buffer[35];
@@ -296,7 +295,7 @@ coap_status_t oscore_decode_message(coap_message_t *coap_pkt)
   cose_sign1_init(sign);
 #endif /*WITH_GROUPCOM*/
 
-  printf_hex_detailed("object_security", coap_pkt->object_security, coap_pkt->object_security_len);
+  //printf_hex_detailed("object_security", coap_pkt->object_security, coap_pkt->object_security_len);
 
   /* Options are discarded later when they are overwritten. This should be improved */
   coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
@@ -930,6 +929,8 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
 
 #endif /*WITH_GROUPCOM*/
 
+// nested OSCORE functions
+
 size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
                                     oscore_ctx_t *contexts[],
                                     int num_layers,
@@ -946,11 +947,16 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
     // copy coap_pkt into current_msg (traversing purposes)
     coap_message_t current_msg;
+    memset(&current_msg, 0, sizeof(coap_message_t));
     memcpy(&current_msg, coap_pkt, sizeof(coap_message_t));
 
     // start from server(last layer) and work outward
     for (int i = num_layers-1; i >= 0; i--) {
       current_msg.security_context = contexts[i];
+      
+      LOG_DBG("applying OSCORE layer %d\n", i);
+
+
 
       // current_buf stores oscore'd current_msg, which is a coap msg
       len = oscore_prepare_message(&current_msg, current_buf);
@@ -972,42 +978,25 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
     return len;
 }
 
-size_t oscore_encrypt_twice(coap_message_t *coap_pkt, uint8_t *buffer) {
-  
-  // 1. buffer1 contains encrypted coap packet. inner oscore
-  size_t inner_len = oscore_prepare_message(coap_pkt, buffer); 
-  if (inner_len == 0) {
-    coap_error_message = "Error: Couldn't prepare inner layer";
-    return BAD_REQUEST_4_00;
-  }
-
-  LOG_DBG("Wrapped inner OSCORE layer, len %zu, full [", inner_len);
-  //LOG_DBG_COAP_BYTES(buffer, inner_len);
-  LOG_DBG_("]\n");
-
-  // 2. parse oscore message into a coap structure
-  coap_message_t inner_msg;
-  memset(&inner_msg, 0 ,sizeof(coap_message_t));
-  
-  // convert buffer type thing into coap_message thing. wrong?
-  coap_parse_message(&inner_msg, buffer, inner_len);
-
-
-  // 3. wrap inner oscore into outer oscore layer
-  uint8_t buffer1[COAP_MAX_PACKET_SIZE];
-  size_t outer_len = oscore_prepare_message(&inner_msg, buffer1);
-  if (outer_len == 0) {
-    coap_error_message = "Error: Couldn't prepare outer layer";
-    return BAD_REQUEST_4_00;
-  }
-
-  LOG_DBG("Wrapped outer OSCORE layer, len %zu, full [", outer_len);
-  //LOG_DBG_COAP_BYTES(buffer1, inner_len);
-  LOG_DBG_("]\n");
-
-  return outer_len;
-}
 
 void oscore_decode_nested_message(coap_message_t *coap_pkt) {
-  
+  // proxy uri vs endpoint uri?
+  // assume server has oscore contexts
+  while (true) {
+
+    // no more layers to peel
+    if (!oscore_is_request_protected(coap_pkt)) break;
+
+    // if the peeled layer is for another proxy -> forward
+    if (coap_pkt->proxy_uri) break;
+
+    // otherwise keep peeling layers
+    LOG_DBG("removing OSCORE layer");
+    coap_status_t status = oscore_decode_message(coap_pkt);
+    if (status != NO_ERROR) {
+      LOG_ERR("status=%u\n", status);
+
+    }
+
+  }
 }

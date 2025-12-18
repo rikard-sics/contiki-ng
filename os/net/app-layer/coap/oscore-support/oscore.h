@@ -98,5 +98,5 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
                                     uint8_t *buf_a,
                                     uint8_t *buf_b);
 
-size_t oscore_encrypt_twice(coap_message_t *coap_pkt, uint8_t *buffer);
+void oscore_decode_nested_message(coap_message_t *coap_pkt);
 #endif /* _OSCORE_H */
