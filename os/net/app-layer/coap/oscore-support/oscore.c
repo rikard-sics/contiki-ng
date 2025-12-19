@@ -934,46 +934,57 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
 size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
                                     oscore_ctx_t *contexts[],
                                     int num_layers,
-                                    uint8_t *buf_a,
-                                    uint8_t *buf_b) {
-    if (coap_pkt == NULL || contexts == NULL || num_layers <= 0 || buf_a == NULL || buf_b == NULL) {
+                                    uint8_t *buf_a) {
+    if (coap_pkt == NULL || contexts == NULL || num_layers <= 0 || buf_a == NULL) {
         return 0;
     }
 
     // buffers to keep track of what to encrypt
     size_t len = 0;
-    uint8_t *current_buf = buf_a;
-    uint8_t *next_buf = buf_b;
+    uint8_t *output_buf = buf_a;
 
     // copy coap_pkt into current_msg (traversing purposes)
     coap_message_t current_msg;
-    memset(&current_msg, 0, sizeof(coap_message_t));
     memcpy(&current_msg, coap_pkt, sizeof(coap_message_t));
+
+    // temporary buffer
+    uint8_t temp_buf[1024];
 
     // start from server(last layer) and work outward
     for (int i = num_layers-1; i >= 0; i--) {
       current_msg.security_context = contexts[i];
-      
+
+      LOG_DBG("====================================\n");
       LOG_DBG("applying OSCORE layer %d\n", i);
-
-
-
+      LOG_DBG("====================================\n\n");
+      
+    
       // current_buf stores oscore'd current_msg, which is a coap msg
-      len = oscore_prepare_message(&current_msg, current_buf);
+      uint8_t *target = (i == 0) ? output_buf : temp_buf;
+      len = oscore_prepare_message(&current_msg, target);
+
+      oscore_ctx_t *ctx = current_msg.security_context;
+
+      LOG_DBG("ctx=%p SENDER CONTEXT=%p RECI. CONTEXT=%p MASTER SECRET=%p\n",
+        ctx,
+        &ctx->sender_context,
+        &ctx->recipient_context,
+        ctx->master_secret);
+
 
       if (i > 0) {
         // parse oscore'd msg and turn it into coap packet
         coap_message_t temp_packet;
-        coap_parse_message(&temp_packet, current_buf, len);
+        coap_parse_message(&temp_packet, temp_buf, len);
 
         memcpy(&current_msg,&temp_packet,sizeof(coap_message_t));
 
         // swap inner and outer buffers
-         uint8_t *tmp = current_buf;
-         current_buf = next_buf;
-         next_buf = tmp;
+        memcpy(current_msg.token, coap_pkt->token, coap_pkt->token_len);
+        current_msg.token_len = coap_pkt->token_len;
       }
     }
+
 
     return len;
 }
