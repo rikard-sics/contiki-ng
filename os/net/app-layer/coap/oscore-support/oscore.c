@@ -974,14 +974,21 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
       if (i > 0) {
         // parse oscore'd msg and turn it into coap packet
+        // note to self: would this be too much overhead?
+
         coap_message_t temp_packet;
-        coap_parse_message(&temp_packet, temp_buf, len);
+
+        // packet code shouldnt matter (hard-coded to COAP_GET)
+        // dummy MID is fine?
+        uint16_t mid = 0x1234;  
+        coap_init_message(&temp_packet, COAP_TYPE_CON, COAP_GET, mid);
+        coap_set_token(&temp_packet, current_msg.token, current_msg.token_len);
+        coap_set_payload(&temp_packet, temp_buf, len);
+
+        
 
         memcpy(&current_msg,&temp_packet,sizeof(coap_message_t));
 
-        // swap inner and outer buffers
-        memcpy(current_msg.token, coap_pkt->token, coap_pkt->token_len);
-        current_msg.token_len = coap_pkt->token_len;
       }
     }
 
@@ -996,7 +1003,7 @@ void oscore_decode_nested_message(coap_message_t *coap_pkt) {
   while (true) {
 
     // no more layers to peel
-    if (!oscore_is_request_protected(coap_pkt)) break;
+    // if (!oscore_is_request_protected(coap_pkt)) break;
 
     // if the peeled layer is for another proxy -> forward
     if (coap_pkt->proxy_uri) break;
