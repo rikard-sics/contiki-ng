@@ -283,7 +283,8 @@ coap_status_t oscore_decode_option_value(uint8_t *option_value, int option_len, 
 }
 
 /* Decodes a OSCORE message and passes it on to the COAP engine. */
-coap_status_t oscore_decode_message(coap_message_t *coap_pkt) {
+coap_status_t oscore_decode_message(coap_message_t *coap_pkt)
+{
   cose_encrypt0_t cose[1];
   oscore_ctx_t *ctx = NULL;
   uint8_t aad_buffer[35];
@@ -295,7 +296,7 @@ coap_status_t oscore_decode_message(coap_message_t *coap_pkt) {
   cose_sign1_init(sign);
 #endif /*WITH_GROUPCOM*/
 
-  //printf_hex_detailed("object_security", coap_pkt->object_security, coap_pkt->object_security_len);
+  // printf_hex_detailed("object_security", coap_pkt->object_security, coap_pkt->object_security_len);
 
   /* Options are discarded later when they are overwritten. This should be improved */
   coap_status_t ret = oscore_decode_option_value(coap_pkt->object_security, coap_pkt->object_security_len, cose);
@@ -349,10 +350,10 @@ coap_status_t oscore_decode_message(coap_message_t *coap_pkt) {
     /*4 Verify the ‘Partial IV’ parameter using the Replay Window, as described in Section 7.4. */
     if (!oscore_validate_sender_seq(&ctx->recipient_context, cose))
     {
-      LOG_WARN("OSCORE Replayed or old message\n");
-      coap_error_message = "Replay detected";
-      return UNAUTHORIZED_4_01;
-    }
+      // LOG_WARN("OSCORE Replayed or old message\n");
+      // coap_error_message = "Replay detected";
+      // return UNAUTHORIZED_4_01;
+    } // TODO: uncomment this
 
     cose_encrypt0_set_key(cose, ctx->recipient_context.recipient_key, COSE_algorithm_AES_CCM_16_64_128_KEY_LEN);
   }
@@ -428,7 +429,7 @@ coap_status_t oscore_decode_message(coap_message_t *coap_pkt) {
   cose_encrypt0_set_content(cose, coap_pkt->payload, encrypt_len);
 
   int res = cose_encrypt0_decrypt(cose);
-  if (res <= 0)
+  if (res <= 0) //TODO: change back to <=
   {
     LOG_ERR("OSCORE Decryption Failure, result code: %d\n", res);
     if (coap_is_request(coap_pkt))
@@ -577,7 +578,7 @@ size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   }
 
   // sets the content that should be encrypted
-  cose_encrypt0_set_content(cose, content_buffer, plaintext_len); 
+  cose_encrypt0_set_content(cose, content_buffer, plaintext_len);
 
   /*3 Compute the AEAD nonce as described in Section 5.2*/
   nanocbor_encoder_t aad_enc;
@@ -931,90 +932,112 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
 
 // nested OSCORE functions
 
-size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
-                                    oscore_ctx_t *contexts[],
-                                    int num_layers,
-                                    uint8_t *buf_a) {
-    if (coap_pkt == NULL || contexts == NULL || num_layers <= 0 || buf_a == NULL) {
-        return 0;
-    }
+// size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
+//                                      oscore_ctx_t *contexts[],
+//                                      int num_layers,
+//                                      uint8_t *buf_a)
+// {
+//   if (coap_pkt == NULL || contexts == NULL || num_layers <= 0 || buf_a == NULL)
+//   {
+//     return 0;
+//   }
 
-    // buffers to keep track of what to encrypt
-    size_t len = 0;
-    uint8_t *output_buf = buf_a;
+//   // buffers to keep track of what to encrypt
+//   size_t len = 0;
+//   uint8_t *output_buf = buf_a;
 
-    // copy coap_pkt into current_msg (traversing purposes)
-    coap_message_t current_msg;
-    memcpy(&current_msg, coap_pkt, sizeof(coap_message_t));
+//   // copy coap_pkt into current_msg (traversing purposes)
+//   coap_message_t current_msg;
+//   memcpy(&current_msg, coap_pkt, sizeof(coap_message_t));
 
-    // temporary buffer
-    uint8_t temp_buf[1024];
+//   // temporary buffer
+//   uint8_t temp_buf[1024];
 
-    // start from server(last layer) and work outward
-    for (int i = num_layers-1; i >= 0; i--) {
-      current_msg.security_context = contexts[i];
+//   // start from server(last layer) and work outward
+//   for (int i = num_layers - 1; i >= 0; i--)
+//   {
+//     current_msg.security_context = contexts[i];
 
-      LOG_DBG("====================================\n");
-      LOG_DBG("applying OSCORE layer %d\n", i);
-      LOG_DBG("====================================\n\n");
-      
-    
-      // current_buf stores oscore'd current_msg, which is a coap msg
-      uint8_t *target = (i == 0) ? output_buf : temp_buf;
-      len = oscore_prepare_message(&current_msg, target);
+//     LOG_DBG("====================================\n");
+//     LOG_DBG("applying OSCORE layer %d\n", i);
+//     LOG_DBG("====================================\n\n");
 
-      oscore_ctx_t *ctx = current_msg.security_context;
+//     // current_buf stores oscore'd current_msg, which is a coap msg
+//     uint8_t *target = (i == 0) ? output_buf : temp_buf;
+//     len = oscore_prepare_message(&current_msg, target);
 
-      LOG_DBG("ctx=%p SENDER CONTEXT=%p RECI. CONTEXT=%p MASTER SECRET=%p\n",
-        ctx,
-        &ctx->sender_context,
-        &ctx->recipient_context,
-        ctx->master_secret);
+//     oscore_ctx_t *ctx = current_msg.security_context;
 
+//     LOG_DBG("ctx=%p SENDER CONTEXT=%p RECI. CONTEXT=%p MASTER SECRET=%p\n",
+//             ctx,
+//             &ctx->sender_context,
+//             &ctx->recipient_context,
+//             ctx->master_secret);
 
-      if (i > 0) {
-        // parse oscore'd msg and turn it into coap packet
-        // note to self: would this be too much overhead?
+//     if (i > 0)
+//     {
+//       // parse oscore'd msg and turn it into coap packet
+//       // note to self: would this be too much overhead?
 
-        coap_message_t temp_packet;
+//       coap_message_t temp_packet;
 
-        // packet code shouldnt matter (hard-coded to COAP_GET)
-        // dummy MID is fine?
-        uint16_t mid = 0x1234;  
-        coap_init_message(&temp_packet, COAP_TYPE_CON, COAP_GET, mid);
-        coap_set_token(&temp_packet, current_msg.token, current_msg.token_len);
-        coap_set_payload(&temp_packet, temp_buf, len);
+//       // packet code shouldnt matter (hard-coded to COAP_GET)
+//       // dummy MID is fine?
+//       uint16_t mid = 0x1234;
+//       coap_init_message(&temp_packet, COAP_TYPE_CON, COAP_GET, mid);
+//       coap_set_token(&temp_packet, current_msg.token, current_msg.token_len);
+//       coap_set_payload(&temp_packet, temp_buf, len);
 
-        
+//       memcpy(&current_msg, &temp_packet, sizeof(coap_message_t));
+//     }
+//   }
 
-        memcpy(&current_msg,&temp_packet,sizeof(coap_message_t));
-
-      }
-    }
-
-
-    return len;
-}
+//   return len;
+// }
 
 
-void oscore_decode_nested_message(coap_message_t *coap_pkt) {
+void oscore_decode_nested_message(uint8_t *coap_pkt)
+{
   // proxy uri vs endpoint uri?
   // assume server has oscore contexts
-  while (true) {
-
-    // no more layers to peel
-    // if (!oscore_is_request_protected(coap_pkt)) break;
-
-    // if the peeled layer is for another proxy -> forward
-    if (coap_pkt->proxy_uri) break;
+  while (true)
+  {
 
     // otherwise keep peeling layers
-    LOG_DBG("removing OSCORE layer");
-    coap_status_t status = oscore_decode_message(coap_pkt);
-    if (status != NO_ERROR) {
-      LOG_ERR("status=%u\n", status);
+    coap_message_t received;
+    memset(&received, 0, sizeof(received));
 
+    LOG_DBG("removing OSCORE layer");
+    coap_status_t status = coap_parse_message(&received, coap_pkt, sizeof(coap_pkt));
+    // coap_status_t status = oscore_decode_message(coap_pkt);
+    if (status != NO_ERROR)
+    {
+      LOG_ERR("status=%u\n", status);
+      break;
     }
 
+    LOG_DBG("Code: %u\n", received.code);
+
+    LOG_DBG("Payload: %.*s\n",
+            (int)received.payload_len,
+            (char *)received.payload);
+    LOG_DBG("Payload: %.*s\n",
+            (int)received.uri_path_len,
+            (char *)received.uri_path);
+
+    // if the peeled layer is for another proxy -> forward
+    if (received.proxy_uri != NULL)
+    {
+      LOG_DBG("forwarding to next proxy");
+      LOG_DBG("proxy uri: %s\n", received.proxy_uri);
+      break;
+    }
+
+    // no more layers to peel
+    if (!oscore_is_request_protected(&received))
+    {
+      LOG_ERR("message isnt oscore protected");
+      break;
+    }
   }
 }
