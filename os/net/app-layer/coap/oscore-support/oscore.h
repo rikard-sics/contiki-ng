@@ -95,8 +95,7 @@ void oscore_init(void);
 size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
                                     oscore_ctx_t *contexts[],
                                     int num_layers,
-                                    uint8_t *buf_a,
-                                    uint8_t *buf_b);
+                                    uint8_t *buf_a);
 
-void oscore_decode_nested_message(coap_message_t *coap_pkt);
+void oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len);
 #endif /* _OSCORE_H */

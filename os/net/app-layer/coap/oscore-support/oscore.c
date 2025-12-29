@@ -932,98 +932,102 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
 
 // nested OSCORE functions
 
-// size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
-//                                      oscore_ctx_t *contexts[],
-//                                      int num_layers,
-//                                      uint8_t *buf_a)
-// {
-//   if (coap_pkt == NULL || contexts == NULL || num_layers <= 0 || buf_a == NULL)
-//   {
-//     return 0;
-//   }
-
-//   // buffers to keep track of what to encrypt
-//   size_t len = 0;
-//   uint8_t *output_buf = buf_a;
-
-//   // copy coap_pkt into current_msg (traversing purposes)
-//   coap_message_t current_msg;
-//   memcpy(&current_msg, coap_pkt, sizeof(coap_message_t));
-
-//   // temporary buffer
-//   uint8_t temp_buf[1024];
-
-//   // start from server(last layer) and work outward
-//   for (int i = num_layers - 1; i >= 0; i--)
-//   {
-//     current_msg.security_context = contexts[i];
-
-//     LOG_DBG("====================================\n");
-//     LOG_DBG("applying OSCORE layer %d\n", i);
-//     LOG_DBG("====================================\n\n");
-
-//     // current_buf stores oscore'd current_msg, which is a coap msg
-//     uint8_t *target = (i == 0) ? output_buf : temp_buf;
-//     len = oscore_prepare_message(&current_msg, target);
-
-//     oscore_ctx_t *ctx = current_msg.security_context;
-
-//     LOG_DBG("ctx=%p SENDER CONTEXT=%p RECI. CONTEXT=%p MASTER SECRET=%p\n",
-//             ctx,
-//             &ctx->sender_context,
-//             &ctx->recipient_context,
-//             ctx->master_secret);
-
-//     if (i > 0)
-//     {
-//       // parse oscore'd msg and turn it into coap packet
-//       // note to self: would this be too much overhead?
-
-//       coap_message_t temp_packet;
-
-//       // packet code shouldnt matter (hard-coded to COAP_GET)
-//       // dummy MID is fine?
-//       uint16_t mid = 0x1234;
-//       coap_init_message(&temp_packet, COAP_TYPE_CON, COAP_GET, mid);
-//       coap_set_token(&temp_packet, current_msg.token, current_msg.token_len);
-//       coap_set_payload(&temp_packet, temp_buf, len);
-
-//       memcpy(&current_msg, &temp_packet, sizeof(coap_message_t));
-//     }
-//   }
-
-//   return len;
-// }
-
-
-void oscore_decode_nested_message(uint8_t *coap_pkt)
+size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
+                                     oscore_ctx_t *contexts[],
+                                     int num_layers,
+                                     uint8_t *buf_a)
 {
+  if (coap_pkt == NULL || contexts == NULL || num_layers <= 0 || buf_a == NULL)
+  {
+    return 0;
+  }
+
+  // buffers to keep track of what to encrypt
+  size_t len = 0;
+  uint8_t *output_buf = buf_a;
+
+  // copy coap_pkt into current_msg (traversing purposes)
+  coap_message_t current_msg;
+  memcpy(&current_msg, coap_pkt, sizeof(coap_message_t));
+
+  // temporary buffer
+  uint8_t temp_buf[1024];
+
+  // start from server(last layer) and work outward
+  for (int i = num_layers - 1; i >= 0; i--)
+  {
+    current_msg.security_context = contexts[i];
+
+    LOG_DBG("====================================\n");
+    LOG_DBG("applying OSCORE layer %d\n", i);
+    LOG_DBG("====================================\n\n");
+
+    // current_buf stores oscore'd current_msg, which is a coap msg
+    uint8_t *target = (i == 0) ? output_buf : temp_buf;
+    len = oscore_prepare_message(&current_msg, target);
+
+    oscore_ctx_t *ctx = current_msg.security_context;
+
+    LOG_DBG("ctx=%p SENDER CONTEXT=%p RECI. CONTEXT=%p MASTER SECRET=%p\n",
+            ctx,
+            &ctx->sender_context,
+            &ctx->recipient_context,
+            ctx->master_secret);
+
+    if (i > 0)
+    {
+      // parse oscore'd msg and turn it into coap packet
+      // note to self: would this be too much overhead?
+
+      coap_message_t temp_packet;
+
+      // packet code shouldnt matter (hard-coded to COAP_GET)
+      // dummy MID is fine?
+      uint16_t mid = 0x1234;
+      coap_init_message(&temp_packet, COAP_TYPE_CON, COAP_GET, mid);
+      coap_set_token(&temp_packet, current_msg.token, current_msg.token_len);
+      coap_set_payload(&temp_packet, temp_buf, len);
+
+      memcpy(&current_msg, &temp_packet, sizeof(coap_message_t));
+    }
+  }
+
+  return len;
+}
+
+
+
+void oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len)
+{
+  //uint8_t temp_buf[1024];
+  coap_message_t received;
+  //memset(&received, 0, sizeof(coap_message_t));
+
+  uint8_t *current_buf = coap_pkt;
+  size_t current_len = coap_pkt_len;
+
   // proxy uri vs endpoint uri?
   // assume server has oscore contexts
   while (true)
   {
-
-    // otherwise keep peeling layers
-    coap_message_t received;
+    // keep peeling layers
+    
     memset(&received, 0, sizeof(received));
 
     LOG_DBG("removing OSCORE layer");
-    coap_status_t status = coap_parse_message(&received, coap_pkt, sizeof(coap_pkt));
-    // coap_status_t status = oscore_decode_message(coap_pkt);
+    coap_status_t status = coap_parse_message(&received, current_buf, current_len);
     if (status != NO_ERROR)
     {
       LOG_ERR("status=%u\n", status);
       break;
     }
 
-    LOG_DBG("Code: %u\n", received.code);
+    LOG_DBG("Code: %d \n", received.code);
+    LOG_DBG("URI: %.*s\n", (int)received.uri_path_len, received.uri_path);
+    LOG_DBG("Payload: %.*s\n", (int)received.payload_len, (char *)received.payload);
 
-    LOG_DBG("Payload: %.*s\n",
-            (int)received.payload_len,
-            (char *)received.payload);
-    LOG_DBG("Payload: %.*s\n",
-            (int)received.uri_path_len,
-            (char *)received.uri_path);
+    current_buf = received.payload;
+    current_len = received.payload_len;
 
     // if the peeled layer is for another proxy -> forward
     if (received.proxy_uri != NULL)
@@ -1034,10 +1038,12 @@ void oscore_decode_nested_message(uint8_t *coap_pkt)
     }
 
     // no more layers to peel
+    // TODO: rewrite this condition check
     if (!oscore_is_request_protected(&received))
     {
       LOG_ERR("message isnt oscore protected");
       break;
     }
   }
+  
 }
