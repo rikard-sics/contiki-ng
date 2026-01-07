@@ -962,7 +962,7 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
     LOG_DBG("applying OSCORE layer %d\n", i);
     LOG_DBG("====================================\n\n");
 
-    // current_buf stores oscore'd current_msg, which is a coap msg
+    // temp_buf stores oscore'd current_msg, which is a coap msg
     uint8_t *target = (i == 0) ? output_buf : temp_buf;
     len = oscore_prepare_message(&current_msg, target);
 
@@ -1007,7 +1007,6 @@ void oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len)
   size_t current_len = coap_pkt_len;
 
   // proxy uri vs endpoint uri?
-  // assume server has oscore contexts
   while (true)
   {
     // keep peeling layers
@@ -1034,6 +1033,7 @@ void oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len)
     {
       LOG_DBG("forwarding to next proxy");
       LOG_DBG("proxy uri: %s\n", received.proxy_uri);
+      // TODO: find whatever forwarding function
       break;
     }
 
