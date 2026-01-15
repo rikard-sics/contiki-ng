@@ -428,11 +428,17 @@ coap_serialize_message(coap_message_t *coap_pkt, uint8_t *buffer)
 {
 #ifdef WITH_OSCORE
   if(coap_is_option(coap_pkt, COAP_OPTION_OSCORE)) {
-    size_t message_len = oscore_prepare_message(coap_pkt, buffer);
+    size_t message_len = oscore_prepare_nested_message(coap_pkt, coap_pkt->security_contexts, coap_pkt->num_layers, buffer);
     LOG_DBG("Sending OSCORE message, len %zu, full [", message_len);
     LOG_DBG_COAP_BYTES(buffer, message_len);
     LOG_DBG_("]\n");
     return message_len;
+  // } else if(nested_oscore) { // TODO: figure out condition for this
+  //   size_t message_len = oscore_prepare_nested_message(coap_pkt, buffer);
+  //   LOG_DBG("Sending Nested OSCORE message, len %zu, full [", message_len);
+  //   LOG_DBG_COAP_BYTES(buffer, message_len);
+  //   LOG_DBG_("]\n");
+  //   return message_len;
   } else {
     size_t message_len = oscore_serializer(coap_pkt, buffer, ROLE_COAP);
     LOG_DBG("Sending COAP message (size=%zu).\n", message_len);

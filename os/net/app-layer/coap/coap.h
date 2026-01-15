@@ -138,6 +138,8 @@ typedef struct {
   size_t object_security_len;
   uint8_t *object_security;
   oscore_ctx_t *security_context;
+  oscore_ctx_t **security_contexts;
+  int num_layers;
 #endif /* WITH_OSCORE */
 } coap_message_t;
 
@@ -322,6 +324,10 @@ int coap_set_header_size1(coap_message_t *message, uint32_t size);
 
 int coap_get_payload(coap_message_t *message, const uint8_t **payload);
 int coap_set_payload(coap_message_t *message, const void *payload, size_t length);
+
+#ifdef WITH_OSCORE
+
+#endif /* WITH_OSCORE */
 
 #endif /* COAP_H_ */
 /** @} */

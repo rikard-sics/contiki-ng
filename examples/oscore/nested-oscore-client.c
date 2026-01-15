@@ -52,14 +52,14 @@
 #include "oscore.h"
 /* Key material, sender-ID and receiver-ID used for deriving an OSCORE-Security-Context. Note that Sender-ID and Receiver-ID is 
  * mirrored in the Client and Server. */
-uint8_t master_secret[35] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23};
+uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
 uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
 // uint8_t sender_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
 // uint8_t receiver_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 // sender id and receiver id, one for proxy and one for server
-uint8_t sender_id[2][1] = { {0x60},{0x61} };
-uint8_t receiver_id[2][1] = { {0x50},{0x51} };
-uint8_t id_contexts[] = { 0x63, 0x6C };
+uint8_t sender_id[2][1] = { {0x08},{0x61} };
+uint8_t receiver_id[2][1] = { {0x09},{0x51} };
+uint8_t id_contexts[2][1] = { {0x09}, {0x6C} };
 #endif /* WITH_OSCORE */
 
 /* Log configuration */
@@ -67,12 +67,12 @@ uint8_t id_contexts[] = { 0x63, 0x6C };
 #define LOG_MODULE "client"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
-#define TOGGLE_INTERVAL 10
+#define TOGGLE_INTERVAL 5
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 // TODO: proxy address?
 #define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
-#define PROXY_EP "coap://127.0.0.1:5685"
+#define PROXY_EP "coap://[fd00::1]:5685"
 // #define SERVER_EP "coap://[fd00::212:4b00:14b5:ee10]"
 
 PROCESS(er_example_client, "Nested OSCORE Example Client");
@@ -106,17 +106,19 @@ PROCESS_THREAD(er_example_client, ev, data)
 
   static coap_message_t request[1];      /* This way the packet can be treated as pointer as usual. */
   static coap_endpoint_t proxy_ep;
+  static coap_endpoint_t server_ep;
 
   coap_endpoint_parse(PROXY_EP, strlen(PROXY_EP), &proxy_ep);
+
 
   #ifdef WITH_OSCORE
   /*Derive an OSCORE-Security-Context. */
   // TODO: needs to derive context for proxy and server
   static oscore_ctx_t proxy_context;
-  oscore_derive_ctx(&proxy_context, master_secret, 35, NULL, 0, 10, sender_id[0], 1, receiver_id[0], 1, id_contexts[0], 1);
+  oscore_derive_ctx(&proxy_context, master_secret, 16, salt, 8, 10, sender_id[0], 1, receiver_id[0], 1, id_contexts[0], 1);
 
   static oscore_ctx_t server_context;
-  oscore_derive_ctx(&server_context, master_secret, 35, NULL, 0, 10, sender_id[1], 1, receiver_id[1], 1, id_contexts[1], 1);
+  oscore_derive_ctx(&server_context, master_secret, 16, salt, 8, 10, sender_id[1], 1, receiver_id[1], 1, id_contexts[1], 1);
 
   /* Set the association between a remote URL and a security contect. When sending a message the specified context will be used to 
    * protect the message. Note that this can be done on a resource-by-resource basis. Thus any requests to .well-known/core will not 
@@ -124,6 +126,11 @@ PROCESS_THREAD(er_example_client, ev, data)
   oscore_ep_ctx_set_association(&server_ep, service_urls[1], &server_context);
   oscore_ep_ctx_set_association(&proxy_ep, service_urls[1], &proxy_context);
   // oscore_ep_ctx_set_association(&server_ep, service_urls[2], &context);
+
+  static oscore_ctx_t *contexts[2];
+  contexts[0] = &proxy_context;
+  contexts[1] = &server_context;
+
 
   #endif /* WITH_OSCORE */
 
@@ -146,12 +153,16 @@ PROCESS_THREAD(er_example_client, ev, data)
       coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
       coap_set_header_uri_path(request, service_urls[1]);
 
+      request->security_contexts = contexts;
+      request->num_layers = 2;
+
       const char msg[] = "Toggle!";
 
       coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
 
+      printf("Target: ");
       LOG_INFO_COAP_EP(&proxy_ep);
-      LOG_INFO_("\n");
+      printf("\n");
 
       COAP_BLOCKING_REQUEST(&proxy_ep, request, client_chunk_handler);
 

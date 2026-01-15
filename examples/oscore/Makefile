@@ -1,4 +1,4 @@
-all: oscore-example-server oscore-example-client oscore-plugtest-server oscore-plugtest-client
+all: oscore-example-server oscore-example-client oscore-plugtest-server oscore-plugtest-client nested-oscore nested-oscore-client
 # use target "oscore-plugtest-server" explicitly when required
 
 CONTIKI=../..
