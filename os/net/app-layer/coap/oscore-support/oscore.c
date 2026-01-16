@@ -984,7 +984,7 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
       // packet code shouldnt matter (hard-coded to COAP_GET)
       // dummy MID is fine?
       uint16_t mid = 0x1234;
-      coap_init_message(&temp_packet, COAP_TYPE_CON, COAP_GET, mid);
+      coap_init_message(&temp_packet, COAP_TYPE_CON, COAP_POST, mid);
       coap_set_token(&temp_packet, current_msg.token, current_msg.token_len);
       coap_set_payload(&temp_packet, temp_buf, len);
 
