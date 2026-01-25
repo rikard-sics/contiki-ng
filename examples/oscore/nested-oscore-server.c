@@ -88,12 +88,14 @@ extern coap_resource_t res_temperature;
 #ifdef WITH_OSCORE
 /* Key material, sender-ID and receiver-ID used for deriving an OSCORE-Security-Context. Note that Sender-ID and Receiver-ID is
  * mirrored in the Client and Server. */
-uint8_t master_secret[35] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22, 0x23};
+uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
 uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
-uint8_t sender_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
-uint8_t receiver_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
+// 0 : proxy -> server 1 : client -> server
+uint8_t sender_id[2][1] = { {0x01},{0x05} };
+uint8_t receiver_id[2][1] = { {0x02},{0x01} };
+uint8_t id_contexts[2][1] = { {0x05}, {0x01} };
 #endif /* WITH_OSCORE */
-PROCESS(er_example_server, "OSCORE Example Server");
+PROCESS(er_example_server, "Nested OSCORE Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
 
 PROCESS_THREAD(er_example_server, ev, data)
@@ -102,7 +104,7 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   PROCESS_PAUSE();
 
-  printf("Starting OSCORE Example Server\n");
+  printf("Starting Nested OSCORE Example Server\n");
 
 #ifdef RF_CHANNEL
   printf("RF channel: %u\n", RF_CHANNEL);
@@ -113,10 +115,13 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   #ifdef WITH_OSCORE
   /*Derive an OSCORE-Security-Context. */
-  static oscore_ctx_t context;
-  oscore_derive_ctx(&context, master_secret, 35, NULL, 0, 10, sender_id, 6, receiver_id, 6, NULL, 0);
+  static oscore_ctx_t proxy_context;
+  oscore_derive_ctx(&proxy_context, master_secret, 16, salt, 8, 10, sender_id[0], 1, receiver_id[0], 1, id_contexts[0], 1);
 
-  uint8_t key_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
+  static oscore_ctx_t client_context;
+  oscore_derive_ctx(&client_context, master_secret, 16, salt, 8, 10, sender_id[1], 1, receiver_id[1], 1, id_contexts[1], 1);
+
+  uint8_t key_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 }; // TODO : change this
   oscore_ctx_t *ctx;
   ctx = oscore_find_ctx_by_rid(key_id, 6);
   if(ctx == NULL){

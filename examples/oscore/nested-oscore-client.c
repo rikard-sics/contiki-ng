@@ -57,9 +57,10 @@ uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40};
 // uint8_t sender_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
 // uint8_t receiver_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
 // sender id and receiver id, one for proxy and one for server
-uint8_t sender_id[2][1] = { {0x08},{0x61} };
-uint8_t receiver_id[2][1] = { {0x09},{0x51} };
-uint8_t id_contexts[2][1] = { {0x09}, {0x6C} };
+// 0 : client -> proxy    1 : client -> server
+uint8_t sender_id[2][1] = { {0x08},{0x01} };
+uint8_t receiver_id[2][1] = { {0x09},{0x05} };
+uint8_t id_contexts[2][1] = { {0x09}, {0x01} };
 #endif /* WITH_OSCORE */
 
 /* Log configuration */
@@ -71,9 +72,12 @@ uint8_t id_contexts[2][1] = { {0x09}, {0x6C} };
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 // TODO: proxy address?
-#define SERVER_EP "coap://[fe80::202:0002:0002:0002]"
-#define PROXY_EP "coap://[fd00::1]:5685"
+#define SERVER_EP "coap://[fe80::203:0003:0003:0003]"
 // #define SERVER_EP "coap://[fd00::212:4b00:14b5:ee10]"
+// #define SERVER_EP "coap://[fd00::1]:5683"
+#define PROXY_EP  "coap://[fe80::202:0002:0002:0002]" 
+// #define PROXY_EP "coap://[fd00::1]:5685" <- californium proxy
+
 
 PROCESS(er_example_client, "Nested OSCORE Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
@@ -150,13 +154,13 @@ PROCESS_THREAD(er_example_client, ev, data)
       LOG_DBG("--Toggle timer--\n");
 
       /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
-      coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
+      coap_init_message(request, COAP_TYPE_NON, COAP_GET, 0);
       coap_set_header_uri_path(request, service_urls[1]);
 
       request->security_contexts = contexts;
       request->num_layers = 2;
 
-      const char msg[] = "Toggle!";
+      const char msg[] = "ramen yummy";
 
       coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
 
@@ -179,7 +183,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       /* send a request to notify the end of the process */
 
-      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
+      coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
       coap_set_header_uri_path(request, service_urls[uri_switch]);
 
       printf("--Requesting %s--\n", service_urls[uri_switch]);

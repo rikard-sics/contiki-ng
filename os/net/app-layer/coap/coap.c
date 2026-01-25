@@ -618,8 +618,8 @@ coap_parse_message(coap_message_t *coap_pkt, uint8_t *data, uint16_t data_len)
       LOG_DBG_COAP_STRING(coap_pkt->proxy_uri, coap_pkt->proxy_uri_len);
       LOG_DBG_("]\n");
 
-      coap_error_message = "This is a constrained server (Contiki)";
-      return PROXYING_NOT_SUPPORTED_5_05;
+      // coap_error_message = "This is a constrained server (Contiki)"; TODO: comment this back maybe?
+      // return PROXYING_NOT_SUPPORTED_5_05;
       break;
     case COAP_OPTION_PROXY_SCHEME:
 #if COAP_PROXY_OPTION_PROCESSING

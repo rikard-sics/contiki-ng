@@ -429,7 +429,7 @@ coap_status_t oscore_decode_message(coap_message_t *coap_pkt)
   cose_encrypt0_set_content(cose, coap_pkt->payload, encrypt_len);
 
   int res = cose_encrypt0_decrypt(cose);
-  if (res <= 0) //TODO: change back to <=
+  if (res <= 0) 
   {
     LOG_ERR("OSCORE Decryption Failure, result code: %d\n", res);
     if (coap_is_request(coap_pkt))
@@ -981,12 +981,16 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
       coap_message_t temp_packet;
 
-      // packet code shouldnt matter (hard-coded to COAP_GET)
+      // packet code shouldnt matter (hard-coded to COAP_POST)
       // dummy MID is fine?
       uint16_t mid = 0x1234;
-      coap_init_message(&temp_packet, COAP_TYPE_CON, COAP_POST, mid);
+      coap_init_message(&temp_packet, COAP_TYPE_NON, COAP_POST, mid);
       coap_set_token(&temp_packet, current_msg.token, current_msg.token_len);
       coap_set_payload(&temp_packet, temp_buf, len);
+      // decide
+      coap_set_header_proxy_uri(&temp_packet, "coap://[fe80::203:0003:0003:0003]");
+
+      
 
       memcpy(&current_msg, &temp_packet, sizeof(coap_message_t));
     }
@@ -997,10 +1001,11 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
 
 
-void oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len)
+coap_status_t oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len)
 {
   //uint8_t temp_buf[1024];
   coap_message_t received;
+  coap_status_t status;
   //memset(&received, 0, sizeof(coap_message_t));
 
   uint8_t *current_buf = coap_pkt;
@@ -1014,7 +1019,7 @@ void oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len)
     memset(&received, 0, sizeof(received));
 
     LOG_DBG("removing OSCORE layer");
-    coap_status_t status = coap_parse_message(&received, current_buf, current_len);
+    status = coap_parse_message(&received, current_buf, current_len);
     if (status != NO_ERROR)
     {
       LOG_ERR("status=%u\n", status);
@@ -1034,6 +1039,9 @@ void oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len)
       LOG_DBG("forwarding to next proxy");
       LOG_DBG("proxy uri: %s\n", received.proxy_uri);
       // TODO: find whatever forwarding function
+      coap_endpoint_t proxy_uri;
+      coap_endpoint_parse(received.proxy_uri, strlen(received.proxy_uri), &proxy_uri);
+      coap_sendto(&proxy_uri, current_buf, current_len);
       break;
     }
 
@@ -1045,5 +1053,6 @@ void oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len)
       break;
     }
   }
+  return status;
   
 }

@@ -55,7 +55,7 @@
 #ifdef REST_MAX_CHUNK_SIZE
 #define COAP_MAX_CHUNK_SIZE REST_MAX_CHUNK_SIZE
 #else /* REST_MAX_CHUNK_SIZE */
-#define COAP_MAX_CHUNK_SIZE     64
+#define COAP_MAX_CHUNK_SIZE     256 // TODO: change this back to 64 maybe
 #endif /* REST_MAX_CHUNK_SIZE */
 #endif /* COAP_MAX_CHUNK_SIZE */
 
@@ -70,7 +70,7 @@
 #endif /* COAP_LINK_FORMAT_FILTERING */
 
 #ifndef COAP_PROXY_OPTION_PROCESSING
-#define COAP_PROXY_OPTION_PROCESSING   0
+#define COAP_PROXY_OPTION_PROCESSING   1
 #endif /* COAP_PROXY_OPTION_PROCESSING */
 
 /* Listening port for the CoAP REST Engine */

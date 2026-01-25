@@ -185,7 +185,8 @@ extern void oscore_missing_security_context(const coap_endpoint_t *src)
 coap_status_t coap_receive(uint8_t *payload, uint16_t payload_length, coap_message_t *message)
 {
 	LOG_DBG("Coap_receive: calling coap_parse for initial processing...\n");
-	return coap_parse_message(message, payload, payload_length);
+	//return coap_parse_message(message, payload, payload_length); // nested decryption here too?
+  return oscore_decode_nested_message(payload,payload_length);
 }
 /*---------------------------------------------------------------------------*/
 /*This function can only be called after the signature verification has finished*/
@@ -214,7 +215,8 @@ coap_receive(const coap_endpoint_t *src,
 #ifdef WITH_GROUPCOM
   coap_status_code = in_status;
 #else
-  coap_status_code = coap_parse_message(message, payload, payload_length);
+  // coap_status_code = coap_parse_message(message, payload, payload_length); // nested decryption here?
+  coap_status_code = oscore_decode_nested_message(payload, payload_length);
 #endif /*WITH_GROUPCOM*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
