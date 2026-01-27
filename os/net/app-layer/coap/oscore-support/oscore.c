@@ -933,14 +933,26 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
 // nested OSCORE functions
 
 size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
-                                     oscore_ctx_t *contexts[],
-                                     int num_layers,
                                      uint8_t *buf_a)
 {
-  if (coap_pkt == NULL || contexts == NULL || num_layers <= 0 || buf_a == NULL)
+  if (coap_pkt == NULL || buf_a == NULL)
   {
     return 0;
   }
+
+  int num_layers;
+  oscore_ctx_t **contexts;
+
+  if (coap_pkt->num_layers > 0 && coap_pkt->security_contexts != NULL)
+  {
+    num_layers = coap_pkt->num_layers;
+    contexts = coap_pkt->security_contexts;
+  } 
+  else 
+  {
+    return oscore_prepare_message(coap_pkt, buf_a); // not nested oscore
+  }
+  
 
   // buffers to keep track of what to encrypt
   size_t len = 0;
@@ -959,20 +971,12 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
     current_msg.security_context = contexts[i];
 
     LOG_DBG("====================================\n");
-    LOG_DBG("applying OSCORE layer %d\n", i);
+    LOG_DBG("    APPLYING OSCORE LAYER %d\n", i);
     LOG_DBG("====================================\n\n");
 
     // temp_buf stores oscore'd current_msg, which is a coap msg
     uint8_t *target = (i == 0) ? output_buf : temp_buf;
     len = oscore_prepare_message(&current_msg, target);
-
-    oscore_ctx_t *ctx = current_msg.security_context;
-
-    LOG_DBG("ctx=%p SENDER CONTEXT=%p RECI. CONTEXT=%p MASTER SECRET=%p\n",
-            ctx,
-            &ctx->sender_context,
-            &ctx->recipient_context,
-            ctx->master_secret);
 
     if (i > 0)
     {
@@ -981,7 +985,7 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
       coap_message_t temp_packet;
 
-      // packet code shouldnt matter (hard-coded to COAP_POST)
+      // packet code hard-coded to POST to carry payload
       // dummy MID is fine?
       uint16_t mid = 0x1234;
       coap_init_message(&temp_packet, COAP_TYPE_NON, COAP_POST, mid);
@@ -989,8 +993,6 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
       coap_set_payload(&temp_packet, temp_buf, len);
       // decide
       coap_set_header_proxy_uri(&temp_packet, "coap://[fe80::203:0003:0003:0003]");
-
-      
 
       memcpy(&current_msg, &temp_packet, sizeof(coap_message_t));
     }
@@ -1001,55 +1003,46 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
 
 
-coap_status_t oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len)
+coap_status_t oscore_decode_nested_message(coap_message_t *received, uint8_t *coap_pkt, size_t coap_pkt_len)
 {
   //uint8_t temp_buf[1024];
-  coap_message_t received;
   coap_status_t status;
-  //memset(&received, 0, sizeof(coap_message_t));
 
   uint8_t *current_buf = coap_pkt;
   size_t current_len = coap_pkt_len;
 
-  // proxy uri vs endpoint uri?
   while (true)
   {
-    // keep peeling layers
     
-    memset(&received, 0, sizeof(received));
+    memset(received, 0, sizeof(*received));
 
-    LOG_DBG("removing OSCORE layer");
-    status = coap_parse_message(&received, current_buf, current_len);
+    LOG_DBG("removing OSCORE layer\n");
+    status = coap_parse_message(received, current_buf, current_len);
     if (status != NO_ERROR)
     {
       LOG_ERR("status=%u\n", status);
       break;
     }
 
-    LOG_DBG("Code: %d \n", received.code);
-    LOG_DBG("URI: %.*s\n", (int)received.uri_path_len, received.uri_path);
-    LOG_DBG("Payload: %.*s\n", (int)received.payload_len, (char *)received.payload);
+    LOG_DBG("Code: %d \n", received->code);
+    LOG_DBG("URI: %.*s\n", (int)received->uri_path_len, received->uri_path);
+    LOG_DBG("Payload: %.*s\n", (int)received->payload_len, (char *)received->payload);
 
-    current_buf = received.payload;
-    current_len = received.payload_len;
+    current_buf = received->payload;
+    current_len = received->payload_len;
 
     // if the peeled layer is for another proxy -> forward
-    if (received.proxy_uri != NULL)
+    if (received->proxy_uri != NULL)
     {
       LOG_DBG("forwarding to next proxy");
-      LOG_DBG("proxy uri: %s\n", received.proxy_uri);
-      // TODO: find whatever forwarding function
+      LOG_DBG("proxy uri: %s\n", received->proxy_uri);
+      // forwarding function
       coap_endpoint_t proxy_uri;
-      coap_endpoint_parse(received.proxy_uri, strlen(received.proxy_uri), &proxy_uri);
+      coap_endpoint_parse(received->proxy_uri, strlen(received->proxy_uri), &proxy_uri);
       coap_sendto(&proxy_uri, current_buf, current_len);
       break;
-    }
-
-    // no more layers to peel
-    // TODO: rewrite this condition check
-    if (!oscore_is_request_protected(&received))
-    {
-      LOG_ERR("message isnt oscore protected");
+    } else {
+      LOG_DBG("final message received");
       break;
     }
   }

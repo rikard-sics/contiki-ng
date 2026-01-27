@@ -68,7 +68,7 @@ uint8_t id_contexts[2][1] = { {0x09}, {0x01} };
 #define LOG_MODULE "client"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
-#define TOGGLE_INTERVAL 5
+#define TOGGLE_INTERVAL 2
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 // TODO: proxy address?
@@ -85,10 +85,10 @@ AUTOSTART_PROCESSES(&er_example_client);
 static struct etimer et;
 
 /* Example URIs that can be queried. */
-#define NUMBER_OF_URLS 4
+#define NUMBER_OF_URLS 5 
 /* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
 char *service_urls[NUMBER_OF_URLS] =
-{ ".well-known/core", "test/hello", "battery/", "error/in//path" };
+{ ".well-known/core", "test/hello", "battery/", "error/in//path", "oscore/hello/1" };
 #if PLATFORM_HAS_BUTTON
 static int uri_switch = 0;
 #endif
@@ -160,7 +160,7 @@ PROCESS_THREAD(er_example_client, ev, data)
       request->security_contexts = contexts;
       request->num_layers = 2;
 
-      const char msg[] = "ramen yummy";
+      const char msg[] = "Toggle!";
 
       coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
 
@@ -183,7 +183,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       /* send a request to notify the end of the process */
 
-      coap_init_message(request, COAP_TYPE_CON, COAP_POST, 0);
+      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
       coap_set_header_uri_path(request, service_urls[uri_switch]);
 
       printf("--Requesting %s--\n", service_urls[uri_switch]);

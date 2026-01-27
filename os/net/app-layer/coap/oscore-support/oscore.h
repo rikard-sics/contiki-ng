@@ -92,10 +92,8 @@ bool oscore_is_request_protected(const coap_message_t *request);
 void oscore_init(void);
 
 /* Prepares a new nested OSCORE message, returns the size of the message. */
-size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
-                                    oscore_ctx_t *contexts[],
-                                    int num_layers,
-                                    uint8_t *buf_a);
+size_t oscore_prepare_nested_message(coap_message_t *coap_pkt, uint8_t *buf_a);
 
-coap_status_t oscore_decode_nested_message(uint8_t *coap_pkt, size_t coap_pkt_len);
+/* Decrypts a nested OSCORE message, returns the status. */
+coap_status_t oscore_decode_nested_message(coap_message_t *received, uint8_t *coap_pkt, size_t coap_pkt_len);
 #endif /* _OSCORE_H */
