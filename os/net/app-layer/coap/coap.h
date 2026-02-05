@@ -56,6 +56,7 @@
 
 #ifdef WITH_OSCORE
 #include "oscore-context.h"
+#include "oscore-layer.h"
 #define ROLE_COAP 0
 #define ROLE_CONFIDENTIAL 1
 #define ROLE_PROTECTED 2
@@ -138,7 +139,7 @@ typedef struct {
   size_t object_security_len;
   uint8_t *object_security;
   oscore_ctx_t *security_context;
-  oscore_ctx_t **security_contexts;
+  oscore_layer_t *layers;
   int num_layers;
 #endif /* WITH_OSCORE */
 } coap_message_t;
