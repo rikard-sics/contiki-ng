@@ -50,6 +50,7 @@
 
 #ifdef WITH_OSCORE
 #include "oscore.h"
+#include "oscore-layer.h"
 /* Key material, sender-ID and receiver-ID used for deriving an OSCORE-Security-Context. Note that Sender-ID and Receiver-ID is 
  * mirrored in the Client and Server. */
 uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
@@ -72,11 +73,13 @@ uint8_t id_contexts[2][1] = { {0x09}, {0x01} };
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 // TODO: proxy address?
-#define SERVER_EP "coap://[fe80::203:0003:0003:0003]"
-// #define SERVER_EP "coap://[fd00::212:4b00:14b5:ee10]"
+#define SERVER_EP "coap://[fe80::203:0003:0003:0003]" // cooja server
+// #define SERVER_EP "coap://[fd00::212:4b00:14b5:ee10]" // i dont know what server this is
 // #define SERVER_EP "coap://[fd00::1]:5683"
-#define PROXY_EP  "coap://[fe80::202:0002:0002:0002]" 
-// #define PROXY_EP "coap://[fd00::1]:5685" <- californium proxy
+// #define SERVER_EP "coap://127.0.0.1:5684" // test server
+// #define PROXY_EP "coap://[::1]:5685" // test proxy
+#define PROXY_EP  "coap://[fe80::202:0002:0002:0002]" // cooja proxy
+// #define PROXY_EP "coap://[fd00::1]:5685" // californium proxy
 
 
 PROCESS(er_example_client, "Nested OSCORE Example Client");
@@ -112,7 +115,13 @@ PROCESS_THREAD(er_example_client, ev, data)
   static coap_endpoint_t proxy_ep;
   static coap_endpoint_t server_ep;
 
-  coap_endpoint_parse(PROXY_EP, strlen(PROXY_EP), &proxy_ep);
+  coap_endpoint_parse(PROXY_EP, strlen(PROXY_EP), &proxy_ep);      
+
+  // uip_ip6addr(&proxy_ep.ipaddr,
+  //           0, 0, 0, 0, 0, 0xffff,
+  //           0xC0A8, 0x41FE);  // ::ffff:192.168.65.254
+  // proxy_ep.port = UIP_HTONS(5685);
+
 
 
   #ifdef WITH_OSCORE
@@ -131,12 +140,14 @@ PROCESS_THREAD(er_example_client, ev, data)
   oscore_ep_ctx_set_association(&proxy_ep, service_urls[1], &proxy_context);
   // oscore_ep_ctx_set_association(&server_ep, service_urls[2], &context);
 
-  static oscore_ctx_t *contexts[2];
-  contexts[0] = &proxy_context;
-  contexts[1] = &server_context;
+  // static oscore_ctx_t *contexts[2];
+  // contexts[0] = &proxy_context;
+  // contexts[1] = &server_context;
 
 
   #endif /* WITH_OSCORE */
+
+  
 
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
   
@@ -157,8 +168,21 @@ PROCESS_THREAD(er_example_client, ev, data)
       coap_init_message(request, COAP_TYPE_NON, COAP_GET, 0);
       coap_set_header_uri_path(request, service_urls[1]);
 
-      request->security_contexts = contexts;
-      request->num_layers = 2;
+      static oscore_layer_t layers[2];
+      static oscore_path_t client_path;
+
+      layers[0].next_hop_uri = PROXY_EP;     // outer layer
+      layers[0].ctx = &proxy_context;
+
+      layers[1].next_hop_uri = SERVER_EP;    // inner layer
+      layers[1].ctx = &server_context;
+
+      client_path.layers = layers;
+      client_path.num_layers = 2;
+
+      request->dest_ep = &server_ep;
+
+      oscore_ep_path_set(&server_ep, &client_path);
 
       const char msg[] = "Toggle!";
 

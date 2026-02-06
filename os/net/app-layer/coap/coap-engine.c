@@ -216,7 +216,8 @@ coap_receive(const coap_endpoint_t *src,
   coap_status_code = in_status;
 #else
   // coap_status_code = coap_parse_message(message, payload, payload_length); // nested decryption here?
-  coap_status_code = oscore_decode_nested_message(message, payload, payload_length);
+  // coap_status_code = oscore_decode_nested_message(message, payload, payload_length);
+  coap_status_code = oscore_handle_message(message, payload, payload_length, src);
 #endif /*WITH_GROUPCOM*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL
