@@ -42,6 +42,7 @@
 #include "stdio.h"
 #include "inttypes.h"
 #include "assert.h"
+#include "lib/random.h"
 
 #include "oscore-nanocbor-helper.h"
 
@@ -429,6 +430,8 @@ coap_status_t oscore_decode_message(coap_message_t *coap_pkt)
   cose_encrypt0_set_content(cose, coap_pkt->payload, encrypt_len);
 
   int res = cose_encrypt0_decrypt(cose);
+  LOG_DBG("OSCORE Decryption result: %d\n", res);
+
   if (res <= 0) 
   {
     LOG_ERR("OSCORE Decryption Failure, result code: %d\n", res);
@@ -600,6 +603,9 @@ size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
       LOG_ERR("OSCORE Could not store exchange.\n");
       return PACKET_SERIALIZATION_ERROR;
     }
+    printf("Storing exchange context sender_id: %02x\n",
+       ctx->sender_context.sender_id[0]);
+
     oscore_increment_sender_seq(ctx);
   }
 
@@ -953,7 +959,7 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
   oscore_path_t *path = oscore_ep_path_get(coap_pkt->dest_ep);
 
-  if (path->num_layers <= 0 || !path->layers) {
+  if (path == NULL || path->num_layers <= 0 || !path->layers) {
     /* Not nested OSCORE */
     return oscore_prepare_message(coap_pkt, buf_a);
   }
@@ -974,6 +980,7 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
   for (int i = path->num_layers - 1; i >= 0; i--)
   {
     current_msg.security_context = path->layers[i].ctx;
+    //current_msg.is_innermost = (i == 0);
 
     LOG_DBG("====================================\n");
     LOG_DBG("    APPLYING OSCORE LAYER %d\n", i);
@@ -990,7 +997,11 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
       // packet code hard-coded to POST to carry payload. dummy MID should be fine
       uint16_t mid = 0x1234;
       coap_init_message(&temp_packet, COAP_TYPE_NON, COAP_POST, mid);
-      coap_set_token(&temp_packet, current_msg.token, current_msg.token_len);
+      uint8_t new_token[2];
+      uint16_t rand_val = random_rand();
+      new_token[0] = (uint8_t)(rand_val & 0xFF);
+      new_token[1] = (uint8_t)(rand_val >> 8);
+      coap_set_token(&temp_packet, new_token, sizeof(new_token));
       coap_set_payload(&temp_packet, temp_buf, len);
 
       coap_set_header_proxy_uri(&temp_packet, path->layers[i].next_hop_uri);
@@ -1053,6 +1064,53 @@ coap_status_t oscore_decode_nested_message(coap_message_t *received, uint8_t *co
       break;
     }
     #endif
+    break;
+    
+  }
+  return status;
+  
+}
+
+coap_status_t oscore_decode_nested_response(coap_message_t *received, uint8_t *coap_pkt, size_t coap_pkt_len, const coap_endpoint_t *src)
+{
+  //uint8_t temp_buf[1024];
+  coap_status_t status;
+
+  uint8_t *current_buf = coap_pkt;
+  size_t current_len = coap_pkt_len;
+
+  oscore_path_t *path = oscore_ep_path_get(src);
+
+  LOG_DBG("src: %p\n", (void *)src);
+  LOG_DBG("path: %p\n", (void *)path);
+
+
+  if (path == NULL || path->num_layers <= 0 || !path->layers) {
+    /* Not nested OSCORE */
+    return coap_parse_message(received, current_buf, current_len);
+  }
+
+  for (int i = path->num_layers - 1; i >= 0; i--)
+  {
+    
+    memset(received, 0, sizeof(*received));
+
+    LOG_DBG("====================================\n");
+    LOG_DBG("Removing OSCORE layer\n");
+    LOG_DBG("====================================\n");
+    status = coap_parse_message(received, current_buf, current_len);
+    if (status != NO_ERROR)
+    {
+      LOG_ERR("Status=%u\n", status);
+      break;
+    }
+
+    LOG_DBG("Code: %d \n", received->code);
+    LOG_DBG("URI: %.*s\n", (int)received->uri_path_len, received->uri_path);
+    LOG_DBG("Payload: %.*s\n", (int)received->payload_len, (char *)received->payload);
+
+    current_buf = received->payload;
+    current_len = received->payload_len;
     
   }
   return status;
@@ -1066,13 +1124,17 @@ oscore_handle_message(coap_message_t *msg,
                       uint8_t *buf,
                       size_t len,
                       const coap_endpoint_t *src)
-{
+{ 
   #ifdef OSCORE_PROXY_MODE
     if (proxy_find_state(msg->token, msg->token_len)) {
         // proxy doesnt decrypt responses
         LOG_DBG("Proxy handling response, encrypting only\n");
         return oscore_proxy_encrypt_response(msg, buf, len);
     }
+  #endif
+
+  #ifdef OSCORE_CLIENT_MODE
+    return oscore_decode_nested_response(msg, buf, len, src);
   #endif
 
     return oscore_decode_nested_message(msg, buf, len, src);
@@ -1134,6 +1196,10 @@ coap_status_t oscore_proxy_encrypt_response(coap_message_t *response, uint8_t *o
     }
     
     LOG_DBG("Proxy encrypting response\n");
+
+    LOG_DBG("Response token: ");
+    LOG_DBG_BYTES(response->token, response->token_len);
+    LOG_DBG_("\n");
     
     proxy_state_t *state = proxy_find_state(response->token, response->token_len);
     if (!state) {
@@ -1143,9 +1209,30 @@ coap_status_t oscore_proxy_encrypt_response(coap_message_t *response, uint8_t *o
 
     coap_message_t temp_packet;
 
-    coap_init_message(&temp_packet, COAP_TYPE_NON, COAP_POST, 0x1234);
-    coap_set_token(&temp_packet, response->token, response->token_len);
-    coap_set_payload(&temp_packet, response, len);
+    // coap_init_message(&temp_packet, COAP_TYPE_NON, COAP_POST, 0x1234);
+    // coap_set_token(&temp_packet, state->token, state->token_len);
+    // coap_set_payload(&temp_packet, response, len);
+
+    LOG_DBG("Initializing temp_packet with type=%d, code=%d, mid=%d\n",
+        response->type, response->code, response->mid);
+    coap_init_message(&temp_packet,
+            response->type,
+            response->code,
+            response->mid);
+
+    LOG_DBG("Setting token: ");
+    LOG_DBG_BYTES(response->token, response->token_len);
+    LOG_DBG_(" (len=%d)\n", response->token_len);
+    coap_set_token(&temp_packet,
+             response->token,
+             response->token_len);
+
+    LOG_DBG("Setting payload: len=%zu\n", len);
+    LOG_DBG_BYTES(output_buf, len);
+    LOG_DBG_("\n");
+    coap_set_payload(&temp_packet, output_buf, len);
+
+    //memcpy(&temp_packet, response, sizeof(coap_message_t));
     
     temp_packet.security_context = state->security_ctx;
     size_t length = oscore_prepare_message(&temp_packet, output_buf);

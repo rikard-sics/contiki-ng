@@ -97,6 +97,7 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt, uint8_t *buf_a);
 
 /* Decrypts a nested OSCORE message, returns the status. */
 coap_status_t oscore_decode_nested_message(coap_message_t *received, uint8_t *coap_pkt, size_t coap_pkt_len, const coap_endpoint_t *src);
+coap_status_t oscore_decode_nested_response(coap_message_t *received, uint8_t *coap_pkt, size_t coap_pkt_len, const coap_endpoint_t *src);
 
 /* Proxy mode functions */
 // void oscore_set_proxy_mode(bool enabled);

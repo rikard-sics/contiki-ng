@@ -48,6 +48,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include "lib/random.h"
 
 /* Log configuration */
 #include "coap-log.h"
@@ -101,7 +102,10 @@ PT_THREAD(coap_blocking_request
       context = oscore_get_context_from_ep(remote_ep, uri);
       if(context){
         //TODO maybe an if and random token should be added here
-        static const uint8_t token[2] = {0xA, 0xA};
+        //static const uint8_t token[2] = {0xA, 0xA};
+        uint8_t token[2];
+        token[0] = (uint8_t)random_rand();
+        token[1] = (uint8_t)random_rand();
         coap_set_token(request, token, sizeof(token));
         coap_set_oscore(request, context);
       }

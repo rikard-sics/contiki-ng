@@ -1,4 +1,4 @@
-all: oscore-example-server oscore-example-client oscore-plugtest-server oscore-plugtest-client nested-oscore nested-oscore-client
+all: oscore-example-server oscore-example-client oscore-plugtest-server oscore-plugtest-client nested-oscore-proxy nested-oscore-client nested-oscore-server
 # use target "oscore-plugtest-server" explicitly when required
 
 CONTIKI=../..
@@ -21,6 +21,10 @@ CONTIKI_TARGET_SOURCEFILES += plugtest_resources.c
 
 # Include the CoAP implementation
 MODULES += os/net/app-layer/coap
+
+nested-oscore-client.$(TARGET): CFLAGS += -DOSCORE_CLIENT_MODE
+nested-oscore-proxy.$(TARGET): CFLAGS += -DOSCORE_PROXY_MODE
+nested-oscore-server.$(TARGET): CFLAGS += -DOSCORE_SERVER_MODE
 
 include $(CONTIKI)/Makefile.include
 

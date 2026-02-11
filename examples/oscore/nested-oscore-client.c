@@ -61,7 +61,7 @@ uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40};
 // 0 : client -> proxy    1 : client -> server
 uint8_t sender_id[2][1] = { {0x08},{0x01} };
 uint8_t receiver_id[2][1] = { {0x09},{0x05} };
-uint8_t id_contexts[2][1] = { {0x09}, {0x01} };
+uint8_t id_contexts[2][1] = { {0x09},{0x01} };
 #endif /* WITH_OSCORE */
 
 /* Log configuration */
@@ -180,9 +180,9 @@ PROCESS_THREAD(er_example_client, ev, data)
       client_path.layers = layers;
       client_path.num_layers = 2;
 
-      request->dest_ep = &server_ep;
+      request->dest_ep = &proxy_ep;
 
-      oscore_ep_path_set(&server_ep, &client_path);
+      oscore_ep_path_set(&proxy_ep, &client_path);
 
       const char msg[] = "Toggle!";
 
@@ -196,7 +196,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       printf("\n--Done--\n");
 
-      etimer_reset(&et);
+      //etimer_reset(&et);
 
 #if PLATFORM_HAS_BUTTON
 #if PLATFORM_SUPPORTS_BUTTON_HAL

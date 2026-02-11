@@ -140,8 +140,6 @@ typedef struct {
   uint8_t *object_security;
   oscore_ctx_t *security_context;
   const coap_endpoint_t *dest_ep;
-  // oscore_layer_t *layers;
-  // int num_layers;
 #endif /* WITH_OSCORE */
 } coap_message_t;
 
