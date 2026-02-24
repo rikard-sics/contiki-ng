@@ -63,12 +63,13 @@
 extern coap_resource_t
   res_hello,
   res_mirror,
-  res_chunks,
-  res_separate,
-  res_push,
-  res_event,
-  res_sub,
-  res_b1_sep_b2;
+  res_event;
+  // res_chunks,
+  // res_separate,
+  // res_push,
+  // res_event,
+  // res_sub,
+  // res_b1_sep_b2;
 #if PLATFORM_HAS_LEDS
 extern coap_resource_t res_leds, res_toggle;
 #endif
@@ -88,12 +89,15 @@ extern coap_resource_t res_temperature;
 #ifdef WITH_OSCORE
 /* Key material, sender-ID and receiver-ID used for deriving an OSCORE-Security-Context. Note that Sender-ID and Receiver-ID is
  * mirrored in the Client and Server. */
-uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
-uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
+static const uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
+static const uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
 // 0 : proxy -> server 1 : client -> server
-uint8_t sender_id[2][1] = { {0x03},{0x05} };
-uint8_t receiver_id[2][1] = { {0x02},{0x01} };
-uint8_t id_contexts[2][1] = { {0x05}, {0x01} };
+static const uint8_t sender_id[2][1] = { {0x03},{0x05} };
+static const uint8_t receiver_id[2][1] = { {0x02},{0x01} };
+static const uint8_t id_contexts[2][1] = { {0x05}, {0x01} };
+
+//static oscore_ctx_t proxy_context;
+static oscore_ctx_t client_context;
 #endif /* WITH_OSCORE */
 PROCESS(er_example_server, "Nested OSCORE Example Server");
 AUTOSTART_PROCESSES(&er_example_server);
@@ -115,10 +119,8 @@ PROCESS_THREAD(er_example_server, ev, data)
 
   #ifdef WITH_OSCORE
   /*Derive an OSCORE-Security-Context. */
-  static oscore_ctx_t proxy_context;
-  oscore_derive_ctx(&proxy_context, master_secret, 16, salt, 8, 10, sender_id[0], 1, receiver_id[0], 1, id_contexts[0], 1);
+  //oscore_derive_ctx(&proxy_context, master_secret, 16, salt, 8, 10, sender_id[0], 1, receiver_id[0], 1, id_contexts[0], 1);
 
-  static oscore_ctx_t client_context;
   oscore_derive_ctx(&client_context, master_secret, 16, salt, 8, 10, sender_id[1], 1, receiver_id[1], 1, id_contexts[1], 1);
 
   uint8_t key_id[] = { 0x01 }; // TODO : change this
@@ -138,14 +140,14 @@ PROCESS_THREAD(er_example_server, ev, data)
    */
   coap_activate_resource(&res_hello, "test/hello");
   coap_activate_resource(&res_mirror, "debug/mirror");
-  coap_activate_resource(&res_chunks, "test/chunks");
-  coap_activate_resource(&res_separate, "test/separate");
-  coap_activate_resource(&res_push, "test/push");
+  // coap_activate_resource(&res_chunks, "test/chunks");
+  // coap_activate_resource(&res_separate, "test/separate");
+  // coap_activate_resource(&res_push, "test/push");
 #if PLATFORM_HAS_BUTTON
-  coap_activate_resource(&res_event, "sensors/button");
+  //coap_activate_resource(&res_event, "sensors/button");
 #endif /* PLATFORM_HAS_BUTTON */
-  coap_activate_resource(&res_sub, "test/sub");
-  coap_activate_resource(&res_b1_sep_b2, "test/b1sepb2");
+  // coap_activate_resource(&res_sub, "test/sub");
+  // coap_activate_resource(&res_b1_sep_b2, "test/b1sepb2");
 #if PLATFORM_HAS_LEDS
 /*  coap_activate_resource(&res_leds, "actuators/leds"); */
   coap_activate_resource(&res_toggle, "actuators/toggle");
@@ -168,9 +170,9 @@ PROCESS_THREAD(er_example_server, ev, data)
    * response. Only the specified resources "test/hello", "debug/mirror", "test/chunks", "test/separate" and "test/push" are protected in this example.*/
   oscore_protect_resource(&res_hello);
   oscore_protect_resource(&res_mirror);
-  oscore_protect_resource(&res_chunks);
-  oscore_protect_resource(&res_separate);
-  oscore_protect_resource(&res_push);
+  // oscore_protect_resource(&res_chunks);
+  // oscore_protect_resource(&res_separate);
+  // oscore_protect_resource(&res_push);
   #endif /* WITH_OSCORE */
     /* Define application-specific events here. */
   while(1) {
@@ -187,7 +189,7 @@ PROCESS_THREAD(er_example_server, ev, data)
       res_event.trigger();
 
       /* Also call the separate response example handler. */
-      res_separate.resume();
+      //res_separate.resume();
     }
 #endif /* PLATFORM_HAS_BUTTON */
   }                             /* while (1) */

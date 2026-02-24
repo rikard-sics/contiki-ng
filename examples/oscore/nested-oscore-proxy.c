@@ -58,7 +58,6 @@ PROCESS_THREAD(er_example_proxy, ev, data)
   static oscore_ctx_t server_context;
   oscore_derive_ctx(&server_context, master_secret, 16, salt, 8, 10, sender_id[1], 1, receiver_id[1], 1, id_contexts[1], 1);
 
-  // oscore_set_proxy_mode(true);
 
   #ifdef OSCORE_PROXY_MODE
   proxy_init();

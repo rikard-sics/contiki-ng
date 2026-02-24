@@ -430,8 +430,6 @@ coap_status_t oscore_decode_message(coap_message_t *coap_pkt)
   cose_encrypt0_set_content(cose, coap_pkt->payload, encrypt_len);
 
   int res = cose_encrypt0_decrypt(cose);
-  LOG_DBG("OSCORE Decryption result: %d\n", res);
-
   if (res <= 0) 
   {
     LOG_ERR("OSCORE Decryption Failure, result code: %d\n", res);
@@ -959,10 +957,10 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
   oscore_path_t *path = oscore_ep_path_get(coap_pkt->dest_ep);
 
-  if (path == NULL || path->num_layers <= 0 || !path->layers) {
-    /* Not nested OSCORE */
-    return oscore_prepare_message(coap_pkt, buf_a);
-  }
+  // if (path == NULL || path->num_layers <= 0 || !path->layers) {
+  //   /* Not nested OSCORE */
+  //   return oscore_prepare_message(coap_pkt, buf_a);
+  // }
   
 
   // buffers to keep track of what to encrypt
@@ -974,13 +972,12 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
   memcpy(&current_msg, coap_pkt, sizeof(coap_message_t));
 
   // temporary buffer
-  uint8_t temp_buf[1024];
+  static uint8_t temp_buf[128];
 
   // start from server(last layer) and work outward
   for (int i = path->num_layers - 1; i >= 0; i--)
   {
     current_msg.security_context = path->layers[i].ctx;
-    //current_msg.is_innermost = (i == 0);
 
     LOG_DBG("====================================\n");
     LOG_DBG("    APPLYING OSCORE LAYER %d\n", i);

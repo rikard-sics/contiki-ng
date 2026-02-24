@@ -79,7 +79,7 @@ uint8_t id_contexts[2][1] = { {0x09},{0x01} };
 // #define SERVER_EP "coap://127.0.0.1:5684" // test server
 // #define PROXY_EP "coap://[::1]:5685" // test proxy
 #define PROXY_EP  "coap://[fe80::202:0002:0002:0002]" // cooja proxy
-// #define PROXY_EP "coap://[fd00::1]:5685" // californium proxy
+//#define PROXY_EP "coap://[fd00::1]:5685" // californium proxy
 
 
 PROCESS(er_example_client, "Nested OSCORE Example Client");
@@ -107,6 +107,9 @@ client_chunk_handler(coap_message_t *response)
   printf("|%.*s", len, (char *)chunk);
 }
 
+static oscore_ctx_t proxy_context;
+static oscore_ctx_t server_context;
+
 PROCESS_THREAD(er_example_client, ev, data)
 {
   PROCESS_BEGIN();
@@ -127,10 +130,8 @@ PROCESS_THREAD(er_example_client, ev, data)
   #ifdef WITH_OSCORE
   /*Derive an OSCORE-Security-Context. */
   // TODO: needs to derive context for proxy and server
-  static oscore_ctx_t proxy_context;
+  
   oscore_derive_ctx(&proxy_context, master_secret, 16, salt, 8, 10, sender_id[0], 1, receiver_id[0], 1, id_contexts[0], 1);
-
-  static oscore_ctx_t server_context;
   oscore_derive_ctx(&server_context, master_secret, 16, salt, 8, 10, sender_id[1], 1, receiver_id[1], 1, id_contexts[1], 1);
 
   /* Set the association between a remote URL and a security contect. When sending a message the specified context will be used to 
@@ -191,6 +192,11 @@ PROCESS_THREAD(er_example_client, ev, data)
       printf("Target: ");
       LOG_INFO_COAP_EP(&proxy_ep);
       printf("\n");
+
+      printf("num_layers: %d\n", client_path.num_layers);
+oscore_path_t *p = oscore_ep_path_get(&proxy_ep);
+if(p) printf("path num_layers from table: %d\n", p->num_layers);
+else printf("path not found!\n");
 
       COAP_BLOCKING_REQUEST(&proxy_ep, request, client_chunk_handler);
 
