@@ -107,21 +107,26 @@ coap_status_t oscore_handle_message(coap_message_t *msg, uint8_t *buf, size_t le
 
 
 typedef struct {
-    uint8_t token[8];
-    uint8_t token_len;
-    coap_endpoint_t previous_hop;
-    oscore_ctx_t *security_ctx;
-    uint64_t timestamp;
-    bool in_use;
+    uint8_t  client_token[8];
+    uint8_t  client_token_len;
+    uint8_t  forward_token[8];    
+    uint8_t  forward_token_len;
+    coap_endpoint_t  previous_hop;
+    oscore_ctx_t    *security_ctx;
+    clock_time_t     timestamp;
+    bool             in_use;
 } proxy_state_t;
 
 void proxy_init(void);
-bool proxy_store_state(const uint8_t *token, uint8_t token_len, 
-                       const coap_endpoint_t *prev_hop, 
+bool proxy_store_state(const uint8_t *client_token,  uint8_t client_token_len,
+                       const uint8_t *forward_token, uint8_t forward_token_len,
+                       const coap_endpoint_t *prev_hop,
                        oscore_ctx_t *ctx);
+proxy_state_t *proxy_find_state_by_forward_token(const uint8_t *token,
+                                                  uint8_t token_len);
 proxy_state_t* proxy_find_state(const uint8_t *token, uint8_t token_len);
 void proxy_cleanup_state(proxy_state_t *state);
 void proxy_cleanup_expired(void);
-coap_status_t oscore_proxy_encrypt_response(coap_message_t *response, uint8_t *output_buf, size_t len);
+coap_status_t oscore_proxy_encrypt_response(coap_message_t *response, uint8_t *output_buf, size_t len, proxy_state_t *state);
 
 #endif /* _OSCORE_H */

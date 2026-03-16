@@ -215,9 +215,12 @@ coap_receive(const coap_endpoint_t *src,
 #ifdef WITH_GROUPCOM
   coap_status_code = in_status;
 #else
-  // coap_status_code = coap_parse_message(message, payload, payload_length); // nested decryption here?
-  // coap_status_code = oscore_decode_nested_message(message, payload, payload_length);
+#ifdef WITH_OSCORE
+  LOG_DBG("Calling Handler\n");
   coap_status_code = oscore_handle_message(message, payload, payload_length, src);
+#else
+  coap_status_code = coap_parse_message(message, payload, payload_length);
+#endif
 #endif /*WITH_GROUPCOM*/
 #ifdef OSCORE_WITH_HW_CRYPTO
 #ifdef CONTIKI_TARGET_ZOUL

@@ -104,7 +104,7 @@ void uart1_isr(void);
 /*---------------------------------------------------------------------------*/
 /* Allocate stack space */
 //356 works just fine
-static uint64_t stack[256] __attribute__ ((section(".stack")));
+static uint64_t stack[195] __attribute__ ((section(".stack")));
 /*---------------------------------------------------------------------------*/
 __attribute__((__section__(".vectors")))
 void(*const vectors[])(void) =

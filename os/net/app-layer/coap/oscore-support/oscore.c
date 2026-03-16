@@ -430,7 +430,7 @@ coap_status_t oscore_decode_message(coap_message_t *coap_pkt)
   cose_encrypt0_set_content(cose, coap_pkt->payload, encrypt_len);
 
   int res = cose_encrypt0_decrypt(cose);
-  if (res <= 0) 
+  if (res <= 0)
   {
     LOG_ERR("OSCORE Decryption Failure, result code: %d\n", res);
     if (coap_is_request(coap_pkt))
@@ -602,7 +602,7 @@ size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
       return PACKET_SERIALIZATION_ERROR;
     }
     printf("Storing exchange context sender_id: %02x\n",
-       ctx->sender_context.sender_id[0]);
+           ctx->sender_context.sender_id[0]);
 
     oscore_increment_sender_seq(ctx);
   }
@@ -957,11 +957,11 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
   oscore_path_t *path = oscore_ep_path_get(coap_pkt->dest_ep);
 
-  // if (path == NULL || path->num_layers <= 0 || !path->layers) {
-  //   /* Not nested OSCORE */
-  //   return oscore_prepare_message(coap_pkt, buf_a);
-  // }
-  
+  if (path == NULL || path->num_layers <= 0 || !path->layers)
+  {
+    /* Not nested OSCORE */
+    return oscore_prepare_message(coap_pkt, buf_a);
+  }
 
   // buffers to keep track of what to encrypt
   size_t len = 0;
@@ -1010,24 +1010,20 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
   return len;
 }
 
-
-
 coap_status_t oscore_decode_nested_message(coap_message_t *received, uint8_t *coap_pkt, size_t coap_pkt_len, const coap_endpoint_t *src)
 {
-  //uint8_t temp_buf[1024];
   coap_status_t status;
-
   uint8_t *current_buf = coap_pkt;
   size_t current_len = coap_pkt_len;
 
   while (true)
   {
-    
     memset(received, 0, sizeof(*received));
 
     LOG_DBG("====================================\n");
     LOG_DBG("Removing OSCORE layer\n");
     LOG_DBG("====================================\n");
+
     status = coap_parse_message(received, current_buf, current_len);
     if (status != NO_ERROR)
     {
@@ -1042,35 +1038,44 @@ coap_status_t oscore_decode_nested_message(coap_message_t *received, uint8_t *co
     current_buf = received->payload;
     current_len = received->payload_len;
 
-    #ifdef OSCORE_PROXY_MODE
-    // if the peeled layer is for another proxy -> forward
+#ifdef OSCORE_PROXY_MODE
     if (received->proxy_uri != NULL)
     {
-      LOG_DBG("Forwarding to next proxy");
+      LOG_DBG("Forwarding to next proxy\n");
       LOG_DBG("Proxy URI: %s\n", received->proxy_uri);
 
-      proxy_store_state(received->token, received->token_len, src, received->security_context);
-      
-      coap_endpoint_t proxy_uri;
-      coap_endpoint_parse(received->proxy_uri, strlen(received->proxy_uri), &proxy_uri);
-      coap_sendto(&proxy_uri, current_buf, current_len);
-      break;
-    } else {
-      //TODO: change condition to keep decrypting
-      LOG_DBG("Final message received!");
+      /* Parse the inner packet to get the forward token */
+      uint8_t forward_token_len = current_buf[0] & 0x0F;
+      uint8_t *forward_token = current_buf + 4;
+
+      LOG_DBG("Forward token: ");
+      LOG_DBG_BYTES(forward_token, forward_token_len);
+      LOG_DBG_("\n");
+
+      proxy_store_state(received->token, received->token_len,
+                        forward_token, forward_token_len,
+                        src,
+                        received->security_context);
+
+      coap_endpoint_t next_hop;
+      coap_endpoint_parse(received->proxy_uri, received->proxy_uri_len, &next_hop);
+      coap_sendto(&next_hop, current_buf, current_len);
+      return MANUAL_RESPONSE; 
+    }
+    else
+    {
+      LOG_DBG("Final message received!\n");
       break;
     }
-    #endif
+#endif
     break;
-    
   }
+
   return status;
-  
 }
 
 coap_status_t oscore_decode_nested_response(coap_message_t *received, uint8_t *coap_pkt, size_t coap_pkt_len, const coap_endpoint_t *src)
 {
-  //uint8_t temp_buf[1024];
   coap_status_t status;
 
   uint8_t *current_buf = coap_pkt;
@@ -1081,15 +1086,15 @@ coap_status_t oscore_decode_nested_response(coap_message_t *received, uint8_t *c
   LOG_DBG("src: %p\n", (void *)src);
   LOG_DBG("path: %p\n", (void *)path);
 
-
-  if (path == NULL || path->num_layers <= 0 || !path->layers) {
+  if (path == NULL || path->num_layers <= 0 || !path->layers)
+  {
     /* Not nested OSCORE */
     return coap_parse_message(received, current_buf, current_len);
   }
 
   for (int i = path->num_layers - 1; i >= 0; i--)
   {
-    
+
     memset(received, 0, sizeof(*received));
 
     LOG_DBG("====================================\n");
@@ -1108,143 +1113,160 @@ coap_status_t oscore_decode_nested_response(coap_message_t *received, uint8_t *c
 
     current_buf = received->payload;
     current_len = received->payload_len;
-    
   }
   return status;
-  
 }
-
-
 
 coap_status_t
 oscore_handle_message(coap_message_t *msg,
                       uint8_t *buf,
                       size_t len,
                       const coap_endpoint_t *src)
-{ 
-  #ifdef OSCORE_PROXY_MODE
-    if (proxy_find_state(msg->token, msg->token_len)) {
-        // proxy doesnt decrypt responses
+{
+#ifdef OSCORE_PROXY_MODE
+  LOG_DBG("Token: ");
+    LOG_DBG_BYTES(buf + 4, buf[0] & 0x0F);
+    LOG_DBG_("\n");
+
+    proxy_state_t *state = proxy_find_state_by_forward_token(buf + 4, buf[0] & 0x0F);
+    if (state) {
         LOG_DBG("Proxy handling response, encrypting only\n");
-        return oscore_proxy_encrypt_response(msg, buf, len);
+        return oscore_proxy_encrypt_response(msg, buf, len, state);
     }
-  #endif
+#endif
 
-  #ifdef OSCORE_CLIENT_MODE
-    return oscore_decode_nested_response(msg, buf, len, src);
-  #endif
+#ifdef OSCORE_CLIENT_MODE
+  return oscore_decode_nested_response(msg, buf, len, src);
+#endif
 
-    return oscore_decode_nested_message(msg, buf, len, src);
+  return oscore_decode_nested_message(msg, buf, len, src);
 }
 
 #ifdef OSCORE_PROXY_MODE
 static proxy_state_t proxy_states[1];
 
-void proxy_init(void) 
+void proxy_init(void)
 {
-    memset(proxy_states, 0, sizeof(proxy_states));
-    LOG_INFO("Proxy state table initialized\n");
+  memset(proxy_states, 0, sizeof(proxy_states));
+  LOG_INFO("Proxy state table initialized\n");
 }
 
-bool proxy_store_state(const uint8_t *token, uint8_t token_len, 
-                       const coap_endpoint_t *prev_hop, 
+bool proxy_store_state(const uint8_t *client_token, uint8_t client_token_len,
+                       const uint8_t *forward_token, uint8_t forward_token_len,
+                       const coap_endpoint_t *prev_hop,
                        oscore_ctx_t *ctx)
 {
-  if (!token || token_len == 0 || token_len > 8 || !prev_hop || !ctx) {
-        LOG_ERR("Invalid parameters for proxy_store_state\n");
-        return false;
-    }
-    
-    for (int i = 0; i < 1; i++) {
-        if (!proxy_states[i].in_use) {
-            memcpy(proxy_states[i].token, token, token_len);
-            proxy_states[i].token_len = token_len;
-            memcpy(&proxy_states[i].previous_hop, prev_hop, sizeof(coap_endpoint_t));
-            proxy_states[i].security_ctx = ctx;
-            proxy_states[i].timestamp = clock_seconds();
-            proxy_states[i].in_use = true;
-            
-            LOG_DBG("Stored proxy state [%d]: token_len=%d\n", i, token_len);
-            return true;
-        }
-    }
-    
-    LOG_ERR("Proxy state table full!\n");
+  if (!client_token || client_token_len == 0 || client_token_len > 8 ||
+      !forward_token || forward_token_len == 0 || forward_token_len > 8 ||
+      !prev_hop)
+  {
+    LOG_ERR("Invalid parameters for proxy_store_state\n");
     return false;
+  }
+
+  for (int i = 0; i < 1; i++)
+  {
+    if (!proxy_states[i].in_use)
+    {
+      memcpy(proxy_states[i].client_token, client_token, client_token_len);
+      proxy_states[i].client_token_len = client_token_len;
+      memcpy(proxy_states[i].forward_token, forward_token, forward_token_len);
+      proxy_states[i].forward_token_len = forward_token_len;
+      memcpy(&proxy_states[i].previous_hop, prev_hop, sizeof(coap_endpoint_t));
+      proxy_states[i].timestamp = clock_seconds();
+      proxy_states[i].security_ctx = ctx;
+      proxy_states[i].in_use = true;
+      LOG_DBG("Stored proxy state [%d]: client_token_len=%d forward_token_len=%d\n",
+              i, client_token_len, forward_token_len);
+      return true;
+    }
+  }
+
+  LOG_ERR("Proxy state table full!\n");
+  return false;
 }
 
-proxy_state_t* proxy_find_state(const uint8_t *token, uint8_t token_len)
+proxy_state_t *proxy_find_state_by_forward_token(const uint8_t *token,
+                                                 uint8_t token_len)
 {
-  for (int i = 0; i < 1; i++) {
-    if (!proxy_states[i].in_use) {
+  if (!token || token_len == 0)
+    return NULL;
+  for (int i = 0; i < 1; i++)
+  {
+    if (!proxy_states[i].in_use)
       continue;
-    }
-    if (memcmp(proxy_states[i].token, token, token_len) == 0) {
+    if (proxy_states[i].forward_token_len != token_len)
+      continue;
+    if (memcmp(proxy_states[i].forward_token, token, token_len) == 0)
       return &proxy_states[i];
-    }
   }
   return NULL;
 }
 
-coap_status_t oscore_proxy_encrypt_response(coap_message_t *response, uint8_t *output_buf, size_t len)
+proxy_state_t *proxy_find_state(const uint8_t *token, uint8_t token_len)
 {
-    if (response == NULL || output_buf == NULL) {
-        return BAD_REQUEST_4_00;
-    }
-    
-    LOG_DBG("Proxy encrypting response\n");
+  if (!token || token_len == 0)
+    return NULL;
+  for (int i = 0; i < 1; i++)
+  {
+    if (!proxy_states[i].in_use)
+      continue;
+    if (proxy_states[i].client_token_len != token_len)
+      continue;
+    if (memcmp(proxy_states[i].client_token, token, token_len) == 0)
+      return &proxy_states[i];
+  }
+  return NULL;
+}
 
-    LOG_DBG("Response token: ");
-    LOG_DBG_BYTES(response->token, response->token_len);
-    LOG_DBG_("\n");
-    
-    proxy_state_t *state = proxy_find_state(response->token, response->token_len);
-    if (!state) {
-        LOG_ERR("No proxy state found for response token\n");
-        return NOT_FOUND_4_04;
-    }
+coap_status_t oscore_proxy_encrypt_response(coap_message_t *response,
+                                            uint8_t *output_buf,
+                                            size_t len,
+                                            proxy_state_t *state)
+{
+  if (response == NULL || output_buf == NULL)
+    return BAD_REQUEST_4_00;
 
-    coap_message_t temp_packet;
+  LOG_DBG("Proxy handling response\n");
+  LOG_DBG("Response token: ");
+  LOG_DBG_BYTES(response->token, response->token_len);
+  LOG_DBG_("\n");
 
-    // coap_init_message(&temp_packet, COAP_TYPE_NON, COAP_POST, 0x1234);
-    // coap_set_token(&temp_packet, state->token, state->token_len);
-    // coap_set_payload(&temp_packet, response, len);
+  // if (!oscore_is_request_protected(response))
+  // {
+  //   LOG_DBG("Response isn't OSCORE protected\n");
+  //   coap_sendto(&state->previous_hop, (uint8_t *)response, len);
+  //   proxy_cleanup_state(state);
+  //   return MANUAL_RESPONSE;
+  // }
 
-    LOG_DBG("Initializing temp_packet with type=%d, code=%d, mid=%d\n",
-        response->type, response->code, response->mid);
-    coap_init_message(&temp_packet,
-            response->type,
-            response->code,
-            response->mid);
+  coap_message_t temp_packet;
+  LOG_DBG("Initializing temp_packet type=%d code=%d mid=%d\n",
+          response->type, response->code, response->mid);
+  coap_init_message(&temp_packet, response->type, response->code, response->mid);
 
-    LOG_DBG("Setting token: ");
-    LOG_DBG_BYTES(response->token, response->token_len);
-    LOG_DBG_(" (len=%d)\n", response->token_len);
-    coap_set_token(&temp_packet,
-             response->token,
-             response->token_len);
+  LOG_DBG("Restoring client token: ");
+  LOG_DBG_BYTES(state->client_token, state->client_token_len);
+  LOG_DBG_("\n");
+  coap_set_token(&temp_packet, state->client_token, state->client_token_len);
 
-    LOG_DBG("Setting payload: len=%zu\n", len);
-    LOG_DBG_BYTES(output_buf, len);
-    LOG_DBG_("\n");
-    coap_set_payload(&temp_packet, output_buf, len);
+  LOG_DBG("Setting payload: len=%zu\n", len);
+  coap_set_payload(&temp_packet, output_buf, len);
 
-    //memcpy(&temp_packet, response, sizeof(coap_message_t));
-    
-    temp_packet.security_context = state->security_ctx;
-    size_t length = oscore_prepare_message(&temp_packet, output_buf);
-    
-    if (length == 0) {
-        LOG_ERR("Failed to encrypt response\n");
-        return INTERNAL_SERVER_ERROR_5_00;
-    }
-    
-    LOG_DBG("Encrypted response, len=%zu\n", length);
-    coap_sendto(&state->previous_hop, output_buf, length);
+  temp_packet.security_context = state->security_ctx;
+  size_t length = oscore_prepare_message(&temp_packet, output_buf);
 
-    proxy_cleanup_state(state);
-    
-    return CHANGED_2_04;
+  if (length == 0)
+  {
+    LOG_ERR("Failed to encrypt response\n");
+    return INTERNAL_SERVER_ERROR_5_00;
+  }
+
+  LOG_DBG("Encrypted response, len=%zu\n", length);
+  coap_sendto(&state->previous_hop, output_buf, length);
+  proxy_cleanup_state(state);
+
+  return CHANGED_2_04;
 }
 
 void proxy_cleanup_state(proxy_state_t *state)
