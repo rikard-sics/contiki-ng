@@ -68,14 +68,14 @@
  /* NBR_TABLE_CONF_MAX_NEIGHBORS specifies the maximum number of neighbors
     that each node will be able to handle. */
 #ifndef NBR_TABLE_CONF_MAX_NEIGHBORS
-#define NBR_TABLE_CONF_MAX_NEIGHBORS 16
+#define NBR_TABLE_CONF_MAX_NEIGHBORS 8
 #endif /* NBR_TABLE_CONF_MAX_NEIGHBORS */
 
 /* NETSTACK_MAX_ROUTE_ENTRIES specifies the maximum number of entries
    the routing module will handle. Applies to uIP routing tables if they are
    used, or to RPL non-storing mode links instead */
 #ifndef NETSTACK_MAX_ROUTE_ENTRIES
-#define NETSTACK_MAX_ROUTE_ENTRIES 16
+#define NETSTACK_MAX_ROUTE_ENTRIES 8
 #endif /* NETSTACK_MAX_ROUTE_ENTRIES */
 
 /* UIP_CONF_BUFFER_SIZE specifies how much memory should be reserved
