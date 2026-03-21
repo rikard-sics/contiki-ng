@@ -73,13 +73,16 @@ uint8_t id_contexts[2][1] = { {0x09},{0x01} };
 
 /* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
 // TODO: proxy address?
-#define SERVER_EP "coap://[fe80::203:0003:0003:0003]" // cooja server
+// #define SERVER_EP "coap://[fe80::203:0003:0003:0003]" // cooja server
 // #define SERVER_EP "coap://[fd00::212:4b00:14b5:ee10]" // i dont know what server this is
 // #define SERVER_EP "coap://[fd00::1]:5683"
 // #define SERVER_EP "coap://127.0.0.1:5684" // test server
 // #define PROXY_EP "coap://[::1]:5685" // test proxy
-#define PROXY_EP  "coap://[fe80::202:0002:0002:0002]" // cooja proxy
+// #define PROXY_EP  "coap://[fe80::202:0002:0002:0002]" // cooja proxy
 //#define PROXY_EP "coap://[fd00::1]:5685" // californium proxy
+
+#define PROXY_EP "coap://[fe80::212:4b00:9df:8ecb]"
+#define SERVER_EP "coap://[fe80::212:4b00:9df:904f]"
 
 
 PROCESS(er_example_client, "Nested OSCORE Example Client");
