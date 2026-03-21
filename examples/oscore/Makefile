@@ -26,6 +26,12 @@ nested-oscore-client.$(TARGET): CFLAGS += -DOSCORE_CLIENT_MODE
 nested-oscore-proxy.$(TARGET): CFLAGS += -DOSCORE_PROXY_MODE
 nested-oscore-server.$(TARGET): CFLAGS += -DOSCORE_SERVER_MODE
 
+ifeq ($(MAKE_TARGET_MODE),proxy)
+    CFLAGS += -DOSCORE_PROXY_MODE
+else ifeq ($(MAKE_TARGET_MODE),client)
+    CFLAGS += -DOSCORE_CLIENT_MODE
+endif
+
 include $(CONTIKI)/Makefile.include
 
 # border router rules
