@@ -993,7 +993,7 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
       // packet code hard-coded to POST to carry payload. dummy MID should be fine
       uint16_t mid = 0x1234;
-      coap_init_message(&temp_packet, COAP_TYPE_NON, COAP_POST, mid);
+      coap_init_message(&temp_packet, COAP_TYPE_CON, COAP_POST, mid);
       uint8_t new_token[2];
       uint16_t rand_val = random_rand();
       new_token[0] = (uint8_t)(rand_val & 0xFF);
