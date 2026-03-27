@@ -989,21 +989,8 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 
     if (i > 0)
     {
-      coap_message_t temp_packet;
-
-      // packet code hard-coded to POST to carry payload. dummy MID should be fine
-      uint16_t mid = 0x1234;
-      coap_init_message(&temp_packet, COAP_TYPE_CON, COAP_POST, mid);
-      uint8_t new_token[2];
-      uint16_t rand_val = random_rand();
-      new_token[0] = (uint8_t)(rand_val & 0xFF);
-      new_token[1] = (uint8_t)(rand_val >> 8);
-      coap_set_token(&temp_packet, new_token, sizeof(new_token));
-      coap_set_payload(&temp_packet, temp_buf, len);
-
-      coap_set_header_proxy_uri(&temp_packet, path->layers[i].next_hop_uri);
-
-      memcpy(&current_msg, &temp_packet, sizeof(coap_message_t));
+      coap_parse_message_no_decrypt(&current_msg, temp_buf, len);
+      coap_set_header_proxy_uri(&current_msg, path->layers[i].next_hop_uri);
     }
   }
 
@@ -1011,9 +998,9 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
 }
 
 coap_status_t oscore_decode_nested_message(coap_message_t *received,
-                                           uint8_t *coap_pkt,
-                                           size_t coap_pkt_len,
-                                           const coap_endpoint_t *src)
+                       uint8_t *coap_pkt,
+                       size_t coap_pkt_len,
+                       const coap_endpoint_t *src)
 {
   coap_status_t status;
   uint8_t *current_buf = coap_pkt;
@@ -1021,79 +1008,84 @@ coap_status_t oscore_decode_nested_message(coap_message_t *received,
 
   while (true)
   {
-    memset(received, 0, sizeof(*received));
+  memset(received, 0, sizeof(*received));
 
-    LOG_DBG("====================================\n");
-    LOG_DBG("Removing OSCORE layer\n");
-    LOG_DBG("====================================\n");
+  LOG_DBG("====================================\n");
+  LOG_DBG("Removing OSCORE layer\n");
+  LOG_DBG("====================================\n");
 
-    status = coap_parse_message(received, current_buf, current_len);
-    if (status != NO_ERROR)
-    {
-      LOG_ERR("Status=%u\n", status);
-      break;
-    }
+  status = coap_parse_message(received, current_buf, current_len);
+  if (status != NO_ERROR)
+  {
+    LOG_ERR("Status=%u\n", status);
+    break;
+  }
 
-    LOG_DBG("Code: %d \n", received->code);
-    LOG_DBG("URI: %.*s\n", (int)received->uri_path_len, received->uri_path);
-    LOG_DBG("Payload: %.*s\n", (int)received->payload_len, (char *)received->payload);
-
-    current_buf = received->payload;
-    current_len = received->payload_len;
+  LOG_DBG("Code: %d \n", received->code);
+  LOG_DBG("URI: %.*s\n", (int)received->uri_path_len, received->uri_path);
+  LOG_DBG("Payload: %.*s\n", (int)received->payload_len, (char *)received->payload);
 
 #ifdef OSCORE_PROXY_MODE
-    if (received->proxy_uri != NULL)
+  if (received->proxy_uri != NULL)
+  {
+    LOG_DBG("Forwarding to next proxy\n");
+    LOG_DBG("Proxy URI: %s\n", received->proxy_uri);
+
+    coap_endpoint_t next_hop;
+    coap_endpoint_parse(received->proxy_uri, received->proxy_uri_len, &next_hop);
+
+    if (!oscore_is_request_protected(received))
     {
-      LOG_DBG("Forwarding to next proxy\n");
-      LOG_DBG("Proxy URI: %s\n", received->proxy_uri);
-
-      coap_endpoint_t next_hop;
-      coap_endpoint_parse(received->proxy_uri, received->proxy_uri_len, &next_hop);
-
-      if (!oscore_is_request_protected(received))
-      {
-        LOG_DBG("Plain CoAP, forwarding original packet\n");
-        proxy_store_state(
-            received->token, received->token_len,
-            received->token, received->token_len, /* forward token == client token */
-            src, NULL);
-        received->proxy_uri = NULL;
-        received->proxy_uri_len = 0;
-        uint8_t fwd_buf[COAP_MAX_PACKET_SIZE];
-        size_t fwd_len = coap_serialize_message(received, fwd_buf);
-        coap_sendto(&next_hop, fwd_buf, fwd_len);
-      }
-      else
-      {
-        LOG_DBG("OSCORE, forwarding payload\n");
-        if (current_len < 4u + (current_buf[0] & 0x0F))
-        {
-          LOG_ERR("Inner packet too short to read token\n");
-          return MANUAL_RESPONSE;
-        }
-        uint8_t forward_token_len = current_buf[0] & 0x0F;
-        uint8_t *forward_token = current_buf + 4;
-
-        LOG_DBG("Forward token: ");
-        LOG_DBG_BYTES(forward_token, forward_token_len);
-        LOG_DBG_("\n");
-
-        proxy_store_state(
-            received->token, received->token_len,
-            forward_token, forward_token_len,
-            src, received->security_context);
-        coap_sendto(&next_hop, current_buf, current_len);
-      }
-
-      return MANUAL_RESPONSE;
+    LOG_DBG("Plain CoAP, forwarding original packet\n");
+    proxy_store_state(
+      received->token, received->token_len,
+      received->token, received->token_len,
+      src, NULL);
+    received->proxy_uri = NULL;
+    received->proxy_uri_len = 0;
+    uint8_t fwd_buf[COAP_MAX_PACKET_SIZE];
+    size_t fwd_len = coap_serialize_message(received, fwd_buf);
+    coap_sendto(&next_hop, fwd_buf, fwd_len);
     }
     else
     {
-      LOG_DBG("Final message received!\n");
-      break;
+    LOG_DBG("OSCORE, forwarding decrypted message\n");
+    
+    uint16_t rand_val = random_rand();
+    uint8_t forward_token[2];
+    forward_token[0] = (uint8_t)(rand_val & 0xFF);
+    forward_token[1] = (uint8_t)(rand_val >> 8);
+    uint8_t forward_token_len = 2;
+
+    LOG_DBG("Forward token: ");
+    LOG_DBG_BYTES(forward_token, forward_token_len);
+    LOG_DBG_("\n");
+
+    proxy_store_state(
+      received->token, received->token_len,
+      forward_token, forward_token_len,
+      src, received->security_context);
+
+    coap_init_message(received, received->type, received->code, received->mid);
+    coap_set_token(received, forward_token, forward_token_len);
+    received->proxy_uri = NULL;
+    received->proxy_uri_len = 0;
+    
+    uint8_t fwd_buf[COAP_MAX_PACKET_SIZE];
+    size_t fwd_len = coap_serialize_message_coap(received, fwd_buf);
+    LOG_DBG("Forwarding %zu bytes to next hop\n", fwd_len);
+    coap_sendto(&next_hop, fwd_buf, fwd_len);
     }
-#endif
+
+    return MANUAL_RESPONSE;
+  }
+  else
+  {
+    LOG_DBG("Final message received!\n");
     break;
+  }
+#endif
+  break;
   }
 
   return status;
