@@ -3,7 +3,7 @@
 #include "oscore-context.h"
 
 typedef struct {
-  const char *next_hop_uri;   /* Proxy-Uri for this layer */
+  const char *forward_to_uri; /* Proxy-Uri to embed in this layer's plaintext */
   oscore_ctx_t *ctx;          /* OSCORE context for this hop */
 } oscore_layer_t;
 

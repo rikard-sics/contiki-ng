@@ -54,11 +54,8 @@
 /* Key material, sender-ID and receiver-ID used for deriving an OSCORE-Security-Context. Note that Sender-ID and Receiver-ID is 
  * mirrored in the Client and Server. */
 uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
-uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40}; 
-// uint8_t sender_id[] = { 0x63, 0x6C, 0x69, 0x65, 0x6E, 0x74 };
-// uint8_t receiver_id[] = { 0x73, 0x65, 0x72, 0x76, 0x65, 0x72 };
-// sender id and receiver id, one for proxy and one for server
-// 0 : client -> proxy    1 : client -> server
+uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40};
+/* sender/receiver IDs: [0] = CTX_C_P (client-proxy), [1] = CTX_C_S (client-server) */
 uint8_t sender_id[2][1] = { {0x08},{0x01} };
 uint8_t receiver_id[2][1] = { {0x09},{0x05} };
 uint8_t id_contexts[2][1] = { {0x09},{0x01} };
@@ -71,17 +68,8 @@ uint8_t id_contexts[2][1] = { {0x09},{0x01} };
 
 #define TOGGLE_INTERVAL 2
 
-/* FIXME: This server address is hard-coded for Cooja and link-local for unconnected border router. */
-// TODO: proxy address?
-// #define SERVER_EP "coap://[fe80::203:0003:0003:0003]" // cooja server
-// #define SERVER_EP "coap://[fd00::212:4b00:14b5:ee10]" // i dont know what server this is
-// #define SERVER_EP "coap://[fd00::1]:5683"
-// #define SERVER_EP "coap://127.0.0.1:5684" // test server
-// #define PROXY_EP "coap://[::1]:5685" // test proxy
-// #define PROXY_EP  "coap://[fe80::202:0002:0002:0002]" // cooja proxy
-//#define PROXY_EP "coap://[fd00::1]:5685" // californium proxy
-
-#define PROXY_EP "coap://[fe80::212:4b00:9df:8ecb]"
+/* Update these addresses to match setup. */
+#define PROXY_EP  "coap://[fe80::212:4b00:9df:8ecb]"
 #define SERVER_EP "coap://[fe80::212:4b00:9df:904f]"
 
 
@@ -121,34 +109,12 @@ PROCESS_THREAD(er_example_client, ev, data)
   static coap_endpoint_t proxy_ep;
   static coap_endpoint_t server_ep;
 
-  coap_endpoint_parse(PROXY_EP, strlen(PROXY_EP), &proxy_ep);      
-
-  // uip_ip6addr(&proxy_ep.ipaddr,
-  //           0, 0, 0, 0, 0, 0xffff,
-  //           0xC0A8, 0x41FE);  // ::ffff:192.168.65.254
-  // proxy_ep.port = UIP_HTONS(5685);
-
-
+  coap_endpoint_parse(PROXY_EP,  strlen(PROXY_EP),  &proxy_ep);
+  coap_endpoint_parse(SERVER_EP, strlen(SERVER_EP), &server_ep);
 
   #ifdef WITH_OSCORE
-  /*Derive an OSCORE-Security-Context. */
-  // TODO: needs to derive context for proxy and server
-  
   oscore_derive_ctx(&proxy_context, master_secret, 16, salt, 8, 10, sender_id[0], 1, receiver_id[0], 1, id_contexts[0], 1);
   oscore_derive_ctx(&server_context, master_secret, 16, salt, 8, 10, sender_id[1], 1, receiver_id[1], 1, id_contexts[1], 1);
-
-  /* Set the association between a remote URL and a security contect. When sending a message the specified context will be used to 
-   * protect the message. Note that this can be done on a resource-by-resource basis. Thus any requests to .well-known/core will not 
-   * be OSCORE protected.*/  
-  oscore_ep_ctx_set_association(&server_ep, service_urls[1], &server_context);
-  oscore_ep_ctx_set_association(&proxy_ep, service_urls[1], &proxy_context);
-  // oscore_ep_ctx_set_association(&server_ep, service_urls[2], &context);
-
-  // static oscore_ctx_t *contexts[2];
-  // contexts[0] = &proxy_context;
-  // contexts[1] = &server_context;
-
-
   #endif /* WITH_OSCORE */
 
   
@@ -175,10 +141,10 @@ PROCESS_THREAD(er_example_client, ev, data)
       static oscore_layer_t layers[2];
       static oscore_path_t client_path;
 
-      layers[0].next_hop_uri = PROXY_EP;     // outer layer
+      layers[0].forward_to_uri = NULL;          /* outermost layer: destination is the CoAP endpoint, no Proxy-Uri */
       layers[0].ctx = &proxy_context;
 
-      layers[1].next_hop_uri = SERVER_EP;    // inner layer
+      layers[1].forward_to_uri = SERVER_EP;    // inner layer
       layers[1].ctx = &server_context;
 
       client_path.layers = layers;
@@ -195,11 +161,6 @@ PROCESS_THREAD(er_example_client, ev, data)
       printf("Target: ");
       LOG_INFO_COAP_EP(&proxy_ep);
       printf("\n");
-
-      printf("num_layers: %d\n", client_path.num_layers);
-oscore_path_t *p = oscore_ep_path_get(&proxy_ep);
-if(p) printf("path num_layers from table: %d\n", p->num_layers);
-else printf("path not found!\n");
 
       COAP_BLOCKING_REQUEST(&proxy_ep, request, client_chunk_handler);
 

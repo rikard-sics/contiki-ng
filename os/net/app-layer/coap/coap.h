@@ -60,6 +60,11 @@
 #define ROLE_COAP 0
 #define ROLE_CONFIDENTIAL 1
 #define ROLE_PROTECTED 2
+/* Used when serializing the plaintext of an outer OSCORE layer in nested
+ * OSCORE.  Like ROLE_CONFIDENTIAL but also includes the OSCORE option and
+ * proxy-related options (Proxy-Uri, Proxy-Scheme, Uri-Host) so that they
+ * are encrypted inside the outer ciphertext rather than left as Class U. */
+#define ROLE_CONFIDENTIAL_NESTED 3
 #endif /* WITH_OSCORE */
 
 /**

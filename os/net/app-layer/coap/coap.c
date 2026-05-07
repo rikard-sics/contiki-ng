@@ -1509,6 +1509,8 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
       LOG_DBG_("Serializing, role COAP\n");
   } else if (role == ROLE_CONFIDENTIAL) {
       LOG_DBG_("Serializing, role CONFIDENTIAL\n");
+  } else if (role == ROLE_CONFIDENTIAL_NESTED) {
+      LOG_DBG_("Serializing, role CONFIDENTIAL_NESTED\n");
   } else if (role == ROLE_PROTECTED){
       LOG_DBG_("Serializing, role PROTECTED\n");
   }
@@ -1547,7 +1549,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
       ++option;
     }
     LOG_DBG_("-\n");
-  } else if(role == ROLE_CONFIDENTIAL) {
+  } else if(role == ROLE_CONFIDENTIAL || role == ROLE_CONFIDENTIAL_NESTED) {
     coap_pkt->buffer[0] = coap_pkt->code;
     option  = coap_pkt->buffer + 1;
   } else {
@@ -1559,16 +1561,16 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
   LOG_DBG_("-Serializing options at %p-\n", option);
 
   /* The options must be serialized in the order of their number */
-  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL) {
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL || role == ROLE_CONFIDENTIAL_NESTED) {
     COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_IF_MATCH, if_match, "If-Match");
   }
- 
-  if(role == ROLE_COAP || role == ROLE_PROTECTED ) {
+
+  if(role == ROLE_COAP || role == ROLE_PROTECTED || role == ROLE_CONFIDENTIAL_NESTED) {
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_URI_HOST, uri_host, '\0',
                                "Uri-Host");
   }
- 
-  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL) {
+
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL || role == ROLE_CONFIDENTIAL_NESTED) {
     COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_ETAG, etag, "ETag");
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_IF_NONE_MATCH,
                               content_format -
@@ -1576,55 +1578,61 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
                               content_format /* hack to get a zero field */,
                               "If-None-Match");
   }
-  if (role == ROLE_COAP || role == ROLE_PROTECTED  ) {
+  if (role == ROLE_COAP || role == ROLE_PROTECTED) {
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_OBSERVE, observe, "Observe");
   }
-  if(role == ROLE_COAP || role == ROLE_PROTECTED ) {
+  if(role == ROLE_COAP || role == ROLE_PROTECTED) {
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_URI_PORT, uri_port, "Uri-Port");
   }
-  
+
   COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_LOCATION_PATH, location_path, '/',
                                "Location-Path");
-  if(role == ROLE_COAP) { 
-    COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OSCORE, object_security, "Object-Security"); //if number = 9
+  /* OSCORE option is Class U in vanilla OSCORE but Class E (encrypted) in
+   * nested OSCORE outer layers, following the escalation rules */
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL_NESTED) {
+    COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OSCORE, object_security, "Object-Security");
   }
-  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL ) {
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL || role == ROLE_CONFIDENTIAL_NESTED) {
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_URI_PATH, uri_path, '/',
                                "Uri-Path");
   }
-  
-  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL) {
+
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL || role == ROLE_CONFIDENTIAL_NESTED) {
     LOG_DBG_("Serialize content format: %d\n", coap_pkt->content_format);
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_CONTENT_FORMAT, content_format,
                             "Content-Format");
   }
-  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL ) {
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL || role == ROLE_CONFIDENTIAL_NESTED) {
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_MAX_AGE, max_age, "Max-Age");
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_URI_QUERY, uri_query, '&',
                                "Uri-Query");
   }
- 
-  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL ) {
+
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL || role == ROLE_CONFIDENTIAL_NESTED) {
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_ACCEPT, accept, "Accept");
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_LOCATION_QUERY, location_query,
                                '&', "Location-Query");
   }
-  
-  if(role == ROLE_COAP ) {
+
+  if(role == ROLE_COAP) {
     COAP_SERIALIZE_BLOCK_OPTION(COAP_OPTION_BLOCK2, block2, "Block2");
     COAP_SERIALIZE_BLOCK_OPTION(COAP_OPTION_BLOCK1, block1, "Block1");
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_SIZE2, size2, "Size2");
+  }
+  /* Proxy-Uri and Proxy-Scheme are Class U in standard OSCORE but Class E in
+   * nested OSCORE outer layers (the proxy reads them after decryption). */
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL_NESTED) {
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_PROXY_URI, proxy_uri, '\0',
                                  "Proxy-Uri");
     COAP_SERIALIZE_STRING_OPTION(COAP_OPTION_PROXY_SCHEME, proxy_scheme, '\0',
                                  "Proxy-Scheme");
+  }
+  if(role == ROLE_COAP) {
     COAP_SERIALIZE_INT_OPTION(COAP_OPTION_SIZE1, size1, "Size1");
-  /*  COAP_SERIALIZE_BYTE_OPTION(COAP_OPTION_OSCORE, object_security, "Object-Security");*/
-
   }
   LOG_DBG_("-Done serializing at %p----\n", option);
 
-  if( role == ROLE_COAP || role == ROLE_CONFIDENTIAL) {
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL || role == ROLE_CONFIDENTIAL_NESTED) {
     /* Pack payload */
     if((option - coap_pkt->buffer) <= COAP_MAX_HEADER_SIZE) {
       /* Payload marker */
@@ -1655,7 +1663,7 @@ oscore_serializer(coap_message_t *coap_pkt, uint8_t *buffer, uint8_t role)
          coap_pkt->buffer[5], coap_pkt->buffer[6], coap_pkt->buffer[7]
          );
 
- if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL) {
+  if(role == ROLE_COAP || role == ROLE_CONFIDENTIAL || role == ROLE_CONFIDENTIAL_NESTED) {
     return (option - buffer) + coap_pkt->payload_len; /* packet length */
   } else { /* ROLE PROTECTED*/
     return (option - buffer);

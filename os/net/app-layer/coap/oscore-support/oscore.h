@@ -99,34 +99,6 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt, uint8_t *buf_a);
 coap_status_t oscore_decode_nested_message(coap_message_t *received, uint8_t *coap_pkt, size_t coap_pkt_len, const coap_endpoint_t *src);
 coap_status_t oscore_decode_nested_response(coap_message_t *received, uint8_t *coap_pkt, size_t coap_pkt_len, const coap_endpoint_t *src);
 
-/* Proxy mode functions */
-// void oscore_set_proxy_mode(bool enabled);
-// bool oscore_is_proxy(void);
-
 coap_status_t oscore_handle_message(coap_message_t *msg, uint8_t *buf, size_t len, const coap_endpoint_t *src);
-
-
-typedef struct {
-    uint8_t  client_token[8];
-    uint8_t  client_token_len;
-    uint8_t  forward_token[8];    
-    uint8_t  forward_token_len;
-    coap_endpoint_t  previous_hop;
-    oscore_ctx_t    *security_ctx;
-    clock_time_t     timestamp;
-    bool             in_use;
-} proxy_state_t;
-
-void proxy_init(void);
-bool proxy_store_state(const uint8_t *client_token,  uint8_t client_token_len,
-                       const uint8_t *forward_token, uint8_t forward_token_len,
-                       const coap_endpoint_t *prev_hop,
-                       oscore_ctx_t *ctx);
-proxy_state_t *proxy_find_state_by_forward_token(const uint8_t *token,
-                                                  uint8_t token_len);
-proxy_state_t* proxy_find_state(const uint8_t *token, uint8_t token_len);
-void proxy_cleanup_state(proxy_state_t *state);
-void proxy_cleanup_expired(void);
-coap_status_t oscore_proxy_encrypt_response(coap_message_t *response, uint8_t *output_buf, size_t len, proxy_state_t *state);
 
 #endif /* _OSCORE_H */

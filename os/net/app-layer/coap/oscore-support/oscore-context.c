@@ -248,8 +248,11 @@ oscore_set_exchange(const uint8_t *token, uint8_t token_len, uint64_t seq, oscor
   new_exchange->seq = seq;
   new_exchange->context = context;
 
-  /* Add to end of the exchange list */
-  list_add(exchange_list, new_exchange);
+  /* Push to the head of the list so the most recently added exchange is found
+   * first by oscore_get_exchange. For nested OSCORE the outer exchange is
+   * registered last (after the inner one) and must be found first when
+   * decrypting the response */
+  list_push(exchange_list, new_exchange);
 
   return true;
 }

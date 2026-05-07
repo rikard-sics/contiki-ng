@@ -291,7 +291,7 @@ coap_status_t oscore_decode_message(coap_message_t *coap_pkt)
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
   uint8_t seq_buffer[CONTEXT_SEQ_LEN];
-  cose_encrypt0_init(cose);
+  cose_encrypt0_init(cose); // inits new cose object
 #ifdef WITH_GROUPCOM
   cose_sign1_t sign[1];
   cose_sign1_init(sign);
@@ -538,14 +538,19 @@ oscore_populate_cose(const coap_message_t *pkt, cose_encrypt0_t *cose, const osc
 #ifdef WITH_GROUPCOM
 uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN + ES256_SIGNATURE_LEN];
 uint8_t sign_encoded_buffer[100]; // TODO come up with a better way to size buffer
-uint8_t option_value_buffer[15];
+uint8_t option_value_buffer[15]; /* When using Group-OSCORE this has to be global. */
 #endif /* WITH_GROUPCOM */
 
-/* Prepares a new OSCORE message, returns the size of the message. */
-size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
+/* plaintext_role selects which options are encrypted.
+ * Use ROLE_CONFIDENTIAL for standard OSCORE, ROLE_CONFIDENTIAL_NESTED when
+ * building the outer layer of nested OSCORE (so that the inner OSCORE option
+ * and proxy-routing options are encrypted inside the outer ciphertext). */
+static size_t
+oscore_prepare_message_role(coap_message_t *coap_pkt, uint8_t *buffer,
+                            uint8_t plaintext_role)
 {
   cose_encrypt0_t cose[1];
-  cose_encrypt0_init(cose); // creates new cose object
+  cose_encrypt0_init(cose);
 
 #ifdef WITH_GROUPCOM
   cose_sign1_t sign[1];
@@ -553,13 +558,12 @@ size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 #endif /*WITH_GROUPCOM*/
 
 #ifndef WITH_GROUPCOM
-  uint8_t option_value_buffer[15]; /* When using Group-OSCORE this has to be global. */
+  uint8_t option_value_buffer[15];
   uint8_t content_buffer[COAP_MAX_CHUNK_SIZE + COSE_algorithm_AES_CCM_16_64_128_TAG_LEN];
 #endif /* not WITH_GROUPCOM */
   uint8_t aad_buffer[35];
   uint8_t nonce_buffer[COSE_algorithm_AES_CCM_16_64_128_IV_LEN];
 
-  /*  1 Retrieve the Sender Context associated with the target resource. */
   oscore_ctx_t *ctx = coap_pkt->security_context;
   if (ctx == NULL)
   {
@@ -567,11 +571,9 @@ size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     return PACKET_SERIALIZATION_ERROR;
   }
 
-  oscore_populate_cose(coap_pkt, cose, coap_pkt->security_context, true);
+  oscore_populate_cose(coap_pkt, cose, ctx, true);
 
-  /* 2 Compose the AAD and the plaintext, as described in Sections 5.3 and 5.4.*/
-  // serialise coap packet into content_buffer ?
-  size_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, ROLE_CONFIDENTIAL);
+  size_t plaintext_len = oscore_serializer(coap_pkt, content_buffer, plaintext_role);
   if (plaintext_len > COAP_MAX_CHUNK_SIZE)
   {
     LOG_ERR("OSCORE Message to large (%zu > %u) to process.\n", plaintext_len, COAP_MAX_CHUNK_SIZE);
@@ -607,6 +609,7 @@ size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     oscore_increment_sender_seq(ctx);
   }
 
+  
   /*4 Encrypt the COSE object using the Sender Key*/
   /*Groupcomm 4.2: The payload of the OSCORE messages SHALL encode the ciphertext of the COSE object
    * concatenated with the value of the CounterSignature0 of the COSE object as in Appendix A.2 of RFC8152
@@ -640,7 +643,7 @@ size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
     cose_encrypt0_set_key_id(cose, ctx->recipient_context.recipient_id, ctx->recipient_context.recipient_id_len);
   }
   // prepare external_aad structure with algs, params, etc. to later populate the sig_structure
-
+  
   nanocbor_encoder_t int_enc;
   nanocbor_encoder_init(&int_enc, aad_buffer, sizeof(aad_buffer));
   if (oscore_prepare_int(ctx, cose, coap_pkt->object_security, coap_pkt->object_security_len, &int_enc) != NANOCBOR_OK)
@@ -660,18 +663,15 @@ size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
   }
   memset(&(content_buffer[ciphertext_len]), 0xAA, 64);
 
-  // printf("SIGNATURE SHOULD GO HERE %p \n", &(content_buffer[ciphertext_len]));
   cose_sign1_set_signature(sign, &(content_buffer[ciphertext_len]));
   cose_sign1_set_ciphertext(sign, sign_encoded_buffer, nanocbor_encoded_len(&sig_enc));
-  /* Queue message to sign */
-  cose_sign1_sign(sign); // don't care about the result, it will be in progress
+  cose_sign1_sign(sign);
 
   coap_set_payload(coap_pkt, content_buffer, total_len);
 #else
   coap_set_payload(coap_pkt, content_buffer, ciphertext_len);
 #endif /* WITH_GROUPCOM */
 
-  /* Overwrite the CoAP code. */
   if (coap_is_request(coap_pkt))
   {
     coap_pkt->code = COAP_POST;
@@ -688,6 +688,12 @@ size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
 #else
   return oscore_serializer(coap_pkt, buffer, ROLE_COAP);
 #endif
+}
+
+/* Prepares a new OSCORE message, returns the size of the message. */
+size_t oscore_prepare_message(coap_message_t *coap_pkt, uint8_t *buffer)
+{
+  return oscore_prepare_message_role(coap_pkt, buffer, ROLE_CONFIDENTIAL);
 }
 
 /* Creates and sets External AAD */
@@ -934,18 +940,7 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
 
 #endif /*WITH_GROUPCOM*/
 
-// nested OSCORE functions
-
-/* Proxy mode flag */
-// static bool is_proxy_mode = false;
-
-// void oscore_set_proxy_mode(bool enabled) {
-//     is_proxy_mode = enabled;
-// }
-
-// bool oscore_is_proxy(void) {
-//     return is_proxy_mode;
-// }
+/* nested OSCORE functions */
 
 size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
                                      uint8_t *buf_a)
@@ -971,10 +966,19 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
   coap_message_t current_msg;
   memcpy(&current_msg, coap_pkt, sizeof(coap_message_t));
 
-  // temporary buffer
-  static uint8_t temp_buf[128];
+  /* Temporary buffer for intermediate OSCORE-protected messages. */
+  static uint8_t temp_buf[COAP_MAX_PACKET_SIZE];
 
-  // start from server(last layer) and work outward
+  /* Apply OSCORE layers in correct order: innermost (server) first, outermost (proxy) last.
+   *
+   * For the innermost layer the message is a plain CoAP
+   * request, so standard ROLE_CONFIDENTIAL is used.
+   *
+   * For every outer layer the message being encrypted is
+   * already an OSCORE-protected CoAP message. Following the option protection
+   * escalation rules, the inner OSCORE option and
+   * proxy-routing options must be Class E (encrypted inside the outer
+   * ciphertext), so ROLE_CONFIDENTIAL_NESTED is used. */
   for (int i = path->num_layers - 1; i >= 0; i--)
   {
     current_msg.security_context = path->layers[i].ctx;
@@ -983,14 +987,20 @@ size_t oscore_prepare_nested_message(coap_message_t *coap_pkt,
     LOG_DBG("    APPLYING OSCORE LAYER %d\n", i);
     LOG_DBG("====================================\n\n");
 
-    // temp_buf stores oscore'd current_msg, which is a coap msg
     uint8_t *target = (i == 0) ? output_buf : temp_buf;
-    len = oscore_prepare_message(&current_msg, target);
+    const bool is_innermost = (i == path->num_layers - 1);
+    uint8_t plaintext_role = is_innermost ? ROLE_CONFIDENTIAL : ROLE_CONFIDENTIAL_NESTED;
+
+    len = oscore_prepare_message_role(&current_msg, target, plaintext_role);
 
     if (i > 0)
     {
+      /* Re-parse the just encrypted message so the next iteration
+       * takes it as its input. Then add the URI to forward to for this hop:
+       * after the outer OSCORE layer is decrypted by the proxy it
+       * will find the Proxy-Uri and know where to forward the inner message. */
       coap_parse_message_no_decrypt(&current_msg, temp_buf, len);
-      coap_set_header_proxy_uri(&current_msg, path->layers[i].next_hop_uri);
+      coap_set_header_proxy_uri(&current_msg, path->layers[i].forward_to_uri);
     }
   }
 
@@ -1003,101 +1013,28 @@ coap_status_t oscore_decode_nested_message(coap_message_t *received,
                        const coap_endpoint_t *src)
 {
   coap_status_t status;
-  uint8_t *current_buf = coap_pkt;
-  size_t current_len = coap_pkt_len;
 
-  while (true)
-  {
   memset(received, 0, sizeof(*received));
 
   LOG_DBG("====================================\n");
   LOG_DBG("Removing OSCORE layer\n");
   LOG_DBG("====================================\n");
 
-  status = coap_parse_message(received, current_buf, current_len);
-  if (status != NO_ERROR)
-  {
+  status = coap_parse_message(received, coap_pkt, coap_pkt_len);
+  if (status != NO_ERROR) {
     LOG_ERR("Status=%u\n", status);
-    break;
+    return status;
   }
 
   LOG_DBG("Code: %d \n", received->code);
   LOG_DBG("URI: %.*s\n", (int)received->uri_path_len, received->uri_path);
   LOG_DBG("Payload: %.*s\n", (int)received->payload_len, (char *)received->payload);
 
-#ifdef OSCORE_PROXY_MODE
-  if (received->proxy_uri != NULL)
-  {
-    LOG_DBG("Forwarding to next proxy\n");
-    LOG_DBG("Proxy URI: %s\n", received->proxy_uri);
-
-    coap_endpoint_t next_hop;
-    coap_endpoint_parse(received->proxy_uri, received->proxy_uri_len, &next_hop);
-
-    if (!oscore_is_request_protected(received))
-    {
-    LOG_DBG("Plain CoAP, forwarding original packet\n");
-    proxy_store_state(
-      received->token, received->token_len,
-      received->token, received->token_len,
-      src, NULL);
-    received->proxy_uri = NULL;
-    received->proxy_uri_len = 0;
-    uint8_t fwd_buf[COAP_MAX_PACKET_SIZE];
-    size_t fwd_len = coap_serialize_message(received, fwd_buf);
-    coap_sendto(&next_hop, fwd_buf, fwd_len);
-    }
-    else
-    {
-    LOG_DBG("OSCORE, forwarding decrypted message\n");
-    
-    uint16_t rand_val = random_rand();
-    uint8_t forward_token[2];
-    forward_token[0] = (uint8_t)(rand_val & 0xFF);
-    forward_token[1] = (uint8_t)(rand_val >> 8);
-    uint8_t forward_token_len = 2;
-
-    LOG_DBG("Forward token: ");
-    LOG_DBG_BYTES(forward_token, forward_token_len);
-    LOG_DBG_("\n");
-
-    proxy_store_state(
-      received->token, received->token_len,
-      forward_token, forward_token_len,
-      src, received->security_context);
-
-    coap_init_message(received, received->type, received->code, received->mid);
-    coap_set_token(received, forward_token, forward_token_len);
-    received->proxy_uri = NULL;
-    received->proxy_uri_len = 0;
-    
-    uint8_t fwd_buf[COAP_MAX_PACKET_SIZE];
-    size_t fwd_len = coap_serialize_message_coap(received, fwd_buf);
-    LOG_DBG("Forwarding %zu bytes to next hop\n", fwd_len);
-    coap_sendto(&next_hop, fwd_buf, fwd_len);
-    }
-
-    return MANUAL_RESPONSE;
-  }
-  else
-  {
-    LOG_DBG("Final message received!\n");
-    break;
-  }
-#endif
-  break;
-  }
-
   return status;
 }
 
 coap_status_t oscore_decode_nested_response(coap_message_t *received, uint8_t *coap_pkt, size_t coap_pkt_len, const coap_endpoint_t *src)
 {
-  coap_status_t status;
-
-  uint8_t *current_buf = coap_pkt;
-  size_t current_len = coap_pkt_len;
-
   oscore_path_t *path = oscore_ep_path_get(src);
 
   LOG_DBG("src: %p\n", (void *)src);
@@ -1105,33 +1042,47 @@ coap_status_t oscore_decode_nested_response(coap_message_t *received, uint8_t *c
 
   if (path == NULL || path->num_layers <= 0 || !path->layers)
   {
-    /* Not nested OSCORE */
-    return coap_parse_message(received, current_buf, current_len);
+    /* Not nested OSCORE, plain parse+decrypt. */
+    return coap_parse_message(received, coap_pkt, coap_pkt_len);
   }
 
-  for (int i = path->num_layers - 1; i >= 0; i--)
+  /* Step 1: parse the buffer from the wire and decrypt the outermost OSCORE layer.
+   * coap_parse_message triggers oscore_decode_message automatically when it
+   * finds an OSCORE option. After this call 'received' holds the plaintext
+   * of the outer layer (code, the inner OSCORE option (escalated to Class E),
+   * and the inner ciphertext) as payload. */
+  LOG_DBG("====================================\n");
+  LOG_DBG("Removing outermost OSCORE layer\n");
+  LOG_DBG("====================================\n");
+  memset(received, 0, sizeof(*received));
+  coap_status_t status = coap_parse_message(received, coap_pkt, coap_pkt_len);
+  if (status != NO_ERROR)
   {
+    LOG_ERR("Outer OSCORE parse/decrypt failed, status=%u\n", status);
+    return status;
+  }
 
-    memset(received, 0, sizeof(*received));
+  /* Step 2: for each remaining inner layer call oscore_decode_message
+   * directly. After Step 1, 'received' has the inner OSCORE option
+   * in object_security and the inner ciphertext in payload, no need to
+   * re-parse buffer. */
+  for (int i = path->num_layers - 2; i >= 0; i--)
+  {
+    LOG_DBG("====================================\n");
+    LOG_DBG("Removing inner OSCORE layer %d\n", i);
+    LOG_DBG("====================================\n");
 
-    LOG_DBG("====================================\n");
-    LOG_DBG("Removing OSCORE layer\n");
-    LOG_DBG("====================================\n");
-    status = coap_parse_message(received, current_buf, current_len);
+    status = oscore_decode_message(received);
     if (status != NO_ERROR)
     {
-      LOG_ERR("Status=%u\n", status);
-      break;
+      LOG_ERR("Inner OSCORE decrypt failed at layer %d, status=%u\n", i, status);
+      return status;
     }
-
-    LOG_DBG("Code: %d \n", received->code);
-    LOG_DBG("URI: %.*s\n", (int)received->uri_path_len, received->uri_path);
-    LOG_DBG("Payload: %.*s\n", (int)received->payload_len, (char *)received->payload);
-
-    current_buf = received->payload;
-    current_len = received->payload_len;
   }
-  return status;
+
+  LOG_DBG("Code: %d\n", received->code);
+  LOG_DBG("Payload: %.*s\n", (int)received->payload_len, (char *)received->payload);
+  return NO_ERROR;
 }
 
 coap_status_t
@@ -1140,157 +1091,9 @@ oscore_handle_message(coap_message_t *msg,
                       size_t len,
                       const coap_endpoint_t *src)
 {
-#ifdef OSCORE_PROXY_MODE
-  LOG_DBG("Token: ");
-  LOG_DBG_BYTES(buf + 4, buf[0] & 0x0F);
-  LOG_DBG_("\n");
-
-  proxy_state_t *state = proxy_find_state_by_forward_token(buf + 4, buf[0] & 0x0F);
-  if (state)
-  {
-    LOG_DBG("Proxy handling response, encrypting only\n");
-    return oscore_proxy_encrypt_response(msg, buf, len, state);
-  }
-#endif
-
 #ifdef OSCORE_CLIENT_MODE
   return oscore_decode_nested_response(msg, buf, len, src);
-#endif
-
+#else
   return oscore_decode_nested_message(msg, buf, len, src);
-}
-
-#ifdef OSCORE_PROXY_MODE
-static proxy_state_t proxy_states[2];
-
-void proxy_init(void)
-{
-  memset(proxy_states, 0, sizeof(proxy_states));
-  LOG_INFO("Proxy state table initialized\n");
-}
-
-bool proxy_store_state(const uint8_t *client_token, uint8_t client_token_len,
-                       const uint8_t *forward_token, uint8_t forward_token_len,
-                       const coap_endpoint_t *prev_hop,
-                       oscore_ctx_t *ctx)
-{
-  if (!client_token || client_token_len == 0 || client_token_len > 8 ||
-      !forward_token || forward_token_len == 0 || forward_token_len > 8 ||
-      !prev_hop)
-  {
-    LOG_ERR("Invalid parameters for proxy_store_state\n");
-    return false;
-  }
-
-  for (int i = 0; i < 1; i++)
-  {
-    if (!proxy_states[i].in_use)
-    {
-      memcpy(proxy_states[i].client_token, client_token, client_token_len);
-      proxy_states[i].client_token_len = client_token_len;
-      memcpy(proxy_states[i].forward_token, forward_token, forward_token_len);
-      proxy_states[i].forward_token_len = forward_token_len;
-      memcpy(&proxy_states[i].previous_hop, prev_hop, sizeof(coap_endpoint_t));
-      proxy_states[i].timestamp = clock_seconds();
-      proxy_states[i].security_ctx = ctx;
-      proxy_states[i].in_use = true;
-      LOG_DBG("Stored proxy state [%d]: client_token_len=%d forward_token_len=%d\n",
-              i, client_token_len, forward_token_len);
-      return true;
-    }
-  }
-
-  LOG_ERR("Proxy state table full!\n");
-  return false;
-}
-
-proxy_state_t *proxy_find_state_by_forward_token(const uint8_t *token,
-                                                 uint8_t token_len)
-{
-  if (!token || token_len == 0)
-    return NULL;
-  for (int i = 0; i < 1; i++)
-  {
-    if (!proxy_states[i].in_use)
-      continue;
-    if (proxy_states[i].forward_token_len != token_len)
-      continue;
-    if (memcmp(proxy_states[i].forward_token, token, token_len) == 0)
-      return &proxy_states[i];
-  }
-  return NULL;
-}
-
-proxy_state_t *proxy_find_state(const uint8_t *token, uint8_t token_len)
-{
-  if (!token || token_len == 0)
-    return NULL;
-  for (int i = 0; i < 1; i++)
-  {
-    if (!proxy_states[i].in_use)
-      continue;
-    if (proxy_states[i].client_token_len != token_len)
-      continue;
-    if (memcmp(proxy_states[i].client_token, token, token_len) == 0)
-      return &proxy_states[i];
-  }
-  return NULL;
-}
-
-coap_status_t oscore_proxy_encrypt_response(coap_message_t *response,
-                                            uint8_t *output_buf,
-                                            size_t len,
-                                            proxy_state_t *state)
-{
-  if (response == NULL || output_buf == NULL)
-    return BAD_REQUEST_4_00;
-
-  LOG_DBG("Proxy handling response\n");
-  LOG_DBG("Response token: ");
-  LOG_DBG_BYTES(response->token, response->token_len);
-  LOG_DBG_("\n");
-
-  if (state->security_ctx == NULL)
-  {
-    LOG_DBG("Response isn't OSCORE protected\n");
-    coap_sendto(&state->previous_hop, output_buf, len);
-    proxy_cleanup_state(state);
-    return MANUAL_RESPONSE;
-  }
-
-  coap_message_t temp_packet;
-  LOG_DBG("Initializing temp_packet type=%d code=%d mid=%d\n",
-          response->type, response->code, response->mid);
-  coap_init_message(&temp_packet, response->type, response->code, response->mid);
-
-  LOG_DBG("Restoring client token: ");
-  LOG_DBG_BYTES(state->client_token, state->client_token_len);
-  LOG_DBG_("\n");
-  coap_set_token(&temp_packet, state->client_token, state->client_token_len);
-
-  LOG_DBG("Setting payload: len=%zu\n", len);
-  coap_set_payload(&temp_packet, output_buf, len);
-
-  temp_packet.security_context = state->security_ctx;
-  size_t length = oscore_prepare_message(&temp_packet, output_buf);
-
-  if (length == 0)
-  {
-    LOG_ERR("Failed to encrypt response\n");
-    return INTERNAL_SERVER_ERROR_5_00;
-  }
-
-  LOG_DBG("Encrypted response, len=%zu\n", length);
-  coap_sendto(&state->previous_hop, output_buf, length);
-  proxy_cleanup_state(state);
-
-  return CHANGED_2_04;
-}
-
-void proxy_cleanup_state(proxy_state_t *state)
-{
-  if (!state)
-    return;
-  memset(state, 0, sizeof(*state));
-}
 #endif
+}

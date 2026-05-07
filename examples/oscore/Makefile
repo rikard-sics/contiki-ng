@@ -1,4 +1,4 @@
-all: oscore-example-server oscore-example-client oscore-plugtest-server oscore-plugtest-client nested-oscore-proxy nested-oscore-client nested-oscore-server
+all: oscore-example-server oscore-example-client oscore-plugtest-server oscore-plugtest-client nested-oscore-client nested-oscore-server
 # use target "oscore-plugtest-server" explicitly when required
 
 CONTIKI=../..
@@ -23,12 +23,9 @@ CONTIKI_TARGET_SOURCEFILES += plugtest_resources.c
 MODULES += os/net/app-layer/coap
 
 nested-oscore-client.$(TARGET): CFLAGS += -DOSCORE_CLIENT_MODE
-nested-oscore-proxy.$(TARGET): CFLAGS += -DOSCORE_PROXY_MODE
 nested-oscore-server.$(TARGET): CFLAGS += -DOSCORE_SERVER_MODE
 
-ifeq ($(MAKE_TARGET_MODE),proxy)
-    CFLAGS += -DOSCORE_PROXY_MODE
-else ifeq ($(MAKE_TARGET_MODE),client)
+ifeq ($(MAKE_TARGET_MODE),client)
     CFLAGS += -DOSCORE_CLIENT_MODE
 endif
 

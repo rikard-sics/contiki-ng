@@ -55,7 +55,7 @@
 #ifdef REST_MAX_CHUNK_SIZE
 #define COAP_MAX_CHUNK_SIZE REST_MAX_CHUNK_SIZE
 #else /* REST_MAX_CHUNK_SIZE */
-#define COAP_MAX_CHUNK_SIZE     256 // TODO: change this back to 64 maybe
+#define COAP_MAX_CHUNK_SIZE     128
 #endif /* REST_MAX_CHUNK_SIZE */
 #endif /* COAP_MAX_CHUNK_SIZE */
 
