@@ -49,11 +49,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include "lib/random.h"
 
-#if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
-/* For OSCORE */
-#include "oscore-association.h"
+#ifdef WITH_OSCORE
+#include "oscore-layer.h"
 #include "coap-endpoint.h"
+#ifdef OSCORE_EP_CTX_ASSOCIATION
+#include "oscore-association.h"
+#endif /* OSCORE_EP_CTX_ASSOCIATION */
 #endif /* WITH_OSCORE */
 
 /* Log configuration */
@@ -168,19 +171,32 @@ coap_send_request(coap_callback_request_state_t *callback_state, coap_endpoint_t
   state->remote_endpoint = endpoint;
   callback_state->callback = callback;
 
-#if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
-  const char *uri;
-  oscore_ctx_t *context = NULL;
-  if(coap_get_header_uri_path(request, &uri)){
-    context = oscore_get_context_from_ep(endpoint, uri);
-    if(context){
-      //TODO maybe an if and random token should be added here
-      static const uint8_t token[2] = {0xA, 0xA};
+#ifdef WITH_OSCORE
+  {
+    uint8_t token[2];
+    token[0] = (uint8_t)random_rand();
+    token[1] = (uint8_t)random_rand();
+    oscore_path_t *nested_path = oscore_ep_path_get(endpoint);
+    if(nested_path != NULL && nested_path->num_layers > 0) {
       coap_set_token(request, token, sizeof(token));
-      coap_set_oscore(request, context);
+      coap_set_option(request, COAP_OPTION_OSCORE);
+      request->dest_ep = endpoint;
     }
-  } else {
-    LOG_WARN("OSCORE: No URI to fetch context from\n");
+#ifdef OSCORE_EP_CTX_ASSOCIATION
+    else {
+      const char *uri;
+      oscore_ctx_t *context = NULL;
+      if(coap_get_header_uri_path(request, &uri)) {
+        context = oscore_get_context_from_ep(endpoint, uri);
+        if(context) {
+          coap_set_token(request, token, sizeof(token));
+          coap_set_oscore(request, context);
+        }
+      } else {
+        LOG_WARN("OSCORE: No URI to fetch context from\n");
+      }
+    }
+#endif /* OSCORE_EP_CTX_ASSOCIATION */
   }
 #endif /* WITH_OSCORE */
 

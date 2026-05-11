@@ -56,9 +56,9 @@
 uint8_t master_secret[16] = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10};
 uint8_t salt[8] = {0x9e, 0x7c, 0xa9, 0x22, 0x23, 0x78, 0x63, 0x40};
 /* sender/receiver IDs: [0] = CTX_C_P (client-proxy), [1] = CTX_C_S (client-server) */
-uint8_t sender_id[2][1] = { {0x08},{0x01} };
-uint8_t receiver_id[2][1] = { {0x09},{0x05} };
-uint8_t id_contexts[2][1] = { {0x09},{0x01} };
+uint8_t sender_id[2][1] = { {0xAA},{0x01} };
+uint8_t receiver_id[2][1] = { {0xAA},{0x05} };
+uint8_t id_contexts[2][1] = { {0xAA},{0x01} };
 #endif /* WITH_OSCORE */
 
 /* Log configuration */
@@ -66,12 +66,13 @@ uint8_t id_contexts[2][1] = { {0x09},{0x01} };
 #define LOG_MODULE "client"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
-#define TOGGLE_INTERVAL 2
+#define TOGGLE_INTERVAL 20
 
 /* Update these addresses to match setup. */
-#define PROXY_EP  "coap://[fe80::212:4b00:9df:8ecb]"
-#define SERVER_EP "coap://[fe80::212:4b00:9df:904f]"
-
+// #define PROXY_EP  "coap://[fe80::212:4b00:9df:8ecb]"
+// #define SERVER_EP "coap://[fe80::212:4b00:9df:904f]"
+#define PROXY_EP "coap://[fd00::1]:5685"
+#define SERVER_EP "coap://[fd00::3]"
 
 PROCESS(er_example_client, "Nested OSCORE Example Client");
 AUTOSTART_PROCESSES(&er_example_client);

@@ -55,10 +55,12 @@
 #define LOG_MODULE "coap"
 #define LOG_LEVEL  LOG_LEVEL_COAP
 
-#if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
-/* For OSCORE */
-#include "oscore-association.h"
+#ifdef WITH_OSCORE
+#include "oscore-layer.h"
 #include "coap-endpoint.h"
+#ifdef OSCORE_EP_CTX_ASSOCIATION
+#include "oscore-association.h"
+#endif /* OSCORE_EP_CTX_ASSOCIATION */
 #endif /* WITH_OSCORE */
 
 /*---------------------------------------------------------------------------*/
@@ -95,22 +97,32 @@ PT_THREAD(coap_blocking_request
   do {
     request->mid = coap_get_mid();
 
-#if defined(WITH_OSCORE) && defined(OSCORE_EP_CTX_ASSOCIATION)
-    const char *uri;
-    oscore_ctx_t *context = NULL;
-    if(coap_get_header_uri_path(request, &uri)){
-      context = oscore_get_context_from_ep(remote_ep, uri);
-      if(context){
-        //TODO maybe an if and random token should be added here
-        //static const uint8_t token[2] = {0xA, 0xA};
-        uint8_t token[2];
-        token[0] = (uint8_t)random_rand();
-        token[1] = (uint8_t)random_rand();
+#ifdef WITH_OSCORE
+    {
+      uint8_t token[2];
+      token[0] = (uint8_t)random_rand();
+      token[1] = (uint8_t)random_rand();
+      oscore_path_t *nested_path = oscore_ep_path_get(remote_ep);
+      if(nested_path != NULL && nested_path->num_layers > 0) {
         coap_set_token(request, token, sizeof(token));
-        coap_set_oscore(request, context);
+        coap_set_option(request, COAP_OPTION_OSCORE);
+        request->dest_ep = remote_ep;
       }
-    } else {
-      LOG_WARN("OSCORE: No URI to fetch context from\n");
+#ifdef OSCORE_EP_CTX_ASSOCIATION
+      else {
+        const char *uri;
+        oscore_ctx_t *context = NULL;
+        if(coap_get_header_uri_path(request, &uri)) {
+          context = oscore_get_context_from_ep(remote_ep, uri);
+          if(context) {
+            coap_set_token(request, token, sizeof(token));
+            coap_set_oscore(request, context);
+          }
+        } else {
+          LOG_WARN("OSCORE: No URI to fetch context from\n");
+        }
+      }
+#endif /* OSCORE_EP_CTX_ASSOCIATION */
     }
 #endif /* WITH_OSCORE */
 

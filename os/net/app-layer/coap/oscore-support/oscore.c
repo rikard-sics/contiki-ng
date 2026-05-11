@@ -85,6 +85,8 @@ oscore_prepare_int(oscore_ctx_t *ctx, cose_encrypt0_t *cose,
                    nanocbor_encoder_t *enc);
 #endif /* WITH_GROUPCOM */
 
+static void oscore_clear_option(coap_message_t *coap_pkt, coap_option_t option);
+
 /*Return 1 if OK, Error code otherwise */
 static bool oscore_validate_sender_seq(oscore_recipient_ctx_t *ctx, const cose_encrypt0_t *cose);
 
@@ -682,6 +684,12 @@ oscore_prepare_message_role(coap_message_t *coap_pkt, uint8_t *buffer,
   }
 
   oscore_clear_options(coap_pkt);
+  if(plaintext_role == ROLE_CONFIDENTIAL_NESTED)
+  {
+    /* Proxy-Uri is already encrypted inside the ciphertext; do not also
+     * include it in the outer layer. */
+    oscore_clear_option(coap_pkt, COAP_OPTION_PROXY_URI);
+  }
 
 #ifdef WITH_GROUPCOM
   return 0;
@@ -807,9 +815,7 @@ void oscore_clear_options(coap_message_t *coap_pkt)
   /* Block2 should be duplicated */
   /* Block1 should be duplicated */
   /* Size2 should be duplicated */
-  /* Proxy-URI should be unprotected */
-  /* Proxy-Scheme should be unprotected */
-  /* Size1 should be duplicated */
+  /* Proxy-Uri/Proxy-Scheme: left visible here for normal OSCORE */
 }
 
 /*Return 1 if OK, Error code otherwise */
