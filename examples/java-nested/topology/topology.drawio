@@ -1,0 +1,28 @@
+<mxfile host="app.diagrams.net" agent="ChatGPT">
+  <diagram id="network-topology" name="Page-1">
+    <mxGraphModel dx="1294" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;strokeColor=#B3B3B3;fillColor=#FAFAFA;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=18;" value="802.15.4 / RPL Lite Network&lt;br&gt;PAN ID: 0xabcd | Channel: 26 | MAC: nullmac | Interface: tun6 (fd00::1)" vertex="1">
+          <mxGeometry height="320" width="1100" x="40" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="client" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCE6F2;strokeColor=#6C8EBF;fontSize=15;spacing=8;" value="&lt;b&gt;Client&lt;/b&gt;&lt;br&gt;&lt;br&gt;Contiki-NG node&lt;br&gt;IPv6: fd00::302:304:506:708&lt;br&gt;Port: 5683" vertex="1">
+          <mxGeometry height="140" width="230" x="54" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="proxy" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FCECCB;strokeColor=#D6B656;fontSize=15;spacing=8;" value="&lt;b&gt;OSCORE-capable Proxy&lt;/b&gt;&lt;br&gt;&lt;br&gt;Java Application&lt;div&gt;IPv6: fd00::1&lt;/div&gt;Port: 5685&lt;br&gt;CoAP proxy endpoint" vertex="1">
+          <mxGeometry height="140" width="230" x="473" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="server" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DDEDD8;strokeColor=#82B366;fontSize=15;spacing=8;" value="&lt;b&gt;OSCORE-capable Server&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;div&gt;Java Application&lt;/div&gt;&lt;div&gt;IPv6: fd00::1&lt;/div&gt;Port: 5675&lt;br&gt;CoAP server endpoint" vertex="1">
+          <mxGeometry height="140" width="230" x="889" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="edge1" edge="1" parent="1" source="client" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=13;" target="proxy" value="CoAP over IPv6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge2" edge="1" parent="1" source="proxy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=2;endArrow=block;endFill=1;fontSize=13;" target="server" value="Forwarded CoAP request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

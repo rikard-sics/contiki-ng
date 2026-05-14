@@ -22,6 +22,8 @@ CONTIKI_TARGET_SOURCEFILES += plugtest_resources.c
 # Include the CoAP implementation
 MODULES += os/net/app-layer/coap
 
+# Target-specific flags only work when building that target in isolation.
+# Use build-nested-client.sh to ensure nested-oscore-client is built correctly.
 nested-oscore-client.$(TARGET): CFLAGS += -DOSCORE_CLIENT_MODE
 nested-oscore-server.$(TARGET): CFLAGS += -DOSCORE_SERVER_MODE
 

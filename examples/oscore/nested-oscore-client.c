@@ -72,7 +72,7 @@ uint8_t id_contexts[2][1] = { {0xAA},{0x01} };
 // #define PROXY_EP  "coap://[fe80::212:4b00:9df:8ecb]"
 // #define SERVER_EP "coap://[fe80::212:4b00:9df:904f]"
 #define PROXY_EP "coap://[fd00::1]:5685"
-#define SERVER_EP "coap://[fd00::3]"
+#define SERVER_EP "coap://[fd00::1]:5675"
 
 PROCESS(er_example_client, "Nested OSCORE Example Client");
 AUTOSTART_PROCESSES(&er_example_client);
@@ -80,13 +80,7 @@ AUTOSTART_PROCESSES(&er_example_client);
 static struct etimer et;
 
 /* Example URIs that can be queried. */
-#define NUMBER_OF_URLS 5 
-/* leading and ending slashes only for demo purposes, get cropped automatically when setting the Uri-Path */
-char *service_urls[NUMBER_OF_URLS] =
-{ ".well-known/core", "test/hello", "battery/", "error/in//path", "oscore/hello/1" };
-#if PLATFORM_HAS_BUTTON
-static int uri_switch = 0;
-#endif
+#define SERVICE_URI "hello/1"
 
 /* This function is will be passed to COAP_BLOCKING_REQUEST() to handle responses. */
 void
@@ -122,11 +116,11 @@ PROCESS_THREAD(er_example_client, ev, data)
 
   etimer_set(&et, TOGGLE_INTERVAL * CLOCK_SECOND);
   
- #if PLATFORM_HAS_BUTTON
+#if PLATFORM_HAS_BUTTON
 #if !PLATFORM_SUPPORTS_BUTTON_HAL
   SENSORS_ACTIVATE(button_sensor);
 #endif
-  LOG_INFO("Press a button to request %s\n", service_urls[uri_switch]);
+  LOG_INFO("Press a button to request %s\n", SERVICE_URI);
 #endif /* PLATFORM_HAS_BUTTON */
 
   while(1) {
@@ -137,7 +131,7 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       /* prepare request, TID is set by COAP_BLOCKING_REQUEST() */
       coap_init_message(request, COAP_TYPE_NON, COAP_GET, 0);
-      coap_set_header_uri_path(request, service_urls[1]);
+      coap_set_header_uri_path(request, SERVICE_URI);
 
       static oscore_layer_t layers[2];
       static oscore_path_t client_path;
@@ -155,9 +149,8 @@ PROCESS_THREAD(er_example_client, ev, data)
 
       oscore_ep_path_set(&proxy_ep, &client_path);
 
-      const char msg[] = "Toggle!";
-
-      coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
+      // const char msg[] = "Toggle!";
+      // coap_set_payload(request, (uint8_t *)msg, sizeof(msg) - 1);
 
       printf("Target: ");
       LOG_INFO_COAP_EP(&proxy_ep);
@@ -179,9 +172,9 @@ PROCESS_THREAD(er_example_client, ev, data)
       /* send a request to notify the end of the process */
 
       coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
-      coap_set_header_uri_path(request, service_urls[uri_switch]);
+      coap_set_header_uri_path(request, SERVICE_URI);
 
-      printf("--Requesting %s--\n", service_urls[uri_switch]);
+      printf("--Requesting %s--\n", SERVICE_URI);
 
       LOG_INFO_COAP_EP(&server_ep);
       LOG_INFO_("\n");
@@ -190,8 +183,6 @@ PROCESS_THREAD(er_example_client, ev, data)
                             client_chunk_handler);
 
       printf("\n--Done--\n");
-
-      uri_switch = (uri_switch + 1) % NUMBER_OF_URLS;
 #endif /* PLATFORM_HAS_BUTTON */
     }
   }

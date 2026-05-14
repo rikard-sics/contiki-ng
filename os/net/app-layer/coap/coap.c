@@ -1680,7 +1680,9 @@ coap_status_t oscore_parser(coap_message_t *coap_pkt, uint8_t *data,
   } else if (role == ROLE_CONFIDENTIAL) {
     original_buffer = coap_pkt->buffer;
     coap_pkt->buffer = data;
-  } 
+    coap_pkt->payload = NULL;
+    coap_pkt->payload_len = 0;
+  }
   /* pointer to packet bytes */
 
   if(role == ROLE_COAP){
